@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Usage and setup questions
+    url: https://github.com/ddtcorex/govard/discussions
+    about: Ask for help using Govard in GitHub Discussions.
+  - name: Security vulnerabilities
+    url: https://github.com/ddtcorex/govard/security/advisories
+    about: Report vulnerabilities privately.

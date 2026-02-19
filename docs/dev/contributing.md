@@ -328,8 +328,10 @@ GitHub Actions in `.github/workflows/`:
   - `Integration Tests`: `make test-integration-ci`
   - `Build Binaries`: `make build`
   
-- **release.yml**: Triggered on version tags (`v*`)
-  - Uses GoReleaser
+- **release.yml**: Triggered on semantic version tags (`v*.*.*`)
+  - Uses GoReleaser with `.goreleaser.yml`
+- **codeql.yml**: Weekly + PR security scanning for Go and workflow files
+- **govulncheck.yml**: Weekly Go vulnerability scan (SARIF upload)
 
 ### Troubleshooting CI Locally
 
@@ -375,10 +377,15 @@ Common fixes:
 
 ## Release Process
 
-1. Update version in `internal/cmd/root.go`
-2. Tag release: `git tag v1.x.x`
-3. Push tags: `git push origin v1.x.x`
-4. GitHub Actions automatically builds and releases
+1. Ensure tests pass (`make test-fast` minimum).
+2. Create release tag: `git tag -a v1.x.x -m "Govard v1.x.x"`.
+3. Push tag: `git push origin v1.x.x`.
+4. GitHub Actions `release.yml` runs GoReleaser and publishes artifacts.
+
+Notes:
+
+- Release binaries inject the git tag into `govard version` via GoReleaser `ldflags`.
+- `.goreleaser.yml` is the source of truth for build/archive settings.
 
 ## Submitting Changes
 

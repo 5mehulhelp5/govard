@@ -1,0 +1,43 @@
+version: 2
+
+project_name: govard
+
+builds:
+  - id: govard
+    main: ./cmd/govard/main.go
+    binary: govard
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X govard/internal/cmd.Version={{ .Version }}
+
+archives:
+  - id: govard-archive
+    ids:
+      - govard
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{- title .Os }}_{{ .Arch }}
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  use: github
+  sort: asc
+
+release:
+  footer: |
+    Automated release by GoReleaser.
