@@ -27,7 +27,27 @@
 
 ## 🛠️ Installation
 
-### Install from Source (Linux/macOS)
+### Quick Install (Linux/macOS)
+
+Ensure you have Go 1.24+ installed, then run:
+
+```bash
+go version
+git clone https://github.com/ddtcorex/govard.git
+cd govard
+./scripts/install.sh
+```
+
+By default this installs `govard` to `/usr/local/bin` and uses `sudo` when needed.
+
+Options:
+
+```bash
+./scripts/install.sh --local            # install to ~/.local/bin
+./scripts/install.sh --dir "$HOME/bin"  # custom install directory
+```
+
+### Install from Source (Manual)
 
 Ensure you have Go 1.24+ installed:
 
