@@ -1,0 +1,74 @@
+package tests
+
+import (
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"testing"
+)
+
+func TestNginxTemplatesIncludeXdebugRouting(t *testing.T) {
+	templateFiles := []string{
+		"cakephp.conf",
+		"default.conf",
+		"drupal.conf",
+		"laravel.conf",
+		"magento1.conf",
+		"magento2.conf",
+		"shopware.conf",
+		"symfony.conf",
+		"wordpress.conf",
+	}
+
+	for _, name := range templateFiles {
+		content := readTemplateFile(t, name)
+
+		if !strings.Contains(content, "XDEBUG_SESSION=") {
+			t.Fatalf("Expected Xdebug routing in %s", name)
+		}
+		if !strings.Contains(content, "php_debug_backend") {
+			t.Fatalf("Expected php_debug_backend in %s", name)
+		}
+	}
+}
+
+func TestMagento2TemplateHasLiveReloadRoute(t *testing.T) {
+	content := readTemplateFile(t, "magento2.conf")
+
+	if !strings.Contains(content, "location = /livereload.js") {
+		t.Fatalf("Expected /livereload.js route in magento2.conf")
+	}
+	if !strings.Contains(content, "proxy_pass http://php:35729/livereload.js") {
+		t.Fatalf("Expected livereload proxy_pass in magento2.conf")
+	}
+}
+
+func TestHybridTemplateProxiesToApache(t *testing.T) {
+	content := readTemplateFile(t, "hybrid.conf")
+
+	if !strings.Contains(content, "set $apache_backend apache;") {
+		t.Fatalf("Expected hybrid template to define apache backend variable")
+	}
+	if !strings.Contains(content, "proxy_pass http://$apache_backend:80;") {
+		t.Fatalf("Expected hybrid template to proxy requests to apache")
+	}
+	if !strings.Contains(content, "location = /livereload.js") {
+		t.Fatalf("Expected /livereload.js route in hybrid.conf")
+	}
+}
+
+func readTemplateFile(t *testing.T, name string) string {
+	t.Helper()
+
+	_, filename, _, _ := runtime.Caller(0)
+	projectRoot := filepath.Join(filepath.Dir(filename), "..")
+	templatePath := filepath.Join(projectRoot, "docker", "nginx", "etc", "templates", name)
+
+	content, err := os.ReadFile(templatePath)
+	if err != nil {
+		t.Fatalf("Failed to read template %s: %v", name, err)
+	}
+
+	return string(content)
+}

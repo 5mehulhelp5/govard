@@ -1,0 +1,13 @@
+FROM httpd:2.4.66-alpine
+
+RUN apk add --no-cache bash gettext shadow
+
+COPY etc/httpd.conf /usr/local/apache2/conf/httpd.conf
+COPY etc/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+WORKDIR /var/www/html
+EXPOSE 80
+
+ENTRYPOINT ["entrypoint.sh"]
+CMD ["httpd-foreground"]

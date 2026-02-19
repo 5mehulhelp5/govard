@@ -1,0 +1,185 @@
+package cmd
+
+import (
+	"fmt"
+	"govard/internal/engine"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/pterm/pterm"
+	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
+)
+
+var initCmd = &cobra.Command{
+	Use:   "init",
+	Short: "Initialize a new project configuration",
+	Run: func(cmd *cobra.Command, args []string) {
+		pterm.DefaultHeader.Println("Govard Initialization")
+
+		fmt.Println("🔍 Detecting project framework...")
+		cwd, _ := os.Getwd()
+		existingConfig, hasExistingConfig := loadExistingInitConfig(cwd)
+		metadata := engine.DetectFramework(cwd)
+		if initRecipe != "" {
+			metadata.Framework = strings.ToLower(initRecipe)
+		}
+		if initFrameworkVersion != "" {
+			metadata.Version = initFrameworkVersion
+		}
+		if metadata.Framework == "" || metadata.Framework == "generic" {
+			pterm.Warning.Println("Could not detect framework confidently. Falling back to custom recipe defaults.")
+			metadata.Framework = "custom"
+			metadata.Version = ""
+		}
+
+		if metadata.Version != "" {
+			pterm.Success.Printf("Detected Framework: %s (%s)\n", strings.Title(metadata.Framework), metadata.Version)
+		} else {
+			pterm.Success.Printf("Detected Framework: %s\n", strings.Title(metadata.Framework))
+		}
+
+		profileResult, err := engine.ResolveRuntimeProfile(metadata.Framework, metadata.Version)
+		if err != nil {
+			pterm.Error.Printf("Could not resolve runtime profile: %v\n", err)
+			return
+		}
+
+		webServer := profileResult.Profile.WebServer
+		search := profileResult.Profile.Search
+		cache := profileResult.Profile.Cache
+		queue := profileResult.Profile.Queue
+		dbType := profileResult.Profile.DBType
+		dbVersion := profileResult.Profile.DBVersion
+		phpVersion := profileResult.Profile.PHPVersion
+		nodeVersion := profileResult.Profile.NodeVersion
+		xdebugSession := profileResult.Profile.XdebugSession
+		webRoot := profileResult.Profile.WebRoot
+		enableVarnish := false
+
+		if metadata.Framework == "custom" {
+			pterm.Info.Println("Customize your stack services for the custom recipe.")
+			if webRoot == "" {
+				webRoot = "/public"
+			}
+			webServer = selectOption("Web server", []string{"nginx", "apache", "hybrid"}, webServer)
+			cache = selectOption("Cache service", []string{"none", "redis", "valkey"}, cache)
+			search = selectOption("Search service", []string{"none", "opensearch", "elasticsearch"}, search)
+			queue = selectOption("Queue service", []string{"none", "rabbitmq"}, queue)
+
+			dbType = selectOption("Database", []string{"mariadb", "mysql", "none"}, dbType)
+			switch dbType {
+			case "mysql":
+				dbVersion = textInput("MySQL version", "8.4")
+			case "mariadb":
+				dbVersion = textInput("MariaDB version", dbVersion)
+			default:
+				dbVersion = ""
+			}
+
+			phpVersion = textInput("PHP version", phpVersion)
+			nodeVersion = textInput("Node.js version", nodeVersion)
+			webRoot = textInput("Web root (e.g. /public, leave empty for project root)", webRoot)
+			xdebugSession = textInput("Xdebug session cookie value", xdebugSession)
+			enableVarnish, _ = pterm.DefaultInteractiveConfirm.WithDefaultValue(false).Show("Enable Varnish?")
+		}
+
+		config := engine.Config{
+			ProjectName:      filepath.Base(cwd),
+			Recipe:           metadata.Framework,
+			FrameworkVersion: metadata.Version,
+			Domain:           fmt.Sprintf("%s.test", filepath.Base(cwd)),
+			Stack: engine.Stack{
+				PHPVersion:    phpVersion,
+				NodeVersion:   nodeVersion,
+				DBType:        dbType,
+				DBVersion:     dbVersion,
+				WebRoot:       webRoot,
+				XdebugSession: xdebugSession,
+				Services: engine.Services{
+					WebServer: webServer,
+					Search:    search,
+					Cache:     cache,
+					Queue:     queue,
+				},
+				Features: engine.Features{
+					Xdebug:  true,
+					Varnish: enableVarnish,
+				},
+			},
+		}
+		if config.Stack.DBType == "none" {
+			config.Stack.DBVersion = ""
+		}
+		if hasExistingConfig {
+			config.Remotes = existingConfig.Remotes
+			config.Hooks = existingConfig.Hooks
+		}
+		engine.NormalizeConfig(&config)
+		writableConfig := engine.PrepareConfigForWrite(config)
+
+		data, err := yaml.Marshal(&writableConfig)
+		if err != nil {
+			pterm.Error.Printf("Failed to marshal %s: %v\n", engine.BaseConfigFile, err)
+			return
+		}
+		if err := os.WriteFile(engine.BaseConfigFile, data, 0644); err != nil {
+			pterm.Error.Printf("Failed to write %s: %v\n", engine.BaseConfigFile, err)
+			return
+		}
+		pterm.Success.Println("✅ Generated govard.yml")
+
+		if err := engine.RenderBlueprint(cwd, config); err != nil {
+			pterm.Warning.Printf("Failed to render compose file: %v\n", err)
+			pterm.Info.Println("You can retry compose rendering later via `govard up`.")
+			return
+		}
+		composePath := engine.ComposeFilePath(cwd, config.ProjectName)
+		pterm.Success.Printf("✅ Rendered compose file at %s\n", composePath)
+	},
+}
+
+func loadExistingInitConfig(cwd string) (engine.Config, bool) {
+	configPath := filepath.Join(cwd, engine.BaseConfigFile)
+	if _, err := os.Stat(configPath); err != nil {
+		return engine.Config{}, false
+	}
+	existing, err := engine.LoadBaseConfigFromDir(cwd, true)
+	if err != nil {
+		pterm.Warning.Printf("Could not load existing %s for merge: %v\n", engine.BaseConfigFile, err)
+		return engine.Config{}, false
+	}
+	return existing, true
+}
+
+var (
+	initRecipe           string
+	initFrameworkVersion string
+)
+
+func init() {
+	initCmd.Flags().StringVarP(&initRecipe, "recipe", "r", "", "Override detected framework (e.g., magento2)")
+	initCmd.Flags().StringVar(&initFrameworkVersion, "framework-version", "", "Override detected framework version (e.g., 11)")
+}
+
+func selectOption(title string, options []string, defaultOption string) string {
+	printer := pterm.DefaultInteractiveSelect.WithOptions(options)
+	if defaultOption != "" {
+		printer = printer.WithDefaultOption(defaultOption)
+	}
+	result, err := printer.Show(title)
+	if err != nil || result == "" {
+		return defaultOption
+	}
+	return result
+}
+
+func textInput(title string, defaultValue string) string {
+	printer := pterm.DefaultInteractiveTextInput.WithDefaultValue(defaultValue)
+	result, err := printer.Show(title)
+	if err != nil {
+		return defaultValue
+	}
+	return result
+}

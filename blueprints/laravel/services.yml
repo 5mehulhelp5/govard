@@ -1,0 +1,10 @@
+services:
+  queue:
+    image: govard/php:{{ .Config.Stack.PHPVersion }}
+    volumes:
+      - .:/var/www/html
+    command: php artisan queue:work --sleep=3 --tries=3
+    networks:
+      - govard-net
+    depends_on:
+      - db

@@ -1,0 +1,42 @@
+# Next.js Docker Compose configuration
+# This is the main Docker Compose file for Next.js projects
+
+{{ $cache := .Config.Stack.Services.Cache }}
+{{ $cacheVersion := .Config.Stack.CacheVersion }}
+{{ $queue := .Config.Stack.Services.Queue }}
+{{ $queueVersion := .Config.Stack.QueueVersion }}
+
+services:
+  web:
+    image: node:{{ .Config.Stack.NodeVersion }}-alpine
+    working_dir: /app
+    user: root
+    volumes:
+      - .:/app
+    command: npm run dev -- --hostname 0.0.0.0 --port 80
+    environment:
+      - NODE_ENV=development
+      - PORT=80
+    networks:
+      - govard-net
+      - govard-proxy
+
+  {{ if or (eq $cache "redis") (eq $cache "valkey") }}
+  redis:
+    image: {{ if eq $cache "valkey" }}valkey/valkey:{{ $cacheVersion }}{{ else }}redis:{{ $cacheVersion }}-alpine{{ end }}
+    networks:
+      - govard-net
+    {{ end }}
+
+  {{ if eq $queue "rabbitmq" }}
+  rabbitmq:
+    image: rabbitmq:{{ $queueVersion }}-management-alpine
+    networks:
+      - govard-net
+    {{ end }}
+
+networks:
+  govard-net:
+    driver: bridge
+  govard-proxy:
+    external: true

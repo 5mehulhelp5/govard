@@ -1,0 +1,6 @@
+{
+  "name": "fixtures/magento2-clone-basic",
+  "require": {
+    "magento/product-community-edition": "2.4.8"
+  }
+}

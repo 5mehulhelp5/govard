@@ -1,0 +1,481 @@
+package proxy
+
+import (
+	"encoding/json"
+	"fmt"
+	"os/exec"
+	"reflect"
+	"strings"
+)
+
+func RegisterDomain(domain string, targetContainer string) error {
+	proxyContainer := "proxy-caddy-1"
+	config, err := fetchCaddyConfig(proxyContainer)
+	if err != nil || len(config) == 0 {
+		if err := initCaddy(proxyContainer); err != nil {
+			return err
+		}
+		config, err = fetchCaddyConfig(proxyContainer)
+		if err != nil {
+			return err
+		}
+	}
+
+	changed := ensureTLSConfig(config)
+	if upsertDomainRoute(config, domain, targetContainer) {
+		changed = true
+	}
+	if !changed {
+		return nil
+	}
+	return loadCaddyConfig(proxyContainer, config)
+}
+
+func UnregisterDomain(domain string) error {
+	proxyContainer := "proxy-caddy-1"
+	config, err := fetchCaddyConfig(proxyContainer)
+	if err != nil {
+		return nil
+	}
+
+	if !removeDomainRoute(config, domain) {
+		return nil
+	}
+	return loadCaddyConfig(proxyContainer, config)
+}
+
+func EnsureTLS() error {
+	proxyContainer := "proxy-caddy-1"
+
+	config, err := fetchCaddyConfig(proxyContainer)
+	if err != nil || len(config) == 0 {
+		return initCaddy(proxyContainer)
+	}
+
+	changed := ensureTLSConfig(config)
+	if !changed {
+		return nil
+	}
+
+	return loadCaddyConfig(proxyContainer, config)
+}
+
+func fetchCaddyConfig(container string) (map[string]interface{}, error) {
+	getCmd := exec.Command("docker", "exec", "-i", container, "curl", "-s", "http://localhost:2019/config/")
+	output, err := getCmd.CombinedOutput()
+	if err != nil {
+		return nil, err
+	}
+	if len(output) == 0 {
+		return map[string]interface{}{}, nil
+	}
+
+	var config map[string]interface{}
+	if err := json.Unmarshal(output, &config); err != nil {
+		return nil, err
+	}
+	if config == nil {
+		config = map[string]interface{}{}
+	}
+	return config, nil
+}
+
+func loadCaddyConfig(container string, config map[string]interface{}) error {
+	payload, err := json.Marshal(config)
+	if err != nil {
+		return err
+	}
+
+	loadCmd := exec.Command("docker", "exec", "-i", container, "curl", "-s", "-X", "POST",
+		"http://localhost:2019/load",
+		"-H", "Content-Type: application/json",
+		"-d", string(payload))
+	if output, err := loadCmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("caddy load failed: %v, output: %s", err, strings.TrimSpace(string(output)))
+	}
+	return nil
+}
+
+func upsertDomainRoute(config map[string]interface{}, domain string, targetContainer string) bool {
+	changed := false
+	apps := getOrCreateMap(config, "apps", &changed)
+	http := getOrCreateMap(apps, "http", &changed)
+	servers := getOrCreateMap(http, "servers", &changed)
+	srv0 := getOrCreateMap(servers, "srv0", &changed)
+
+	dial := targetContainer
+	if !strings.Contains(dial, ":") {
+		dial = fmt.Sprintf("%s:80", dial)
+	}
+
+	routeID := routeIDForDomain(domain)
+	desiredRoute := map[string]interface{}{
+		"@id": routeID,
+		"match": []interface{}{
+			map[string]interface{}{
+				"host": []interface{}{domain},
+			},
+		},
+		"handle": []interface{}{
+			map[string]interface{}{
+				"handler": "reverse_proxy",
+				"upstreams": []interface{}{
+					map[string]interface{}{"dial": dial},
+				},
+			},
+		},
+		"terminal": true,
+	}
+
+	routes, _ := srv0["routes"].([]interface{})
+	if routes == nil {
+		routes = []interface{}{}
+		changed = true
+	}
+
+	newRoutes := make([]interface{}, 0, len(routes)+1)
+	inserted := false
+	for _, route := range routes {
+		routeMap, ok := route.(map[string]interface{})
+		if !ok {
+			newRoutes = append(newRoutes, route)
+			continue
+		}
+		if !routeMatchesDomain(routeMap, domain, routeID) {
+			newRoutes = append(newRoutes, route)
+			continue
+		}
+
+		if !inserted {
+			if !reflect.DeepEqual(routeMap, desiredRoute) {
+				changed = true
+			}
+			newRoutes = append(newRoutes, desiredRoute)
+			inserted = true
+		} else {
+			changed = true
+		}
+	}
+
+	if !inserted {
+		newRoutes = append(newRoutes, desiredRoute)
+		changed = true
+	}
+
+	srv0["routes"] = newRoutes
+	servers["srv0"] = srv0
+	http["servers"] = servers
+	apps["http"] = http
+	config["apps"] = apps
+	return changed
+}
+
+func removeDomainRoute(config map[string]interface{}, domain string) bool {
+	apps, ok := config["apps"].(map[string]interface{})
+	if !ok {
+		return false
+	}
+	http, ok := apps["http"].(map[string]interface{})
+	if !ok {
+		return false
+	}
+	servers, ok := http["servers"].(map[string]interface{})
+	if !ok {
+		return false
+	}
+	srv0, ok := servers["srv0"].(map[string]interface{})
+	if !ok {
+		return false
+	}
+
+	routes, ok := srv0["routes"].([]interface{})
+	if !ok {
+		return false
+	}
+
+	routeID := routeIDForDomain(domain)
+	filtered := make([]interface{}, 0, len(routes))
+	changed := false
+	for _, route := range routes {
+		routeMap, ok := route.(map[string]interface{})
+		if !ok {
+			filtered = append(filtered, route)
+			continue
+		}
+		if routeMatchesDomain(routeMap, domain, routeID) {
+			changed = true
+			continue
+		}
+		filtered = append(filtered, route)
+	}
+	if !changed {
+		return false
+	}
+
+	srv0["routes"] = filtered
+	servers["srv0"] = srv0
+	http["servers"] = servers
+	apps["http"] = http
+	config["apps"] = apps
+	return true
+}
+
+func routeIDForDomain(domain string) string {
+	safe := strings.NewReplacer(".", "_", "-", "_", ":", "_").Replace(domain)
+	return "govard_route_" + safe
+}
+
+func routeMatchesDomain(route map[string]interface{}, domain string, routeID string) bool {
+	if id, ok := route["@id"].(string); ok && id == routeID {
+		return true
+	}
+
+	matches, ok := route["match"].([]interface{})
+	if !ok {
+		return false
+	}
+	for _, matchRaw := range matches {
+		match, ok := matchRaw.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		hosts, ok := match["host"].([]interface{})
+		if !ok {
+			continue
+		}
+		for _, hostRaw := range hosts {
+			if host, ok := hostRaw.(string); ok && host == domain {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func ensureTLSConfig(config map[string]interface{}) bool {
+	changed := false
+
+	apps := getOrCreateMap(config, "apps", &changed)
+	http := getOrCreateMap(apps, "http", &changed)
+	servers := getOrCreateMap(http, "servers", &changed)
+	srv0 := getOrCreateMap(servers, "srv0", &changed)
+
+	listenVal, ok := srv0["listen"]
+	var listen []interface{}
+	if ok {
+		if l, ok := listenVal.([]interface{}); ok {
+			listen = l
+		}
+	}
+	if listen == nil {
+		listen = []interface{}{":80", ":443"}
+		changed = true
+	} else {
+		if !stringSliceContains(listen, ":80") {
+			listen = append(listen, ":80")
+			changed = true
+		}
+		if !stringSliceContains(listen, ":443") {
+			listen = append(listen, ":443")
+			changed = true
+		}
+	}
+	srv0["listen"] = listen
+
+	routesVal, ok := srv0["routes"]
+	if ok {
+		if routes, ok := routesVal.([]interface{}); ok {
+			filtered := make([]interface{}, 0, len(routes))
+			for _, r := range routes {
+				if isDefaultFileServerRoute(r) {
+					changed = true
+					continue
+				}
+				filtered = append(filtered, r)
+			}
+			srv0["routes"] = filtered
+		}
+	}
+
+	tls := getOrCreateMap(apps, "tls", &changed)
+	automation := getOrCreateMap(tls, "automation", &changed)
+
+	policiesVal, ok := automation["policies"]
+	var policies []interface{}
+	if ok {
+		if p, ok := policiesVal.([]interface{}); ok {
+			policies = p
+		}
+	}
+
+	policies, changed = ensurePolicySubject(policies, "*.test", changed)
+	policies, changed = ensurePolicySubject(policies, "*.govard.test", changed)
+
+	if policies == nil {
+		policies = []interface{}{}
+	}
+	automation["policies"] = policies
+	tls["automation"] = automation
+	apps["tls"] = tls
+	config["apps"] = apps
+
+	return changed
+}
+
+func getOrCreateMap(parent map[string]interface{}, key string, changed *bool) map[string]interface{} {
+	val, ok := parent[key]
+	if ok {
+		if m, ok := val.(map[string]interface{}); ok {
+			return m
+		}
+	}
+	m := map[string]interface{}{}
+	parent[key] = m
+	*changed = true
+	return m
+}
+
+func stringSliceContains(values []interface{}, target string) bool {
+	for _, v := range values {
+		if s, ok := v.(string); ok && s == target {
+			return true
+		}
+	}
+	return false
+}
+
+func policyIncludesSubject(policies []interface{}, subject string) bool {
+	for _, p := range policies {
+		policy, ok := p.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		subjects, ok := policy["subjects"].([]interface{})
+		if !ok {
+			continue
+		}
+		for _, s := range subjects {
+			if str, ok := s.(string); ok && str == subject {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func ensurePolicySubject(policies []interface{}, subject string, changed bool) ([]interface{}, bool) {
+	if policyIncludesSubject(policies, subject) {
+		return policies, changed
+	}
+	policy := map[string]interface{}{
+		"subjects": []interface{}{subject},
+		"issuers": []interface{}{
+			map[string]interface{}{
+				"module": "internal",
+			},
+		},
+	}
+	policies = append(policies, policy)
+	return policies, true
+}
+
+// EnsureTLSConfigForTest exposes TLS config normalization for tests.
+func EnsureTLSConfigForTest(config map[string]interface{}) bool {
+	return ensureTLSConfig(config)
+}
+
+// PolicyIncludesSubjectForTest exposes policy lookup for tests.
+func PolicyIncludesSubjectForTest(policies []interface{}, subject string) bool {
+	return policyIncludesSubject(policies, subject)
+}
+
+// StringSliceContainsForTest exposes string slice lookup for tests.
+func StringSliceContainsForTest(values []interface{}, target string) bool {
+	return stringSliceContains(values, target)
+}
+
+// UpsertDomainRouteForTest exposes domain route upsert behavior for tests.
+func UpsertDomainRouteForTest(config map[string]interface{}, domain string, targetContainer string) bool {
+	return upsertDomainRoute(config, domain, targetContainer)
+}
+
+// RemoveDomainRouteForTest exposes domain route removal behavior for tests.
+func RemoveDomainRouteForTest(config map[string]interface{}, domain string) bool {
+	return removeDomainRoute(config, domain)
+}
+
+func isDefaultFileServerRoute(route interface{}) bool {
+	routeMap, ok := route.(map[string]interface{})
+	if !ok {
+		return false
+	}
+	if _, ok := routeMap["match"]; ok {
+		return false
+	}
+	handleVal, ok := routeMap["handle"]
+	if !ok {
+		return false
+	}
+	handlers, ok := handleVal.([]interface{})
+	if !ok || len(handlers) < 2 {
+		return false
+	}
+	first, ok := handlers[0].(map[string]interface{})
+	if !ok {
+		return false
+	}
+	if first["handler"] != "vars" {
+		return false
+	}
+	if root, ok := first["root"]; !ok || root != "/usr/share/caddy" {
+		return false
+	}
+	second, ok := handlers[1].(map[string]interface{})
+	if !ok {
+		return false
+	}
+	return second["handler"] == "file_server"
+}
+
+func initCaddy(container string) error {
+	// Wipe existing config and set basic structure to ensure srv0 exists without default routes
+	initJSON := `{
+		"apps": {
+			"http": {
+				"servers": {
+					"srv0": {
+						"listen": [":80", ":443"],
+						"routes": []
+					}
+				}
+			},
+			"tls": {
+				"automation": {
+					"policies": [
+						{
+							"subjects": ["*.test"],
+							"issuers": [
+								{
+									"module": "internal"
+								}
+							]
+						},
+						{
+							"subjects": ["*.govard.test"],
+							"issuers": [
+								{
+									"module": "internal"
+								}
+							]
+						}
+					]
+				}
+			}
+		}
+	}`
+	cmd := exec.Command("docker", "exec", "-i", container, "curl", "-s", "-X", "POST",
+		"http://localhost:2019/load",
+		"-H", "Content-Type: application/json",
+		"-d", initJSON)
+	return cmd.Run()
+}

@@ -1,0 +1,149 @@
+package cmd
+
+import (
+	"fmt"
+	"govard/internal/engine"
+	"govard/internal/proxy"
+	"os"
+	"os/exec"
+	"strconv"
+	"strings"
+
+	"github.com/pterm/pterm"
+	"github.com/spf13/cobra"
+)
+
+var (
+	downRemoveOrphans bool
+	downVolumes       bool
+	downRMI           string
+	downTimeout       int
+)
+
+type downOptions struct {
+	RemoveOrphans bool
+	Volumes       bool
+	RMI           string
+	Timeout       int
+}
+
+var downCmd = &cobra.Command{
+	Use:   "down",
+	Short: "Tear down project containers and networks",
+	Run: func(cmd *cobra.Command, args []string) {
+		pterm.DefaultHeader.Println("Tearing Down Govard Environment")
+
+		config := loadConfig()
+		cwd, _ := os.Getwd()
+		composePath := engine.ComposeFilePath(cwd, config.ProjectName)
+
+		if err := engine.RunHooks(config, engine.HookPreStop, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
+			pterm.Error.Printf("Pre-stop hooks failed: %v\n", err)
+			return
+		}
+
+		composeArgs, err := buildDownComposeArgs(cwd, composePath, config.ProjectName, downOptions{
+			RemoveOrphans: downRemoveOrphans,
+			Volumes:       downVolumes,
+			RMI:           downRMI,
+			Timeout:       downTimeout,
+		})
+		if err != nil {
+			pterm.Error.Printf("Invalid down options: %v\n", err)
+			return
+		}
+
+		command := exec.Command("docker", composeArgs...)
+		command.Stdout, command.Stderr = os.Stdout, os.Stderr
+		if err := command.Run(); err != nil {
+			pterm.Error.Printf("Failed to tear down containers: %v\n", err)
+			return
+		}
+
+		if config.Domain != "" {
+			if err := proxy.UnregisterDomain(config.Domain); err != nil {
+				pterm.Warning.Printf("Could not remove proxy route for %s: %v\n", config.Domain, err)
+			}
+			if err := engine.RemoveHostsEntry(config.Domain); err != nil {
+				pterm.Warning.Printf("Could not remove hosts entry for %s: %v\n", config.Domain, err)
+			}
+		}
+
+		if err := engine.RunHooks(config, engine.HookPostStop, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
+			pterm.Error.Printf("Post-stop hooks failed: %v\n", err)
+			return
+		}
+
+		pterm.Success.Println("✅ Environment torn down.")
+	},
+}
+
+func init() {
+	downCmd.Flags().BoolVar(&downRemoveOrphans, "remove-orphans", true, "Remove containers for services not defined in compose file")
+	downCmd.Flags().BoolVarP(&downVolumes, "volumes", "v", false, "Remove named and anonymous volumes")
+	downCmd.Flags().StringVar(&downRMI, "rmi", "", "Remove images used by services (all|local)")
+	downCmd.Flags().IntVarP(&downTimeout, "timeout", "t", 0, "Specify a shutdown timeout in seconds")
+}
+
+func buildDownComposeArgs(cwd string, composePath string, projectName string, options downOptions) ([]string, error) {
+	normalized, err := normalizeDownOptions(options)
+	if err != nil {
+		return nil, err
+	}
+
+	args := []string{
+		"compose",
+		"--project-directory",
+		cwd,
+		"-p",
+		projectName,
+		"-f",
+		composePath,
+		"down",
+	}
+
+	if normalized.RemoveOrphans {
+		args = append(args, "--remove-orphans")
+	}
+	if normalized.Volumes {
+		args = append(args, "--volumes")
+	}
+	if normalized.RMI != "" {
+		args = append(args, "--rmi", normalized.RMI)
+	}
+	if normalized.Timeout > 0 {
+		args = append(args, "--timeout", strconv.Itoa(normalized.Timeout))
+	}
+
+	return args, nil
+}
+
+func normalizeDownOptions(options downOptions) (downOptions, error) {
+	options.RMI = strings.ToLower(strings.TrimSpace(options.RMI))
+	if options.Timeout < 0 {
+		return downOptions{}, fmt.Errorf("timeout must be zero or positive")
+	}
+	switch options.RMI {
+	case "", "all", "local":
+		return options, nil
+	default:
+		return downOptions{}, fmt.Errorf("invalid --rmi value %q (allowed: all, local)", options.RMI)
+	}
+}
+
+func BuildDownComposeArgsForTest(
+	cwd string,
+	composePath string,
+	projectName string,
+	removeOrphans bool,
+	volumes bool,
+	rmi string,
+	timeout int,
+) ([]string, error) {
+	return buildDownComposeArgs(cwd, composePath, projectName, downOptions{
+		RemoveOrphans: removeOrphans,
+		Volumes:       volumes,
+		RMI:           rmi,
+		Timeout:       timeout,
+	})
+}

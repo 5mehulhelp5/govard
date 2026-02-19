@@ -1,0 +1,48 @@
+# Go build artifacts
+/govard
+/bin/
+/dist/
+*.exe
+*.out
+
+# Govard generated files
+/.govard/
+**/.govard-compose.yml
+**/.govard-compose.yaml
+**/varnish/
+!blueprints/**/varnish/
+!blueprints/**/varnish/**
+
+# Environment files
+.env
+.env.*
+
+# Dependencies and caches
+**/vendor/
+**/node_modules/
+**/.next/
+**/var/
+**/cache/
+**/tmp/
+**/storage/
+**/bootstrap/cache/
+
+# Logs
+*.log
+
+# OS/IDE
+.DS_Store
+.vscode/
+.idea/
+
+# Test fixtures and generated projects
+/tests/init-projects/
+/tests/framework-projects/
+
+# Desktop (Wails)
+/desktop/frontend/node_modules/
+/desktop/frontend/dist/
+/desktop/frontend/.vite/
+/desktop/frontend/wailsjs/
+/desktop/build/
+.worktrees/

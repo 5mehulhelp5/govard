@@ -1,0 +1,120 @@
+# Base Docker Compose configuration shared across all frameworks
+# This file contains common services and network definitions
+
+{{ $web := .Config.Stack.Services.WebServer }}
+{{ $isApache := eq $web "apache" }}
+{{ $isHybrid := eq $web "hybrid" }}
+
+services:
+  web:
+    image: {{ if $isApache }}govard/apache:latest{{ else }}govard/nginx:latest{{ end }}
+    volumes:
+      - .:/var/www/html
+    networks:
+      - govard-net
+      - govard-proxy
+    depends_on:
+      - php
+      {{ if $isHybrid }}
+      - apache
+      {{ end }}
+    environment:
+      {{ if $isApache }}
+      - APACHE_DOCUMENT_ROOT=/var/www/html{{ .NGINXPublic }}
+      - APACHE_XDEBUG_SESSION={{ .XdebugSessionPattern }}
+      {{ else }}
+      - NGINX_PUBLIC={{ .NGINXPublic }}
+      {{ if $isHybrid }}
+      - NGINX_TEMPLATE=hybrid.conf
+      {{ else }}
+      - NGINX_TEMPLATE={{ .NGINXTemplate }}
+      {{ end }}
+      {{ end }}
+      - PUID={{ .Config.Stack.UserID }}
+      - PGID={{ .Config.Stack.GroupID }}
+
+  {{ if $isHybrid }}
+  apache:
+    image: govard/apache:latest
+    volumes:
+      - .:/var/www/html
+    networks:
+      - govard-net
+    depends_on:
+      - php
+    environment:
+      - APACHE_DOCUMENT_ROOT=/var/www/html{{ .NGINXPublic }}
+      - APACHE_XDEBUG_SESSION={{ .XdebugSessionPattern }}
+      - PUID={{ .Config.Stack.UserID }}
+      - PGID={{ .Config.Stack.GroupID }}
+  {{ end }}
+
+  php:
+    image: {{ if eq .Config.Recipe "magento2" }}govard/php-magento2:{{ .Config.Stack.PHPVersion }}{{ else }}govard/php:{{ .Config.Stack.PHPVersion }}{{ end }}
+    volumes:
+      - .:/var/www/html
+      {{ if .HostSSHDir }}
+      - "{{ .HostSSHDir }}:/home/www-data/.ssh:ro"
+      {{ end }}
+      {{ if .SSHAuthSock }}
+      - "{{ .SSHAuthSock }}:/ssh-agent"
+      {{ end }}
+    networks:
+      - govard-net
+    environment:
+      XDEBUG_MODE: off
+      {{ if .SSHAuthSock }}
+      SSH_AUTH_SOCK: "/ssh-agent"
+      {{ end }}
+      GIT_SSH_COMMAND: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+      PUID: {{ .Config.Stack.UserID }}
+      PGID: {{ .Config.Stack.GroupID }}
+
+  {{ if .Config.Stack.Features.Xdebug }}
+  php-debug:
+    image: {{ if eq .Config.Recipe "magento2" }}govard/php-magento2:{{ .Config.Stack.PHPVersion }}{{ else }}govard/php:{{ .Config.Stack.PHPVersion }}{{ end }}
+    volumes:
+      - .:/var/www/html
+      {{ if .HostSSHDir }}
+      - "{{ .HostSSHDir }}:/home/www-data/.ssh:ro"
+      {{ end }}
+      {{ if .SSHAuthSock }}
+      - "{{ .SSHAuthSock }}:/ssh-agent"
+      {{ end }}
+    networks:
+      - govard-net
+    environment:
+      XDEBUG_MODE: debug
+      XDEBUG_CONFIG: client_host=host.docker.internal
+      {{ if .SSHAuthSock }}
+      SSH_AUTH_SOCK: "/ssh-agent"
+      {{ end }}
+      GIT_SSH_COMMAND: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+      PUID: {{ .Config.Stack.UserID }}
+      PGID: {{ .Config.Stack.GroupID }}
+  {{ end }}
+
+  {{ if ne .Config.Stack.DBType "none" }}
+  db:
+    image: {{ .Config.Stack.DBType }}:{{ .Config.Stack.DBVersion }}
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: {{ .DatabaseName }}
+      MYSQL_USER: {{ .DatabaseName }}
+      MYSQL_PASSWORD: {{ .DatabaseName }}
+    networks:
+      - govard-net
+    volumes:
+      - db-data:/var/lib/mysql
+  {{ end }}
+
+networks:
+  govard-net:
+    driver: bridge
+  govard-proxy:
+    external: true
+
+volumes:
+  {{ if ne .Config.Stack.DBType "none" }}
+  db-data:
+  {{ end }}

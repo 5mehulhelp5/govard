@@ -1,0 +1,199 @@
+[
+  {
+    "name": "Drupal 11 uses PHP 8.4",
+    "framework": "drupal",
+    "version": "11.0",
+    "source_prefix": "version-specific:drupal@11",
+    "expected": {
+      "php_version": "8.4"
+    }
+  },
+  {
+    "name": "Laravel 11 uses version profile",
+    "framework": "laravel",
+    "version": "^11.0",
+    "source_prefix": "version-specific:laravel@11",
+    "expected": {
+      "php_version": "8.3",
+      "db_type": "mariadb",
+      "web_server": "nginx",
+      "cache": "none",
+      "search": "none",
+      "cache_version": "",
+      "search_version": ""
+    }
+  },
+  {
+    "name": "Laravel 4 legacy mapping",
+    "framework": "laravel",
+    "version": "4.2",
+    "source_prefix": "version-specific:laravel@4",
+    "expected": {
+      "php_version": "7.0",
+      "db_version": "10.1",
+      "cache": "none"
+    }
+  },
+  {
+    "name": "Laravel unknown major falls back",
+    "framework": "laravel",
+    "version": "99.0",
+    "source": "framework-defaults",
+    "warning_contains": "No version-specific profile for laravel major 99",
+    "expected": {
+      "php_version": "8.4",
+      "db_type": "mariadb"
+    }
+  },
+  {
+    "name": "Laravel unparsable version falls back",
+    "framework": "laravel",
+    "version": "dev-main",
+    "source": "framework-defaults",
+    "warning_contains": "Could not parse major version",
+    "expected": {
+      "php_version": "8.4"
+    }
+  },
+  {
+    "name": "Magento 2.1.18 legacy mapping",
+    "framework": "magento2",
+    "version": "2.1.18",
+    "source_prefix": "version-specific:magento2@2.1.18",
+    "expected": {
+      "php_version": "7.0",
+      "db_version": "10.0",
+      "cache": "redis",
+      "cache_version": "3.0",
+      "search": "elasticsearch",
+      "search_version": "1.7.0",
+      "queue_version": "3.5.0"
+    }
+  },
+  {
+    "name": "Magento 2.3.7 legacy mapping",
+    "framework": "magento2",
+    "version": "2.3.7",
+    "source_prefix": "version-specific:magento2@2.3.7",
+    "expected": {
+      "php_version": "7.4",
+      "db_version": "10.4",
+      "cache": "redis",
+      "cache_version": "5.0",
+      "search": "elasticsearch",
+      "search_version": "7.9.0"
+    }
+  },
+  {
+    "name": "Magento 2.4.6-p13 maps to PHP 8.2 and MariaDB 10.11",
+    "framework": "magento2",
+    "version": "2.4.6-p13",
+    "source_prefix": "version-specific:magento2@2.4.6",
+    "expected": {
+      "php_version": "8.2",
+      "db_version": "10.11",
+      "search_version": "2.19.0",
+      "queue_version": "4.1.0"
+    }
+  },
+  {
+    "name": "Magento 2 uses search and cache profile",
+    "framework": "magento2",
+    "version": "2.4.7",
+    "source_prefix": "version-specific:magento2@2.4.7",
+    "expected": {
+      "php_version": "8.3",
+      "db_version": "10.6",
+      "cache": "redis",
+      "search": "opensearch",
+      "search_version": "2.12.0",
+      "queue": "rabbitmq"
+    }
+  },
+  {
+    "name": "Magento version constraints are parsed",
+    "framework": "magento2",
+    "version": "^2.4.7-p3",
+    "source_prefix": "version-specific:magento2@2.4.7",
+    "expected": {
+      "php_version": "8.3",
+      "db_version": "10.6",
+      "cache": "redis",
+      "search_version": "2.12.0",
+      "queue_version": "3.13.7"
+    }
+  },
+  {
+    "name": "Magento 2.4.8-p3 prefers PHP 8.4 and OpenSearch 3",
+    "framework": "magento2",
+    "version": "2.4.8-p3",
+    "source_prefix": "version-specific:magento2@2.4.8",
+    "expected": {
+      "php_version": "8.4",
+      "db_version": "11.4",
+      "search_version": "3.0.0",
+      "queue_version": "4.1.0"
+    }
+  },
+  {
+    "name": "Next.js has no database",
+    "framework": "nextjs",
+    "version": "14",
+    "source": "framework-defaults",
+    "expected": {
+      "db_type": "none",
+      "db_version": "",
+      "cache": "none",
+      "search": "none"
+    }
+  },
+  {
+    "name": "Symfony 5.2 uses legacy mapping",
+    "framework": "symfony",
+    "version": "5.2",
+    "source_prefix": "version-specific:symfony@5.3",
+    "expected": {
+      "php_version": "7.4",
+      "db_version": "10.4",
+      "cache": "none",
+      "search": "none",
+      "cache_version": "",
+      "search_version": ""
+    }
+  },
+  {
+    "name": "Symfony 7 uses PHP 8.3",
+    "framework": "symfony",
+    "version": "7.2",
+    "source_prefix": "version-specific:symfony@7.2",
+    "expected": {
+      "php_version": "8.3"
+    }
+  },
+  {
+    "name": "Unsupported framework returns error",
+    "framework": "rails",
+    "version": "7",
+    "expect_error": true
+  },
+  {
+    "name": "WordPress 5.7 legacy mapping",
+    "framework": "wordpress",
+    "version": "5.7",
+    "source_prefix": "version-specific:wordpress@5.7",
+    "expected": {
+      "php_version": "7.4",
+      "db_version": "10.3"
+    }
+  },
+  {
+    "name": "WordPress 6.7 modern mapping",
+    "framework": "wordpress",
+    "version": "6.7",
+    "source_prefix": "version-specific:wordpress@6.7",
+    "expected": {
+      "php_version": "8.2",
+      "db_version": "10.6"
+    }
+  }
+]

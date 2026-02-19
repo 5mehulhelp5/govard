@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+log_file="${GOVARD_PROJECT_ROOT}/.govard/fix-deps.log"
+printf '%s\n' "$*" >> "$log_file"

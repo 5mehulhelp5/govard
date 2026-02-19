@@ -1,0 +1,167 @@
+package tests
+
+import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"govard/internal/engine"
+)
+
+func TestMagentoDiscovery(t *testing.T) {
+	testDir := tempProject(t, map[string]string{
+		"composer.json": composerJSON(t, map[string]string{
+			"magento/product-community-edition": "2.4.7",
+		}),
+	})
+
+	metadata := engine.DetectFramework(testDir)
+	if metadata.Framework != "magento2" {
+		t.Errorf("Expected framework magento2, got %s", metadata.Framework)
+	}
+}
+
+func TestMagento1Discovery(t *testing.T) {
+	testDir := tempProject(t, map[string]string{
+		"app/Mage.php": "",
+	})
+
+	metadata := engine.DetectFramework(testDir)
+	if metadata.Framework != "magento1" {
+		t.Errorf("Expected framework magento1, got %s", metadata.Framework)
+	}
+}
+
+func TestLaravelDiscovery(t *testing.T) {
+	testDir := tempProject(t, map[string]string{
+		"composer.json": composerJSON(t, map[string]string{
+			"laravel/framework": "11.0.0",
+		}),
+	})
+
+	metadata := engine.DetectFramework(testDir)
+	if metadata.Framework != "laravel" {
+		t.Errorf("Expected framework laravel, got %s", metadata.Framework)
+	}
+	if metadata.Version != "11.0.0" {
+		t.Errorf("Expected version 11.0.0, got %s", metadata.Version)
+	}
+}
+
+func TestNextjsDiscovery(t *testing.T) {
+	testDir := tempProject(t, map[string]string{
+		"package.json": packageJSON(t, map[string]string{
+			"next": "14.0.0",
+		}),
+	})
+
+	metadata := engine.DetectFramework(testDir)
+	if metadata.Framework != "nextjs" {
+		t.Errorf("Expected framework nextjs, got %s", metadata.Framework)
+	}
+	if metadata.Version != "14.0.0" {
+		t.Errorf("Expected version 14.0.0, got %s", metadata.Version)
+	}
+}
+
+func TestDrupalDiscovery(t *testing.T) {
+	testDir := tempProject(t, map[string]string{
+		"composer.json": composerJSON(t, map[string]string{
+			"drupal/core": "10.0.0",
+		}),
+	})
+
+	metadata := engine.DetectFramework(testDir)
+	if metadata.Framework != "drupal" {
+		t.Errorf("Expected framework drupal, got %s", metadata.Framework)
+	}
+}
+
+func TestSymfonyDiscovery(t *testing.T) {
+	testDir := tempProject(t, map[string]string{
+		"composer.json": composerJSON(t, map[string]string{
+			"symfony/framework-bundle": "7.0.0",
+		}),
+	})
+
+	metadata := engine.DetectFramework(testDir)
+	if metadata.Framework != "symfony" {
+		t.Errorf("Expected framework symfony, got %s", metadata.Framework)
+	}
+}
+
+func TestShopwareDiscovery(t *testing.T) {
+	testDir := tempProject(t, map[string]string{
+		"composer.json": composerJSON(t, map[string]string{
+			"shopware/core": "6.6.0.0",
+		}),
+	})
+
+	metadata := engine.DetectFramework(testDir)
+	if metadata.Framework != "shopware" {
+		t.Errorf("Expected framework shopware, got %s", metadata.Framework)
+	}
+}
+
+func TestCakephpDiscovery(t *testing.T) {
+	testDir := tempProject(t, map[string]string{
+		"composer.json": composerJSON(t, map[string]string{
+			"cakephp/cakephp": "5.0.0",
+		}),
+	})
+
+	metadata := engine.DetectFramework(testDir)
+	if metadata.Framework != "cakephp" {
+		t.Errorf("Expected framework cakephp, got %s", metadata.Framework)
+	}
+}
+
+func TestWordpressDiscovery(t *testing.T) {
+	testDir := tempProject(t, map[string]string{
+		"composer.json": composerJSON(t, map[string]string{
+			"johnpbloch/wordpress": "6.0.0",
+		}),
+	})
+
+	metadata := engine.DetectFramework(testDir)
+	if metadata.Framework != "wordpress" {
+		t.Errorf("Expected framework wordpress, got %s", metadata.Framework)
+	}
+}
+
+func tempProject(t *testing.T, files map[string]string) string {
+	t.Helper()
+
+	dir := t.TempDir()
+	for rel, content := range files {
+		path := filepath.Join(dir, filepath.FromSlash(rel))
+		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+			t.Fatalf("failed to create dir for %s: %v", rel, err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+			t.Fatalf("failed to write %s: %v", rel, err)
+		}
+	}
+	return dir
+}
+
+func composerJSON(t *testing.T, require map[string]string) string {
+	t.Helper()
+	payload := map[string]map[string]string{"require": require}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("failed to build composer.json: %v", err)
+	}
+	return string(data)
+}
+
+func packageJSON(t *testing.T, deps map[string]string) string {
+	t.Helper()
+	payload := map[string]map[string]string{"dependencies": deps}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("failed to build package.json: %v", err)
+	}
+	return string(data)
+}

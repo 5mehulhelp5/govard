@@ -1,0 +1,44 @@
+project_name: m2-clone-basic
+domain: m2-clone-basic.test
+recipe: magento2
+remotes:
+  dev:
+    host: dev.example.com
+    user: deploy
+    path: /var/www/html
+    capabilities:
+      files: true
+      media: true
+      db: true
+      deploy: false
+  staging:
+    host: staging.example.com
+    user: deploy
+    path: /srv/www/staging
+    capabilities:
+      files: true
+      media: true
+      db: true
+      deploy: false
+  production:
+    host: prod.example.com
+    user: deploy
+    path: /var/www/html
+    environment: production
+    protected: true
+    capabilities:
+      files: true
+      media: true
+      db: true
+      deploy: true
+  prod:
+    host: prod.example.com
+    user: deploy
+    path: /srv/www/prod
+    environment: production
+    protected: true
+    capabilities:
+      files: true
+      media: true
+      db: true
+      deploy: true

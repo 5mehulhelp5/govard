@@ -1,0 +1,18 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "govard-desktop",
+  "outputfilename": "govard-desktop",
+  "frontend:install": "",
+  "frontend:build": "",
+  "frontend:dev": "",
+  "frontend:dir": "frontend",
+  "author": {
+    "name": "",
+    "email": ""
+  },
+  "info": {
+    "companyName": "",
+    "productName": "Govard Desktop",
+    "productVersion": "0.0.0"
+  }
+}

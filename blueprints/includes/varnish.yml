@@ -1,0 +1,14 @@
+# Varnish service for full-page caching
+
+services:
+  {{ if .Config.Stack.Features.Varnish }}
+  varnish:
+    image: govard/varnish:latest
+    volumes:
+      - './varnish/default.vcl:/etc/varnish/default.vcl:ro'
+    networks:
+      - govard-net
+      - govard-proxy
+    depends_on:
+      - web
+  {{ end }}

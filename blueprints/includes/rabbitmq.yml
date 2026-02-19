@@ -1,0 +1,9 @@
+{{ $queue := .Config.Stack.Services.Queue }}
+{{ $queueVersion := .Config.Stack.QueueVersion }}
+{{ if eq $queue "rabbitmq" }}
+services:
+  rabbitmq:
+    image: rabbitmq:{{ $queueVersion }}-management-alpine
+    networks:
+      - govard-net
+{{ end }}

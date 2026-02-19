@@ -1,0 +1,93 @@
+package engine
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+
+	"govard/internal/proxy"
+
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/client"
+	"github.com/pterm/pterm"
+)
+
+func EnsureGlobalProxy() error {
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return err
+	}
+
+	// 1. Ensure network exists
+	netName := "govard-proxy"
+	nets, _ := cli.NetworkList(ctx, network.ListOptions{
+		Filters: filters.NewArgs(filters.Arg("name", netName)),
+	})
+
+	if len(nets) == 0 {
+		pterm.Info.Println("Creating global govard-proxy network...")
+		_, err := cli.NetworkCreate(ctx, netName, network.CreateOptions{
+			Driver: "bridge",
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	// 2. Check if caddy container is running
+	caddyFound := false
+	containers, _ := cli.ContainerList(ctx, container.ListOptions{})
+	for _, c := range containers {
+		for _, name := range c.Names {
+			if strings.Contains(name, "govard-proxy-caddy") || strings.Contains(name, "proxy-caddy-1") {
+				caddyFound = true
+				break
+			}
+		}
+	}
+
+	if !caddyFound {
+		pterm.Info.Println("Starting global Govard proxy...")
+		tempDir := filepath.Join(os.Getenv("HOME"), ".govard", "proxy")
+		os.MkdirAll(tempDir, 0755)
+
+		blueprintsDir, err := findBlueprintsDir(".")
+		if err != nil {
+			return err
+		}
+		proxySource := filepath.Join(blueprintsDir, "proxy.yml")
+		content, err := os.ReadFile(proxySource)
+		if err != nil {
+			return fmt.Errorf("could not find proxy blueprint at %s", proxySource)
+		}
+
+		proxyFile := filepath.Join(tempDir, "docker-compose.yml")
+		if err := os.WriteFile(proxyFile, content, 0644); err != nil {
+			return err
+		}
+
+		cmd := exec.Command("docker", "compose", "up", "-d")
+		cmd.Dir = tempDir
+		if err := cmd.Run(); err != nil {
+			return err
+		}
+		caddyFound = true
+	}
+
+	if err := proxy.EnsureTLS(); err != nil {
+		pterm.Warning.Printf("Could not enable HTTPS for Govard Proxy: %v\n", err)
+	}
+
+	// 3. Register global domains (ensure they are always set)
+	pterm.Debug.Println("Registering global service domains...")
+	proxy.RegisterDomain("mail.govard.test", "proxy-mail-1:8025")
+	proxy.RegisterDomain("pma.govard.test", "proxy-pma-1:80")
+
+	return nil
+}

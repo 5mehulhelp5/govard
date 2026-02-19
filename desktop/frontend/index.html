@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Govard Desktop</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="topbar panel">
+        <div>
+          <p class="eyebrow">Govard Desktop</p>
+          <h1>Lightweight Workspace Core</h1>
+          <p class="subtitle">Control environments, quick actions, logs, shell, and settings.</p>
+        </div>
+        <div class="topbar__actions">
+          <button class="button button--ghost" id="refresh" type="button">Refresh</button>
+          <button class="button" id="openSettings" type="button">Settings</button>
+        </div>
+      </header>
+
+      <section class="panel status-panel">
+        <p id="status">Status: ready.</p>
+      </section>
+
+      <section class="stats">
+        <article class="panel stat">
+          <h2>Active Environments</h2>
+          <p class="stat__value" id="statActive">0</p>
+          <p class="stat__hint" id="statActiveHint">No environments detected</p>
+        </article>
+        <article class="panel stat">
+          <h2>Running Services</h2>
+          <p class="stat__value" id="statServices">0</p>
+          <p class="stat__hint" id="statServicesHint">Waiting for service data</p>
+        </article>
+        <article class="panel stat">
+          <h2>Queued Tasks</h2>
+          <p class="stat__value" id="statQueue">0</p>
+          <p class="stat__hint" id="statQueueHint">Queue idle</p>
+        </article>
+      </section>
+
+      <section class="grid grid--two">
+        <article class="panel" id="environments">
+          <header class="panel__header">
+            <h2>Environments</h2>
+          </header>
+          <div id="envList" class="env-list"></div>
+        </article>
+
+        <article class="panel quick-actions">
+          <header class="panel__header">
+            <h2>Quick Actions</h2>
+          </header>
+          <label class="field quick-actions__target">
+            Target environment
+            <select id="envSelector"></select>
+          </label>
+          <div class="quick-actions__primary action-grid action-grid--primary">
+            <button class="button button--ghost" data-action="env-start">Start</button>
+            <button class="button button--ghost" data-action="env-stop">Stop</button>
+            <button class="button button--ghost" data-action="env-open">Open</button>
+          </div>
+          <div class="quick-actions__tools action-grid action-grid--tools">
+            <button class="button button--ghost" data-action="open-mail">Mailpit</button>
+            <button class="button button--ghost" data-action="open-pma">PHPMyAdmin</button>
+            <button class="button button--ghost" data-action="toggle-xdebug">Toggle Xdebug</button>
+            <button class="button button--ghost" data-action="check-health">Health</button>
+          </div>
+        </article>
+      </section>
+
+      <section class="panel panel--logs" id="logs">
+        <header class="panel__header">
+          <h2>Logs + Shell</h2>
+        </header>
+        <div class="logs-controls">
+          <div class="logs-controls__row logs-controls__row--top">
+            <label class="field field--compact logs-controls__field">
+              Environment
+              <select id="logSelector"></select>
+            </label>
+            <label class="field field--compact logs-controls__field">
+              Service
+              <select id="logServiceSelector"></select>
+            </label>
+            <div class="logs-controls__buttons logs-controls__buttons--primary">
+              <button class="button button--ghost" data-action="refresh-logs">Refresh</button>
+              <button class="button button--ghost" data-action="toggle-live" id="toggleLive">Live: Off</button>
+              <button class="button button--ghost" data-action="open-shell">Open Shell</button>
+            </div>
+          </div>
+          <div class="logs-controls__row logs-controls__row--bottom">
+            <label class="field field--compact logs-controls__field">
+              Shell user
+              <input id="shellUser" type="text" placeholder="www-data" />
+            </label>
+            <label class="field field--compact logs-controls__field">
+              Shell
+              <select id="shellCommand">
+                <option value="bash">bash</option>
+                <option value="sh">sh</option>
+              </select>
+            </label>
+            <div class="logs-controls__buttons logs-controls__buttons--secondary">
+              <button class="button button--ghost" data-action="reset-shell-users">Reset Shell Users</button>
+            </div>
+          </div>
+        </div>
+        <pre class="logs" id="logOutput">Select an environment to view logs.</pre>
+      </section>
+
+      <section class="panel" id="health">
+        <header class="panel__header">
+          <h2>Warnings</h2>
+        </header>
+        <ul class="warning-list" id="warningList"></ul>
+      </section>
+    </main>
+
+    <div class="drawer" id="settingsDrawer" aria-hidden="true">
+      <div class="drawer__content">
+        <div class="drawer__header">
+          <h3>Desktop Settings</h3>
+          <button class="button button--ghost" id="closeSettings" type="button">Close</button>
+        </div>
+        <label class="field">
+          Theme
+          <select id="themeSelect">
+            <option value="system">System</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </label>
+        <label class="field">
+          Proxy target
+          <input id="proxyTarget" type="text" placeholder="govard.test" />
+        </label>
+        <label class="field">
+          Preferred browser
+          <input id="preferredBrowser" type="text" placeholder="firefox" />
+        </label>
+        <div class="row">
+          <button class="button button--ghost" data-action="reset-settings">Reset Settings</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+    <script type="module" src="main.js"></script>
+  </body>
+</html>

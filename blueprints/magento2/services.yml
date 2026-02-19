@@ -1,0 +1,78 @@
+# Magento 2 Docker Compose configuration
+# This is the main Docker Compose file for Magento 2 projects
+
+services:
+  web:
+    image: govard/nginx:latest
+    volumes:
+      - .:/var/www/html
+    networks:
+      - govard-net
+    depends_on:
+      - php
+    environment:
+      - NGINX_PUBLIC=/pub
+      - NGINX_TEMPLATE=magento2.conf
+
+  php:
+    image: govard/php:{{ .Stack.PHPVersion }}
+    volumes:
+      - .:/var/www/html
+    networks:
+      - govard-net
+    environment:
+      XDEBUG_MODE: {{ if .Stack.Features.Xdebug }}debug{{ else }}off{{ end }}
+
+  db:
+    image: {{ .Stack.DBType }}:{{ .Stack.DBVersion }}
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: magento
+      MYSQL_USER: magento
+      MYSQL_PASSWORD: magento
+    networks:
+      - govard-net
+    volumes:
+      - db-data:/var/lib/mysql
+
+  {{ if .Stack.Features.Redis }}
+  redis:
+    image: redis:7.0-alpine
+    networks:
+      - govard-net
+      {{ end }}
+
+  {{ if .Stack.Features.Elasticsearch }}
+  elasticsearch:
+    image: opensearchproject/opensearch:2.11.0
+    environment:
+      - discovery.type=single-node
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - DISABLE_INSTALL_DEMO_CONFIG=true
+      - DISABLE_SECURITY_PLUGIN=true
+    networks:
+      - govard-net
+    volumes:
+      - es-data:/usr/share/opensearch/data
+    {{ end }}
+
+  {{ if .Stack.Features.Varnish }}
+  varnish:
+    image: govard/varnish:latest
+    volumes:
+      - './varnish/default.vcl:/etc/varnish/default.vcl:ro'
+    networks:
+      - govard-net
+      - govard-proxy
+    depends_on:
+      - web
+    {{ end }}
+
+networks:
+  govard-net:
+    driver: bridge
+  govard-proxy:
+    external: true
+
+volumes:
+  db-data:

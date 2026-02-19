@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  caddy:
+    image: caddy:latest
+    container_name: proxy-caddy-1
+    restart: "no"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "2019:2019" # Caddy Admin API
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - govard-proxy
+
+  mail:
+    image: axllent/mailpit:latest
+    container_name: proxy-mail-1
+    restart: always
+    environment:
+      - MP_MAX_MESSAGES=500
+      - MP_SMTP_BIND_ADDR=0.0.0.0:1025
+      - MP_HTTP_BIND_ADDR=0.0.0.0:8025
+    networks:
+      - govard-proxy
+
+  pma:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: proxy-pma-1
+    restart: always
+    environment:
+      - PMA_ARBITRARY=1
+    networks:
+      - govard-proxy
+
+networks:
+  govard-proxy:
+    external: true
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,525 @@
+//go:build integration
+// +build integration
+
+package integration
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"govard/internal/engine"
+)
+
+func TestBootstrapOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
+	env := NewTestEnvironment(t)
+
+	t.Run("CloneDownloadSourceAliasFromDev", func(t *testing.T) {
+		projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "bootstrap-options-download-source")
+		shim := env.SetupRuntimeShims(t, map[string]int{
+			"docker": 0,
+			"ssh":    0,
+			"rsync":  0,
+		})
+
+		result := env.RunGovardWithEnv(
+			t,
+			projectDir,
+			append(shim.Env(), isolatedHomeEnv(t)...),
+			"bootstrap",
+			"--download-source",
+			"--environment", "dev",
+			"--skip-up",
+			"--no-composer",
+			"--no-admin",
+		)
+		result.AssertSuccess(t)
+
+		logs := shim.ReadLog(t)
+		assertMatrixContains(t, logs, "deploy@dev.example.com:/var/www/html/")
+		if got := strings.Count(logs, "rsync|"); got != 1 {
+			t.Fatalf("expected exactly one rsync invocation for --download-source, got %d logs:\n%s", got, logs)
+		}
+		assertMatrixNotContains(t, logs, "MYSQL_PWD=magento")
+	})
+
+	t.Run("CloneCodeOnlyOption", func(t *testing.T) {
+		projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "bootstrap-options-code-only")
+		shim := env.SetupRuntimeShims(t, map[string]int{
+			"docker": 0,
+			"ssh":    0,
+			"rsync":  0,
+		})
+
+		result := env.RunGovardWithEnv(
+			t,
+			projectDir,
+			append(shim.Env(), isolatedHomeEnv(t)...),
+			"bootstrap",
+			"--clone",
+			"--code-only",
+			"--environment", "dev",
+			"--skip-up",
+			"--no-composer",
+			"--no-admin",
+		)
+		result.AssertSuccess(t)
+
+		logs := shim.ReadLog(t)
+		assertMatrixContains(t, logs, "deploy@dev.example.com:/var/www/html/")
+		if got := strings.Count(logs, "rsync|"); got != 1 {
+			t.Fatalf("expected one rsync invocation for --code-only, got %d logs:\n%s", got, logs)
+		}
+		assertMatrixNotContains(t, logs, "MYSQL_PWD=magento")
+	})
+
+	t.Run("CloneNoStreamDBFromStaging", func(t *testing.T) {
+		projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "bootstrap-options-no-stream-db")
+		shim := env.SetupRuntimeShims(t, map[string]int{
+			"docker": 0,
+			"ssh":    0,
+			"rsync":  0,
+		})
+
+		result := env.RunGovardWithEnv(
+			t,
+			projectDir,
+			append(shim.Env(), isolatedHomeEnv(t)...),
+			"bootstrap",
+			"--clone",
+			"--environment", "staging",
+			"--skip-up",
+			"--no-composer",
+			"--no-media",
+			"--no-admin",
+			"--no-stream-db",
+		)
+		result.AssertSuccess(t)
+
+		logs := shim.ReadLog(t)
+		assertMatrixContains(t, logs, "deploy@staging.example.com:/srv/www/staging/")
+		assertMatrixContains(t, logs, "docker|exec -i -e MYSQL_PWD=magento m2-clone-basic-db-1 sh -lc if command -v mysql >/dev/null 2>&1; then DB_CLI=mysql; elif command -v mariadb >/dev/null 2>&1; then DB_CLI=mariadb;")
+		assertMatrixNotContains(t, logs, "DROP DATABASE IF EXISTS")
+	})
+
+	t.Run("CloneDbDumpOption", func(t *testing.T) {
+		projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "bootstrap-options-db-dump")
+		shim := env.SetupRuntimeShims(t, map[string]int{
+			"docker": 0,
+			"ssh":    0,
+			"rsync":  0,
+		})
+		dumpPath := filepath.Join(projectDir, "fixtures", "bootstrap-dump.sql")
+		if err := os.MkdirAll(filepath.Dir(dumpPath), 0o755); err != nil {
+			t.Fatalf("create dump dir: %v", err)
+		}
+		if err := os.WriteFile(dumpPath, []byte("CREATE TABLE test_options(id INT);\n"), 0o644); err != nil {
+			t.Fatalf("write dump file: %v", err)
+		}
+
+		result := env.RunGovardWithEnv(
+			t,
+			projectDir,
+			append(shim.Env(), isolatedHomeEnv(t)...),
+			"bootstrap",
+			"--clone",
+			"--environment", "dev",
+			"--skip-up",
+			"--no-composer",
+			"--no-media",
+			"--no-admin",
+			"--db-dump", "fixtures/bootstrap-dump.sql",
+		)
+		result.AssertSuccess(t)
+
+		logs := shim.ReadLog(t)
+		assertMatrixContains(t, logs, "docker|exec -i -e MYSQL_PWD=magento m2-clone-basic-db-1 sh -lc if command -v mysql >/dev/null 2>&1; then DB_CLI=mysql; elif command -v mariadb >/dev/null 2>&1; then DB_CLI=mariadb;")
+		assertMatrixNotContains(t, logs, "DROP DATABASE IF EXISTS")
+	})
+
+	t.Run("CloneIncludeProductAndFixDeps", func(t *testing.T) {
+		projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "bootstrap-options-include-product-fix-deps")
+		shim := env.SetupRuntimeShims(t, map[string]int{
+			"docker": 0,
+			"ssh":    0,
+			"rsync":  0,
+		})
+
+		result := env.RunGovardWithEnv(
+			t,
+			projectDir,
+			append(shim.Env(), isolatedHomeEnv(t)...),
+			"bootstrap",
+			"--clone",
+			"--environment", "dev",
+			"--skip-up",
+			"--no-composer",
+			"--no-db",
+			"--no-admin",
+			"--include-product",
+			"--fix-deps",
+			"--version", "2.4.8",
+		)
+		result.AssertSuccess(t)
+
+		logs := shim.ReadLog(t)
+		assertMatrixContains(t, logs, "--exclude catalog/product/cache")
+		assertMatrixNotContains(t, logs, "--exclude catalog/product ")
+
+		fixDepsLog := filepath.Join(projectDir, ".govard", "fix-deps.log")
+		data, err := os.ReadFile(fixDepsLog)
+		if err != nil {
+			t.Fatalf("expected fix-deps invocation log at %s: %v", fixDepsLog, err)
+		}
+		assertMatrixContains(t, string(data), "--version=2.4.8")
+	})
+
+	t.Run("CloneLegacySkipAliases", func(t *testing.T) {
+		projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "bootstrap-options-legacy-skip-aliases")
+		shim := env.SetupRuntimeShims(t, map[string]int{
+			"docker": 0,
+			"ssh":    0,
+			"rsync":  0,
+		})
+
+		result := env.RunGovardWithEnv(
+			t,
+			projectDir,
+			append(shim.Env(), isolatedHomeEnv(t)...),
+			"bootstrap",
+			"--clone",
+			"--environment", "dev",
+			"--skip-up",
+			"--skip-db-import",
+			"--skip-media-sync",
+			"--skip-composer-install",
+			"--skip-admin-create",
+		)
+		result.AssertSuccess(t)
+
+		logs := shim.ReadLog(t)
+		assertMatrixContains(t, logs, "deploy@dev.example.com:/var/www/html/")
+		if got := strings.Count(logs, "rsync|"); got != 1 {
+			t.Fatalf("expected one rsync invocation with legacy skip aliases, got %d logs:\n%s", got, logs)
+		}
+		assertMatrixNotContains(t, logs, "MYSQL_PWD=magento")
+	})
+
+	t.Run("FreshInstallCanonicalOptions", func(t *testing.T) {
+		projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "bootstrap-options-fresh-canonical")
+		shim := env.SetupRuntimeShims(t, map[string]int{
+			"docker": 0,
+			"ssh":    0,
+			"rsync":  0,
+		})
+
+		result := env.RunGovardWithEnv(
+			t,
+			projectDir,
+			append(shim.Env(), isolatedHomeEnv(t)...),
+			"bootstrap",
+			"--fresh",
+			"--skip-up",
+			"--meta-package", "magento/project-enterprise-edition",
+			"--version", "2.4.8",
+			"--include-sample",
+			"--hyva-install",
+			"--hyva-token", "test-hyva-token",
+			"--mage-username", "mage-user",
+			"--mage-password", "mage-pass",
+			"--yes",
+			"--no-admin",
+		)
+		result.AssertSuccess(t)
+
+		logs := shim.ReadLog(t)
+		assertMatrixContains(t, logs, "magento/project-enterprise-edition")
+		assertMatrixContains(t, logs, "2.4.8")
+		assertMatrixContains(t, logs, "hyva-themes.repo.packagist.com")
+		assertMatrixContains(t, logs, "test-hyva-token")
+		assertMatrixContains(t, logs, "sample:deploy")
+		assertMatrixNotContains(t, logs, "admin:user:create")
+
+		authPath := filepath.Join(projectDir, "auth.json")
+		data, err := os.ReadFile(authPath)
+		if err != nil {
+			t.Fatalf("expected auth.json generated from mage credentials: %v", err)
+		}
+		assertMatrixContains(t, string(data), "\"username\": \"mage-user\"")
+		assertMatrixContains(t, string(data), "\"password\": \"mage-pass\"")
+	})
+
+	t.Run("FreshInstallAliasFlags", func(t *testing.T) {
+		tests := []struct {
+			name string
+			flag string
+		}{
+			{name: "CleanInstallAlias", flag: "--clean-install"},
+			{name: "FreshInstallAlias", flag: "--fresh-install"},
+		}
+
+		for _, tc := range tests {
+			tc := tc
+			t.Run(tc.name, func(t *testing.T) {
+				projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "bootstrap-options-"+strings.ToLower(tc.name))
+				shim := env.SetupRuntimeShims(t, map[string]int{
+					"docker": 0,
+					"ssh":    0,
+					"rsync":  0,
+				})
+
+				result := env.RunGovardWithEnv(
+					t,
+					projectDir,
+					append(shim.Env(), isolatedHomeEnv(t)...),
+					"bootstrap",
+					tc.flag,
+					"--skip-up",
+					"--no-admin",
+				)
+				result.AssertSuccess(t)
+
+				logs := shim.ReadLog(t)
+				assertMatrixContains(t, logs, "/tmp/govard-create-project")
+			})
+		}
+	})
+
+	t.Run("InitRecipeAndFrameworkVersionWhenConfigMissing", func(t *testing.T) {
+		projectDir := env.CreateTestProject(t, "bootstrap-options-init", map[string]string{
+			"composer.json": `{"name":"test/bootstrap-options-init"}`,
+		})
+
+		result := env.RunGovardWithEnv(
+			t,
+			projectDir,
+			isolatedHomeEnv(t),
+			"bootstrap",
+			"--clone=false",
+			"--skip-up",
+			"--recipe", "magento2",
+			"--framework-version", "2.4.8",
+		)
+		result.AssertSuccess(t)
+
+		cfg, err := engine.LoadBaseConfigFromDir(projectDir, true)
+		if err != nil {
+			t.Fatalf("load generated govard config: %v", err)
+		}
+		if cfg.Recipe != "magento2" {
+			t.Fatalf("expected recipe magento2, got %s", cfg.Recipe)
+		}
+		if cfg.FrameworkVersion != "2.4.8" {
+			t.Fatalf("expected framework version 2.4.8, got %s", cfg.FrameworkVersion)
+		}
+	})
+}
+
+func TestSyncOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
+	env := NewTestEnvironment(t)
+
+	t.Run("PlanDefaultsToStagingLocalAndFileScope", func(t *testing.T) {
+		projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "sync-options-default-plan")
+		result := env.RunGovardWithEnv(
+			t,
+			projectDir,
+			isolatedHomeEnv(t),
+			"sync",
+			"--plan",
+		)
+		result.AssertSuccess(t)
+
+		out := result.Stdout
+		assertMatrixContains(t, out, "source: staging (remote: deploy@staging.example.com")
+		assertMatrixContains(t, out, "destination: local (local path:")
+		assertMatrixContains(t, out, "scopes: files")
+		assertMatrixContains(t, out, "resume mode: enabled")
+		assertMatrixContains(t, out, "planned steps:")
+	})
+
+	t.Run("PlanFullDeletePathIncludeExcludeResume", func(t *testing.T) {
+		projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "sync-options-full-plan")
+		result := env.RunGovardWithEnv(
+			t,
+			projectDir,
+			isolatedHomeEnv(t),
+			"sync",
+			"--source", "staging",
+			"--destination", "local",
+			"--full",
+			"--delete",
+			"--resume",
+			"--path", "app/code",
+			"--include", "app/*",
+			"--exclude", "vendor/",
+			"--plan",
+		)
+		result.AssertSuccess(t)
+
+		out := result.Stdout
+		assertMatrixContains(t, out, "scopes: files, media, db")
+		assertMatrixContains(t, out, "path filter: app/code")
+		assertMatrixContains(t, out, "include patterns: app/*")
+		assertMatrixContains(t, out, "exclude patterns: vendor/")
+		assertMatrixContains(t, out, "resume mode: enabled")
+		assertMatrixContains(t, out, "delete mode: enabled")
+		assertMatrixContains(t, out, "risk: high")
+		assertMatrixContains(t, out, "--path applies to file sync only. media/db sync still use full configured paths.")
+		assertMatrixContains(t, out, "--delete")
+		assertMatrixContains(t, out, "--include app/*")
+		assertMatrixContains(t, out, "--exclude vendor/")
+	})
+
+	t.Run("PlanNoResume", func(t *testing.T) {
+		projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "sync-options-no-resume")
+		result := env.RunGovardWithEnv(
+			t,
+			projectDir,
+			isolatedHomeEnv(t),
+			"sync",
+			"--source", "dev",
+			"--destination", "local",
+			"--file",
+			"--no-resume",
+			"--plan",
+		)
+		result.AssertSuccess(t)
+
+		out := result.Stdout
+		assertMatrixContains(t, out, "resume mode: disabled")
+		assertMatrixNotContains(t, out, "--append-verify")
+	})
+
+	t.Run("RuntimeLocalToStagingFileDeletePath", func(t *testing.T) {
+		projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "sync-options-runtime-local-to-staging-file")
+		shim := env.SetupRuntimeShims(t, map[string]int{
+			"docker": 0,
+			"ssh":    0,
+			"rsync":  0,
+		})
+
+		result := env.RunGovardWithEnv(
+			t,
+			projectDir,
+			append(shim.Env(), isolatedHomeEnv(t)...),
+			"sync",
+			"--source", "local",
+			"--destination", "staging",
+			"--file",
+			"--delete",
+			"--path", "app/code",
+		)
+		result.AssertSuccess(t)
+
+		logs := shim.ReadLog(t)
+		assertMatrixContains(t, logs, "rsync|")
+		assertMatrixContains(t, logs, "--delete")
+		assertMatrixContains(t, logs, "deploy@staging.example.com:/srv/www/staging/app/code/")
+		assertMatrixContains(t, logs, filepath.Join(projectDir, "app", "code")+"/")
+	})
+
+	t.Run("RuntimeStagingToLocalMediaIncludeExcludeNoResume", func(t *testing.T) {
+		projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "sync-options-runtime-media")
+		shim := env.SetupRuntimeShims(t, map[string]int{
+			"docker": 0,
+			"ssh":    0,
+			"rsync":  0,
+		})
+
+		result := env.RunGovardWithEnv(
+			t,
+			projectDir,
+			append(shim.Env(), isolatedHomeEnv(t)...),
+			"sync",
+			"--source", "staging",
+			"--destination", "local",
+			"--media",
+			"--include", "catalog/*",
+			"--exclude", "catalog/cache",
+			"--no-resume",
+		)
+		result.AssertSuccess(t)
+
+		logs := shim.ReadLog(t)
+		assertMatrixContains(t, logs, "deploy@staging.example.com:/srv/www/staging/pub/media/")
+		assertMatrixContains(t, logs, "--include catalog/*")
+		assertMatrixContains(t, logs, "--exclude catalog/cache")
+		assertMatrixNotContains(t, logs, "--append-verify")
+	})
+
+	t.Run("RuntimeDatabaseBothDirections", func(t *testing.T) {
+		t.Run("RemoteToLocal", func(t *testing.T) {
+			projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "sync-options-runtime-db-remote-local")
+			shim := env.SetupRuntimeShims(t, map[string]int{
+				"docker": 0,
+				"ssh":    0,
+				"rsync":  0,
+			})
+
+			result := env.RunGovardWithEnv(
+				t,
+				projectDir,
+				append(shim.Env(), isolatedHomeEnv(t)...),
+				"sync",
+				"--source", "dev",
+				"--destination", "local",
+				"--db",
+			)
+			result.AssertSuccess(t)
+
+			logs := shim.ReadLog(t)
+			assertMatrixContains(t, logs, "ssh|")
+			assertMatrixContains(t, logs, "deploy@dev.example.com")
+			assertMatrixContains(t, logs, "docker|exec -i -e MYSQL_PWD=magento m2-clone-basic-db-1 sh -lc if command -v mysql >/dev/null 2>&1; then DB_CLI=mysql; elif command -v mariadb >/dev/null 2>&1; then DB_CLI=mariadb;")
+		})
+
+		t.Run("LocalToRemote", func(t *testing.T) {
+			projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "sync-options-runtime-db-local-remote")
+			shim := env.SetupRuntimeShims(t, map[string]int{
+				"docker": 0,
+				"ssh":    0,
+				"rsync":  0,
+			})
+
+			result := env.RunGovardWithEnv(
+				t,
+				projectDir,
+				append(shim.Env(), isolatedHomeEnv(t)...),
+				"sync",
+				"--source", "local",
+				"--destination", "staging",
+				"--db",
+			)
+			result.AssertSuccess(t)
+
+			logs := shim.ReadLog(t)
+			assertMatrixContains(t, logs, "docker|exec -i -e MYSQL_PWD=magento m2-clone-basic-db-1 mysqldump")
+			assertMatrixContains(t, logs, "ssh|")
+			assertMatrixContains(t, logs, "deploy@staging.example.com")
+		})
+	})
+}
+
+func isolatedHomeEnv(t *testing.T) []string {
+	t.Helper()
+	home := filepath.Join(t.TempDir(), "home")
+	if err := os.MkdirAll(home, 0o755); err != nil {
+		t.Fatalf("create isolated home dir: %v", err)
+	}
+	return []string{"HOME=" + home}
+}
+
+func assertMatrixContains(t *testing.T, haystack string, needle string) {
+	t.Helper()
+	if !strings.Contains(haystack, needle) {
+		t.Fatalf("expected %q in output, got:\n%s", needle, haystack)
+	}
+}
+
+func assertMatrixNotContains(t *testing.T, haystack string, needle string) {
+	t.Helper()
+	if strings.Contains(haystack, needle) {
+		t.Fatalf("did not expect %q in output, got:\n%s", needle, haystack)
+	}
+}

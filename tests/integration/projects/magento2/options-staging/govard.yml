@@ -1,0 +1,24 @@
+project_name: m2-policy-protected
+domain: m2-policy-protected.test
+recipe: magento2
+remotes:
+  staging:
+    host: staging.example.com
+    user: deploy
+    path: /srv/www/staging
+    capabilities:
+      files: true
+      media: true
+      db: true
+      deploy: false
+  prod:
+    host: prod.example.com
+    user: deploy
+    path: /srv/www/prod
+    environment: production
+    protected: true
+    capabilities:
+      files: true
+      media: true
+      db: true
+      deploy: true

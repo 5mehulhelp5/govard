@@ -1,0 +1,107 @@
+package tests
+
+import (
+	"errors"
+	"testing"
+
+	"govard/internal/engine"
+)
+
+func TestRunDoctorDiagnosticsAllPass(t *testing.T) {
+	report := engine.RunDoctorDiagnostics(engine.DoctorDependencies{
+		CheckDockerStatus:        func() error { return nil },
+		CheckDockerComposePlugin: func() error { return nil },
+		CheckPortAvailable:       func(port string) bool { return true },
+		CheckDiskScratch:         func() error { return nil },
+		CheckNetworkConnectivity: func() error { return nil },
+	})
+
+	if report.Failures != 0 {
+		t.Fatalf("expected 0 failures, got %d", report.Failures)
+	}
+	if report.Warnings != 0 {
+		t.Fatalf("expected 0 warnings, got %d", report.Warnings)
+	}
+	if report.Passed != len(report.Checks) {
+		t.Fatalf("expected all checks passed, got passed=%d checks=%d", report.Passed, len(report.Checks))
+	}
+	if len(report.IssueCards) != 0 {
+		t.Fatalf("expected no issue cards for all-pass report, got %d", len(report.IssueCards))
+	}
+}
+
+func TestRunDoctorDiagnosticsComposeFailure(t *testing.T) {
+	report := engine.RunDoctorDiagnostics(engine.DoctorDependencies{
+		CheckDockerStatus:        func() error { return nil },
+		CheckDockerComposePlugin: func() error { return errors.New("missing compose plugin") },
+		CheckPortAvailable:       func(port string) bool { return true },
+		CheckDiskScratch:         func() error { return nil },
+		CheckNetworkConnectivity: func() error { return nil },
+	})
+
+	if report.Failures != 1 {
+		t.Fatalf("expected 1 failure, got %d", report.Failures)
+	}
+	if len(report.IssueCards) == 0 {
+		t.Fatal("expected issue cards for failure report")
+	}
+	if report.IssueCards[0].Severity != "error" {
+		t.Fatalf("expected first issue card severity error, got %s", report.IssueCards[0].Severity)
+	}
+
+	found := false
+	for _, check := range report.Checks {
+		if check.ID != "docker.compose" {
+			continue
+		}
+		found = true
+		if check.Status != engine.DoctorStatusFail {
+			t.Fatalf("expected docker.compose fail status, got %s", check.Status)
+		}
+		if check.SuggestedCommand != "govard deps" {
+			t.Fatalf("expected suggested command govard deps, got %s", check.SuggestedCommand)
+		}
+	}
+	if !found {
+		t.Fatal("expected docker.compose check")
+	}
+}
+
+func TestRunDoctorDiagnosticsPortAndNetworkWarnings(t *testing.T) {
+	report := engine.RunDoctorDiagnostics(engine.DoctorDependencies{
+		CheckDockerStatus:        func() error { return nil },
+		CheckDockerComposePlugin: func() error { return nil },
+		CheckPortAvailable: func(port string) bool {
+			return port != "80"
+		},
+		CheckDiskScratch:         func() error { return nil },
+		CheckNetworkConnectivity: func() error { return errors.New("timeout") },
+	})
+
+	if report.Failures != 0 {
+		t.Fatalf("expected 0 failures, got %d", report.Failures)
+	}
+	if report.Warnings < 2 {
+		t.Fatalf("expected at least 2 warnings, got %d", report.Warnings)
+	}
+
+	var port80Warn bool
+	var networkWarn bool
+	for _, check := range report.Checks {
+		if check.ID == "host.port.80" && check.Status == engine.DoctorStatusWarn {
+			port80Warn = true
+		}
+		if check.ID == "host.network.outbound" && check.Status == engine.DoctorStatusWarn {
+			networkWarn = true
+		}
+	}
+	if !port80Warn {
+		t.Fatal("expected warning for host.port.80")
+	}
+	if !networkWarn {
+		t.Fatal("expected warning for host.network.outbound")
+	}
+	if len(report.IssueCards) < 2 {
+		t.Fatalf("expected warning issue cards, got %d", len(report.IssueCards))
+	}
+}

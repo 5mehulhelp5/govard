@@ -1,0 +1,6 @@
+{
+  "name": "fixtures/magento2-policy-protected",
+  "require": {
+    "magento/product-community-edition": "2.4.8"
+  }
+}

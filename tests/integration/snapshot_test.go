@@ -1,0 +1,308 @@
+//go:build integration
+// +build integration
+
+package integration
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+	"time"
+
+	"govard/internal/engine"
+)
+
+func TestCreateSnapshot(t *testing.T) {
+	env := NewTestEnvironment(t)
+
+	files := map[string]string{
+		"composer.json": MustMarshalJSON(t, map[string]interface{}{
+			"require": map[string]string{
+				"magento/product-community-edition": "2.4.7",
+			},
+		}),
+	}
+
+	projectDir := env.CreateTestProject(t, "snapshot-create", files)
+
+	config := engine.Config{
+		ProjectName: "snapshot-test",
+		Recipe:      "magento2",
+		Domain:      "snapshot-test.test",
+		Stack: engine.Stack{
+			PHPVersion: "8.3",
+			WebServer:  "nginx",
+			Services: engine.Services{
+				WebServer: "nginx",
+				Search:    "none",
+				Cache:     "none",
+				Queue:     "none",
+			},
+		},
+	}
+
+	snapshotDir, err := engine.CreateSnapshot(projectDir, config, "test-snapshot")
+	if err != nil {
+		t.Fatalf("Failed to create snapshot: %v", err)
+	}
+
+	if _, err := os.Stat(snapshotDir); os.IsNotExist(err) {
+		t.Error("Snapshot directory was not created")
+	}
+
+	metadataPath := filepath.Join(snapshotDir, "metadata.yml")
+	if _, err := os.Stat(metadataPath); os.IsNotExist(err) {
+		t.Error("Metadata file was not created")
+	}
+}
+
+func TestCreateSnapshotDuplicateName(t *testing.T) {
+	env := NewTestEnvironment(t)
+
+	files := map[string]string{
+		"composer.json": MustMarshalJSON(t, map[string]interface{}{
+			"require": map[string]string{
+				"magento/product-community-edition": "2.4.7",
+			},
+		}),
+	}
+
+	projectDir := env.CreateTestProject(t, "snapshot-duplicate", files)
+
+	config := engine.Config{
+		ProjectName: "snapshot-dup-test",
+		Recipe:      "magento2",
+		Domain:      "snapshot-dup-test.test",
+		Stack: engine.Stack{
+			PHPVersion: "8.3",
+			WebServer:  "nginx",
+			Services: engine.Services{
+				WebServer: "nginx",
+				Search:    "none",
+				Cache:     "none",
+				Queue:     "none",
+			},
+		},
+	}
+
+	_, err := engine.CreateSnapshot(projectDir, config, "dup-name")
+	if err != nil {
+		t.Fatalf("First snapshot creation failed: %v", err)
+	}
+
+	_, err = engine.CreateSnapshot(projectDir, config, "dup-name")
+	if err == nil {
+		t.Error("Expected error for duplicate snapshot name")
+	}
+}
+
+func TestCreateSnapshotAutoName(t *testing.T) {
+	env := NewTestEnvironment(t)
+
+	files := map[string]string{
+		"composer.json": MustMarshalJSON(t, map[string]interface{}{
+			"require": map[string]string{
+				"magento/product-community-edition": "2.4.7",
+			},
+		}),
+	}
+
+	projectDir := env.CreateTestProject(t, "snapshot-auto", files)
+
+	config := engine.Config{
+		ProjectName: "snapshot-auto-test",
+		Recipe:      "magento2",
+		Domain:      "snapshot-auto-test.test",
+		Stack: engine.Stack{
+			PHPVersion: "8.3",
+			WebServer:  "nginx",
+			Services: engine.Services{
+				WebServer: "nginx",
+				Search:    "none",
+				Cache:     "none",
+				Queue:     "none",
+			},
+		},
+	}
+
+	snapshotDir, err := engine.CreateSnapshot(projectDir, config, "")
+	if err != nil {
+		t.Fatalf("Failed to create snapshot with auto name: %v", err)
+	}
+
+	if snapshotDir == "" {
+		t.Error("Auto-generated snapshot name should not be empty")
+	}
+}
+
+func TestListSnapshotsEmpty(t *testing.T) {
+	env := NewTestEnvironment(t)
+
+	files := map[string]string{
+		"composer.json": MustMarshalJSON(t, map[string]interface{}{
+			"require": map[string]string{
+				"magento/product-community-edition": "2.4.7",
+			},
+		}),
+	}
+
+	projectDir := env.CreateTestProject(t, "snapshot-list-empty", files)
+
+	snapshots, err := engine.ListSnapshots(projectDir)
+	if err != nil {
+		t.Fatalf("ListSnapshots failed: %v", err)
+	}
+
+	if len(snapshots) != 0 {
+		t.Errorf("Expected 0 snapshots, got %d", len(snapshots))
+	}
+}
+
+func TestListSnapshotsWithMetadata(t *testing.T) {
+	env := NewTestEnvironment(t)
+
+	files := map[string]string{
+		"composer.json": MustMarshalJSON(t, map[string]interface{}{
+			"require": map[string]string{
+				"magento/product-community-edition": "2.4.7",
+			},
+		}),
+	}
+
+	projectDir := env.CreateTestProject(t, "snapshot-list", files)
+
+	config := engine.Config{
+		ProjectName: "snapshot-list-test",
+		Recipe:      "magento2",
+		Domain:      "snapshot-list-test.test",
+		Stack: engine.Stack{
+			PHPVersion: "8.3",
+			WebServer:  "nginx",
+			Services: engine.Services{
+				WebServer: "nginx",
+				Search:    "none",
+				Cache:     "none",
+				Queue:     "none",
+			},
+		},
+	}
+
+	_, err := engine.CreateSnapshot(projectDir, config, "snapshot-1")
+	if err != nil {
+		t.Fatalf("Failed to create first snapshot: %v", err)
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	_, err = engine.CreateSnapshot(projectDir, config, "snapshot-2")
+	if err != nil {
+		t.Fatalf("Failed to create second snapshot: %v", err)
+	}
+
+	snapshots, err := engine.ListSnapshots(projectDir)
+	if err != nil {
+		t.Fatalf("ListSnapshots failed: %v", err)
+	}
+
+	if len(snapshots) != 2 {
+		t.Errorf("Expected 2 snapshots, got %d", len(snapshots))
+	}
+
+	if snapshots[0].Name != "snapshot-2" {
+		t.Error("Snapshots should be sorted by creation date (newest first)")
+	}
+}
+
+func TestRestoreSnapshotNotFound(t *testing.T) {
+	env := NewTestEnvironment(t)
+
+	files := map[string]string{
+		"composer.json": MustMarshalJSON(t, map[string]interface{}{
+			"require": map[string]string{
+				"magento/product-community-edition": "2.4.7",
+			},
+		}),
+	}
+
+	projectDir := env.CreateTestProject(t, "snapshot-restore-missing", files)
+
+	config := engine.Config{
+		ProjectName: "snapshot-restore-test",
+		Recipe:      "magento2",
+		Domain:      "snapshot-restore-test.test",
+		Stack: engine.Stack{
+			PHPVersion: "8.3",
+			WebServer:  "nginx",
+			Services: engine.Services{
+				WebServer: "nginx",
+				Search:    "none",
+				Cache:     "none",
+				Queue:     "none",
+			},
+		},
+	}
+
+	err := engine.RestoreSnapshot(projectDir, config, "non-existent", false, false)
+	if err == nil {
+		t.Error("Expected error for non-existent snapshot")
+	}
+}
+
+func TestSnapshotMetadataPersistence(t *testing.T) {
+	env := NewTestEnvironment(t)
+
+	files := map[string]string{
+		"composer.json": MustMarshalJSON(t, map[string]interface{}{
+			"require": map[string]string{
+				"magento/product-community-edition": "2.4.7",
+			},
+		}),
+	}
+
+	projectDir := env.CreateTestProject(t, "snapshot-metadata", files)
+
+	config := engine.Config{
+		ProjectName: "snapshot-meta-test",
+		Recipe:      "magento2",
+		Domain:      "snapshot-meta-test.test",
+		Stack: engine.Stack{
+			PHPVersion: "8.3",
+			WebServer:  "nginx",
+			Services: engine.Services{
+				WebServer: "nginx",
+				Search:    "none",
+				Cache:     "none",
+				Queue:     "none",
+			},
+		},
+	}
+
+	snapshotName := "metadata-test"
+	_, err := engine.CreateSnapshot(projectDir, config, snapshotName)
+	if err != nil {
+		t.Fatalf("Failed to create snapshot: %v", err)
+	}
+
+	snapshots, err := engine.ListSnapshots(projectDir)
+	if err != nil {
+		t.Fatalf("ListSnapshots failed: %v", err)
+	}
+
+	if len(snapshots) != 1 {
+		t.Fatalf("Expected 1 snapshot, got %d", len(snapshots))
+	}
+
+	meta := snapshots[0]
+	if meta.Name != snapshotName {
+		t.Errorf("Expected name %s, got %s", snapshotName, meta.Name)
+	}
+	if meta.Recipe != config.Recipe {
+		t.Errorf("Expected recipe %s, got %s", config.Recipe, meta.Recipe)
+	}
+	if meta.Domain != config.Domain {
+		t.Errorf("Expected domain %s, got %s", config.Domain, meta.Domain)
+	}
+	if meta.CreatedAt.IsZero() {
+		t.Error("CreatedAt should not be zero")
+	}
+}
