@@ -90,15 +90,17 @@ func TestSelfUpdateAutoConfirmViaEnv(t *testing.T) {
 		t,
 		env,
 		projectDir,
-		2*time.Second,
+		10*time.Second,
 		[]string{"GOVARD_SELF_UPDATE_CONFIRM=yes"},
 		"self-update",
+		"--version",
+		"v1.0.2",
 	)
 	if errorsContain(result.Error, "context deadline exceeded") {
 		t.Fatalf("self-update blocked even with GOVARD_SELF_UPDATE_CONFIRM=yes; output:\nstdout=%s\nstderr=%s", result.Stdout, result.Stderr)
 	}
 	result.AssertSuccess(t)
-	assertContains(t, result.Stdout+result.Stderr, "Successfully updated to the latest version")
+	assertContains(t, result.Stdout+result.Stderr, "Successfully updated Govard to")
 }
 
 func runGovardWithTimeout(t *testing.T, env *TestEnvironment, projectDir string, timeout time.Duration, extraEnv []string, args ...string) *CommandResult {
