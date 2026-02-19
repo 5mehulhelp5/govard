@@ -27,7 +27,33 @@
 
 ## 🛠️ Installation
 
-### Quick Install (Linux/macOS)
+### One-Line Install (Linux/macOS)
+
+Install the latest release binary with a single command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ddtcorex/govard/master/scripts/install-release.sh | bash
+```
+
+Using `wget`:
+
+```bash
+wget -qO- https://raw.githubusercontent.com/ddtcorex/govard/master/scripts/install-release.sh | bash
+```
+
+Common options:
+
+```bash
+# Install to ~/.local/bin (no sudo)
+curl -fsSL https://raw.githubusercontent.com/ddtcorex/govard/master/scripts/install-release.sh | bash -s -- --local
+
+# Install a specific version
+curl -fsSL https://raw.githubusercontent.com/ddtcorex/govard/master/scripts/install-release.sh | bash -s -- --version v1.0.1
+```
+
+By default this installs `govard` to `/usr/local/bin` and uses `sudo` when needed.
+
+### Quick Install from Source
 
 Ensure you have Go 1.24+ installed, then run:
 
@@ -36,15 +62,6 @@ go version
 git clone https://github.com/ddtcorex/govard.git
 cd govard
 ./scripts/install.sh
-```
-
-By default this installs `govard` to `/usr/local/bin` and uses `sudo` when needed.
-
-Options:
-
-```bash
-./scripts/install.sh --local            # install to ~/.local/bin
-./scripts/install.sh --dir "$HOME/bin"  # custom install directory
 ```
 
 ### Install from Source (Manual)
