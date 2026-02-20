@@ -13,6 +13,7 @@ func TestRunDoctorDiagnosticsAllPass(t *testing.T) {
 		CheckDockerComposePlugin: func() error { return nil },
 		CheckPortAvailable:       func(port string) bool { return true },
 		CheckDiskScratch:         func() error { return nil },
+		CheckGovardHomeWritable:  func() error { return nil },
 		CheckNetworkConnectivity: func() error { return nil },
 	})
 
@@ -36,6 +37,7 @@ func TestRunDoctorDiagnosticsComposeFailure(t *testing.T) {
 		CheckDockerComposePlugin: func() error { return errors.New("missing compose plugin") },
 		CheckPortAvailable:       func(port string) bool { return true },
 		CheckDiskScratch:         func() error { return nil },
+		CheckGovardHomeWritable:  func() error { return nil },
 		CheckNetworkConnectivity: func() error { return nil },
 	})
 
@@ -75,6 +77,7 @@ func TestRunDoctorDiagnosticsPortAndNetworkWarnings(t *testing.T) {
 			return port != "80"
 		},
 		CheckDiskScratch:         func() error { return nil },
+		CheckGovardHomeWritable:  func() error { return nil },
 		CheckNetworkConnectivity: func() error { return errors.New("timeout") },
 	})
 

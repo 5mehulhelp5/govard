@@ -14,6 +14,9 @@ func TestDoctorCommandExists(t *testing.T) {
 	if command.Flags().Lookup("json") == nil {
 		t.Fatal("expected --json flag on doctor command")
 	}
+	if command.Flags().Lookup("fix") == nil {
+		t.Fatal("expected --fix flag on doctor command")
+	}
 	if command.Flags().Lookup("pack") == nil {
 		t.Fatal("expected --pack flag on doctor command")
 	}
