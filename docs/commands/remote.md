@@ -51,6 +51,7 @@ govard remote audit tail --since 2026-02-12 --until 2026-02-12
 - Remote fields `host`, `user`, `path`, `auth.key_path`, `auth.known_hosts_file`, and `paths.media` support `op://...` references resolved via the 1Password CLI (`op read`).
 - Production remotes (`environment: prod`) are write-protected by default.
 - Remote operations are appended to `~/.govard/remote.log` (override with `GOVARD_REMOTE_AUDIT_LOG_PATH`).
+- Remote commands also emit structured operation events to `~/.govard/operations.log`, which the desktop app uses for native success/failure notifications.
 - `remote audit tail` supports filtering by `--status` and `--operation`, and `--json` output.
 - `remote audit stats` summarizes recent events by status, category, and operation.
 - Both `tail` and `stats` support time-window filters via `--since` and `--until` (RFC3339 or `YYYY-MM-DD`).

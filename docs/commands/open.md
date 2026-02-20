@@ -26,6 +26,8 @@ govard open opensearch
 
 `target` is case-insensitive. Unknown targets return an error.
 
+For Mailpit, use `govard mail` (CLI) or the embedded Mailpit panel in `govard desktop`.
+
 Environment behavior (`-e/--environment`):
 - Omitted: local behavior for all targets.
 - `-e local`: force local behavior.
@@ -40,6 +42,7 @@ For `admin`:
 - Local: opens `https://<domain>/admin`.
 - Local Magento2: auto-detects backend path from `app/etc/env.php` (`backend.frontName`) and also checks DB config (`admin/url/custom*`) when available.
 - Remote: opens admin URL from remote host (Magento2 also probes remote `frontName` when possible).
+- Remote lookup supports remote name (`-e staging`) or environment alias (`-e prod`) when unique.
 
 For `shell`:
 - Local: opens local app container shell.

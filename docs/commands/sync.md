@@ -38,7 +38,9 @@ govard sync --source staging --destination local --full --plan
 - Use `--no-resume` when you need a strict non-resumable transfer.
 - `--include` and `--exclude` apply to rsync scopes (`--file`, `--media`) and are ignored for DB-only sync.
 - Policy warnings are included for risky options such as `--delete` and `--db`.
+- Remote endpoint config used by sync supports secret references (`op://...`) for fields like host/user/path/auth, resolved via the 1Password CLI.
 - Executions and plans are logged to `~/.govard/remote.log` for remote audit history.
+- Sync runs also emit operation events to `~/.govard/operations.log` (used by desktop notifications and operation timeline views).
 
 ## Examples
 
