@@ -89,6 +89,28 @@ govard down --rmi local --timeout 20
 
 See `docs/commands/down.md`.
 
+### `govard sleep`
+
+Stop all running Govard projects detected from Docker and persist a wake snapshot.
+
+```bash
+govard sleep
+```
+
+Sleep state is saved to `~/.govard/sleep-state.json` (override via `GOVARD_SLEEP_STATE_PATH`).
+Only projects found in the project registry are included in the saved state.
+
+### `govard wake`
+
+Start all projects recorded by the latest sleep snapshot.
+
+```bash
+govard wake
+```
+
+When wake succeeds for all projects, the sleep-state file is removed.
+If some projects fail to start, only failed entries are kept for the next retry.
+
 ### `govard proxy`
 
 Start, stop, restart, or check status of the global Caddy proxy.
@@ -176,7 +198,9 @@ See `docs/frameworks/support-matrix.md` for version-specific profile mappings.
 
 ### `govard custom`
 
-Run project-scoped custom commands from `.govard/commands`.
+Run custom commands from:
+- project scope: `.govard/commands`
+- global scope: `~/.govard/commands` (override with `GOVARD_GLOBAL_COMMANDS_DIR`)
 
 ```bash
 govard custom list
@@ -184,7 +208,20 @@ govard custom hello
 govard custom deploy -- --dry-run
 ```
 
+Conflict rule: project command names take precedence over global commands.
 Custom commands are namespaced under `govard custom` to avoid conflicts with built-in commands.
+
+### `govard projects`
+
+Query known projects from the local project registry.
+
+```bash
+govard projects open billing
+cd "$(govard projects open demo)"
+```
+
+`projects open <query>` performs fuzzy matching across `project_name`, domain, and path,
+then prints the matched project path to stdout.
 
 ## Remote & Deployment Commands
 
@@ -395,6 +432,7 @@ Runs startup diagnostics with actionable remediation hints.
 
 ```bash
 govard doctor
+govard doctor --fix
 govard doctor --json
 govard doctor --pack
 ```
@@ -404,12 +442,14 @@ govard doctor --pack
 - Docker Compose plugin availability
 - Port conflicts on host machine (80/443)
 - Disk scratch write sanity
+- Govard home directory readiness (`~/.govard`)
 - Outbound network probe sanity
 
 **Output:**
 - Each check is reported as `pass`, `warn`, or `fail`.
 - `fail` checks return a non-zero exit code.
 - `--json` prints a machine-readable diagnostics report.
+- `--fix` applies explicit safe remediations when available and prints each action taken.
 - `--pack` exports a diagnostics support pack zip (report, environment metadata, config/compose snapshots).
 - `--pack-dir` overrides output directory (default: `~/.govard/diagnostics`).
 - Pack also includes best-effort runtime command snapshots and remote audit log snapshot when available.

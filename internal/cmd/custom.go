@@ -13,7 +13,7 @@ import (
 
 var customCmd = &cobra.Command{
 	Use:   "custom",
-	Short: "Run project custom commands from .govard/commands",
+	Short: "Run custom commands from project and global plugin directories",
 	Run: func(cmd *cobra.Command, args []string) {
 		_ = cmd.Help()
 	},
@@ -21,18 +21,18 @@ var customCmd = &cobra.Command{
 
 var customListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List project custom commands",
+	Short: "List available custom commands",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		commands, err := discoverCustomCommands()
 		if err != nil {
 			return err
 		}
 		if len(commands) == 0 {
-			pterm.Info.Println("No project custom commands found in .govard/commands")
+			pterm.Info.Println("No custom commands found in project or global plugin directories")
 			return nil
 		}
 
-		pterm.Success.Println("Project custom commands:")
+		pterm.Success.Println("Available custom commands:")
 		for _, item := range commands {
 			pterm.Println(" - " + item.Name)
 		}
@@ -67,7 +67,7 @@ func discoverCustomCommands() ([]engine.ProjectCommand, error) {
 	if err != nil {
 		return nil, err
 	}
-	return engine.DiscoverProjectCommands(wd)
+	return engine.DiscoverMergedCommands(wd)
 }
 
 func runProjectCustomCommand(projectCommand engine.ProjectCommand, args []string) error {

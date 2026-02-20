@@ -52,6 +52,7 @@ type DoctorDependencies struct {
 	CheckDockerComposePlugin func() error
 	CheckPortAvailable       func(port string) bool
 	CheckDiskScratch         func() error
+	CheckGovardHomeWritable  func() error
 	CheckNetworkConnectivity func() error
 }
 
@@ -67,6 +68,9 @@ func RunDoctorDiagnostics(dependencies DoctorDependencies) DoctorReport {
 	}
 	if dependencies.CheckDiskScratch == nil {
 		dependencies.CheckDiskScratch = CheckDiskScratchWrite
+	}
+	if dependencies.CheckGovardHomeWritable == nil {
+		dependencies.CheckGovardHomeWritable = CheckGovardHomeWritable
 	}
 	if dependencies.CheckNetworkConnectivity == nil {
 		dependencies.CheckNetworkConnectivity = CheckNetworkConnectivity
@@ -166,6 +170,24 @@ func RunDoctorDiagnostics(dependencies DoctorDependencies) DoctorReport {
 		})
 	}
 
+	if err := dependencies.CheckGovardHomeWritable(); err != nil {
+		report.Checks = append(report.Checks, DoctorCheck{
+			ID:               "host.govard.home",
+			Title:            "Govard home directory",
+			Status:           DoctorStatusWarn,
+			Message:          fmt.Sprintf("Govard home directory is not ready: %v", err),
+			Hint:             "Run doctor --fix to create or repair safe Govard runtime directories.",
+			SuggestedCommand: "govard doctor --fix",
+		})
+	} else {
+		report.Checks = append(report.Checks, DoctorCheck{
+			ID:      "host.govard.home",
+			Title:   "Govard home directory",
+			Status:  DoctorStatusPass,
+			Message: "Govard home directory is writable.",
+		})
+	}
+
 	if err := dependencies.CheckNetworkConnectivity(); err != nil {
 		report.Checks = append(report.Checks, DoctorCheck{
 			ID:               "host.network.outbound",
@@ -224,6 +246,33 @@ func BuildDoctorIssueCards(checks []DoctorCheck) []DoctorIssueCard {
 
 func CheckDiskScratchWrite() error {
 	file, err := os.CreateTemp("", "govard-doctor-*")
+	if err != nil {
+		return err
+	}
+	path := file.Name()
+	defer os.Remove(path)
+
+	if _, err := file.Write([]byte("ok")); err != nil {
+		_ = file.Close()
+		return err
+	}
+	return file.Close()
+}
+
+func CheckGovardHomeWritable() error {
+	homeDir := GovardHomeDir()
+	info, err := os.Stat(homeDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("missing directory: %s", homeDir)
+		}
+		return err
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("not a directory: %s", homeDir)
+	}
+
+	file, err := os.CreateTemp(homeDir, "doctor-write-*")
 	if err != nil {
 		return err
 	}

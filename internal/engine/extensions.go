@@ -15,6 +15,7 @@ const (
 	ProjectHooksDir            = ".govard/hooks"
 	ProjectLocalConfigPath     = ".govard/govard.local.yml"
 	ProjectComposeOverridePath = ".govard/docker-compose.override.yml"
+	GlobalCommandsDirEnvVar    = "GOVARD_GLOBAL_COMMANDS_DIR"
 )
 
 type ProjectCommand struct {
@@ -113,6 +114,53 @@ echo "Args: $*"
 
 func DiscoverProjectCommands(root string) ([]ProjectCommand, error) {
 	commandsDir := filepath.Join(filepath.Clean(root), ProjectCommandsDir)
+	return discoverCommandsFromDir(commandsDir)
+}
+
+func DiscoverGlobalCommands() ([]ProjectCommand, error) {
+	commandsDir := strings.TrimSpace(os.Getenv(GlobalCommandsDirEnvVar))
+	if commandsDir == "" {
+		commandsDir = filepath.Join(GovardHomeDir(), "commands")
+	}
+	return discoverCommandsFromDir(commandsDir)
+}
+
+func DiscoverMergedCommands(root string) ([]ProjectCommand, error) {
+	projectCommands, err := DiscoverProjectCommands(root)
+	if err != nil {
+		return nil, err
+	}
+
+	globalCommands, err := DiscoverGlobalCommands()
+	if err != nil {
+		return nil, err
+	}
+
+	resolved := map[string]ProjectCommand{}
+	for _, command := range projectCommands {
+		resolved[command.Name] = command
+	}
+	for _, command := range globalCommands {
+		if _, exists := resolved[command.Name]; exists {
+			continue
+		}
+		resolved[command.Name] = command
+	}
+
+	names := make([]string, 0, len(resolved))
+	for name := range resolved {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	commands := make([]ProjectCommand, 0, len(names))
+	for _, name := range names {
+		commands = append(commands, resolved[name])
+	}
+	return commands, nil
+}
+
+func discoverCommandsFromDir(commandsDir string) ([]ProjectCommand, error) {
 	entries, err := os.ReadDir(commandsDir)
 	if err != nil {
 		if os.IsNotExist(err) {

@@ -15,13 +15,26 @@ var doctorCmd = &cobra.Command{
 	Short: "Run system diagnostics",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		outputJSON, _ := cmd.Flags().GetBool("json")
+		fixEnabled, _ := cmd.Flags().GetBool("fix")
 		packEnabled, _ := cmd.Flags().GetBool("pack")
 		packDir, _ := cmd.Flags().GetString("pack-dir")
 		if !outputJSON {
 			pterm.DefaultHeader.Println("Govard System Doctor")
 		}
 
-		report := engine.RunDoctorDiagnostics(engine.DoctorDependencies{})
+		report := runDoctorDiagnostics()
+		if fixEnabled {
+			fixResults := applyDoctorSafeFixes(report)
+			if outputJSON {
+				for _, line := range summarizeDoctorFixResults(fixResults) {
+					fmt.Fprintln(cmd.ErrOrStderr(), line)
+				}
+			} else {
+				renderDoctorFixResults(fixResults)
+			}
+			report = runDoctorDiagnostics()
+		}
+
 		packPath := ""
 		if packEnabled {
 			cwd, _ := os.Getwd()
@@ -92,6 +105,7 @@ func DoctorCommand() *cobra.Command {
 
 func init() {
 	doctorCmd.Flags().Bool("json", false, "Print diagnostics as JSON")
+	doctorCmd.Flags().Bool("fix", false, "Apply safe automatic fixes when available")
 	doctorCmd.Flags().Bool("pack", false, "Export a diagnostics support pack")
 	doctorCmd.Flags().String("pack-dir", "", "Output directory for diagnostics pack (default: ~/.govard/diagnostics)")
 }
