@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -49,6 +50,8 @@ type DBCommandOptions struct {
 }
 
 type dbCommandOptions = DBCommandOptions
+
+var mysqlDatabaseNamePattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
 // ValidateDBCommandOptions validates DB command option combinations.
 func ValidateDBCommandOptions(subcommand string, options DBCommandOptions) error {
@@ -338,12 +341,11 @@ func runStreamDBImport(cmd *cobra.Command, config engine.Config, options dbComma
 }
 
 func resetLocalDatabase(containerName string, database string) error {
-	name := strings.TrimSpace(database)
-	if name == "" {
-		name = "magento"
+	name := normalizeDatabaseName(database)
+	script, err := buildLocalDBResetScript(name)
+	if err != nil {
+		return err
 	}
-
-	script := buildLocalDBResetScript(name)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
@@ -359,10 +361,32 @@ func resetLocalDatabase(containerName string, database string) error {
 	return nil
 }
 
-func buildLocalDBResetScript(database string) string {
+func normalizeDatabaseName(database string) string {
 	name := strings.TrimSpace(database)
-	if name == "" {
-		name = "magento"
+	if name != "" {
+		return name
+	}
+	return "magento"
+}
+
+func validateDatabaseName(name string) error {
+	trimmed := strings.TrimSpace(name)
+	if trimmed == "" {
+		return errors.New("invalid database name: value cannot be empty")
+	}
+	if len(trimmed) > 64 {
+		return fmt.Errorf("invalid database name %q: exceeds 64 characters", trimmed)
+	}
+	if !mysqlDatabaseNamePattern.MatchString(trimmed) {
+		return fmt.Errorf("invalid database name %q: only letters, numbers, underscore, and hyphen are allowed", trimmed)
+	}
+	return nil
+}
+
+func buildLocalDBResetScript(database string) (string, error) {
+	name := normalizeDatabaseName(database)
+	if err := validateDatabaseName(name); err != nil {
+		return "", err
 	}
 
 	// Kill any sessions using the target DB so DROP DATABASE does not block on metadata locks.
@@ -374,10 +398,10 @@ func buildLocalDBResetScript(database string) string {
 		"IDS=$($DB_CLI -uroot -proot -N -e " + shellQuote(killSQL) + " 2>/dev/null || true)",
 		`for id in $IDS; do $DB_CLI -uroot -proot -e "KILL $id" 2>/dev/null || true; done`,
 		"$DB_CLI -uroot -proot -e " + shellQuote(resetSQL),
-	}, " && ")
+	}, " && "), nil
 }
 
-func BuildLocalDBResetScriptForTest(database string) string {
+func BuildLocalDBResetScriptForTest(database string) (string, error) {
 	return buildLocalDBResetScript(database)
 }
 

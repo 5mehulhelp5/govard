@@ -18,11 +18,7 @@ func DetectFramework(root string) ProjectMetadata {
 	// Check composer.json
 	composerPath := filepath.Join(root, "composer.json")
 	if _, err := os.Stat(composerPath); err == nil {
-		data, _ := os.ReadFile(composerPath)
-		var composer map[string]interface{}
-		json.Unmarshal(data, &composer)
-
-		if require, ok := composer["require"].(map[string]interface{}); ok {
+		if require, ok := readComposerRequirements(composerPath); ok {
 			for pkg, raw := range require {
 				version := dependencyVersionString(raw)
 				if strings.Contains(pkg, "magento/product-community-edition") ||
@@ -79,11 +75,7 @@ func DetectFramework(root string) ProjectMetadata {
 	// Check package.json
 	packagePath := filepath.Join(root, "package.json")
 	if _, err := os.Stat(packagePath); err == nil {
-		data, _ := os.ReadFile(packagePath)
-		var pkgJson map[string]interface{}
-		json.Unmarshal(data, &pkgJson)
-
-		if deps, ok := pkgJson["dependencies"].(map[string]interface{}); ok {
+		if deps, ok := readPackageDependencies(packagePath); ok {
 			if raw, ok := deps["next"]; ok {
 				metadata.Framework = "nextjs"
 				metadata.Version = dependencyVersionString(raw)
@@ -126,4 +118,40 @@ func dependencyVersionString(raw interface{}) string {
 		return ""
 	}
 	return strings.TrimSpace(value)
+}
+
+func readComposerRequirements(path string) (map[string]interface{}, bool) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, false
+	}
+
+	var composer struct {
+		Require map[string]interface{} `json:"require"`
+	}
+	if err := json.Unmarshal(data, &composer); err != nil {
+		return nil, false
+	}
+	if composer.Require == nil {
+		return nil, false
+	}
+	return composer.Require, true
+}
+
+func readPackageDependencies(path string) (map[string]interface{}, bool) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, false
+	}
+
+	var pkg struct {
+		Dependencies map[string]interface{} `json:"dependencies"`
+	}
+	if err := json.Unmarshal(data, &pkg); err != nil {
+		return nil, false
+	}
+	if pkg.Dependencies == nil {
+		return nil, false
+	}
+	return pkg.Dependencies, true
 }

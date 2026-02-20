@@ -37,7 +37,7 @@ func CreateSnapshot(projectRoot string, config Config, name string) (string, err
 	}
 
 	if err := os.MkdirAll(snapshotDir, 0755); err != nil {
-		return "", err
+		return "", fmt.Errorf("create snapshot directory %s: %w", snapshotDir, err)
 	}
 
 	meta := SnapshotMetadata{
@@ -85,7 +85,7 @@ func ListSnapshots(projectRoot string) ([]SnapshotMetadata, error) {
 		if os.IsNotExist(err) {
 			return []SnapshotMetadata{}, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("read snapshots directory %s: %w", root, err)
 	}
 
 	snapshots := make([]SnapshotMetadata, 0, len(entries))
@@ -135,7 +135,7 @@ func RestoreSnapshot(projectRoot string, config Config, name string, dbOnly bool
 			importCmd.Stderr = os.Stderr
 			if err := importCmd.Run(); err != nil {
 				_ = file.Close()
-				return err
+				return fmt.Errorf("restore database from snapshot %s: %w", name, err)
 			}
 			_ = file.Close()
 		}
@@ -146,10 +146,10 @@ func RestoreSnapshot(projectRoot string, config Config, name string, dbOnly bool
 		if info, err := os.Stat(mediaSnapshot); err == nil && info.IsDir() {
 			targetMedia := ResolveLocalMediaPath(config, projectRoot)
 			if err := os.RemoveAll(targetMedia); err != nil {
-				return err
+				return fmt.Errorf("remove existing media directory %s: %w", targetMedia, err)
 			}
 			if err := copyDir(mediaSnapshot, targetMedia); err != nil {
-				return err
+				return fmt.Errorf("restore media from snapshot %s: %w", name, err)
 			}
 		}
 	}
@@ -160,10 +160,10 @@ func RestoreSnapshot(projectRoot string, config Config, name string, dbOnly bool
 func copyDir(src string, dst string) error {
 	entries, err := os.ReadDir(src)
 	if err != nil {
-		return err
+		return fmt.Errorf("read source directory %s: %w", src, err)
 	}
 	if err := os.MkdirAll(dst, 0755); err != nil {
-		return err
+		return fmt.Errorf("create destination directory %s: %w", dst, err)
 	}
 
 	for _, entry := range entries {
@@ -171,7 +171,7 @@ func copyDir(src string, dst string) error {
 		dstPath := filepath.Join(dst, entry.Name())
 		info, err := entry.Info()
 		if err != nil {
-			return err
+			return fmt.Errorf("read entry info for %s: %w", srcPath, err)
 		}
 
 		if info.IsDir() {
@@ -192,20 +192,23 @@ func copyDir(src string, dst string) error {
 func copyFileWithMode(src string, dst string, mode os.FileMode) error {
 	in, err := os.Open(src)
 	if err != nil {
-		return err
+		return fmt.Errorf("open source file %s: %w", src, err)
 	}
 	defer in.Close()
 
 	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
-		return err
+		return fmt.Errorf("create destination directory for %s: %w", dst, err)
 	}
 
 	out, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, mode)
 	if err != nil {
-		return err
+		return fmt.Errorf("open destination file %s: %w", dst, err)
 	}
 	defer out.Close()
 
 	_, err = io.Copy(out, in)
-	return err
+	if err != nil {
+		return fmt.Errorf("copy %s to %s: %w", src, dst, err)
+	}
+	return nil
 }

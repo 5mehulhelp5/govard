@@ -85,7 +85,7 @@ func findBlueprintsDir(startDir string) (string, error) {
 func RenderBlueprint(root string, config Config) error {
 	blueprintsDir, err := findBlueprintsDir(root)
 	if err != nil {
-		return err
+		return fmt.Errorf("resolve blueprints directory: %w", err)
 	}
 
 	NormalizeConfig(&config)
@@ -176,18 +176,18 @@ func RenderBlueprint(root string, config Config) error {
 	}
 	f, err := os.Create(outputPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("create compose output %s: %w", outputPath, err)
 	}
 	defer f.Close()
 
 	out, err := yaml.Marshal(merged)
 	if err != nil {
-		return err
+		return fmt.Errorf("marshal rendered compose: %w", err)
 	}
 
 	_, err = f.Write(out)
 	if err != nil {
-		return err
+		return fmt.Errorf("write compose output %s: %w", outputPath, err)
 	}
 
 	return nil
@@ -222,12 +222,12 @@ func mergeProjectComposeOverride(root string, merged map[string]interface{}) err
 func renderTemplate(tmplPath string, data RenderData) (string, error) {
 	tmpl, err := template.ParseFiles(tmplPath)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("parse template %s: %w", tmplPath, err)
 	}
 
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, data); err != nil {
-		return "", err
+		return "", fmt.Errorf("execute template %s: %w", tmplPath, err)
 	}
 
 	return buf.String(), nil
@@ -297,7 +297,7 @@ func renderLegacyBlueprint(root, blueprintsDir string, config Config) error {
 
 	tmpl, err := template.ParseFiles(tmplPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("parse legacy template %s: %w", tmplPath, err)
 	}
 
 	outputPath := ComposeFilePath(root, config.ProjectName)
@@ -306,12 +306,12 @@ func renderLegacyBlueprint(root, blueprintsDir string, config Config) error {
 	}
 	f, err := os.Create(outputPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("create legacy compose output %s: %w", outputPath, err)
 	}
 	defer f.Close()
 
 	if err := tmpl.Execute(f, config); err != nil {
-		return err
+		return fmt.Errorf("execute legacy template %s: %w", tmplPath, err)
 	}
 
 	return nil
@@ -320,16 +320,19 @@ func renderLegacyBlueprint(root, blueprintsDir string, config Config) error {
 func copyFile(src, dst string) error {
 	sourceFile, err := os.Open(src)
 	if err != nil {
-		return err
+		return fmt.Errorf("open source file %s: %w", src, err)
 	}
 	defer sourceFile.Close()
 
 	newFile, err := os.Create(dst)
 	if err != nil {
-		return err
+		return fmt.Errorf("create destination file %s: %w", dst, err)
 	}
 	defer newFile.Close()
 
 	_, err = io.Copy(newFile, sourceFile)
-	return err
+	if err != nil {
+		return fmt.Errorf("copy %s to %s: %w", src, dst, err)
+	}
+	return nil
 }

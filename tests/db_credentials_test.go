@@ -83,7 +83,10 @@ func TestBuildLocalDBImportCommandSupportsMariaDBClient(t *testing.T) {
 }
 
 func TestBuildLocalDBResetScriptSupportsMariaDBClient(t *testing.T) {
-	script := cmd.BuildLocalDBResetScriptForTest("symfony")
+	script, err := cmd.BuildLocalDBResetScriptForTest("symfony")
+	if err != nil {
+		t.Fatalf("expected valid db reset script, got error: %v", err)
+	}
 
 	for _, expected := range []string{
 		"command -v mysql",
@@ -94,5 +97,16 @@ func TestBuildLocalDBResetScriptSupportsMariaDBClient(t *testing.T) {
 		if !strings.Contains(script, expected) {
 			t.Fatalf("expected reset script to contain %q, got: %s", expected, script)
 		}
+	}
+}
+
+func TestBuildLocalDBResetScriptRejectsUnsafeDatabaseName(t *testing.T) {
+	_, err := cmd.BuildLocalDBResetScriptForTest("symfony; DROP DATABASE mysql;")
+	if err == nil {
+		t.Fatal("expected unsafe database name to be rejected")
+	}
+
+	if !strings.Contains(err.Error(), "invalid database name") {
+		t.Fatalf("expected invalid database name error, got: %v", err)
 	}
 }

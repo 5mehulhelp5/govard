@@ -42,7 +42,9 @@ func trustLinux() error {
 	}
 
 	sslDir := filepath.Join(homeDir, ".govard", "ssl")
-	os.MkdirAll(sslDir, 0755)
+	if err := os.MkdirAll(sslDir, 0755); err != nil {
+		return fmt.Errorf("failed to create ssl directory %s: %w", sslDir, err)
+	}
 
 	localCertPath := filepath.Join(sslDir, "root.crt")
 	systemCertPath := "/usr/local/share/ca-certificates/govard.crt"
@@ -55,14 +57,26 @@ func trustLinux() error {
 	}
 
 	// Ensure readable by user for browser import (especially if created as root)
-	os.Chmod(localCertPath, 0644)
+	if err := os.Chmod(localCertPath, 0644); err != nil {
+		return fmt.Errorf("failed to set permissions on %s: %w", localCertPath, err)
+	}
 	if sudoUser := os.Getenv("SUDO_USER"); sudoUser != "" {
 		// Set ownership back to the original user
 		if u, err := user.Lookup(sudoUser); err == nil {
-			uid, _ := strconv.Atoi(u.Uid)
-			gid, _ := strconv.Atoi(u.Gid)
-			os.Chown(sslDir, uid, gid)
-			os.Chown(localCertPath, uid, gid)
+			uid, convErr := strconv.Atoi(u.Uid)
+			if convErr != nil {
+				return fmt.Errorf("failed to parse uid for %s: %w", sudoUser, convErr)
+			}
+			gid, convErr := strconv.Atoi(u.Gid)
+			if convErr != nil {
+				return fmt.Errorf("failed to parse gid for %s: %w", sudoUser, convErr)
+			}
+			if err := os.Chown(sslDir, uid, gid); err != nil {
+				return fmt.Errorf("failed to set ownership on %s: %w", sslDir, err)
+			}
+			if err := os.Chown(localCertPath, uid, gid); err != nil {
+				return fmt.Errorf("failed to set ownership on %s: %w", localCertPath, err)
+			}
 		}
 	}
 
