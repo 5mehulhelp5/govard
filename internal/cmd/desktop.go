@@ -99,7 +99,7 @@ func findDesktopBinary() (string, error) {
 
 	root, err := desktop.FindRepoRoot()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("govard-desktop binary not found in PATH. Build it from a Govard source checkout with `go build -tags desktop -o bin/govard-desktop ./cmd/govard-desktop`")
 	}
 
 	candidates := []string{

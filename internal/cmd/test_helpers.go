@@ -9,3 +9,8 @@ func FindWailsCLIForTest() (string, error) {
 func DesktopBinaryArgsForTest(background bool) []string {
 	return buildDesktopBinaryArgs(background)
 }
+
+// FindDesktopBinaryForTest exposes desktop binary discovery for external tests.
+func FindDesktopBinaryForTest() (string, error) {
+	return findDesktopBinary()
+}
