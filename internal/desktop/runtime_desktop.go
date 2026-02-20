@@ -16,3 +16,10 @@ func openURL(ctx context.Context, url string) error {
 func emitEvent(ctx context.Context, name string, data interface{}) {
 	runtime.EventsEmit(ctx, name, data)
 }
+
+func chooseDirectory(ctx context.Context, title string, defaultDir string) (string, error) {
+	return runtime.OpenDirectoryDialog(ctx, runtime.OpenDialogOptions{
+		Title:            title,
+		DefaultDirectory: defaultDir,
+	})
+}

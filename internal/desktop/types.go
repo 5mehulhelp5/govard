@@ -55,3 +55,44 @@ type ProjectResourceMetric struct {
 	NetTxMB       float64 `json:"netTxMB"`
 	OOMKilled     bool    `json:"oomKilled"`
 }
+
+type RemoteSnapshot struct {
+	Project  string        `json:"project"`
+	Remotes  []RemoteEntry `json:"remotes"`
+	Warnings []string      `json:"warnings"`
+}
+
+type RemoteEntry struct {
+	Name         string   `json:"name"`
+	Host         string   `json:"host"`
+	User         string   `json:"user"`
+	Path         string   `json:"path"`
+	Port         int      `json:"port"`
+	Environment  string   `json:"environment"`
+	Protected    bool     `json:"protected"`
+	AuthMethod   string   `json:"authMethod"`
+	Capabilities []string `json:"capabilities"`
+}
+
+type RemoteUpsertInput struct {
+	Name         string `json:"name"`
+	Host         string `json:"host"`
+	User         string `json:"user"`
+	Path         string `json:"path"`
+	Port         int    `json:"port"`
+	Environment  string `json:"environment"`
+	Capabilities string `json:"capabilities"`
+	AuthMethod   string `json:"authMethod"`
+	Protected    bool   `json:"protected"`
+}
+
+type RemoteConfigSnapshot struct {
+	Host         string
+	User         string
+	Path         string
+	Port         int
+	Environment  string
+	Protected    bool
+	AuthMethod   string
+	Capabilities []string
+}

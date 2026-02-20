@@ -1,0 +1,181 @@
+package desktop
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"govard/internal/engine"
+)
+
+func pickProjectDirectory(ctx context.Context) (string, error) {
+	defaultDir := ""
+	if home, err := os.UserHomeDir(); err == nil {
+		defaultDir = home
+	}
+
+	path, err := chooseDirectory(ctx, "Select Project Directory", defaultDir)
+	if err != nil {
+		return "", err
+	}
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return "", nil
+	}
+	return filepath.Clean(path), nil
+}
+
+func onboardProject(projectPath string, recipe string) (string, error) {
+	startedAt := time.Now()
+	status := engine.OperationStatusFailure
+	category := "runtime"
+	message := ""
+	project := strings.TrimSpace(projectPath)
+	defer func() {
+		writeDesktopOperationEvent(
+			"desktop.project.onboard",
+			status,
+			project,
+			project,
+			"",
+			message,
+			category,
+			time.Since(startedAt),
+		)
+	}()
+
+	root, err := normalizeProjectPath(projectPath)
+	if err != nil {
+		category = "validation"
+		message = err.Error()
+		return "", err
+	}
+	project = root
+
+	config, hasConfig, err := loadProjectConfigForOnboarding(root)
+	if err != nil {
+		category = "validation"
+		message = err.Error()
+		return "", err
+	}
+
+	ranInit := false
+	if !hasConfig {
+		args := buildInitArgs(recipe)
+		if _, err := runGovardCommandForDesktop(root, args); err != nil {
+			message = err.Error()
+			return "", fmt.Errorf("project init failed: %w", err)
+		}
+		ranInit = true
+
+		config, hasConfig, err = loadProjectConfigForOnboarding(root)
+		if err != nil {
+			message = err.Error()
+			return "", err
+		}
+		if !hasConfig {
+			message = "govard.yml not found after init"
+			return "", fmt.Errorf("govard.yml not found after init")
+		}
+	}
+
+	entry := buildProjectRegistryEntry(root, config, "desktop-onboard")
+	project = entry.ProjectName
+	if err := engine.UpsertProjectRegistryEntry(entry); err != nil {
+		message = err.Error()
+		return "", err
+	}
+
+	status = engine.OperationStatusSuccess
+	category = ""
+	if ranInit {
+		message = "project initialized and added"
+		return fmt.Sprintf("Project %s initialized and added.", entry.ProjectName), nil
+	}
+	message = "project added"
+	return fmt.Sprintf("Project %s added.", entry.ProjectName), nil
+}
+
+func normalizeProjectPath(projectPath string) (string, error) {
+	path := strings.TrimSpace(projectPath)
+	if path == "" {
+		return "", fmt.Errorf("project path is required")
+	}
+
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return "", fmt.Errorf("resolve project path: %w", err)
+	}
+
+	info, err := os.Stat(absPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", fmt.Errorf("project path does not exist: %s", absPath)
+		}
+		return "", fmt.Errorf("inspect project path: %w", err)
+	}
+	if !info.IsDir() {
+		return "", fmt.Errorf("project path is not a directory: %s", absPath)
+	}
+
+	return filepath.Clean(absPath), nil
+}
+
+func loadProjectConfigForOnboarding(root string) (engine.Config, bool, error) {
+	if !pathHasBaseConfig(root) {
+		return engine.Config{}, false, nil
+	}
+
+	cfg, err := engine.LoadBaseConfigFromDir(root, true)
+	if err != nil {
+		return engine.Config{}, true, fmt.Errorf("load %s: %w", engine.BaseConfigFile, err)
+	}
+	return cfg, true, nil
+}
+
+func buildInitArgs(recipe string) []string {
+	args := []string{"init"}
+	if normalized := normalizeOnboardingRecipe(recipe); normalized != "" {
+		args = append(args, "--recipe", normalized)
+	}
+	return args
+}
+
+func normalizeOnboardingRecipe(recipe string) string {
+	switch strings.ToLower(strings.TrimSpace(recipe)) {
+	case "", "auto", "detect":
+		return ""
+	case "m2":
+		return "magento2"
+	case "m1":
+		return "magento1"
+	case "wp":
+		return "wordpress"
+	default:
+		return strings.ToLower(strings.TrimSpace(recipe))
+	}
+}
+
+func buildProjectRegistryEntry(root string, config engine.Config, command string) engine.ProjectRegistryEntry {
+	projectName := strings.TrimSpace(config.ProjectName)
+	if projectName == "" {
+		projectName = filepath.Base(root)
+	}
+
+	domain := strings.TrimSpace(config.Domain)
+	if domain == "" {
+		domain = projectName + ".test"
+	}
+
+	return engine.ProjectRegistryEntry{
+		Path:        filepath.Clean(root),
+		ProjectName: projectName,
+		Domain:      domain,
+		Recipe:      strings.TrimSpace(strings.ToLower(config.Recipe)),
+		LastSeenAt:  time.Now().UTC(),
+		LastCommand: strings.TrimSpace(strings.ToLower(command)),
+	}
+}

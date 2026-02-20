@@ -1,12 +1,17 @@
 package desktop
 
-import "govard/internal/engine"
+import (
+	"strings"
+
+	"govard/internal/engine"
+)
 
 // ResetStateForTest clears process-level caches used by desktop package.
 func ResetStateForTest() {
 	prefsMu.Lock()
 	cachedPrefs = nil
 	prefsMu.Unlock()
+	runGovardCommandForDesktop = defaultRunGovardCommandForDesktop
 }
 
 // ResolveRequestedLogTargetsForTest exposes log target normalization for tests.
@@ -61,4 +66,76 @@ func BuildMetricsWarningsForTest(projects []ProjectResourceMetric, input []strin
 // BytesToMBForTest exposes bytes-to-MB conversion for tests.
 func BytesToMBForTest(bytes uint64) float64 {
 	return bytesToMB(bytes)
+}
+
+// BuildRemoteEntriesForTest exposes remote snapshot rendering for tests.
+func BuildRemoteEntriesForTest(remotes map[string]RemoteConfigSnapshot) []RemoteEntry {
+	engineRemotes := map[string]engine.RemoteConfig{}
+	for name, snapshot := range remotes {
+		engineRemotes[name] = engine.RemoteConfig{
+			Host:        strings.TrimSpace(snapshot.Host),
+			User:        strings.TrimSpace(snapshot.User),
+			Path:        strings.TrimSpace(snapshot.Path),
+			Port:        snapshot.Port,
+			Environment: strings.TrimSpace(snapshot.Environment),
+			Protected:   snapshot.Protected,
+			Capabilities: engine.RemoteCapabilities{
+				Files:  containsCapability(snapshot.Capabilities, engine.RemoteCapabilityFiles),
+				Media:  containsCapability(snapshot.Capabilities, engine.RemoteCapabilityMedia),
+				DB:     containsCapability(snapshot.Capabilities, engine.RemoteCapabilityDB),
+				Deploy: containsCapability(snapshot.Capabilities, engine.RemoteCapabilityDeploy),
+			},
+			Auth: engine.RemoteAuth{
+				Method: strings.TrimSpace(snapshot.AuthMethod),
+			},
+		}
+	}
+	return buildRemoteEntries(engineRemotes)
+}
+
+// NormalizeRemoteSyncPresetForTest exposes preset normalization for tests.
+func NormalizeRemoteSyncPresetForTest(preset string) (string, error) {
+	return normalizeRemoteSyncPreset(preset)
+}
+
+// BuildRemoteSyncPlanArgsForTest exposes sync preset command argument generation for tests.
+func BuildRemoteSyncPlanArgsForTest(remoteName string, preset string) ([]string, error) {
+	return buildRemoteSyncPlanArgs(remoteName, preset)
+}
+
+// ListProjectRemotesForPathForTest exposes path-based remotes loading for tests.
+func ListProjectRemotesForPathForTest(root string) (RemoteSnapshot, error) {
+	return listProjectRemotesByPath(root)
+}
+
+// UpsertProjectRemoteForPathForTest exposes path-based remote upsert for tests.
+func UpsertProjectRemoteForPathForTest(root string, input RemoteUpsertInput) error {
+	return upsertProjectRemoteByPath(root, input)
+}
+
+// SetRunGovardCommandForDesktopForTest overrides the desktop govard command runner.
+func SetRunGovardCommandForDesktopForTest(fn func(root string, args []string) (string, error)) func() {
+	previous := runGovardCommandForDesktop
+	if fn == nil {
+		runGovardCommandForDesktop = defaultRunGovardCommandForDesktop
+	} else {
+		runGovardCommandForDesktop = fn
+	}
+	return func() {
+		runGovardCommandForDesktop = previous
+	}
+}
+
+// OnboardProjectForPathForTest exposes onboarding flow for tests.
+func OnboardProjectForPathForTest(projectPath string, recipe string) (string, error) {
+	return onboardProject(projectPath, recipe)
+}
+
+func containsCapability(capabilities []string, name string) bool {
+	for _, capability := range capabilities {
+		if strings.EqualFold(strings.TrimSpace(capability), name) {
+			return true
+		}
+	}
+	return false
 }

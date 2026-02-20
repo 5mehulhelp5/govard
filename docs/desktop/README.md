@@ -16,6 +16,8 @@ Keyboard shortcuts:
 Lightweight dashboard features:
 - Environment list with start/stop/open
 - Quick actions (Mailpit, PHPMyAdmin, Xdebug toggle, health)
+- Project onboarding panel (folder picker + add/init when `govard.yml` is missing)
+- Remotes tab (list/add remotes, connectivity test, and sync plan presets)
 - Resource monitor (CPU/RAM/NET per project, OOM hints, refresh + auto-refresh)
 - Logs with multi-service (`all`) selection, severity filtering, text search, and live streaming
 - Shell launcher (service, user, shell)
@@ -26,7 +28,6 @@ Lightweight dashboard features:
 Removed from desktop surface:
 - Operations UI and operations output/history views
 - Workflow snapshot cards
-- Onboarding checklist/wizard views
 - Role-mode gated UI complexity
 
 Frontend architecture:

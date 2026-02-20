@@ -322,6 +322,104 @@ select {
   align-items: center;
 }
 
+.panel--remotes {
+  display: grid;
+  gap: 12px;
+}
+
+.panel--onboarding {
+  display: grid;
+  gap: 12px;
+}
+
+.onboarding-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1.6fr 0.8fr;
+}
+
+.onboarding-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.remotes-warnings {
+  margin-top: -4px;
+}
+
+.remotes-list {
+  display: grid;
+  gap: 10px;
+}
+
+.remote-card {
+  border: 1px solid var(--border);
+  background: var(--panel-solid);
+  border-radius: 12px;
+  padding: 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.remote-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.remote-card__head h3 {
+  font-size: 0.98rem;
+}
+
+.remote-card p {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.remote-card__actions {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.remotes-form {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel-solid);
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.remotes-form h3 {
+  font-size: 0.95rem;
+}
+
+.remotes-form__grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.remotes-form__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.field--checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 24px;
+}
+
+.field--checkbox input[type="checkbox"] {
+  width: 16px;
+  min-height: 16px;
+}
+
 select,
 input {
   width: 100%;
@@ -550,6 +648,18 @@ select {
   .logs-controls__buttons {
     grid-column: 1 / -1;
   }
+
+  .remotes-form__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .remote-card__actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .onboarding-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 680px) {
@@ -598,6 +708,20 @@ select {
 
   .logs-controls__buttons--primary {
     grid-template-columns: 1fr;
+  }
+
+  .remotes-form__grid,
+  .remote-card__actions {
+    grid-template-columns: 1fr;
+  }
+
+  .onboarding-actions {
+    flex-direction: column;
+    justify-content: stretch;
+  }
+
+  .onboarding-actions .button {
+    width: 100%;
   }
 
   .row {

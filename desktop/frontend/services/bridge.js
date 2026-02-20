@@ -16,6 +16,36 @@ export const desktopBridge = {
   async getResourceMetrics() {
     return call(bridge?.GetResourceMetrics?.bind(bridge))
   },
+  async pickProjectDirectory() {
+    return call(bridge?.PickProjectDirectory?.bind(bridge))
+  },
+  async onboardProject(projectPath, recipe) {
+    return call(bridge?.OnboardProject?.bind(bridge), projectPath, recipe)
+  },
+  async getRemotes(project) {
+    return call(bridge?.GetRemotes?.bind(bridge), project)
+  },
+  async addRemote(project, name, host, user, path, port, environment, capabilities, authMethod, protectedMode) {
+    return call(
+      bridge?.AddRemote?.bind(bridge),
+      project,
+      name,
+      host,
+      user,
+      path,
+      port,
+      environment,
+      capabilities,
+      authMethod,
+      Boolean(protectedMode),
+    )
+  },
+  async testRemote(project, remoteName) {
+    return call(bridge?.TestRemote?.bind(bridge), project, remoteName)
+  },
+  async runRemoteSyncPreset(project, remoteName, preset) {
+    return call(bridge?.RunRemoteSyncPreset?.bind(bridge), project, remoteName, preset)
+  },
   async startEnvironment(project) {
     return call(bridge?.StartEnvironment?.bind(bridge), project)
   },

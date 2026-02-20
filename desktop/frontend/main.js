@@ -9,6 +9,8 @@ import {
 } from "./modules/dashboard.js"
 import { createLogsController, resolveLogTarget, syncServiceSelector } from "./modules/logs.js"
 import { createMetricsController } from "./modules/metrics.js"
+import { createOnboardingController } from "./modules/onboarding.js"
+import { createRemotesController } from "./modules/remotes.js"
 import { createSettingsController } from "./modules/settings.js"
 import { createShellController } from "./modules/shell.js"
 import { desktopBridge } from "./services/bridge.js"
@@ -33,6 +35,19 @@ const refs = {
   metricOOM: byId("metricOOM"),
   metricsList: byId("metricsList"),
   metricsWarnings: byId("metricsWarnings"),
+  remotesList: byId("remotesList"),
+  remotesWarnings: byId("remotesWarnings"),
+  projectPath: byId("projectPath"),
+  projectRecipe: byId("projectRecipe"),
+  remoteName: byId("remoteName"),
+  remoteHost: byId("remoteHost"),
+  remoteUser: byId("remoteUser"),
+  remotePath: byId("remotePath"),
+  remotePort: byId("remotePort"),
+  remoteEnvironment: byId("remoteEnvironment"),
+  remoteCapabilities: byId("remoteCapabilities"),
+  remoteAuthMethod: byId("remoteAuthMethod"),
+  remoteProtected: byId("remoteProtected"),
   envList: byId("envList"),
   envSelector: byId("envSelector"),
   logSelector: byId("logSelector"),
@@ -168,6 +183,14 @@ const metricsController = createMetricsController({
   onStatus: setStatus,
 })
 
+const remotesController = createRemotesController({
+  bridge: desktopBridge,
+  refs,
+  getProject: () => getState().selectedProject,
+  onStatus: setStatus,
+  onToast: showToast,
+})
+
 const refreshDashboard = async () => {
   setStatus("Status: syncing dashboard...")
   const dashboard = await loadDashboard()
@@ -198,10 +221,19 @@ const refreshDashboard = async () => {
   refreshServiceSelector()
   syncLogFiltersState()
   await metricsController.refresh({ silent: true })
+  await remotesController.refresh({ silent: true })
   await shellController.loadShellUser()
   await logsController.refresh()
   setStatus(`Status: refreshed at ${new Date().toLocaleTimeString()}`)
 }
+
+const onboardingController = createOnboardingController({
+  bridge: desktopBridge,
+  refs,
+  onStatus: setStatus,
+  onToast: showToast,
+  onProjectAdded: refreshDashboard,
+})
 
 const actionsController = createActionsController({
   bridge: desktopBridge,
@@ -235,6 +267,30 @@ document.addEventListener("click", async (event) => {
   }
   if (action === "refresh-metrics") {
     await metricsController.refresh()
+    return
+  }
+  if (action === "browse-project") {
+    await onboardingController.browseProject()
+    return
+  }
+  if (action === "add-project") {
+    await onboardingController.addProject()
+    return
+  }
+  if (action === "refresh-remotes") {
+    await remotesController.refresh()
+    return
+  }
+  if (action === "save-remote") {
+    await remotesController.saveRemote()
+    return
+  }
+  if (action === "remote-test") {
+    await remotesController.testRemote(String(target.dataset.remote || ""))
+    return
+  }
+  if (action === "remote-sync") {
+    await remotesController.runSyncPreset(String(target.dataset.remote || ""), String(target.dataset.preset || ""))
     return
   }
   if (action === "toggle-live") {
@@ -305,6 +361,7 @@ const syncProjectSelectorsFrom = async (source) => {
   } else {
     await logsController.refresh()
   }
+  await remotesController.refresh({ silent: true })
 }
 
 if (refs.envSelector) {

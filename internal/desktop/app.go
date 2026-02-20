@@ -2,8 +2,11 @@ package desktop
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"time"
+
+	"govard/internal/engine"
 )
 
 type App struct {
@@ -62,6 +65,109 @@ func (app *App) GetResourceMetrics() ResourceMetricsSnapshot {
 		Projects:  []ProjectResourceMetric{},
 		Warnings:  []string{"Metrics unavailable: " + err.Error()},
 	}
+}
+
+func (app *App) PickProjectDirectory() string {
+	ctx := app.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	path, err := pickProjectDirectory(ctx)
+	if err != nil {
+		return ""
+	}
+	return path
+}
+
+func (app *App) OnboardProject(projectPath string, recipe string) string {
+	message, err := onboardProject(projectPath, recipe)
+	if err != nil {
+		return "Failed to onboard project: " + err.Error()
+	}
+	return message
+}
+
+func (app *App) GetRemotes(project string) RemoteSnapshot {
+	snapshot, err := listProjectRemotes(project)
+	if err == nil {
+		return snapshot
+	}
+	return RemoteSnapshot{
+		Project: strings.TrimSpace(project),
+		Remotes: []RemoteEntry{},
+		Warnings: []string{
+			"Remotes unavailable: " + err.Error(),
+		},
+	}
+}
+
+func (app *App) AddRemote(
+	project string,
+	name string,
+	host string,
+	user string,
+	path string,
+	port int,
+	environment string,
+	capabilities string,
+	authMethod string,
+	protected bool,
+) string {
+	startedAt := time.Now()
+	status := engine.OperationStatusFailure
+	category := "runtime"
+	message := ""
+	defer func() {
+		writeDesktopOperationEvent(
+			"desktop.remote.add",
+			status,
+			project,
+			strings.TrimSpace(name),
+			"",
+			message,
+			category,
+			time.Since(startedAt),
+		)
+	}()
+
+	input := RemoteUpsertInput{
+		Name:         name,
+		Host:         host,
+		User:         user,
+		Path:         path,
+		Port:         port,
+		Environment:  environment,
+		Capabilities: capabilities,
+		AuthMethod:   authMethod,
+		Protected:    protected,
+	}
+	if err := upsertProjectRemote(project, input); err != nil {
+		if strings.Contains(strings.ToLower(err.Error()), "required") || strings.Contains(strings.ToLower(err.Error()), "unsupported") {
+			category = "validation"
+		}
+		message = err.Error()
+		return "Failed to save remote: " + err.Error()
+	}
+	status = engine.OperationStatusSuccess
+	category = ""
+	message = "remote saved"
+	return "Remote saved: " + strings.TrimSpace(name)
+}
+
+func (app *App) TestRemote(project string, remoteName string) string {
+	output, err := testRemote(project, remoteName)
+	if err != nil {
+		return "Remote test failed: " + err.Error()
+	}
+	return output
+}
+
+func (app *App) RunRemoteSyncPreset(project string, remoteName string, preset string) string {
+	output, err := runRemoteSyncPreset(project, remoteName, preset)
+	if err != nil {
+		return "Remote sync plan failed: " + err.Error()
+	}
+	return output
 }
 
 func (app *App) ToggleEnvironment(name string) string {

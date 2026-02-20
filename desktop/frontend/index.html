@@ -115,6 +115,98 @@
         </article>
       </section>
 
+      <section class="panel panel--onboarding" id="onboarding">
+        <header class="panel__header">
+          <h2>Project Onboarding</h2>
+        </header>
+        <div class="onboarding-grid">
+          <label class="field">
+            Project path
+            <input id="projectPath" type="text" placeholder="/path/to/project" />
+          </label>
+          <label class="field field--compact">
+            Recipe (optional)
+            <select id="projectRecipe">
+              <option value="auto">auto-detect</option>
+              <option value="magento2">magento2</option>
+              <option value="magento1">magento1</option>
+              <option value="laravel">laravel</option>
+              <option value="symfony">symfony</option>
+              <option value="wordpress">wordpress</option>
+              <option value="nextjs">nextjs</option>
+              <option value="custom">custom</option>
+            </select>
+          </label>
+        </div>
+        <div class="onboarding-actions">
+          <button class="button button--ghost" data-action="browse-project">Browse Folder</button>
+          <button class="button button--ghost" data-action="add-project">Add Project</button>
+        </div>
+      </section>
+
+      <section class="panel panel--remotes" id="remotes">
+        <header class="panel__header">
+          <h2>Remotes</h2>
+          <button class="button button--ghost" data-action="refresh-remotes">Refresh Remotes</button>
+        </header>
+        <ul class="warning-list remotes-warnings" id="remotesWarnings"></ul>
+        <div class="remotes-list" id="remotesList">
+          <div class="panel__empty">Select an environment to load remotes.</div>
+        </div>
+        <div class="remotes-form">
+          <h3>Add or Update Remote</h3>
+          <div class="remotes-form__grid">
+            <label class="field field--compact">
+              Name
+              <input id="remoteName" type="text" placeholder="staging" />
+            </label>
+            <label class="field field--compact">
+              Host
+              <input id="remoteHost" type="text" placeholder="staging.example.com" />
+            </label>
+            <label class="field field--compact">
+              User
+              <input id="remoteUser" type="text" placeholder="deploy" />
+            </label>
+            <label class="field field--compact">
+              Path
+              <input id="remotePath" type="text" placeholder="/var/www/current" />
+            </label>
+            <label class="field field--compact">
+              Port
+              <input id="remotePort" type="number" min="1" max="65535" value="22" />
+            </label>
+            <label class="field field--compact">
+              Environment
+              <select id="remoteEnvironment">
+                <option value="dev">dev</option>
+                <option value="staging" selected>staging</option>
+                <option value="prod">prod</option>
+              </select>
+            </label>
+            <label class="field field--compact">
+              Capabilities
+              <input id="remoteCapabilities" type="text" value="files,media,db,deploy" />
+            </label>
+            <label class="field field--compact">
+              Auth
+              <select id="remoteAuthMethod">
+                <option value="keychain" selected>keychain</option>
+                <option value="ssh-agent">ssh-agent</option>
+                <option value="keyfile">keyfile</option>
+              </select>
+            </label>
+            <label class="field field--checkbox">
+              <input id="remoteProtected" type="checkbox" />
+              Protected
+            </label>
+          </div>
+          <div class="remotes-form__actions">
+            <button class="button button--ghost" data-action="save-remote">Save Remote</button>
+          </div>
+        </div>
+      </section>
+
       <section class="panel panel--logs" id="logs">
         <header class="panel__header">
           <h2>Logs + Shell</h2>

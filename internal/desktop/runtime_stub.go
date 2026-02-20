@@ -18,3 +18,10 @@ func emitEvent(ctx context.Context, name string, data interface{}) {
 	_ = name
 	_ = data
 }
+
+func chooseDirectory(ctx context.Context, title string, defaultDir string) (string, error) {
+	_ = ctx
+	_ = title
+	_ = defaultDir
+	return "", fmt.Errorf("desktop runtime not available")
+}

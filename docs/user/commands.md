@@ -116,6 +116,8 @@ expects a built `govard-desktop` binary.
 Desktop highlights:
 - Environment dashboard with start/stop/open
 - Quick actions (Mailpit, PHPMyAdmin, Xdebug toggle, health)
+- Manual project onboarding (select folder and add/init project)
+- Remotes tab (list/add remotes, run remote test, trigger sync plan presets)
 - Resource monitoring (CPU/RAM/NET and OOM hints)
 - Logs with multi-service selection, severity/text filtering, and live streaming
 - Shell launcher (service, user, shell)

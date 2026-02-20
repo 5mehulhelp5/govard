@@ -1,0 +1,115 @@
+package tests
+
+import (
+	"os"
+	"path/filepath"
+	"reflect"
+	"strings"
+	"testing"
+
+	"govard/internal/desktop"
+	"govard/internal/engine"
+)
+
+func TestDesktopPkgOnboardProjectForPathForTestInitializesWhenMissingConfig(t *testing.T) {
+	root := t.TempDir()
+	registryPath := filepath.Join(t.TempDir(), "projects.json")
+	t.Setenv(engine.ProjectRegistryPathEnvVar, registryPath)
+
+	var called bool
+	var gotDir string
+	var gotArgs []string
+	restore := desktop.SetRunGovardCommandForDesktopForTest(func(dir string, args []string) (string, error) {
+		called = true
+		gotDir = dir
+		gotArgs = append([]string{}, args...)
+		content := strings.TrimSpace(`
+project_name: demo
+recipe: laravel
+domain: demo.test
+`) + "\n"
+		if err := os.WriteFile(filepath.Join(dir, "govard.yml"), []byte(content), 0o644); err != nil {
+			return "", err
+		}
+		return "ok", nil
+	})
+	defer restore()
+
+	message, err := desktop.OnboardProjectForPathForTest(root, "laravel")
+	if err != nil {
+		t.Fatalf("onboard project: %v", err)
+	}
+	if !called {
+		t.Fatal("expected init command to run for missing govard.yml")
+	}
+	if gotDir != root {
+		t.Fatalf("expected init dir %s, got %s", root, gotDir)
+	}
+	expectedArgs := []string{"init", "--recipe", "laravel"}
+	if !reflect.DeepEqual(gotArgs, expectedArgs) {
+		t.Fatalf("unexpected init args: %#v", gotArgs)
+	}
+	if !strings.Contains(strings.ToLower(message), "initialized") {
+		t.Fatalf("expected initialized message, got %q", message)
+	}
+
+	entries, err := engine.ReadProjectRegistryEntries()
+	if err != nil {
+		t.Fatalf("read registry: %v", err)
+	}
+	if len(entries) != 1 {
+		t.Fatalf("expected one registry entry, got %d", len(entries))
+	}
+	if entries[0].Path != root {
+		t.Fatalf("expected registry path %s, got %s", root, entries[0].Path)
+	}
+	if entries[0].ProjectName != "demo" {
+		t.Fatalf("expected project name demo, got %s", entries[0].ProjectName)
+	}
+	if entries[0].Recipe != "laravel" {
+		t.Fatalf("expected recipe laravel, got %s", entries[0].Recipe)
+	}
+}
+
+func TestDesktopPkgOnboardProjectForPathForTestAddsConfiguredProjectWithoutInit(t *testing.T) {
+	root := t.TempDir()
+	registryPath := filepath.Join(t.TempDir(), "projects.json")
+	t.Setenv(engine.ProjectRegistryPathEnvVar, registryPath)
+
+	content := strings.TrimSpace(`
+project_name: shop
+recipe: magento2
+domain: shop.test
+`) + "\n"
+	if err := os.WriteFile(filepath.Join(root, "govard.yml"), []byte(content), 0o644); err != nil {
+		t.Fatalf("write govard.yml: %v", err)
+	}
+
+	restore := desktop.SetRunGovardCommandForDesktopForTest(func(dir string, args []string) (string, error) {
+		t.Fatalf("did not expect init command for preconfigured project; dir=%s args=%#v", dir, args)
+		return "", nil
+	})
+	defer restore()
+
+	message, err := desktop.OnboardProjectForPathForTest(root, "")
+	if err != nil {
+		t.Fatalf("onboard project: %v", err)
+	}
+	if !strings.Contains(strings.ToLower(message), "added") {
+		t.Fatalf("expected added message, got %q", message)
+	}
+
+	entries, err := engine.ReadProjectRegistryEntries()
+	if err != nil {
+		t.Fatalf("read registry: %v", err)
+	}
+	if len(entries) != 1 {
+		t.Fatalf("expected one registry entry, got %d", len(entries))
+	}
+	if entries[0].ProjectName != "shop" {
+		t.Fatalf("expected project name shop, got %s", entries[0].ProjectName)
+	}
+	if entries[0].Recipe != "magento2" {
+		t.Fatalf("expected recipe magento2, got %s", entries[0].Recipe)
+	}
+}
