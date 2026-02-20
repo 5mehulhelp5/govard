@@ -3,6 +3,7 @@ package tests
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -49,6 +50,44 @@ func TestRestoreSnapshotMissing(t *testing.T) {
 	err := engine.RestoreSnapshot(t.TempDir(), engine.Config{ProjectName: "demo"}, "missing", false, false)
 	if err == nil {
 		t.Fatal("expected restore missing snapshot to fail")
+	}
+}
+
+func TestBuildSnapshotDumpCommandUsesEnvPassword(t *testing.T) {
+	args := engine.BuildSnapshotDumpCommandForTest("example-db-1", "app", "secret", "shop")
+	joined := strings.Join(args, " ")
+
+	for _, expected := range []string{
+		"docker exec -i",
+		"MYSQL_PWD=secret",
+		"mysqldump -u app shop",
+	} {
+		if !strings.Contains(joined, expected) {
+			t.Fatalf("expected dump command to contain %q, got: %s", expected, joined)
+		}
+	}
+
+	if strings.Contains(joined, "-psecret") {
+		t.Fatalf("did not expect password to be passed in CLI args: %s", joined)
+	}
+}
+
+func TestBuildSnapshotImportCommandUsesEnvPassword(t *testing.T) {
+	args := engine.BuildSnapshotImportCommandForTest("example-db-1", "app", "secret", "shop")
+	joined := strings.Join(args, " ")
+
+	for _, expected := range []string{
+		"docker exec -i",
+		"MYSQL_PWD=secret",
+		"mysql -u app shop",
+	} {
+		if !strings.Contains(joined, expected) {
+			t.Fatalf("expected import command to contain %q, got: %s", expected, joined)
+		}
+	}
+
+	if strings.Contains(joined, "-psecret") {
+		t.Fatalf("did not expect password to be passed in CLI args: %s", joined)
 	}
 }
 

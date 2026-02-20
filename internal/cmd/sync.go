@@ -91,20 +91,21 @@ var syncCmd = &cobra.Command{
 			Include:     includePatterns,
 			Exclude:     excludePatterns,
 		})
+		execOpts := syncExecutionOptions{
+			Files:   files,
+			Media:   media,
+			DB:      database,
+			Delete:  deleteFiles,
+			Resume:  resumeTransfers,
+			Path:    path,
+			Include: includePatterns,
+			Exclude: excludePatterns,
+		}
 
 		endpoints, err := resolveSyncEndpoints(config, source, destination)
 		if err != nil {
 			if planOnly {
-				for _, line := range buildFallbackSyncPlanSummary(source, destination, syncExecutionOptions{
-					Files:   files,
-					Media:   media,
-					DB:      database,
-					Delete:  deleteFiles,
-					Resume:  resumeTransfers,
-					Path:    path,
-					Include: includePatterns,
-					Exclude: excludePatterns,
-				}, plan, err) {
+				for _, line := range buildFallbackSyncPlanSummary(source, destination, execOpts, plan, err) {
 					fmt.Fprintln(cmd.OutOrStdout(), line)
 				}
 				auditStatus = remote.RemoteAuditStatusPlan
@@ -114,45 +115,18 @@ var syncCmd = &cobra.Command{
 			return err
 		}
 
-		policyWarnings, err := evaluateSyncPolicy(endpoints, syncExecutionOptions{
-			Files:   files,
-			Media:   media,
-			DB:      database,
-			Delete:  deleteFiles,
-			Resume:  resumeTransfers,
-			Path:    path,
-			Include: includePatterns,
-			Exclude: excludePatterns,
-		})
+		policyWarnings, err := evaluateSyncPolicy(endpoints, execOpts)
 		if err != nil {
 			return err
 		}
 
-		executionPlan, err := buildSyncExecutionPlan(config, endpoints, syncExecutionOptions{
-			Files:   files,
-			Media:   media,
-			DB:      database,
-			Delete:  deleteFiles,
-			Resume:  resumeTransfers,
-			Path:    path,
-			Include: includePatterns,
-			Exclude: excludePatterns,
-		})
+		executionPlan, err := buildSyncExecutionPlan(config, endpoints, execOpts)
 		if err != nil {
 			return err
 		}
 
 		if planOnly {
-			for _, line := range buildSyncPlanSummary(endpoints, executionPlan, syncExecutionOptions{
-				Files:   files,
-				Media:   media,
-				DB:      database,
-				Delete:  deleteFiles,
-				Resume:  resumeTransfers,
-				Path:    path,
-				Include: includePatterns,
-				Exclude: excludePatterns,
-			}, policyWarnings) {
+			for _, line := range buildSyncPlanSummary(endpoints, executionPlan, execOpts, policyWarnings) {
 				fmt.Fprintln(cmd.OutOrStdout(), line)
 			}
 			auditStatus = remote.RemoteAuditStatusPlan

@@ -21,6 +21,17 @@ func TestDownCommandFlagsExist(t *testing.T) {
 	}
 }
 
+func TestDownCommandUsesRunE(t *testing.T) {
+	root := cmd.RootCommandForTest()
+	command, _, err := root.Find([]string{"down"})
+	if err != nil {
+		t.Fatalf("find down: %v", err)
+	}
+	if command.RunE == nil {
+		t.Fatal("expected down command to use RunE so errors propagate to non-zero exit codes")
+	}
+}
+
 func TestBuildDownComposeArgsDefaults(t *testing.T) {
 	args, err := cmd.BuildDownComposeArgsForTest(
 		"/work/project",

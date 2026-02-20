@@ -21,6 +21,9 @@ func CheckDockerStatus() error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		_ = cli.Close()
+	}()
 
 	_, err = cli.Ping(ctx)
 	return err
@@ -57,6 +60,9 @@ func isPortBoundByGovardProxy(port string) bool {
 	if err != nil {
 		return false
 	}
+	defer func() {
+		_ = cli.Close()
+	}()
 
 	containers, err := cli.ContainerList(ctx, container.ListOptions{})
 	if err != nil {

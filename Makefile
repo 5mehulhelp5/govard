@@ -2,11 +2,12 @@ BINARY_NAME=govard
 BUILD_DIR=bin
 TEST_BINARY=$(BUILD_DIR)/govard-test
 UNIT_PACKAGES=$(shell go list ./... | grep -v '^govard/tests/integration$$')
+COVER_PACKAGES=$(shell go list ./internal/... | tr '\n' ',' | sed 's/,$$//')
 VERSION_RAW ?= $(shell git describe --tags --dirty --always 2>/dev/null || echo 1.0.0)
 VERSION ?= $(patsubst v%,%,$(VERSION_RAW))
 LDFLAGS ?= -s -w -X govard/internal/cmd.Version=$(VERSION)
 
-.PHONY: build clean test test-fast test-unit test-integration test-integration-ci test-frontend build-test-binary install lint fmt vet
+.PHONY: build clean test test-fast test-unit test-coverage test-integration test-integration-ci test-frontend build-test-binary install lint fmt vet
 
 build:
 	@echo "Building Govard..."
@@ -21,6 +22,12 @@ test-fast: test-frontend test-unit
 test-unit:
 	@echo "Running unit tests..."
 	go test $(UNIT_PACKAGES) -v -short
+
+test-coverage:
+	@echo "Running unit tests with coverage..."
+	go test ./tests -coverprofile=coverage.out -covermode=atomic -coverpkg=$(COVER_PACKAGES)
+	go tool cover -func=coverage.out
+	@echo "Coverage profile written to coverage.out"
 
 test-integration: build-test-binary
 	@echo "Running integration tests..."

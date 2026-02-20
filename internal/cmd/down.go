@@ -30,7 +30,7 @@ type downOptions struct {
 var downCmd = &cobra.Command{
 	Use:   "down",
 	Short: "Tear down project containers and networks",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		pterm.DefaultHeader.Println("Tearing Down Govard Environment")
 
 		config := loadConfig()
@@ -38,8 +38,7 @@ var downCmd = &cobra.Command{
 		composePath := engine.ComposeFilePath(cwd, config.ProjectName)
 
 		if err := engine.RunHooks(config, engine.HookPreStop, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
-			pterm.Error.Printf("Pre-stop hooks failed: %v\n", err)
-			return
+			return fmt.Errorf("pre-stop hooks failed: %w", err)
 		}
 
 		composeArgs, err := buildDownComposeArgs(cwd, composePath, config.ProjectName, downOptions{
@@ -49,15 +48,13 @@ var downCmd = &cobra.Command{
 			Timeout:       downTimeout,
 		})
 		if err != nil {
-			pterm.Error.Printf("Invalid down options: %v\n", err)
-			return
+			return fmt.Errorf("invalid down options: %w", err)
 		}
 
 		command := exec.Command("docker", composeArgs...)
 		command.Stdout, command.Stderr = os.Stdout, os.Stderr
 		if err := command.Run(); err != nil {
-			pterm.Error.Printf("Failed to tear down containers: %v\n", err)
-			return
+			return fmt.Errorf("failed to tear down containers: %w", err)
 		}
 
 		if config.Domain != "" {
@@ -70,11 +67,11 @@ var downCmd = &cobra.Command{
 		}
 
 		if err := engine.RunHooks(config, engine.HookPostStop, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
-			pterm.Error.Printf("Post-stop hooks failed: %v\n", err)
-			return
+			return fmt.Errorf("post-stop hooks failed: %w", err)
 		}
 
 		pterm.Success.Println("✅ Environment torn down.")
+		return nil
 	},
 }
 

@@ -13,7 +13,7 @@ import (
 var redisCmd = &cobra.Command{
 	Use:   "redis [args]",
 	Short: "Interact with the redis container using redis-cli",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		config := loadConfig()
 		containerName := fmt.Sprintf("%s-redis-1", config.ProjectName)
 		cliBinary := "redis-cli"
@@ -24,8 +24,7 @@ var redisCmd = &cobra.Command{
 		// Check if container exists and is running
 		check := exec.Command("docker", "inspect", "-f", "{{.State.Running}}", containerName)
 		if output, err := check.Output(); err != nil || strings.TrimSpace(string(output)) != "true" {
-			pterm.Error.Printf("Redis container %s is not running\n", containerName)
-			return
+			return fmt.Errorf("redis container %s is not running", containerName)
 		}
 
 		pterm.Info.Printf("Connecting to Redis on %s...\n", containerName)
@@ -39,6 +38,8 @@ var redisCmd = &cobra.Command{
 
 		if err := c.Run(); err != nil {
 			pterm.Debug.Printf("redis-cli exited with error: %v\n", err)
+			return fmt.Errorf("redis cli failed: %w", err)
 		}
+		return nil
 	},
 }

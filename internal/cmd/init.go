@@ -15,7 +15,7 @@ import (
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize a new project configuration",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		pterm.DefaultHeader.Println("Govard Initialization")
 
 		fmt.Println("🔍 Detecting project framework...")
@@ -42,8 +42,7 @@ var initCmd = &cobra.Command{
 
 		profileResult, err := engine.ResolveRuntimeProfile(metadata.Framework, metadata.Version)
 		if err != nil {
-			pterm.Error.Printf("Could not resolve runtime profile: %v\n", err)
-			return
+			return fmt.Errorf("resolve runtime profile: %w", err)
 		}
 
 		webServer := profileResult.Profile.WebServer
@@ -121,22 +120,21 @@ var initCmd = &cobra.Command{
 
 		data, err := yaml.Marshal(&writableConfig)
 		if err != nil {
-			pterm.Error.Printf("Failed to marshal %s: %v\n", engine.BaseConfigFile, err)
-			return
+			return fmt.Errorf("marshal %s: %w", engine.BaseConfigFile, err)
 		}
 		if err := os.WriteFile(engine.BaseConfigFile, data, 0644); err != nil {
-			pterm.Error.Printf("Failed to write %s: %v\n", engine.BaseConfigFile, err)
-			return
+			return fmt.Errorf("write %s: %w", engine.BaseConfigFile, err)
 		}
 		pterm.Success.Println("✅ Generated govard.yml")
 
 		if err := engine.RenderBlueprint(cwd, config); err != nil {
 			pterm.Warning.Printf("Failed to render compose file: %v\n", err)
 			pterm.Info.Println("You can retry compose rendering later via `govard up`.")
-			return
+			return nil
 		}
 		composePath := engine.ComposeFilePath(cwd, config.ProjectName)
 		pterm.Success.Printf("✅ Rendered compose file at %s\n", composePath)
+		return nil
 	},
 }
 

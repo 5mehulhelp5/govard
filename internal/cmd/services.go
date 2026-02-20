@@ -13,40 +13,39 @@ import (
 var valkeyCmd = &cobra.Command{
 	Use:   "valkey [args]",
 	Short: "Interact with the valkey container using valkey-cli",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		config := loadConfig()
 		if config.Stack.Services.Cache != "valkey" {
 			pterm.Warning.Println("Valkey is not enabled in govard.yml (stack.services.cache=valkey)")
-			return
+			return nil
 		}
-		runServiceCLI("redis", "valkey-cli", args)
+		return runServiceCLI("redis", "valkey-cli", args)
 	},
 }
 
 var elasticsearchCmd = &cobra.Command{
 	Use:   "elasticsearch [path]",
 	Short: "Send a request to the elasticsearch container",
-	Run: func(cmd *cobra.Command, args []string) {
-		runSearchQuery("elasticsearch", 9200, args)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runSearchQuery("elasticsearch", 9200, args)
 	},
 }
 
 var opensearchCmd = &cobra.Command{
 	Use:   "opensearch [path]",
 	Short: "Send a request to the opensearch container",
-	Run: func(cmd *cobra.Command, args []string) {
-		runSearchQuery("elasticsearch", 9200, args) // We use the service name from the blueprint
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runSearchQuery("elasticsearch", 9200, args) // We use the service name from the blueprint
 	},
 }
 
-func runServiceCLI(serviceName string, binary string, args []string) {
+func runServiceCLI(serviceName string, binary string, args []string) error {
 	config := loadConfig()
 	containerName := fmt.Sprintf("%s-%s-1", config.ProjectName, serviceName)
 
 	check := exec.Command("docker", "inspect", "-f", "{{.State.Running}}", containerName)
 	if output, err := check.Output(); err != nil || strings.TrimSpace(string(output)) != "true" {
-		pterm.Error.Printf("%s container %s is not running\n", strings.Title(serviceName), containerName)
-		return
+		return fmt.Errorf("%s container %s is not running", strings.Title(serviceName), containerName)
 	}
 
 	pterm.Info.Printf("Connecting to %s on %s...\n", strings.Title(serviceName), containerName)
@@ -56,17 +55,19 @@ func runServiceCLI(serviceName string, binary string, args []string) {
 
 	c := exec.Command("docker", dockerArgs...)
 	c.Stdin, c.Stdout, c.Stderr = os.Stdin, os.Stdout, os.Stderr
-	c.Run()
+	if err := c.Run(); err != nil {
+		return fmt.Errorf("%s CLI failed: %w", strings.Title(serviceName), err)
+	}
+	return nil
 }
 
-func runSearchQuery(serviceName string, port int, args []string) {
+func runSearchQuery(serviceName string, port int, args []string) error {
 	config := loadConfig()
 	containerName := fmt.Sprintf("%s-%s-1", config.ProjectName, serviceName)
 
 	check := exec.Command("docker", "inspect", "-f", "{{.State.Running}}", containerName)
 	if output, err := check.Output(); err != nil || strings.TrimSpace(string(output)) != "true" {
-		pterm.Error.Printf("%s container %s is not running\n", strings.Title(serviceName), containerName)
-		return
+		return fmt.Errorf("%s container %s is not running", strings.Title(serviceName), containerName)
 	}
 
 	path := "/"
@@ -82,6 +83,9 @@ func runSearchQuery(serviceName string, port int, args []string) {
 
 	c := exec.Command("docker", "exec", "-i", containerName, "curl", "-s", "-X", "GET", url)
 	c.Stdout, c.Stderr = os.Stdout, os.Stderr
-	c.Run()
+	if err := c.Run(); err != nil {
+		return fmt.Errorf("%s query failed: %w", strings.Title(serviceName), err)
+	}
 	fmt.Println() // Add newline at the end
+	return nil
 }

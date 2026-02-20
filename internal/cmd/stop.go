@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"govard/internal/engine"
 	"govard/internal/proxy"
 	"os"
@@ -13,22 +14,20 @@ import (
 var stopCmd = &cobra.Command{
 	Use:   "stop",
 	Short: "Stop project containers",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		pterm.DefaultHeader.Println("Stopping Govard Environment")
 
 		config := loadConfig()
 		cwd, _ := os.Getwd()
 		composePath := engine.ComposeFilePath(cwd, config.ProjectName)
 		if err := engine.RunHooks(config, engine.HookPreStop, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
-			pterm.Error.Printf("Pre-stop hooks failed: %v\n", err)
-			return
+			return fmt.Errorf("pre-stop hooks failed: %w", err)
 		}
 
 		c := exec.Command("docker", "compose", "--project-directory", cwd, "-f", composePath, "stop")
 		c.Stdout, c.Stderr = os.Stdout, os.Stderr
 		if err := c.Run(); err != nil {
-			pterm.Error.Printf("Failed to stop containers: %v\n", err)
-			return
+			return fmt.Errorf("failed to stop containers: %w", err)
 		}
 
 		if config.Domain != "" {
@@ -41,10 +40,10 @@ var stopCmd = &cobra.Command{
 		}
 
 		if err := engine.RunHooks(config, engine.HookPostStop, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
-			pterm.Error.Printf("Post-stop hooks failed: %v\n", err)
-			return
+			return fmt.Errorf("post-stop hooks failed: %w", err)
 		}
 
 		pterm.Success.Println("✅ Environment stopped.")
+		return nil
 	},
 }

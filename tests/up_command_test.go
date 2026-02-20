@@ -19,6 +19,17 @@ func TestUpCommandQuickstartFlagExists(t *testing.T) {
 	}
 }
 
+func TestUpCommandUsesRunE(t *testing.T) {
+	root := cmd.RootCommandForTest()
+	command, _, err := root.Find([]string{"up"})
+	if err != nil {
+		t.Fatalf("find up: %v", err)
+	}
+	if command.RunE == nil {
+		t.Fatal("expected up command to use RunE so failures return a non-zero exit code")
+	}
+}
+
 func TestResolveUpProxyTargetDefaultWeb(t *testing.T) {
 	target := cmd.ResolveUpProxyTarget(engine.Config{
 		ProjectName: "demo",

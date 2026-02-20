@@ -9,14 +9,14 @@ import (
 var trustCmd = &cobra.Command{
 	Use:   "trust",
 	Short: "Trust the local CA for SSL certificates",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		pterm.DefaultHeader.Println("Govard SSL Trust Store")
 
 		if err := engine.TrustCA(); err != nil {
-			pterm.Error.Printf("Failed to trust CA: %v\n", err)
-			return
+			return err
 		}
 
 		pterm.Success.Println("🛡️ Root CA successfully installed into system trust store!")
+		return nil
 	},
 }

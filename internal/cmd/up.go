@@ -7,7 +7,6 @@ import (
 	"govard/internal/updater"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
 	"time"
 
@@ -18,7 +17,7 @@ import (
 var upCmd = &cobra.Command{
 	Use:   "up",
 	Short: "Start the development environment",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		updater.CheckForUpdates(Version)
 		pterm.DefaultHeader.Println("Govard Environment Liftoff")
 
@@ -32,9 +31,10 @@ var upCmd = &cobra.Command{
 		}
 		stages := buildUpPipelineStages(cmd, &context)
 		if err := runUpPipeline(stages); err != nil {
-			return
+			return err
 		}
 		pterm.Success.Printf("Environment is up and running at https://%s\n", context.Config.Domain)
+		return nil
 	},
 }
 
@@ -313,66 +313,7 @@ func shouldPreserveConfiguredWebServer(existingWebServer, tunedWebServer string)
 }
 
 func compareNumericDotVersions(left, right string) (int, bool) {
-	leftParts, ok := parseNumericDotVersion(left)
-	if !ok {
-		return 0, false
-	}
-	rightParts, ok := parseNumericDotVersion(right)
-	if !ok {
-		return 0, false
-	}
-
-	maxLen := len(leftParts)
-	if len(rightParts) > maxLen {
-		maxLen = len(rightParts)
-	}
-	for i := 0; i < maxLen; i++ {
-		lv := 0
-		if i < len(leftParts) {
-			lv = leftParts[i]
-		}
-		rv := 0
-		if i < len(rightParts) {
-			rv = rightParts[i]
-		}
-		if lv > rv {
-			return 1, true
-		}
-		if lv < rv {
-			return -1, true
-		}
-	}
-	return 0, true
-}
-
-func parseNumericDotVersion(raw string) ([]int, bool) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
-		return nil, false
-	}
-	segments := strings.Split(raw, ".")
-	parts := make([]int, 0, len(segments))
-	for _, segment := range segments {
-		segment = strings.TrimSpace(segment)
-		if segment == "" {
-			return nil, false
-		}
-		for idx, r := range segment {
-			if r < '0' || r > '9' {
-				if idx == 0 {
-					return nil, false
-				}
-				segment = segment[:idx]
-				break
-			}
-		}
-		value, err := strconv.Atoi(segment)
-		if err != nil {
-			return nil, false
-		}
-		parts = append(parts, value)
-	}
-	return parts, true
+	return engine.CompareNumericDotVersions(left, right)
 }
 
 func init() {

@@ -62,8 +62,9 @@ func TestSnapshotCommandsWithShims(t *testing.T) {
 	restoreResult.AssertSuccess(t)
 
 	logs := shim.ReadLog(t)
-	assertContains(t, logs, "docker|exec -i m2-clone-basic-db-1 mysqldump")
-	assertContains(t, logs, "docker|exec -i m2-clone-basic-db-1 mysql")
+	assertContains(t, logs, "docker|inspect -f {{range .Config.Env}}{{println .}}{{end}} m2-clone-basic-db-1")
+	assertContains(t, logs, "docker|exec -i -e MYSQL_PWD=magento m2-clone-basic-db-1 mysqldump -u magento magento")
+	assertContains(t, logs, "docker|exec -i -e MYSQL_PWD=magento m2-clone-basic-db-1 mysql -u magento magento")
 }
 
 func TestUpgradeCommandMessage(t *testing.T) {

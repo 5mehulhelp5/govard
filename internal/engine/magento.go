@@ -372,71 +372,7 @@ func patchMagentoElasticsearchSchemaForLibxml() (bool, error) {
 }
 
 func isMagentoVersionAtLeast(raw string, minimum string) bool {
-	raw = strings.TrimSpace(raw)
-	minimum = strings.TrimSpace(minimum)
-	if raw == "" || minimum == "" {
-		return false
-	}
-
-	rawParts, ok := parseNumericDotVersion(raw)
-	if !ok {
-		return false
-	}
-	minParts, ok := parseNumericDotVersion(minimum)
-	if !ok {
-		return false
-	}
-
-	maxLen := len(rawParts)
-	if len(minParts) > maxLen {
-		maxLen = len(minParts)
-	}
-	for i := 0; i < maxLen; i++ {
-		lv := 0
-		if i < len(rawParts) {
-			lv = rawParts[i]
-		}
-		rv := 0
-		if i < len(minParts) {
-			rv = minParts[i]
-		}
-		if lv > rv {
-			return true
-		}
-		if lv < rv {
-			return false
-		}
-	}
-	return true
-}
-
-func parseNumericDotVersion(raw string) ([]int, bool) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
-		return nil, false
-	}
-	// Drop patch suffixes like "-p3" or "-alpha".
-	if idx := strings.IndexByte(raw, '-'); idx > 0 {
-		raw = raw[:idx]
-	}
-
-	segments := strings.Split(raw, ".")
-	parts := make([]int, 0, len(segments))
-	for _, segment := range segments {
-		segment = strings.TrimSpace(segment)
-		if segment == "" {
-			return nil, false
-		}
-		value := 0
-		for _, r := range segment {
-			if r < '0' || r > '9' {
-				return nil, false
-			}
-			value = value*10 + int(r-'0')
-		}
-		parts = append(parts, value)
-	}
-	return parts, true
+	return isNumericDotVersionAtLeast(raw, minimum)
 }
 
 func magentoDockerExecArgs(containerName string, config Config, args ...string) []string {

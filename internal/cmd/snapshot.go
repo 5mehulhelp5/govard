@@ -20,7 +20,7 @@ var snapshotCreateCmd = &cobra.Command{
 	Use:   "create [name]",
 	Short: "Create a snapshot of local database and media",
 	Args:  cobra.MaximumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		config := loadFullConfig()
 		cwd, _ := os.Getwd()
 
@@ -31,28 +31,27 @@ var snapshotCreateCmd = &cobra.Command{
 
 		path, err := engine.CreateSnapshot(cwd, config, name)
 		if err != nil {
-			pterm.Error.Printf("Snapshot create failed: %v\n", err)
-			return
+			return fmt.Errorf("snapshot create failed: %w", err)
 		}
 
 		pterm.Success.Printf("Snapshot created at %s\n", path)
+		return nil
 	},
 }
 
 var snapshotListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List available snapshots",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		cwd, _ := os.Getwd()
 		snapshots, err := engine.ListSnapshots(cwd)
 		if err != nil {
-			pterm.Error.Printf("Snapshot list failed: %v\n", err)
-			return
+			return fmt.Errorf("snapshot list failed: %w", err)
 		}
 
 		if len(snapshots) == 0 {
 			pterm.Info.Println("No snapshots found.")
-			return
+			return nil
 		}
 
 		w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 2, 2, ' ', 0)
@@ -65,6 +64,7 @@ var snapshotListCmd = &cobra.Command{
 			_, _ = fmt.Fprintf(w, "%s\t%s\t%t\t%t\n", snapshot.Name, created, snapshot.DB, snapshot.Media)
 		}
 		_ = w.Flush()
+		return nil
 	},
 }
 
@@ -72,7 +72,7 @@ var snapshotRestoreCmd = &cobra.Command{
 	Use:   "restore <name>",
 	Short: "Restore a snapshot",
 	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		config := loadFullConfig()
 		cwd, _ := os.Getwd()
 		name := args[0]
@@ -80,16 +80,15 @@ var snapshotRestoreCmd = &cobra.Command{
 		dbOnly, _ := cmd.Flags().GetBool("db-only")
 		mediaOnly, _ := cmd.Flags().GetBool("media-only")
 		if dbOnly && mediaOnly {
-			pterm.Error.Println("Cannot use --db-only and --media-only together.")
-			return
+			return fmt.Errorf("cannot use --db-only and --media-only together")
 		}
 
 		if err := engine.RestoreSnapshot(cwd, config, name, dbOnly, mediaOnly); err != nil {
-			pterm.Error.Printf("Snapshot restore failed: %v\n", err)
-			return
+			return fmt.Errorf("snapshot restore failed: %w", err)
 		}
 
 		pterm.Success.Printf("Snapshot %s restored.\n", name)
+		return nil
 	},
 }
 

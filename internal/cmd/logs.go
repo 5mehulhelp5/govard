@@ -15,7 +15,7 @@ var errorFilter bool
 var logsCmd = &cobra.Command{
 	Use:   "logs",
 	Short: "View project logs",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		pterm.DefaultHeader.Println("Govard Log Stream")
 		config := loadConfig()
 		cwd, _ := os.Getwd()
@@ -33,12 +33,17 @@ var logsCmd = &cobra.Command{
 			)
 			c := exec.Command("sh", "-c", filterCommand)
 			c.Stdout, c.Stderr = os.Stdout, os.Stderr
-			c.Run()
-			return
+			if err := c.Run(); err != nil {
+				return fmt.Errorf("stream filtered logs: %w", err)
+			}
+			return nil
 		}
 
 		c := exec.Command("docker", dockerArgs...)
 		c.Stdout, c.Stderr = os.Stdout, os.Stderr
-		c.Run()
+		if err := c.Run(); err != nil {
+			return fmt.Errorf("stream logs: %w", err)
+		}
+		return nil
 	},
 }

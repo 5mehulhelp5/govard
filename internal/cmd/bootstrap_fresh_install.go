@@ -1,0 +1,287 @@
+package cmd
+
+import (
+	"fmt"
+	"os"
+	"strings"
+
+	"govard/internal/engine"
+	"govard/internal/engine/bootstrap"
+
+	"github.com/pterm/pterm"
+	"github.com/spf13/cobra"
+)
+
+func runBootstrapFrameworkFreshInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions) error {
+	cwd, _ := os.Getwd()
+
+	switch config.Recipe {
+	case "magento2":
+		return runBootstrapMagentoFreshInstall(cmd, config, opts)
+	case "magento1":
+		return fmt.Errorf("fresh install not supported for %s (use openmage instead)", config.Recipe)
+	case "openmage":
+		return runBootstrapOpenMageFreshInstall(cmd, config, opts, cwd)
+	case "symfony":
+		return runBootstrapSymfonyFreshInstall(cmd, config, opts, cwd)
+	case "laravel":
+		return runBootstrapLaravelFreshInstall(cmd, config, opts, cwd)
+	case "drupal":
+		return runBootstrapDrupalFreshInstall(cmd, config, opts, cwd)
+	case "wordpress":
+		return runBootstrapWordPressFreshInstall(cmd, config, opts, cwd)
+	case "nextjs":
+		return runBootstrapNextJSFreshInstall(cmd, config, opts, cwd)
+	case "shopware":
+		return runBootstrapShopwareFreshInstall(cmd, config, opts, cwd)
+	case "cakephp":
+		return runBootstrapCakePHPFreshInstall(cmd, config, opts, cwd)
+	default:
+		return fmt.Errorf("fresh install not supported for recipe: %s", config.Recipe)
+	}
+}
+
+func runBootstrapMagentoFreshInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions) error {
+	return runBootstrapFreshInstall(cmd, config, opts)
+}
+
+func runBootstrapSymfonyFreshInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions, cwd string) error {
+	symfonyOpts := bootstrap.Options{
+		Version: opts.MetaVersion,
+		Env:     opts.Source,
+	}
+
+	symfonyBootstrap := bootstrap.NewSymfonyBootstrap(symfonyOpts)
+
+	if err := symfonyBootstrap.CreateProject(cwd); err != nil {
+		return err
+	}
+
+	if err := symfonyBootstrap.Install(cwd); err != nil {
+		return err
+	}
+
+	if err := runGovardSubcommand(cmd, "configure"); err != nil {
+		return fmt.Errorf("configure failed: %w", err)
+	}
+
+	pterm.Success.Println("Fresh Symfony bootstrap completed.")
+	return nil
+}
+
+func runBootstrapLaravelFreshInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions, cwd string) error {
+	laravelOpts := bootstrap.Options{
+		Version: opts.MetaVersion,
+		Env:     opts.Source,
+	}
+
+	laravelBootstrap := bootstrap.NewLaravelBootstrap(laravelOpts)
+
+	if err := laravelBootstrap.CreateProject(cwd); err != nil {
+		return err
+	}
+
+	if err := laravelBootstrap.Install(cwd); err != nil {
+		return err
+	}
+
+	if err := runGovardSubcommand(cmd, "configure"); err != nil {
+		return fmt.Errorf("configure failed: %w", err)
+	}
+
+	pterm.Success.Println("Fresh Laravel bootstrap completed.")
+	return nil
+}
+
+func runBootstrapDrupalFreshInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions, cwd string) error {
+	drupalOpts := bootstrap.Options{
+		Version: opts.MetaVersion,
+		Env:     opts.Source,
+	}
+
+	drupalBootstrap := bootstrap.NewDrupalBootstrap(drupalOpts)
+
+	if err := drupalBootstrap.CreateProject(cwd); err != nil {
+		return err
+	}
+
+	if err := drupalBootstrap.Install(cwd); err != nil {
+		return err
+	}
+
+	if err := runGovardSubcommand(cmd, "configure"); err != nil {
+		return fmt.Errorf("configure failed: %w", err)
+	}
+
+	pterm.Success.Println("Fresh Drupal bootstrap completed.")
+	return nil
+}
+
+func runBootstrapWordPressFreshInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions, cwd string) error {
+	wpOpts := bootstrap.Options{
+		Version: opts.MetaVersion,
+		Env:     opts.Source,
+	}
+
+	wpBootstrap := bootstrap.NewWordPressBootstrap(wpOpts)
+
+	if err := wpBootstrap.CreateProject(cwd); err != nil {
+		return err
+	}
+
+	if err := wpBootstrap.Install(cwd); err != nil {
+		return err
+	}
+
+	if err := runGovardSubcommand(cmd, "configure"); err != nil {
+		return fmt.Errorf("configure failed: %w", err)
+	}
+
+	pterm.Success.Println("Fresh WordPress bootstrap completed.")
+	return nil
+}
+
+func runBootstrapShopwareFreshInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions, cwd string) error {
+	shopwareOpts := bootstrap.Options{
+		Version: opts.MetaVersion,
+		Env:     opts.Source,
+	}
+
+	shopwareBootstrap := bootstrap.NewShopwareBootstrap(shopwareOpts)
+
+	if err := shopwareBootstrap.CreateProject(cwd); err != nil {
+		return err
+	}
+
+	if err := shopwareBootstrap.Install(cwd); err != nil {
+		return err
+	}
+
+	if err := runGovardSubcommand(cmd, "configure"); err != nil {
+		return fmt.Errorf("configure failed: %w", err)
+	}
+
+	pterm.Success.Println("Fresh Shopware bootstrap completed.")
+	return nil
+}
+
+func runBootstrapCakePHPFreshInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions, cwd string) error {
+	cakePHPOpts := bootstrap.Options{
+		Version: opts.MetaVersion,
+		Env:     opts.Source,
+	}
+
+	cakePHPBootstrap := bootstrap.NewCakePHPBootstrap(cakePHPOpts)
+
+	if err := cakePHPBootstrap.CreateProject(cwd); err != nil {
+		return err
+	}
+
+	if err := cakePHPBootstrap.Install(cwd); err != nil {
+		return err
+	}
+
+	if err := runGovardSubcommand(cmd, "configure"); err != nil {
+		return fmt.Errorf("configure failed: %w", err)
+	}
+
+	pterm.Success.Println("Fresh CakePHP bootstrap completed.")
+	return nil
+}
+
+func runBootstrapOpenMageFreshInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions, cwd string) error {
+	openmageOpts := bootstrap.Options{
+		Version: opts.MetaVersion,
+		Env:     opts.Source,
+	}
+
+	openmageBootstrap := bootstrap.NewOpenMageBootstrap(openmageOpts)
+
+	if err := openmageBootstrap.CreateProject(cwd); err != nil {
+		return err
+	}
+
+	if err := openmageBootstrap.Install(cwd); err != nil {
+		return err
+	}
+
+	if err := runGovardSubcommand(cmd, "configure"); err != nil {
+		return fmt.Errorf("configure failed: %w", err)
+	}
+
+	pterm.Success.Println("Fresh OpenMage bootstrap completed.")
+	return nil
+}
+
+func runBootstrapNextJSFreshInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions, cwd string) error {
+	nextJSOpts := bootstrap.Options{
+		Version: opts.MetaVersion,
+		Env:     opts.Source,
+	}
+
+	nextJSBootstrap := bootstrap.NewNextJSBootstrap(nextJSOpts)
+
+	if err := nextJSBootstrap.CreateProject(cwd); err != nil {
+		return err
+	}
+
+	if err := nextJSBootstrap.Configure(cwd); err != nil {
+		return err
+	}
+
+	pterm.Success.Println("Fresh Next.js bootstrap completed.")
+	return nil
+}
+
+func runBootstrapFreshInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions) error {
+	if err := ensureBootstrapAuthJSON(config, opts); err != nil {
+		return err
+	}
+
+	if err := runBootstrapFreshCreateProject(cmd, config, opts); err != nil {
+		return err
+	}
+	if opts.HyvaInstall {
+		if err := runBootstrapHyvaInstall(cmd, opts); err != nil {
+			return err
+		}
+	}
+
+	if err := runBootstrapMagentoSetupInstall(cmd, config, opts); err != nil {
+		return err
+	}
+	if err := runGovardSubcommand(cmd, "configure"); err != nil {
+		return fmt.Errorf("magento configure failed: %w", err)
+	}
+	if opts.IncludeSample {
+		if err := runBootstrapSampleData(cmd); err != nil {
+			return err
+		}
+	}
+	if opts.AdminCreate {
+		runBootstrapAdminCreate(cmd, config)
+	}
+
+	pterm.Success.Println("Fresh Magento bootstrap completed.")
+	return nil
+}
+
+func runBootstrapFreshCreateProject(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions) error {
+	versionPart := ""
+	if opts.MetaVersion != "" {
+		versionPart = " " + shellQuote(opts.MetaVersion)
+	}
+	commandLine := strings.Join([]string{
+		"set -e",
+		"rm -rf /tmp/govard-create-project",
+		"composer create-project -q -n --repository-url=https://repo.magento.com " +
+			shellQuote(opts.MetaPackage) + " /tmp/govard-create-project" + versionPart,
+		"if command -v rsync >/dev/null 2>&1; then rsync -a /tmp/govard-create-project/ /var/www/html/; else cp -a /tmp/govard-create-project/. /var/www/html/; fi",
+		"rm -rf /tmp/govard-create-project",
+	}, " && ")
+
+	if err := runPHPContainerShellCommand(config, commandLine); err != nil {
+		return fmt.Errorf("fresh create-project failed: %w", err)
+	}
+	return nil
+}

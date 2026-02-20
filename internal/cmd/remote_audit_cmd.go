@@ -23,7 +23,7 @@ var remoteAuditCmd = &cobra.Command{
 var remoteAuditTailCmd = &cobra.Command{
 	Use:   "tail",
 	Short: "Print recent remote audit events",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		lines, _ := cmd.Flags().GetInt("lines")
 		statusFilter, _ := cmd.Flags().GetString("status")
 		operationFilter, _ := cmd.Flags().GetString("operation")
@@ -32,34 +32,31 @@ var remoteAuditTailCmd = &cobra.Command{
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 		since, until, err := parseAuditTimeFilters(sinceRaw, untilRaw)
 		if err != nil {
-			pterm.Error.Printf("Invalid time filter: %v\n", err)
-			return
+			return err
 		}
 
 		events, err := remote.ReadAuditEvents(lines)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
 				pterm.Info.Printf("No remote audit log found at %s\n", remote.AuditLogPath())
-				return
+				return nil
 			}
-			pterm.Error.Printf("Failed to read remote audit log: %v\n", err)
-			return
+			return fmt.Errorf("read remote audit log: %w", err)
 		}
 
 		filtered := filterAuditEvents(events, statusFilter, operationFilter, since, until)
 		if len(filtered) == 0 {
 			pterm.Info.Println("No matching remote audit events.")
-			return
+			return nil
 		}
 
 		if jsonOutput {
 			payload, err := json.MarshalIndent(filtered, "", "  ")
 			if err != nil {
-				pterm.Error.Printf("Failed to encode audit events as JSON: %v\n", err)
-				return
+				return fmt.Errorf("encode audit events as JSON: %w", err)
 			}
 			fmt.Fprintln(cmd.OutOrStdout(), string(payload))
-			return
+			return nil
 		}
 
 		for _, event := range filtered {
@@ -96,13 +93,14 @@ var remoteAuditTailCmd = &cobra.Command{
 				message,
 			)
 		}
+		return nil
 	},
 }
 
 var remoteAuditStatsCmd = &cobra.Command{
 	Use:   "stats",
 	Short: "Summarize remote audit events",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		lines, _ := cmd.Flags().GetInt("lines")
 		statusFilter, _ := cmd.Flags().GetString("status")
 		operationFilter, _ := cmd.Flags().GetString("operation")
@@ -111,35 +109,32 @@ var remoteAuditStatsCmd = &cobra.Command{
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 		since, until, err := parseAuditTimeFilters(sinceRaw, untilRaw)
 		if err != nil {
-			pterm.Error.Printf("Invalid time filter: %v\n", err)
-			return
+			return err
 		}
 
 		events, err := remote.ReadAuditEvents(lines)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
 				pterm.Info.Printf("No remote audit log found at %s\n", remote.AuditLogPath())
-				return
+				return nil
 			}
-			pterm.Error.Printf("Failed to read remote audit log: %v\n", err)
-			return
+			return fmt.Errorf("read remote audit log: %w", err)
 		}
 
 		filtered := filterAuditEvents(events, statusFilter, operationFilter, since, until)
 		if len(filtered) == 0 {
 			pterm.Info.Println("No matching remote audit events.")
-			return
+			return nil
 		}
 
 		stats := computeAuditStats(filtered)
 		if jsonOutput {
 			payload, err := json.MarshalIndent(stats, "", "  ")
 			if err != nil {
-				pterm.Error.Printf("Failed to encode audit stats as JSON: %v\n", err)
-				return
+				return fmt.Errorf("encode audit stats as JSON: %w", err)
 			}
 			fmt.Fprintln(cmd.OutOrStdout(), string(payload))
-			return
+			return nil
 		}
 
 		fmt.Fprintln(cmd.OutOrStdout(), "Remote Audit Stats")
@@ -147,6 +142,7 @@ var remoteAuditStatsCmd = &cobra.Command{
 		printCounterSection(cmd, "status", stats.ByStatus)
 		printCounterSection(cmd, "category", stats.ByCategory)
 		printCounterSection(cmd, "operation", stats.ByOperation)
+		return nil
 	},
 }
 

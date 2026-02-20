@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -19,6 +20,12 @@ type SnapshotMetadata struct {
 	Domain    string    `yaml:"domain"`
 	DB        bool      `yaml:"db"`
 	Media     bool      `yaml:"media"`
+}
+
+type snapshotDBCredentials struct {
+	Username string
+	Password string
+	Database string
 }
 
 func SnapshotRoot(projectRoot string) string {
@@ -50,10 +57,11 @@ func CreateSnapshot(projectRoot string, config Config, name string) (string, err
 	}
 
 	containerName := fmt.Sprintf("%s-db-1", config.ProjectName)
+	credentials := resolveSnapshotDBCredentials(containerName)
 	dbPath := filepath.Join(snapshotDir, "db.sql")
 	dbFile, err := os.Create(dbPath)
 	if err == nil {
-		dumpCmd := exec.Command("docker", "exec", "-i", containerName, "mysqldump", "-u", "magento", "-pmagento", "magento")
+		dumpCmd := buildSnapshotDumpCommand(containerName, credentials)
 		dumpCmd.Stdout = dbFile
 		dumpCmd.Stderr = os.Stderr
 		if err := dumpCmd.Run(); err == nil {
@@ -129,7 +137,8 @@ func RestoreSnapshot(projectRoot string, config Config, name string, dbOnly bool
 		dbPath := filepath.Join(snapshotDir, "db.sql")
 		if file, err := os.Open(dbPath); err == nil {
 			containerName := fmt.Sprintf("%s-db-1", config.ProjectName)
-			importCmd := exec.Command("docker", "exec", "-i", containerName, "mysql", "-u", "magento", "-pmagento", "magento")
+			credentials := resolveSnapshotDBCredentials(containerName)
+			importCmd := buildSnapshotImportCommand(containerName, credentials)
 			importCmd.Stdin = file
 			importCmd.Stdout = os.Stdout
 			importCmd.Stderr = os.Stderr
@@ -211,4 +220,95 @@ func copyFileWithMode(src string, dst string, mode os.FileMode) error {
 		return fmt.Errorf("copy %s to %s: %w", src, dst, err)
 	}
 	return nil
+}
+
+func resolveSnapshotDBCredentials(containerName string) snapshotDBCredentials {
+	credentials := snapshotDBCredentials{
+		Username: "magento",
+		Password: "magento",
+		Database: "magento",
+	}
+
+	inspectCommand := exec.Command("docker", "inspect", "-f", "{{range .Config.Env}}{{println .}}{{end}}", containerName)
+	output, err := inspectCommand.Output()
+	if err != nil {
+		return credentials
+	}
+
+	envMap := parseSnapshotEnvMap(string(output))
+	if user := strings.TrimSpace(envMap["MYSQL_USER"]); user != "" {
+		credentials.Username = user
+	}
+	if password := envMap["MYSQL_PASSWORD"]; password != "" {
+		credentials.Password = password
+	}
+	if database := strings.TrimSpace(envMap["MYSQL_DATABASE"]); database != "" {
+		credentials.Database = database
+	}
+	return credentials
+}
+
+func buildSnapshotDumpCommand(containerName string, credentials snapshotDBCredentials) *exec.Cmd {
+	credentials = normalizeSnapshotDBCredentials(credentials)
+	args := []string{"exec", "-i"}
+	if strings.TrimSpace(credentials.Password) != "" {
+		args = append(args, "-e", "MYSQL_PWD="+credentials.Password)
+	}
+	args = append(args, containerName, "mysqldump", "-u", credentials.Username, credentials.Database)
+	return exec.Command("docker", args...)
+}
+
+func buildSnapshotImportCommand(containerName string, credentials snapshotDBCredentials) *exec.Cmd {
+	credentials = normalizeSnapshotDBCredentials(credentials)
+	args := []string{"exec", "-i"}
+	if strings.TrimSpace(credentials.Password) != "" {
+		args = append(args, "-e", "MYSQL_PWD="+credentials.Password)
+	}
+	args = append(args, containerName, "mysql", "-u", credentials.Username, credentials.Database)
+	return exec.Command("docker", args...)
+}
+
+func normalizeSnapshotDBCredentials(credentials snapshotDBCredentials) snapshotDBCredentials {
+	result := credentials
+	if strings.TrimSpace(result.Username) == "" {
+		result.Username = "magento"
+	}
+	if strings.TrimSpace(result.Database) == "" {
+		result.Database = "magento"
+	}
+	return result
+}
+
+func parseSnapshotEnvMap(raw string) map[string]string {
+	result := make(map[string]string)
+	for _, line := range strings.Split(raw, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			continue
+		}
+		parts := strings.SplitN(trimmed, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		result[strings.TrimSpace(parts[0])] = parts[1]
+	}
+	return result
+}
+
+func BuildSnapshotDumpCommandForTest(containerName string, username string, password string, database string) []string {
+	command := buildSnapshotDumpCommand(containerName, snapshotDBCredentials{
+		Username: username,
+		Password: password,
+		Database: database,
+	})
+	return command.Args
+}
+
+func BuildSnapshotImportCommandForTest(containerName string, username string, password string, database string) []string {
+	command := buildSnapshotImportCommand(containerName, snapshotDBCredentials{
+		Username: username,
+		Password: password,
+		Database: database,
+	})
+	return command.Args
 }
