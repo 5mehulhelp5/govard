@@ -8,6 +8,7 @@ import {
   syncProjectSelectors,
 } from "./modules/dashboard.js"
 import { createLogsController, resolveLogTarget, syncServiceSelector } from "./modules/logs.js"
+import { createMetricsController } from "./modules/metrics.js"
 import { createSettingsController } from "./modules/settings.js"
 import { createShellController } from "./modules/shell.js"
 import { desktopBridge } from "./services/bridge.js"
@@ -24,10 +25,20 @@ const refs = {
   statActiveHint: byId("statActiveHint"),
   statServicesHint: byId("statServicesHint"),
   statQueueHint: byId("statQueueHint"),
+  metricActiveProjects: byId("metricActiveProjects"),
+  metricCPU: byId("metricCPU"),
+  metricMemory: byId("metricMemory"),
+  metricNetRx: byId("metricNetRx"),
+  metricNetTx: byId("metricNetTx"),
+  metricOOM: byId("metricOOM"),
+  metricsList: byId("metricsList"),
+  metricsWarnings: byId("metricsWarnings"),
   envList: byId("envList"),
   envSelector: byId("envSelector"),
   logSelector: byId("logSelector"),
   logServiceSelector: byId("logServiceSelector"),
+  logSeverity: byId("logSeverity"),
+  logSearch: byId("logSearch"),
   logOutput: byId("logOutput"),
   toggleLive: byId("toggleLive"),
   shellUser: byId("shellUser"),
@@ -52,10 +63,39 @@ const showToast = (message, type = "success") => {
   toast.show(message, type)
 }
 
+const showSystemNotification = (title, body) => {
+  if (typeof window === "undefined" || typeof window.Notification === "undefined") {
+    return
+  }
+  if (window.Notification.permission === "granted") {
+    new window.Notification(title, { body })
+    return
+  }
+  if (window.Notification.permission === "default") {
+    window.Notification.requestPermission().then((permission) => {
+      if (permission === "granted") {
+        new window.Notification(title, { body })
+      }
+    })
+  }
+}
+
+if (desktopBridge.runtime?.EventsOn) {
+  desktopBridge.runtime.EventsOn("operations:notification", (payload = {}) => {
+    const title = String(payload.title || "Govard operation update")
+    const body = String(payload.body || "").trim()
+    const level = payload.level === "error" ? "error" : "success"
+    showToast(body || title, level)
+    showSystemNotification(title, body || title)
+  })
+}
+
 const readSelection = () =>
   resolveLogTarget({
     project: getState().selectedProject,
     service: getState().selectedService,
+    severity: getState().selectedSeverity,
+    query: getState().logQuery,
   })
 
 const safeDashboard = {
@@ -84,8 +124,14 @@ const syncProjectState = () => {
 }
 
 const syncServiceState = () => {
-  const selectedService = refs.logServiceSelector?.value || "web"
+  const selectedService = refs.logServiceSelector?.value || "all"
   setState({ selectedService })
+}
+
+const syncLogFiltersState = () => {
+  const selectedSeverity = refs.logSeverity?.value || "all"
+  const logQuery = refs.logSearch?.value || ""
+  setState({ selectedSeverity, logQuery })
 }
 
 const refreshServiceSelector = () => {
@@ -116,6 +162,12 @@ const shellController = createShellController({
   onToast: showToast,
 })
 
+const metricsController = createMetricsController({
+  bridge: desktopBridge,
+  refs,
+  onStatus: setStatus,
+})
+
 const refreshDashboard = async () => {
   setStatus("Status: syncing dashboard...")
   const dashboard = await loadDashboard()
@@ -144,6 +196,8 @@ const refreshDashboard = async () => {
   }
 
   refreshServiceSelector()
+  syncLogFiltersState()
+  await metricsController.refresh({ silent: true })
   await shellController.loadShellUser()
   await logsController.refresh()
   setStatus(`Status: refreshed at ${new Date().toLocaleTimeString()}`)
@@ -177,6 +231,10 @@ document.addEventListener("click", async (event) => {
 
   if (action === "refresh-logs") {
     await logsController.refresh()
+    return
+  }
+  if (action === "refresh-metrics") {
+    await metricsController.refresh()
     return
   }
   if (action === "toggle-live") {
@@ -273,6 +331,20 @@ if (refs.logServiceSelector) {
   })
 }
 
+if (refs.logSeverity) {
+  refs.logSeverity.addEventListener("change", () => {
+    syncLogFiltersState()
+    logsController.applyFilters()
+  })
+}
+
+if (refs.logSearch) {
+  refs.logSearch.addEventListener("input", () => {
+    syncLogFiltersState()
+    logsController.applyFilters()
+  })
+}
+
 if (refs.shellUser) {
   refs.shellUser.addEventListener("change", () => {
     shellController.saveShellUser()
@@ -306,5 +378,11 @@ if (window.matchMedia) {
 }
 
 setStatus("Status: ready.")
+setState({ selectedService: "all", selectedSeverity: "all", logQuery: "" })
 await settingsController.load()
 await refreshDashboard()
+metricsController.startAutoRefresh()
+
+window.addEventListener("beforeunload", () => {
+  metricsController.stopAutoRefresh()
+})

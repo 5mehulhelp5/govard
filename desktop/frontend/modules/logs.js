@@ -1,39 +1,94 @@
 import { projectKey, serviceTargets } from "./dashboard.js"
 
-export const resolveLogTarget = ({ project = "", service = "web" } = {}) => ({
+const errorPattern = /\b(error|critical|fail|failed|exception|fatal|panic)\b/i
+const warnPattern = /\b(warn|warning|deprecated)\b/i
+
+export const normalizeLogSeverity = (severity = "all") => {
+  const normalized = String(severity || "all")
+    .trim()
+    .toLowerCase()
+  if (["all", "error", "warn", "info"].includes(normalized)) {
+    return normalized
+  }
+  return "all"
+}
+
+export const classifyLogSeverity = (line = "") => {
+  const text = String(line || "")
+  if (errorPattern.test(text)) {
+    return "error"
+  }
+  if (warnPattern.test(text)) {
+    return "warn"
+  }
+  return "info"
+}
+
+export const filterLogsText = (raw = "", severity = "all", query = "") => {
+  const selectedSeverity = normalizeLogSeverity(severity)
+  const normalizedQuery = String(query || "")
+    .trim()
+    .toLowerCase()
+
+  const lines = String(raw || "").split("\n")
+  const filtered = lines.filter((line) => {
+    if (selectedSeverity !== "all" && classifyLogSeverity(line) !== selectedSeverity) {
+      return false
+    }
+    if (normalizedQuery !== "" && !line.toLowerCase().includes(normalizedQuery)) {
+      return false
+    }
+    return true
+  })
+  return filtered.join("\n").trim()
+}
+
+export const resolveLogTarget = ({ project = "", service = "all", severity = "all", query = "" } = {}) => ({
   project: String(project || "").trim(),
-  service: String(service || "web").trim() || "web",
+  service: String(service || "all").trim() || "all",
+  severity: normalizeLogSeverity(severity),
+  query: String(query || "").trim(),
 })
 
-export const syncServiceSelector = (selector, environments, project, selectedService = "web") => {
+export const syncServiceSelector = (selector, environments, project, selectedService = "all") => {
   if (!selector) {
-    return "web"
+    return "all"
   }
   const env = environments.find((item) => projectKey(item) === project)
   const targets = env ? serviceTargets(env) : ["web"]
+  const mergedTargets = ["all", ...targets.filter((target) => target !== "all")]
   selector.innerHTML = ""
-  targets.forEach((target) => {
+  mergedTargets.forEach((target) => {
     const option = document.createElement("option")
     option.value = target
     option.textContent = target
     selector.appendChild(option)
   })
-  const hasSelected = targets.includes(selectedService)
-  selector.value = hasSelected ? selectedService : targets[0]
+  const hasSelected = mergedTargets.includes(selectedService)
+  selector.value = hasSelected ? selectedService : mergedTargets[0]
   return selector.value
 }
 
 export const createLogsController = ({ bridge, runtime, refs, readSelection, onStatus, onToast }) => {
   let livePoll = null
   let liveEnabled = false
+  let rawLogOutput = ""
 
-  const appendLogLine = (line) => {
+  const renderFilteredOutput = () => {
     if (!refs.logOutput) {
       return
     }
-    const current = refs.logOutput.textContent || ""
-    refs.logOutput.textContent = `${current}\n${line}`.trim()
-    refs.logOutput.scrollTop = refs.logOutput.scrollHeight
+    const { severity, query } = readSelection()
+    const filtered = filterLogsText(rawLogOutput, severity, query)
+    refs.logOutput.textContent = filtered || "No logs match the current filters."
+  }
+
+  const appendLogLine = (line) => {
+    rawLogOutput = rawLogOutput ? `${rawLogOutput}\n${line}` : String(line || "")
+    renderFilteredOutput()
+    if (refs.logOutput) {
+      refs.logOutput.scrollTop = refs.logOutput.scrollHeight
+    }
   }
 
   const refresh = async () => {
@@ -42,6 +97,7 @@ export const createLogsController = ({ bridge, runtime, refs, readSelection, onS
       if (refs.logOutput) {
         refs.logOutput.textContent = "Select an environment to view logs."
       }
+      rawLogOutput = ""
       return
     }
     if (refs.logOutput) {
@@ -49,8 +105,10 @@ export const createLogsController = ({ bridge, runtime, refs, readSelection, onS
     }
     try {
       const logs = await bridge.getLogsForService(project, service)
-      refs.logOutput.textContent = logs || "No logs available."
+      rawLogOutput = String(logs || "")
+      renderFilteredOutput()
     } catch (err) {
+      rawLogOutput = ""
       refs.logOutput.textContent = `Failed to load logs: ${err}`
     }
   }
@@ -117,9 +175,9 @@ export const createLogsController = ({ bridge, runtime, refs, readSelection, onS
 
   return {
     refresh,
+    applyFilters: renderFilteredOutput,
     toggleLive,
     stopLive,
     isLiveEnabled: () => liveEnabled,
   }
 }
-

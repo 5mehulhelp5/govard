@@ -1,7 +1,11 @@
 import test from "node:test"
 import assert from "node:assert/strict"
 
-import { resolveLogTarget } from "../../desktop/frontend/modules/logs.js"
+import {
+  classifyLogSeverity,
+  filterLogsText,
+  resolveLogTarget,
+} from "../../desktop/frontend/modules/logs.js"
 
 test("resolveLogTarget returns selected project and service", () => {
   const value = resolveLogTarget({
@@ -15,6 +19,29 @@ test("resolveLogTarget returns selected project and service", () => {
 test("resolveLogTarget applies defaults", () => {
   const value = resolveLogTarget({})
   assert.equal(value.project, "")
-  assert.equal(value.service, "web")
+  assert.equal(value.service, "all")
+  assert.equal(value.severity, "all")
+  assert.equal(value.query, "")
 })
 
+test("classifyLogSeverity detects severity keywords", () => {
+  assert.equal(classifyLogSeverity("Fatal: exception occurred"), "error")
+  assert.equal(classifyLogSeverity("WARN cache warmup is slow"), "warn")
+  assert.equal(classifyLogSeverity("Info: queue drained"), "info")
+  assert.equal(classifyLogSeverity("just a regular line"), "info")
+})
+
+test("filterLogsText returns unfiltered logs when filters are default", () => {
+  const logs = ["Info service started", "WARN cache slow", "Fatal exception"].join("\n")
+  assert.equal(filterLogsText(logs, "all", ""), logs)
+})
+
+test("filterLogsText filters by severity and search query", () => {
+  const logs = ["Info worker ready", "WARN cache slow", "Fatal: php error", "Info retry success"].join("\n")
+
+  assert.equal(filterLogsText(logs, "warn", ""), "WARN cache slow")
+  assert.equal(filterLogsText(logs, "error", ""), "Fatal: php error")
+  assert.equal(filterLogsText(logs, "all", "retry"), "Info retry success")
+  assert.equal(filterLogsText(logs, "info", "worker"), "Info worker ready")
+  assert.equal(filterLogsText(logs, "error", "worker"), "")
+})

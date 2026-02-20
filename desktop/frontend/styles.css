@@ -143,6 +143,73 @@ select {
   gap: 12px;
 }
 
+.panel--metrics {
+  display: grid;
+  gap: 12px;
+}
+
+.metrics-summary {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.metric {
+  border: 1px solid var(--border);
+  background: var(--panel-solid);
+  border-radius: 12px;
+  padding: 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.metric__label {
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metric__value {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.2rem;
+  color: var(--brand-strong);
+}
+
+.metrics-warnings {
+  margin-top: -4px;
+}
+
+.metrics-list {
+  display: grid;
+  gap: 10px;
+}
+
+.metric-card {
+  border: 1px solid var(--border);
+  background: var(--panel-solid);
+  border-radius: 12px;
+  padding: 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.metric-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.metric-card__head h3 {
+  font-size: 0.98rem;
+}
+
+.metric-card p {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
 .grid--two {
   grid-template-columns: 1.2fr 0.8fr;
 }
@@ -467,6 +534,10 @@ select {
     grid-template-columns: 1fr;
   }
 
+  .metrics-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .action-grid--primary {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -514,6 +585,10 @@ select {
   .action-grid--primary,
   .action-grid--tools {
     grid-template-columns: 1fr;
+  }
+
+  .metrics-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .logs-controls__row--top,

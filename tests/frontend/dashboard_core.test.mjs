@@ -63,3 +63,13 @@ test("logs section uses two-row controls layout", async () => {
     "missing logs bottom row",
   )
 })
+
+test("metrics section is present for resource monitoring", async () => {
+  const html = await readFile(new URL("../../desktop/frontend/index.html", import.meta.url), "utf8")
+  assert.equal(html.includes('id="metrics"'), true, "missing metrics section")
+  assert.equal(
+    html.includes('data-action="refresh-metrics"'),
+    true,
+    "missing metrics refresh action button",
+  )
+})

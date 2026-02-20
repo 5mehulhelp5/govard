@@ -116,8 +116,10 @@ expects a built `govard-desktop` binary.
 Desktop highlights:
 - Environment dashboard with start/stop/open
 - Quick actions (Mailpit, PHPMyAdmin, Xdebug toggle, health)
-- Logs with service selection and live streaming
+- Resource monitoring (CPU/RAM/NET and OOM hints)
+- Logs with multi-service selection, severity/text filtering, and live streaming
 - Shell launcher (service, user, shell)
+- Native notifications for operation success/failure updates
 - Settings drawer (theme, proxy target, preferred browser)
 
 ### `govard status`

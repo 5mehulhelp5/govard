@@ -1,7 +1,9 @@
 const state = {
   environments: [],
   selectedProject: "",
-  selectedService: "web",
+  selectedService: "all",
+  selectedSeverity: "all",
+  logQuery: "",
   liveLogsEnabled: false,
 }
 
@@ -11,4 +13,3 @@ export const setState = (patch) => {
   Object.assign(state, patch || {})
   return state
 }
-

@@ -13,6 +13,9 @@ export const desktopBridge = {
   async getDashboard() {
     return call(bridge?.GetDashboard?.bind(bridge))
   },
+  async getResourceMetrics() {
+    return call(bridge?.GetResourceMetrics?.bind(bridge))
+  },
   async startEnvironment(project) {
     return call(bridge?.StartEnvironment?.bind(bridge), project)
   },

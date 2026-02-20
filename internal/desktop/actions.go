@@ -242,25 +242,86 @@ func getLogsForService(project string, service string, lines int) (string, error
 		return "", err
 	}
 
-	containerName := resolveLogContainer(info, service)
+	targets := resolveLogTargets(info, service)
+	if len(targets) == 0 {
+		targets = []string{"php"}
+	}
 
+	var sections []string
+	var failures []string
+	for _, target := range targets {
+		containerName := resolveLogContainer(info, target)
+		output, readErr := readContainerLogs(info, containerName, lines)
+		if readErr != nil {
+			failures = append(failures, fmt.Sprintf("%s: %v", target, readErr))
+			continue
+		}
+		trimmed := strings.TrimSpace(output)
+		if trimmed == "" {
+			continue
+		}
+		if len(targets) > 1 {
+			sections = append(sections, prefixServiceLogLines(target, trimmed))
+		} else {
+			sections = append(sections, output)
+		}
+	}
+	if len(sections) > 0 {
+		return strings.Join(sections, "\n"), nil
+	}
+
+	// Preserve legacy fallback behavior for single-service requests.
+	if len(targets) == 1 && targets[0] != "php" {
+		containerName := resolveLogContainer(info, "php")
+		output, readErr := readContainerLogs(info, containerName, lines)
+		if readErr == nil {
+			return output, nil
+		}
+		failures = append(failures, fmt.Sprintf("php: %v", readErr))
+	}
+	if len(failures) > 0 {
+		return "", fmt.Errorf("%s", strings.Join(failures, "; "))
+	}
+	return "", fmt.Errorf("no logs available for %s", info.name)
+}
+
+func readContainerLogs(info *projectInfo, containerName string, lines int) (string, error) {
 	args := []string{"logs", "--tail", fmt.Sprintf("%d", lines), containerName}
 	cmd := exec.Command("docker", args...)
 	cmd.Dir = filepath.Clean(info.workingDir)
 	out, err := cmd.CombinedOutput()
-	if err == nil {
-		return string(out), nil
-	}
-
-	containerName = resolveLogContainer(info, "php")
-	args = []string{"logs", "--tail", fmt.Sprintf("%d", lines), containerName}
-	cmd = exec.Command("docker", args...)
-	cmd.Dir = filepath.Clean(info.workingDir)
-	out, err = cmd.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("%s", string(out))
+		details := strings.TrimSpace(string(out))
+		if details == "" {
+			return "", err
+		}
+		return "", fmt.Errorf("%s", details)
 	}
 	return string(out), nil
+}
+
+func resolveLogTargets(info *projectInfo, service string) []string {
+	return resolveRequestedLogTargets(service, collectServiceTargets(info))
+}
+
+func resolveRequestedLogTargets(service string, discovered []string) []string {
+	requested := strings.ToLower(strings.TrimSpace(service))
+	if requested == "" || requested == "all" {
+		if len(discovered) == 0 {
+			return []string{"web"}
+		}
+		return discovered
+	}
+	return []string{requested}
+}
+
+func prefixServiceLogLines(service string, raw string) string {
+	trimmedService := strings.TrimSpace(service)
+	lines := strings.Split(strings.TrimSpace(raw), "\n")
+	for index, line := range lines {
+		lines[index] = fmt.Sprintf("[%s] %s", trimmedService, line)
+	}
+	return strings.Join(lines, "\n")
 }
 
 func openShell(project string) error {

@@ -48,6 +48,43 @@
         </article>
       </section>
 
+      <section class="panel panel--metrics" id="metrics">
+        <header class="panel__header">
+          <h2>Resource Monitor</h2>
+          <button class="button button--ghost" data-action="refresh-metrics">Refresh Metrics</button>
+        </header>
+        <div class="metrics-summary">
+          <article class="metric">
+            <p class="metric__label">Active Projects</p>
+            <p class="metric__value" id="metricActiveProjects">0</p>
+          </article>
+          <article class="metric">
+            <p class="metric__label">CPU</p>
+            <p class="metric__value" id="metricCPU">0.0%</p>
+          </article>
+          <article class="metric">
+            <p class="metric__label">Memory</p>
+            <p class="metric__value" id="metricMemory">0.0 MB</p>
+          </article>
+          <article class="metric">
+            <p class="metric__label">NET RX</p>
+            <p class="metric__value" id="metricNetRx">0.0 MB</p>
+          </article>
+          <article class="metric">
+            <p class="metric__label">NET TX</p>
+            <p class="metric__value" id="metricNetTx">0.0 MB</p>
+          </article>
+          <article class="metric">
+            <p class="metric__label">OOM Projects</p>
+            <p class="metric__value" id="metricOOM">0</p>
+          </article>
+        </div>
+        <ul class="warning-list metrics-warnings" id="metricsWarnings"></ul>
+        <div class="metrics-list" id="metricsList">
+          <div class="panel__empty">No running resource metrics yet.</div>
+        </div>
+      </section>
+
       <section class="grid grid--two">
         <article class="panel" id="environments">
           <header class="panel__header">
@@ -104,11 +141,24 @@
               <input id="shellUser" type="text" placeholder="www-data" />
             </label>
             <label class="field field--compact logs-controls__field">
+              Severity
+              <select id="logSeverity">
+                <option value="all">all</option>
+                <option value="error">error</option>
+                <option value="warn">warn</option>
+                <option value="info">info</option>
+              </select>
+            </label>
+            <label class="field field--compact logs-controls__field">
               Shell
               <select id="shellCommand">
                 <option value="bash">bash</option>
                 <option value="sh">sh</option>
               </select>
+            </label>
+            <label class="field field--compact logs-controls__field">
+              Search
+              <input id="logSearch" type="text" placeholder="error text..." />
             </label>
             <div class="logs-controls__buttons logs-controls__buttons--secondary">
               <button class="button button--ghost" data-action="reset-shell-users">Reset Shell Users</button>

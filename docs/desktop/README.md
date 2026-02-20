@@ -16,8 +16,10 @@ Keyboard shortcuts:
 Lightweight dashboard features:
 - Environment list with start/stop/open
 - Quick actions (Mailpit, PHPMyAdmin, Xdebug toggle, health)
-- Logs with service selection and live streaming
+- Resource monitor (CPU/RAM/NET per project, OOM hints, refresh + auto-refresh)
+- Logs with multi-service (`all`) selection, severity filtering, text search, and live streaming
 - Shell launcher (service, user, shell)
+- Native notifications from operation success/failure events while desktop is running
 - Warnings panel
 - Settings drawer
 

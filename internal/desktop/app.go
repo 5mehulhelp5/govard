@@ -3,12 +3,15 @@ package desktop
 import (
 	"context"
 	"sync"
+	"time"
 )
 
 type App struct {
 	ctx          context.Context
 	streamMu     sync.Mutex
 	streamCancel context.CancelFunc
+	notifyMu     sync.Mutex
+	notifyCancel context.CancelFunc
 }
 
 func NewApp() *App {
@@ -17,10 +20,12 @@ func NewApp() *App {
 
 func (app *App) Startup(ctx context.Context) {
 	app.ctx = ctx
+	app.startOperationNotificationWatcher()
 }
 
 func (app *App) Shutdown(ctx context.Context) {
 	_ = ctx
+	app.stopOperationNotificationWatcher()
 }
 
 func (app *App) Status() string {
@@ -44,6 +49,19 @@ func (app *App) GetDashboard() Dashboard {
 		}
 	}
 	return dashboard
+}
+
+func (app *App) GetResourceMetrics() ResourceMetricsSnapshot {
+	snapshot, err := buildResourceMetrics()
+	if err == nil {
+		return snapshot
+	}
+	return ResourceMetricsSnapshot{
+		UpdatedAt: time.Now().UTC().Format(time.RFC3339),
+		Summary:   ResourceMetricsSummary{},
+		Projects:  []ProjectResourceMetric{},
+		Warnings:  []string{"Metrics unavailable: " + err.Error()},
+	}
 }
 
 func (app *App) ToggleEnvironment(name string) string {
