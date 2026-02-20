@@ -37,6 +37,9 @@ func ValidateConfig(cfg Config) error {
 	if strings.ContainsAny(cfg.Domain, " \t\r\n") {
 		return fmt.Errorf("domain cannot contain whitespace")
 	}
+	if err := validateBlueprintRegistryConfig(cfg.BlueprintRegistry); err != nil {
+		return err
+	}
 
 	if err := validateService("stack.services.web_server", cfg.Stack.Services.WebServer, validWebServers); err != nil {
 		return err

@@ -23,3 +23,14 @@ func chooseDirectory(ctx context.Context, title string, defaultDir string) (stri
 		DefaultDirectory: defaultDir,
 	})
 }
+
+func showApplication(ctx context.Context) {
+	runtime.Show(ctx)
+	runtime.WindowShow(ctx)
+	runtime.WindowUnminimise(ctx)
+}
+
+func hideApplication(ctx context.Context) {
+	runtime.WindowHide(ctx)
+	runtime.Hide(ctx)
+}

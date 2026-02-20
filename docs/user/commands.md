@@ -130,14 +130,18 @@ Launch the Govard Desktop app (Wails-based).
 ```bash
 govard desktop
 govard desktop --dev
+govard desktop --background
 ```
 
 `--dev` runs Wails dev mode and requires the Wails CLI. Running without `--dev`
 expects a built `govard-desktop` binary.
+`--background` starts desktop hidden, keeps the process alive when the window is
+closed, and reuses the running instance on relaunch.
 
 Desktop highlights:
 - Environment dashboard with start/stop/open
 - Quick actions (Mailpit, PHPMyAdmin, Xdebug toggle, health)
+- Embedded Mailpit inbox tab with refresh/open actions
 - Manual project onboarding (select folder and add/init project)
 - Remotes tab (list/add remotes, run remote test, trigger sync plan presets)
 - Resource monitoring (CPU/RAM/NET and OOM hints)
@@ -494,6 +498,8 @@ Behavior:
 - `lock generate` captures current Govard/Docker toolchain values and runtime stack metadata.
 - `lock check` compares current environment values against the lock file and reports mismatches.
 - `govard up` performs a non-blocking lockfile warning check when `govard.lock` exists.
+- Set `lock.strict: true` in `govard.yml` to make `govard up` fail on lock mismatches
+  (and fail when the lock file is missing).
 
 See `docs/commands/lock.md`.
 

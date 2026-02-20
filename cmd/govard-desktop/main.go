@@ -4,12 +4,11 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"govard/internal/desktop"
 
 	"github.com/wailsapp/wails/v2"
-	"github.com/wailsapp/wails/v2/pkg/options"
-	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 )
 
 func main() {
@@ -19,17 +18,8 @@ func main() {
 		log.Fatalf("Failed to locate frontend assets: %v", err)
 	}
 
-	err = wails.Run(&options.App{
-		Title:       "Govard Desktop",
-		Width:       1200,
-		Height:      800,
-		AssetServer: &assetserver.Options{Assets: assets},
-		OnStartup:   app.Startup,
-		OnShutdown:  app.Shutdown,
-		Bind: []interface{}{
-			app,
-		},
-	})
+	launchOptions := desktop.ResolveLaunchOptions(os.Args[1:], os.Getenv(desktop.DesktopBackgroundEnvVar))
+	err = wails.Run(desktop.BuildWailsOptions(app, assets, launchOptions))
 	if err != nil {
 		log.Fatalf("Failed to start Govard Desktop: %v", err)
 	}

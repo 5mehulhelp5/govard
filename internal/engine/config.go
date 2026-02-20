@@ -32,13 +32,27 @@ type Stack struct {
 }
 
 type Config struct {
-	ProjectName      string                  `yaml:"project_name"`
-	Recipe           string                  `yaml:"recipe"`
-	FrameworkVersion string                  `yaml:"framework_version,omitempty"`
-	Domain           string                  `yaml:"domain"`
-	Stack            Stack                   `yaml:"stack"`
-	Remotes          map[string]RemoteConfig `yaml:"remotes"`
-	Hooks            map[string][]HookStep   `yaml:"hooks,omitempty"`
+	ProjectName       string                  `yaml:"project_name"`
+	Recipe            string                  `yaml:"recipe"`
+	FrameworkVersion  string                  `yaml:"framework_version,omitempty"`
+	Domain            string                  `yaml:"domain"`
+	Lock              LockConfig              `yaml:"lock,omitempty"`
+	BlueprintRegistry BlueprintRegistryConfig `yaml:"blueprint_registry,omitempty"`
+	Stack             Stack                   `yaml:"stack"`
+	Remotes           map[string]RemoteConfig `yaml:"remotes"`
+	Hooks             map[string][]HookStep   `yaml:"hooks,omitempty"`
+}
+
+type LockConfig struct {
+	Strict bool `yaml:"strict,omitempty"`
+}
+
+type BlueprintRegistryConfig struct {
+	Provider string `yaml:"provider,omitempty"`
+	URL      string `yaml:"url,omitempty"`
+	Ref      string `yaml:"ref,omitempty"`
+	Checksum string `yaml:"checksum,omitempty"`
+	Trusted  bool   `yaml:"trusted,omitempty"`
 }
 
 type HookStep struct {

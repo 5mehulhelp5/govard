@@ -26,6 +26,27 @@ func (app *App) Startup(ctx context.Context) {
 	app.startOperationNotificationWatcher()
 }
 
+func (app *App) showWindow() {
+	if app == nil || app.ctx == nil {
+		return
+	}
+	showApplication(app.ctx)
+}
+
+func (app *App) hideWindow(ctx context.Context) {
+	if app == nil {
+		return
+	}
+	targetCtx := ctx
+	if targetCtx == nil {
+		targetCtx = app.ctx
+	}
+	if targetCtx == nil {
+		return
+	}
+	hideApplication(targetCtx)
+}
+
 func (app *App) Shutdown(ctx context.Context) {
 	_ = ctx
 	app.stopOperationNotificationWatcher()
@@ -187,6 +208,10 @@ func (app *App) OpenEnvironment(name string) string {
 		return "Open " + url + " manually"
 	}
 	return "Opening " + url + "..."
+}
+
+func (app *App) GetMailpitURL() string {
+	return buildProxyURL("mail")
 }
 
 func (app *App) QuickAction(action string) string {

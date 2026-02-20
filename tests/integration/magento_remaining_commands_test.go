@@ -58,6 +58,17 @@ func TestDesktopCommandRuntimePaths(t *testing.T) {
 		assertContains(t, logs, "govard-desktop|")
 	})
 
+	t.Run("DesktopLaunchesBinaryWithBackgroundFlag", func(t *testing.T) {
+		shim := env.SetupRuntimeShims(t, map[string]int{"docker": 0, "ssh": 0, "rsync": 0})
+		installRuntimeCommandShim(t, shim, "govard-desktop", 0)
+
+		result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "desktop", "--background")
+		result.AssertSuccess(t)
+
+		logs := shim.ReadLog(t)
+		assertContains(t, logs, "govard-desktop|--background")
+	})
+
 	t.Run("DesktopDevUsesWailsWhenAvailable", func(t *testing.T) {
 		shim := env.SetupRuntimeShims(t, map[string]int{"docker": 0, "ssh": 0, "rsync": 0})
 		installRuntimeCommandShim(t, shim, "wails", 0)

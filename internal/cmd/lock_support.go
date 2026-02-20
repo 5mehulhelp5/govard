@@ -7,21 +7,45 @@ import (
 	"govard/internal/engine"
 )
 
-func evaluateUpLockWarnings(cwd string, config engine.Config) []string {
+func evaluateUpLockPolicy(cwd string, config engine.Config) ([]string, error) {
 	lockPath := engine.LockFilePath(cwd)
 	expected, err := engine.ReadLockFile(lockPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil
+			if !config.Lock.Strict {
+				return nil, nil
+			}
+			warning := fmt.Sprintf("Lock strict mode: required lock file missing at %s", lockPath)
+			return []string{warning}, fmt.Errorf("lock strict mode enabled: missing %s (run `govard lock generate`)", lockPath)
 		}
-		return []string{fmt.Sprintf("Lock check skipped: %v", err)}
+		warning := fmt.Sprintf("Lock check skipped: %v", err)
+		if !config.Lock.Strict {
+			return []string{warning}, nil
+		}
+		return []string{warning}, fmt.Errorf("lock strict mode enabled: %w", err)
 	}
 
 	current, err := engine.BuildLockFileFromConfig(cwd, config, Version, lockDependencies)
 	if err != nil {
-		return []string{fmt.Sprintf("Lock check skipped: %v", err)}
+		warning := fmt.Sprintf("Lock check skipped: %v", err)
+		if !config.Lock.Strict {
+			return []string{warning}, nil
+		}
+		return []string{warning}, fmt.Errorf("lock strict mode enabled: %w", err)
 	}
-	return buildUpLockWarnings(expected, current)
+	warnings := buildUpLockWarnings(expected, current)
+	if len(warnings) == 0 {
+		return nil, nil
+	}
+	if !config.Lock.Strict {
+		return warnings, nil
+	}
+	return warnings, fmt.Errorf("lock strict mode enabled: found %d mismatch(es); run `govard lock check`", len(warnings))
+}
+
+func evaluateUpLockWarnings(cwd string, config engine.Config) []string {
+	warnings, _ := evaluateUpLockPolicy(cwd, config)
+	return warnings
 }
 
 func buildUpLockWarnings(expected engine.LockFile, current engine.LockFile) []string {
@@ -39,4 +63,9 @@ func buildUpLockWarnings(expected engine.LockFile, current engine.LockFile) []st
 // BuildUpLockWarningsForTest exposes lock warning rendering for tests.
 func BuildUpLockWarningsForTest(expected engine.LockFile, current engine.LockFile) []string {
 	return buildUpLockWarnings(expected, current)
+}
+
+// EvaluateUpLockPolicyForTest exposes lock policy evaluation for tests.
+func EvaluateUpLockPolicyForTest(cwd string, config engine.Config) ([]string, error) {
+	return evaluateUpLockPolicy(cwd, config)
 }

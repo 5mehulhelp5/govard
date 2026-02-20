@@ -8,6 +8,7 @@ import {
   syncProjectSelectors,
 } from "./modules/dashboard.js"
 import { createLogsController, resolveLogTarget, syncServiceSelector } from "./modules/logs.js"
+import { createMailController } from "./modules/mail.js"
 import { createMetricsController } from "./modules/metrics.js"
 import { createOnboardingController } from "./modules/onboarding.js"
 import { createRemotesController } from "./modules/remotes.js"
@@ -56,6 +57,8 @@ const refs = {
   logSearch: byId("logSearch"),
   logOutput: byId("logOutput"),
   toggleLive: byId("toggleLive"),
+  mailFrame: byId("mailFrame"),
+  mailLocation: byId("mailLocation"),
   shellUser: byId("shellUser"),
   shellCommand: byId("shellCommand"),
   warningList: byId("warningList"),
@@ -191,6 +194,13 @@ const remotesController = createRemotesController({
   onToast: showToast,
 })
 
+const mailController = createMailController({
+  bridge: desktopBridge,
+  refs,
+  onStatus: setStatus,
+  onToast: showToast,
+})
+
 const refreshDashboard = async () => {
   setStatus("Status: syncing dashboard...")
   const dashboard = await loadDashboard()
@@ -222,6 +232,7 @@ const refreshDashboard = async () => {
   syncLogFiltersState()
   await metricsController.refresh({ silent: true })
   await remotesController.refresh({ silent: true })
+  await mailController.refresh({ silent: true })
   await shellController.loadShellUser()
   await logsController.refresh()
   setStatus(`Status: refreshed at ${new Date().toLocaleTimeString()}`)
@@ -283,6 +294,14 @@ document.addEventListener("click", async (event) => {
   }
   if (action === "save-remote") {
     await remotesController.saveRemote()
+    return
+  }
+  if (action === "refresh-mail") {
+    await mailController.refresh()
+    return
+  }
+  if (action === "open-mail-external") {
+    await mailController.openExternal()
     return
   }
   if (action === "remote-test") {
@@ -415,8 +434,9 @@ if (refs.themeSelect) {
 }
 
 if (refs.proxyTarget) {
-  refs.proxyTarget.addEventListener("change", () => {
-    settingsController.save()
+  refs.proxyTarget.addEventListener("change", async () => {
+    await settingsController.save()
+    await mailController.refresh({ silent: true })
   })
 }
 
@@ -437,6 +457,7 @@ if (window.matchMedia) {
 setStatus("Status: ready.")
 setState({ selectedService: "all", selectedSeverity: "all", logQuery: "" })
 await settingsController.load()
+await mailController.refresh({ silent: true })
 await refreshDashboard()
 metricsController.startAutoRefresh()
 

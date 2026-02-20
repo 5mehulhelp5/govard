@@ -85,6 +85,9 @@ export const desktopBridge = {
   async getSettings() {
     return call(bridge?.GetSettings?.bind(bridge))
   },
+  async getMailpitURL() {
+    return call(bridge?.GetMailpitURL?.bind(bridge))
+  },
   async updateSettings(theme, proxyTarget, preferredBrowser) {
     return call(bridge?.UpdateSettings?.bind(bridge), theme, proxyTarget, preferredBrowser)
   },

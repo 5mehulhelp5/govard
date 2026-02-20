@@ -283,7 +283,7 @@ _Note: Once trusted, all `*.test` domains managed by Govard will show a "Green L
 | `govard debug`         | Toggle Xdebug for the current environment                    |
 | `govard deploy`        | Deploy the application                                       |
 | `govard deps`          | Check and report required system dependencies                |
-| `govard desktop`       | Launch the Govard Desktop app                                |
+| `govard desktop`       | Launch the Govard Desktop app (`--background` supported)     |
 | `govard doctor`        | Run system diagnostics                                       |
 | `govard down`          | Tear down project containers and networks                    |
 | `govard drush`         | Run Drupal Drush commands                                    |
@@ -291,7 +291,7 @@ _Note: Once trusted, all `*.test` domains managed by Govard will show a "Green L
 | `govard extensions`    | Manage project extension contract in `.govard`               |
 | `govard grunt`         | Run grunt commands                                           |
 | `govard init`          | Initialize a new project configuration                       |
-| `govard lock`          | Generate and validate `govard.lock` snapshots                |
+| `govard lock`          | Generate and validate `govard.lock` snapshots (supports strict mode in `up`) |
 | `govard logs`          | View project logs                                            |
 | `govard magento`       | Run Magento CLI commands                                     |
 | `govard magerun`       | Run n98-magerun commands                                     |

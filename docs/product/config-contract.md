@@ -34,6 +34,13 @@ Later layers override earlier layers.
 
 - `recipe`: selected framework profile.
 - `framework_version`: detected or user-selected framework version for profile resolution.
+- `lock.strict`: opt-in lock enforcement for `govard up` (hard-fail when lock is missing or non-compliant).
+- `blueprint_registry.*`: opt-in remote blueprint source.
+  - `blueprint_registry.provider`: `git` or `http`.
+  - `blueprint_registry.url`: remote source URL.
+  - `blueprint_registry.ref`: optional git ref (branch/tag/commit) when provider is `git`.
+  - `blueprint_registry.checksum`: required SHA-256 checksum (`64` hex chars).
+  - `blueprint_registry.trusted`: must be `true` to allow remote registry fetch.
 - `stack.*`: runtime service settings.
 - `remotes.*`: remote definitions.
   - `remotes.<name>.environment`: `dev`, `staging`, or `prod`.

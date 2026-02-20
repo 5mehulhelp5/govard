@@ -25,3 +25,11 @@ func chooseDirectory(ctx context.Context, title string, defaultDir string) (stri
 	_ = defaultDir
 	return "", fmt.Errorf("desktop runtime not available")
 }
+
+func showApplication(ctx context.Context) {
+	_ = ctx
+}
+
+func hideApplication(ctx context.Context) {
+	_ = ctx
+}

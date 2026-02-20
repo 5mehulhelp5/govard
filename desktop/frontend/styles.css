@@ -332,6 +332,25 @@ select {
   gap: 12px;
 }
 
+.panel--mail {
+  display: grid;
+  gap: 12px;
+}
+
+.mail-location {
+  font-family: "JetBrains Mono", monospace;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+#mailFrame {
+  width: 100%;
+  min-height: 320px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel-solid);
+}
+
 .onboarding-grid {
   display: grid;
   gap: 10px;

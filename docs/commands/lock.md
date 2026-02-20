@@ -32,6 +32,20 @@ Current behavior:
 - Returns a non-zero exit code when mismatches are found.
 - Used by `govard up` in warning-only mode (does not block startup).
 
+## Strict Mode (`govard up`)
+
+Enable strict lock enforcement in `govard.yml`:
+
+```yaml
+lock:
+  strict: true
+```
+
+When enabled:
+- `govard up` fails if `govard.lock` is missing.
+- `govard up` fails if lock mismatches are detected.
+- `govard up` still prints lock mismatch details before exiting.
+
 ## Options
 
 - `--file` Path to lock file (default: `./govard.lock`)

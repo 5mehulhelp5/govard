@@ -6,6 +6,7 @@ Current status:
 - Wails entrypoint in `cmd/govard-desktop`
 - Dashboard UI in `desktop/frontend`
 - `govard desktop` command to launch app (`--dev` for Wails dev mode)
+- Optional background mode via `govard desktop --background` (start hidden, hide-on-close, single-instance reopen)
 - Shell user preferences stored in `~/.govard/desktop-preferences.json`
 - Desktop settings include theme, proxy target, and preferred browser
 
@@ -16,6 +17,7 @@ Keyboard shortcuts:
 Lightweight dashboard features:
 - Environment list with start/stop/open
 - Quick actions (Mailpit, PHPMyAdmin, Xdebug toggle, health)
+- Embedded Mailpit inbox panel with refresh/open controls
 - Project onboarding panel (folder picker + add/init when `govard.yml` is missing)
 - Remotes tab (list/add remotes, connectivity test, and sync plan presets)
 - Resource monitor (CPU/RAM/NET per project, OOM hints, refresh + auto-refresh)

@@ -112,12 +112,15 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 				}
 				context.Compose = engine.ComposeFilePath(context.Cwd, context.Config.ProjectName)
 				pterm.Info.Printf("Loaded config layers: %d\n", len(context.Loaded))
-				lockWarnings := evaluateUpLockWarnings(context.Cwd, context.Config)
+				lockWarnings, lockErr := evaluateUpLockPolicy(context.Cwd, context.Config)
 				for _, warning := range lockWarnings {
 					pterm.Warning.Println(warning)
 				}
 				if len(lockWarnings) > 0 {
 					pterm.Warning.Println("Run `govard lock check` for full lockfile compliance details.")
+				}
+				if lockErr != nil {
+					return lockErr
 				}
 
 				if err := engine.CheckDockerStatus(); err != nil {

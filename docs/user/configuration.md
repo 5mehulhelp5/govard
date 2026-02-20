@@ -36,6 +36,13 @@ project_name: "my_project"
 recipe: "magento2"
 framework_version: "2.4.7"
 domain: "myproject.test"
+lock:
+  strict: false
+blueprint_registry:
+  provider: "http"
+  url: "https://example.com/govard-blueprints.tar.gz"
+  checksum: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  trusted: false
 stack:
   php_version: "8.4"
   node_version: "24"
@@ -77,6 +84,33 @@ stack:
 - **Type**: string
 - **Description**: Local domain for your project
 - **Default**: `{project_name}.test`
+
+#### `lock.strict`
+- **Type**: boolean
+- **Description**: Enforce lock-file compliance during `govard up`
+- **Default**: `false`
+- **Notes**:
+  - When `true`, `govard up` fails if `govard.lock` is missing.
+  - When `true`, `govard up` fails when lock mismatches are detected.
+  - Use `govard lock generate` to create/update the lock file.
+
+#### `blueprint_registry`
+- **Type**: object
+- **Description**: Opt-in remote blueprint registry source used by renderer.
+- **Default**: local `blueprints/` resolution (registry disabled)
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `provider` | string | yes (when registry enabled) | `git` or `http` |
+| `url` | string | yes (when registry enabled) | remote source URL |
+| `ref` | string | optional | git branch/tag/commit when provider is `git` |
+| `checksum` | string | yes (when registry enabled) | SHA-256 (`64` hex chars) |
+| `trusted` | boolean | yes (when registry enabled) | must be `true` to allow remote fetch |
+
+Registry behavior:
+- Remote fetches are cached under `~/.govard/blueprint-registry/`.
+- Govard fails fast when checksum does not match downloaded payload/content.
+- Registry config is intentionally strict and opt-in to reduce supply-chain risk.
 
 #### `stack.services.web_server`
 - **Type**: string

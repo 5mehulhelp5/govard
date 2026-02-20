@@ -83,7 +83,7 @@ func findBlueprintsDir(startDir string) (string, error) {
 
 // RenderBlueprint renders layered blueprints into a single docker-compose file
 func RenderBlueprint(root string, config Config) error {
-	blueprintsDir, err := findBlueprintsDir(root)
+	blueprintsDir, err := resolveBlueprintsDirForConfig(root, config)
 	if err != nil {
 		return fmt.Errorf("resolve blueprints directory: %w", err)
 	}

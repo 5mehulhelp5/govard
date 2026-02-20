@@ -15,6 +15,7 @@ import (
 )
 
 var desktopDev bool
+var desktopBackground bool
 
 var desktopCmd = &cobra.Command{
 	Use:   "desktop",
@@ -24,7 +25,7 @@ var desktopCmd = &cobra.Command{
 			runDesktopDev()
 			return
 		}
-		if err := runDesktopBinary(); err != nil {
+		if err := runDesktopBinary(desktopBackground); err != nil {
 			pterm.Error.Printf("Failed to launch Govard Desktop: %v\n", err)
 		}
 	},
@@ -32,6 +33,7 @@ var desktopCmd = &cobra.Command{
 
 func init() {
 	desktopCmd.Flags().BoolVar(&desktopDev, "dev", false, "Run the desktop app in Wails dev mode")
+	desktopCmd.Flags().BoolVar(&desktopBackground, "background", false, "Enable background mode (start hidden and keep running after window close)")
 }
 
 func runDesktopDev() {
@@ -42,7 +44,11 @@ func runDesktopDev() {
 	}
 
 	if wailsPath, err := findWailsCLI(); err == nil {
-		cmd := exec.Command(wailsPath, "dev", "-tags", "desktop")
+		args := []string{"dev", "-tags", "desktop"}
+		if desktopBackground {
+			args = append(args, "--", desktop.DesktopBackgroundFlag)
+		}
+		cmd := exec.Command(wailsPath, args...)
 		cmd.Dir = desktopDir
 		cmd.Stdout, cmd.Stderr, cmd.Stdin = os.Stdout, os.Stderr, os.Stdin
 		if err := cmd.Run(); err != nil {
@@ -57,7 +63,11 @@ func runDesktopDev() {
 		pterm.Error.Printf("Failed to locate repo root: %v\n", err)
 		return
 	}
-	cmd := exec.Command("go", "run", "-tags", "desktop", "./cmd/govard-desktop")
+	args := []string{"run", "-tags", "desktop", "./cmd/govard-desktop"}
+	if desktopBackground {
+		args = append(args, desktop.DesktopBackgroundFlag)
+	}
+	cmd := exec.Command("go", args...)
 	cmd.Dir = root
 	cmd.Stdout, cmd.Stderr, cmd.Stdin = os.Stdout, os.Stderr, os.Stdin
 	if err := cmd.Run(); err != nil {
@@ -65,14 +75,21 @@ func runDesktopDev() {
 	}
 }
 
-func runDesktopBinary() error {
+func runDesktopBinary(background bool) error {
 	binaryPath, err := findDesktopBinary()
 	if err != nil {
 		return err
 	}
-	cmd := exec.Command(binaryPath)
+	cmd := exec.Command(binaryPath, buildDesktopBinaryArgs(background)...)
 	cmd.Stdout, cmd.Stderr, cmd.Stdin = os.Stdout, os.Stderr, os.Stdin
 	return cmd.Run()
+}
+
+func buildDesktopBinaryArgs(background bool) []string {
+	if background {
+		return []string{desktop.DesktopBackgroundFlag}
+	}
+	return []string{}
 }
 
 func findDesktopBinary() (string, error) {

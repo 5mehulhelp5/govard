@@ -10,6 +10,8 @@ func NormalizeConfig(config *Config) {
 		return
 	}
 
+	normalizeBlueprintRegistryConfig(&config.BlueprintRegistry)
+
 	fwConfig, ok := GetFrameworkConfig(config.Recipe)
 	profileResult, profileErr := ResolveRuntimeProfile(config.Recipe, config.FrameworkVersion)
 	profileAvailable := profileErr == nil

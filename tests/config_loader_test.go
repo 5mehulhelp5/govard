@@ -196,3 +196,105 @@ recipe: laravel
 		t.Fatalf("expected extension env override, got %s", cfg.Domain)
 	}
 }
+
+func TestLoadConfigFromDirParsesLockStrictFlag(t *testing.T) {
+	tempDir := t.TempDir()
+
+	base := `project_name: demo
+domain: demo.test
+recipe: magento2
+lock:
+  strict: true
+`
+
+	if err := os.WriteFile(filepath.Join(tempDir, "govard.yml"), []byte(base), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, _, err := engine.LoadConfigFromDir(tempDir, true)
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	if !cfg.Lock.Strict {
+		t.Fatal("expected lock.strict=true from config")
+	}
+}
+
+func TestLoadConfigFromDirParsesBlueprintRegistrySettings(t *testing.T) {
+	tempDir := t.TempDir()
+
+	base := `project_name: demo
+domain: demo.test
+recipe: legacytest
+blueprint_registry:
+  provider: HTTP
+  url: https://example.com/blueprints.tar.gz
+  checksum: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+  trusted: true
+`
+
+	if err := os.WriteFile(filepath.Join(tempDir, "govard.yml"), []byte(base), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, _, err := engine.LoadConfigFromDir(tempDir, true)
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	if cfg.BlueprintRegistry.Provider != "http" {
+		t.Fatalf("expected normalized provider http, got %s", cfg.BlueprintRegistry.Provider)
+	}
+	if cfg.BlueprintRegistry.Checksum != "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" {
+		t.Fatalf("expected lowercase checksum normalization, got %s", cfg.BlueprintRegistry.Checksum)
+	}
+	if !cfg.BlueprintRegistry.Trusted {
+		t.Fatal("expected blueprint registry trusted=true")
+	}
+}
+
+func TestLoadConfigFromDirInfersHTTPProviderFromUppercaseScheme(t *testing.T) {
+	tempDir := t.TempDir()
+
+	base := `project_name: demo
+domain: demo.test
+recipe: legacytest
+blueprint_registry:
+  url: HTTPS://example.com/blueprints.tar.gz
+  checksum: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  trusted: true
+`
+
+	if err := os.WriteFile(filepath.Join(tempDir, "govard.yml"), []byte(base), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, _, err := engine.LoadConfigFromDir(tempDir, true)
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	if cfg.BlueprintRegistry.Provider != "http" {
+		t.Fatalf("expected inferred provider http, got %s", cfg.BlueprintRegistry.Provider)
+	}
+}
+
+func TestLoadConfigFromDirAllowsUppercaseHTTPSWithExplicitHTTPProvider(t *testing.T) {
+	tempDir := t.TempDir()
+
+	base := `project_name: demo
+domain: demo.test
+recipe: legacytest
+blueprint_registry:
+  provider: http
+  url: HTTPS://example.com/blueprints.tar.gz
+  checksum: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  trusted: true
+`
+
+	if err := os.WriteFile(filepath.Join(tempDir, "govard.yml"), []byte(base), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, _, err := engine.LoadConfigFromDir(tempDir, true); err != nil {
+		t.Fatalf("expected config to accept uppercase https scheme, got error: %v", err)
+	}
+}
