@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
@@ -15,11 +16,34 @@ import (
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize a new project configuration",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		pterm.DefaultHeader.Println("Govard Initialization")
+		startedAt := time.Now()
 
 		fmt.Println("🔍 Detecting project framework...")
 		cwd, _ := os.Getwd()
+		configForObservability := engine.Config{}
+		defer func() {
+			status := engine.OperationStatusSuccess
+			message := "init completed"
+			if err != nil {
+				status = engine.OperationStatusFailure
+				message = err.Error()
+			}
+			writeOperationEventBestEffort(
+				"init.run",
+				status,
+				configForObservability,
+				"",
+				"",
+				message,
+				"",
+				time.Since(startedAt),
+			)
+			if err == nil {
+				trackProjectRegistryBestEffort(configForObservability, cwd, "init")
+			}
+		}()
 		existingConfig, hasExistingConfig := loadExistingInitConfig(cwd)
 		metadata := engine.DetectFramework(cwd)
 		if initRecipe != "" {
@@ -115,6 +139,7 @@ var initCmd = &cobra.Command{
 			config.Remotes = existingConfig.Remotes
 			config.Hooks = existingConfig.Hooks
 		}
+		configForObservability = config
 		engine.NormalizeConfig(&config)
 		writableConfig := engine.PrepareConfigForWrite(config)
 

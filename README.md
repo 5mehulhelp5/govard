@@ -291,6 +291,7 @@ _Note: Once trusted, all `*.test` domains managed by Govard will show a "Green L
 | `govard extensions`    | Manage project extension contract in `.govard`               |
 | `govard grunt`         | Run grunt commands                                           |
 | `govard init`          | Initialize a new project configuration                       |
+| `govard lock`          | Generate and validate `govard.lock` snapshots                |
 | `govard logs`          | View project logs                                            |
 | `govard magento`       | Run Magento CLI commands                                     |
 | `govard magerun`       | Run n98-magerun commands                                     |
@@ -314,6 +315,7 @@ _Note: Once trusted, all `*.test` domains managed by Govard will show a "Green L
 | `govard symfony`       | Run Symfony CLI commands                                     |
 | `govard sync`          | Synchronize files, media, and databases between environments |
 | `govard trust`         | Trust the local CA for SSL certificates                      |
+| `govard tunnel`        | Start a public tunnel to a local project URL                 |
 | `govard up`            | Start the development environment                            |
 | `govard upgrade`       | Upgrade the framework version                                |
 | `govard valkey`        | Interact with the valkey container using valkey-cli          |

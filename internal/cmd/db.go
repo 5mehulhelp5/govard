@@ -60,6 +60,38 @@ func ValidateDBCommandOptions(subcommand string, options DBCommandOptions) error
 
 func runDBSubcommand(cmd *cobra.Command, subcommand string) (err error) {
 	startedAt := time.Now()
+	operationStatus := engine.OperationStatusFailure
+	operationCategory := ""
+	operationMessage := ""
+	operationConfig := engine.Config{}
+	operationSource := ""
+	operationDestination := ""
+	defer func() {
+		if err != nil && operationMessage == "" {
+			operationMessage = err.Error()
+		}
+		if err == nil && operationStatus == engine.OperationStatusFailure {
+			operationStatus = engine.OperationStatusSuccess
+		}
+		if err != nil && operationCategory == "" {
+			operationCategory = classifyCommandError(err)
+		}
+		writeOperationEventBestEffort(
+			"db."+subcommand,
+			operationStatus,
+			operationConfig,
+			operationSource,
+			operationDestination,
+			operationMessage,
+			operationCategory,
+			time.Since(startedAt),
+		)
+		if err == nil {
+			cwd, _ := os.Getwd()
+			trackProjectRegistryBestEffort(operationConfig, cwd, "db-"+subcommand)
+		}
+	}()
+
 	auditStatus := remote.RemoteAuditStatusFailure
 	auditCategory := ""
 	auditMessage := ""
@@ -94,8 +126,11 @@ func runDBSubcommand(cmd *cobra.Command, subcommand string) (err error) {
 		if options.StreamDB {
 			auditSource = options.Environment
 			auditDestination = "local"
+			operationSource = options.Environment
+			operationDestination = "local"
 		} else {
 			auditRemote = options.Environment
+			operationDestination = options.Environment
 		}
 		defer func() {
 			if err != nil && auditMessage == "" {
@@ -121,12 +156,15 @@ func runDBSubcommand(cmd *cobra.Command, subcommand string) (err error) {
 	}
 
 	config := loadFullConfig()
+	operationConfig = config
 	switch subcommand {
 	case "connect":
 		err = runDBConnect(cmd, config, options)
 		if err == nil {
 			auditStatus = remote.RemoteAuditStatusSuccess
 			auditMessage = "db connect completed"
+			operationStatus = engine.OperationStatusSuccess
+			operationMessage = "db connect completed"
 		}
 		return err
 	case "dump":
@@ -134,6 +172,8 @@ func runDBSubcommand(cmd *cobra.Command, subcommand string) (err error) {
 		if err == nil {
 			auditStatus = remote.RemoteAuditStatusSuccess
 			auditMessage = "db dump completed"
+			operationStatus = engine.OperationStatusSuccess
+			operationMessage = "db dump completed"
 		}
 		return err
 	case "import":
@@ -142,9 +182,12 @@ func runDBSubcommand(cmd *cobra.Command, subcommand string) (err error) {
 			auditStatus = remote.RemoteAuditStatusSuccess
 			if options.StreamDB {
 				auditMessage = "db stream import completed"
+				operationMessage = "db stream import completed"
 			} else {
 				auditMessage = "db import completed"
+				operationMessage = "db import completed"
 			}
+			operationStatus = engine.OperationStatusSuccess
 		}
 		return err
 	default:

@@ -1,0 +1,37 @@
+# govard lock
+
+Generate and validate `govard.lock` for environment consistency.
+
+## Usage
+
+```bash
+govard lock generate
+govard lock check
+govard lock generate --file .govard/govard.lock
+govard lock check --file .govard/govard.lock
+```
+
+## Subcommands
+
+### `generate`
+
+Captures current values into a lock file:
+- Govard version
+- Host OS/architecture
+- Docker version
+- Docker Compose version
+- Project/stack metadata from `govard.yml`
+- Service image references from rendered compose (when available)
+
+### `check`
+
+Compares current environment values with lock file values and reports mismatches.
+
+Current behavior:
+- Returns success when fully compliant.
+- Returns a non-zero exit code when mismatches are found.
+- Used by `govard up` in warning-only mode (does not block startup).
+
+## Options
+
+- `--file` Path to lock file (default: `./govard.lock`)

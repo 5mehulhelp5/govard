@@ -81,21 +81,48 @@ var bootstrapRemoteDirExists = func(remoteName string, remoteCfg engine.RemoteCo
 var bootstrapCmd = &cobra.Command{
 	Use:   "bootstrap",
 	Short: "Bootstrap local project setup and clone a remote environment",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		pterm.DefaultHeader.Println("Govard Bootstrap")
 		startedAt := time.Now()
+		cwd, _ := os.Getwd()
+		configForObservability := engine.Config{}
+		operationSource := ""
+		defer func() {
+			status := engine.OperationStatusSuccess
+			message := "bootstrap completed"
+			category := ""
+			if err != nil {
+				status = engine.OperationStatusFailure
+				message = err.Error()
+				category = classifyCommandError(err)
+			}
+			writeOperationEventBestEffort(
+				"bootstrap.run",
+				status,
+				configForObservability,
+				operationSource,
+				"",
+				message,
+				category,
+				time.Since(startedAt),
+			)
+			if err == nil {
+				trackProjectRegistryBestEffort(configForObservability, cwd, "bootstrap")
+			}
+		}()
 
 		opts, err := resolveBootstrapOptions(cmd)
 		if err != nil {
 			return err
 		}
+		operationSource = opts.Source
 
-		cwd, _ := os.Getwd()
 		if err := ensureBootstrapInit(cmd, cwd); err != nil {
 			return err
 		}
 
 		config := loadFullConfig()
+		configForObservability = config
 		supportedRecipes := []string{"magento2", "magento1", "openmage", "symfony", "laravel", "drupal", "wordpress", "nextjs", "shopware", "cakephp"}
 		if !stringSliceContains(supportedRecipes, config.Recipe) {
 			return fmt.Errorf("bootstrap currently supports %s projects only (detected: %s)",

@@ -1,15 +1,21 @@
 package engine
 
+import "strings"
+
 func ResolveRemotePaths(cfg Config, name string) (string, string) {
 	remote, ok := cfg.Remotes[name]
 	if !ok {
 		return "", ""
 	}
+	return ResolveRemotePathsForConfig(cfg.Recipe, remote)
+}
+
+func ResolveRemotePathsForConfig(recipe string, remote RemoteConfig) (string, string) {
 	root := remote.Path
-	if remote.Paths.Media != "" {
+	if strings.TrimSpace(remote.Paths.Media) != "" {
 		return root, remote.Paths.Media
 	}
-	switch cfg.Recipe {
+	switch recipe {
 	case "magento2", "magento1":
 		return root, root + "/pub/media"
 	case "wordpress":

@@ -48,6 +48,7 @@ govard remote audit tail --since 2026-02-12 --until 2026-02-12
 - `remote test` reports probe latency and classifies failures (`network`, `auth`, `permission`, `host_key`, `dependency`) with remediation hints.
 - `remote exec` forwards your local SSH agent.
 - SSH key path resolution priority is: `remotes.<name>.auth.key_path` -> `GOVARD_REMOTE_KEY_PATH_<REMOTE_NAME>` -> `GOVARD_REMOTE_KEY_PATH` -> keychain/file auth store (for `keychain`) -> default keyfile probe (`~/.ssh/id_ed25519`, `~/.ssh/id_ecdsa`, `~/.ssh/id_rsa`) for `keyfile`.
+- Remote fields `host`, `user`, `path`, `auth.key_path`, `auth.known_hosts_file`, and `paths.media` support `op://...` references resolved via the 1Password CLI (`op read`).
 - Production remotes (`environment: prod`) are write-protected by default.
 - Remote operations are appended to `~/.govard/remote.log` (override with `GOVARD_REMOTE_AUDIT_LOG_PATH`).
 - `remote audit tail` supports filtering by `--status` and `--operation`, and `--json` output.

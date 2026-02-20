@@ -190,6 +190,7 @@ Manage remote environments (add, exec, test).
 Supports remote environment classification (`dev`, `staging`, `prod`) and per-remote capabilities (`files`, `media`, `db`, `deploy`).
 Supports auth method selection (`keychain`, `ssh-agent`, `keyfile`) and SSH key-path overrides.
 Supports optional strict SSH host key verification per remote.
+Supports `op://...` secret references in remote host/user/path and SSH path fields via 1Password CLI integration.
 Writes remote operation audit events to `~/.govard/remote.log`.
 Includes `remote audit tail` and `remote audit stats` for querying and summarizing recent remote audit events.
 Audit query commands support `--since` and `--until` time-window filters.
@@ -234,6 +235,13 @@ See `docs/commands/snapshot.md`.
 Open common service URLs in your browser.
 
 See `docs/commands/open.md`.
+
+### `govard tunnel`
+
+Create a public tunnel for your local project URL.
+Current provider support: Cloudflare (`cloudflared`) quick tunnels.
+
+See `docs/commands/tunnel.md`.
 
 ## Framework Commands
 
@@ -427,6 +435,23 @@ Notes:
 - On macOS, export the cert first: `docker cp proxy-caddy-1:/data/caddy/pki/authorities/local/root.crt /tmp/govard-ca.crt`.
 
 ## Utility Commands
+
+### `govard lock`
+
+Generate and validate `govard.lock` snapshots for team environment consistency.
+
+```bash
+govard lock generate
+govard lock check
+govard lock generate --file .govard/govard.lock
+```
+
+Behavior:
+- `lock generate` captures current Govard/Docker toolchain values and runtime stack metadata.
+- `lock check` compares current environment values against the lock file and reports mismatches.
+- `govard up` performs a non-blocking lockfile warning check when `govard.lock` exists.
+
+See `docs/commands/lock.md`.
 
 ### `govard self-update`
 

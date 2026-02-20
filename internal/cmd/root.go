@@ -70,5 +70,7 @@ func init() {
 	registerProjectCustomCommands()
 	rootCmd.AddCommand(customCmd)
 	rootCmd.AddCommand(selfUpdateCmd)
+	rootCmd.AddCommand(lockCmd)
+	rootCmd.AddCommand(tunnelCmd)
 	rootCmd.AddCommand(versionCmd)
 }

@@ -17,9 +17,10 @@ import (
 var upCmd = &cobra.Command{
 	Use:   "up",
 	Short: "Start the development environment",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		updater.CheckForUpdates(Version)
 		pterm.DefaultHeader.Println("Govard Environment Liftoff")
+		startedAt := time.Now()
 
 		quickstart, _ := cmd.Flags().GetBool("quickstart")
 		cwd, _ := os.Getwd()
@@ -29,8 +30,29 @@ var upCmd = &cobra.Command{
 			Out:        cmd.OutOrStdout(),
 			Err:        cmd.ErrOrStderr(),
 		}
+		defer func() {
+			status := engine.OperationStatusSuccess
+			message := "up completed"
+			if err != nil {
+				status = engine.OperationStatusFailure
+				message = err.Error()
+			}
+			writeOperationEventBestEffort(
+				"up.run",
+				status,
+				context.Config,
+				"",
+				"",
+				message,
+				"",
+				time.Since(startedAt),
+			)
+			if err == nil {
+				trackProjectRegistryBestEffort(context.Config, cwd, "up")
+			}
+		}()
 		stages := buildUpPipelineStages(cmd, &context)
-		if err := runUpPipeline(stages); err != nil {
+		if err = runUpPipeline(stages); err != nil {
 			return err
 		}
 		pterm.Success.Printf("Environment is up and running at https://%s\n", context.Config.Domain)
@@ -90,6 +112,13 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 				}
 				context.Compose = engine.ComposeFilePath(context.Cwd, context.Config.ProjectName)
 				pterm.Info.Printf("Loaded config layers: %d\n", len(context.Loaded))
+				lockWarnings := evaluateUpLockWarnings(context.Cwd, context.Config)
+				for _, warning := range lockWarnings {
+					pterm.Warning.Println(warning)
+				}
+				if len(lockWarnings) > 0 {
+					pterm.Warning.Println("Run `govard lock check` for full lockfile compliance details.")
+				}
 
 				if err := engine.CheckDockerStatus(); err != nil {
 					return fmt.Errorf("docker daemon is not ready: %w", err)

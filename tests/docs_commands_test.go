@@ -15,6 +15,8 @@ func TestDocsCommandsExist(t *testing.T) {
 		"docs/commands/db.md",
 		"docs/commands/deploy.md",
 		"docs/commands/open.md",
+		"docs/commands/lock.md",
+		"docs/commands/tunnel.md",
 		"docs/commands/upgrade.md",
 		"docs/commands/snapshot.md",
 		"docs/commands/profile.md",

@@ -22,6 +22,9 @@ var syncCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		startedAt := time.Now()
 		config := loadFullConfig()
+		operationStatus := engine.OperationStatusFailure
+		operationCategory := ""
+		operationMessage := ""
 
 		source, _ := cmd.Flags().GetString("source")
 		destination, _ := cmd.Flags().GetString("destination")
@@ -46,6 +49,31 @@ var syncCmd = &cobra.Command{
 		if destination == "" {
 			destination = "local"
 		}
+		defer func() {
+			if err != nil && operationMessage == "" {
+				operationMessage = err.Error()
+			}
+			if err == nil && operationStatus == engine.OperationStatusFailure {
+				operationStatus = engine.OperationStatusSuccess
+			}
+			if err != nil && operationCategory == "" {
+				operationCategory = classifyCommandError(err)
+			}
+			writeOperationEventBestEffort(
+				"sync.run",
+				operationStatus,
+				config,
+				source,
+				destination,
+				operationMessage,
+				operationCategory,
+				time.Since(startedAt),
+			)
+			if err == nil {
+				cwd, _ := os.Getwd()
+				trackProjectRegistryBestEffort(config, cwd, "sync")
+			}
+		}()
 		auditStatus := remote.RemoteAuditStatusFailure
 		auditCategory := ""
 		auditMessage := ""
@@ -110,6 +138,8 @@ var syncCmd = &cobra.Command{
 				}
 				auditStatus = remote.RemoteAuditStatusPlan
 				auditMessage = "sync plan generated with fallback endpoint resolution"
+				operationStatus = engine.OperationStatusPlan
+				operationMessage = "sync plan generated with fallback endpoint resolution"
 				return nil
 			}
 			return err
@@ -131,6 +161,8 @@ var syncCmd = &cobra.Command{
 			}
 			auditStatus = remote.RemoteAuditStatusPlan
 			auditMessage = "sync plan generated"
+			operationStatus = engine.OperationStatusPlan
+			operationMessage = "sync plan generated"
 			return nil
 		}
 
@@ -163,6 +195,8 @@ var syncCmd = &cobra.Command{
 		pterm.Success.Println("Sync completed.")
 		auditStatus = remote.RemoteAuditStatusSuccess
 		auditMessage = "sync completed"
+		operationStatus = engine.OperationStatusSuccess
+		operationMessage = "sync completed"
 		return nil
 	},
 }
@@ -249,12 +283,12 @@ func resolveSyncEndpoint(config engine.Config, name string, cwd string) (syncEnd
 		}, nil
 	}
 
-	remoteCfg, ok := config.Remotes[name]
-	if !ok {
-		return syncEndpoint{}, fmt.Errorf("unknown remote: %s", name)
+	remoteCfg, err := ensureRemoteKnown(config, name)
+	if err != nil {
+		return syncEndpoint{}, err
 	}
 
-	root, media := engine.ResolveRemotePaths(config, name)
+	root, media := engine.ResolveRemotePathsForConfig(config.Recipe, remoteCfg)
 	if strings.TrimSpace(root) == "" {
 		return syncEndpoint{}, fmt.Errorf("remote %s has empty project path", name)
 	}

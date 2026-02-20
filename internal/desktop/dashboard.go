@@ -110,6 +110,44 @@ func buildDashboard() (Dashboard, error) {
 		}
 	}
 
+	if entries, err := engine.ReadProjectRegistryEntries(); err == nil {
+		knownProjects := map[string]bool{}
+		for _, env := range environments {
+			knownProjects[env.Project] = true
+		}
+		for _, entry := range entries {
+			projectName := strings.TrimSpace(entry.ProjectName)
+			if projectName == "" {
+				continue
+			}
+			if knownProjects[projectName] {
+				continue
+			}
+
+			env := Environment{
+				Project:        projectName,
+				Domain:         entry.Domain,
+				Name:           projectName,
+				Framework:      "Unknown",
+				PHP:            "-",
+				Database:       "-",
+				Services:       []string{},
+				ServiceTargets: []string{"web"},
+				Status:         "stopped",
+			}
+			if entry.Domain != "" {
+				env.Name = entry.Domain
+			}
+			if recipe := strings.TrimSpace(entry.Recipe); recipe != "" {
+				env.Framework = displayFramework(recipe)
+			}
+			environments = append(environments, env)
+			knownProjects[projectName] = true
+		}
+	} else {
+		warnings = append(warnings, "Project registry unavailable.")
+	}
+
 	sort.Slice(environments, func(i, j int) bool {
 		return environments[i].Project < environments[j].Project
 	})
