@@ -57,10 +57,21 @@ func buildResourceMetrics() (ResourceMetricsSnapshot, error) {
 		if c.State == "running" {
 			info.runningCount++
 		}
+		if info.workingDir == "" {
+			if wd := c.Labels["com.docker.compose.project.working_dir"]; wd != "" {
+				info.workingDir = wd
+			}
+		}
+		if len(info.configFiles) == 0 {
+			if files := c.Labels["com.docker.compose.project.config_files"]; files != "" {
+				info.configFiles = parseConfigFiles(files)
+			}
+		}
 	}
 
 	aggregates := map[string]*projectMetricAggregate{}
 	for projectName, info := range projectMap {
+		_ = loadProjectConfig(info)
 		if !looksLikeGovard(info) {
 			continue
 		}

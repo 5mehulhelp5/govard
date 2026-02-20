@@ -131,6 +131,29 @@ func OnboardProjectForPathForTest(projectPath string, recipe string) (string, er
 	return onboardProject(projectPath, recipe)
 }
 
+// LooksLikeGovardForTest exposes desktop project filtering for tests.
+func LooksLikeGovardForTest(
+	project string,
+	services []string,
+	configFiles []string,
+	configLoaded bool,
+) bool {
+	info := &projectInfo{
+		name:         strings.TrimSpace(project),
+		services:     map[string]bool{},
+		configFiles:  append([]string{}, configFiles...),
+		configLoaded: configLoaded,
+	}
+	for _, service := range services {
+		service = strings.TrimSpace(service)
+		if service == "" {
+			continue
+		}
+		info.services[service] = true
+	}
+	return looksLikeGovard(info)
+}
+
 func containsCapability(capabilities []string, name string) bool {
 	for _, capability := range capabilities {
 		if strings.EqualFold(strings.TrimSpace(capability), name) {

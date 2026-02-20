@@ -86,10 +86,11 @@ func buildDashboard() (Dashboard, error) {
 	serviceSummary := map[string]bool{}
 
 	for _, info := range projects {
+		configErr := loadProjectConfig(info)
 		if !looksLikeGovard(info) {
 			continue
 		}
-		if err := loadProjectConfig(info); err != nil {
+		if configErr != nil && hasGovardComposeConfigFile(info.configFiles) {
 			warnings = append(warnings, "Missing govard.yml for "+info.name+".")
 		}
 
@@ -203,15 +204,16 @@ func extractProjectAndService(c container.Summary) (string, string) {
 }
 
 func looksLikeGovard(info *projectInfo) bool {
+	if info == nil {
+		return false
+	}
 	if info.name == "proxy" || info.name == "warden" {
 		return false
 	}
-	for svc := range info.services {
-		if svc == "web" || svc == "php" || svc == "db" {
-			return true
-		}
+	if info.configLoaded {
+		return true
 	}
-	return false
+	return hasGovardComposeConfigFile(info.configFiles)
 }
 
 func loadProjectConfig(info *projectInfo) error {
@@ -264,6 +266,24 @@ func parseConfigFiles(raw string) []string {
 		cleaned = append(cleaned, part)
 	}
 	return cleaned
+}
+
+func hasGovardComposeConfigFile(paths []string) bool {
+	for _, path := range paths {
+		if isGovardComposeConfigFile(path) {
+			return true
+		}
+	}
+	return false
+}
+
+func isGovardComposeConfigFile(path string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(path))
+	if normalized == "" {
+		return false
+	}
+	normalized = strings.ReplaceAll(normalized, "\\", "/")
+	return strings.Contains(normalized, "/.govard/compose/") || strings.HasPrefix(normalized, ".govard/compose/")
 }
 
 func buildEnvironment(info *projectInfo) Environment {
