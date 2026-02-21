@@ -40,7 +40,7 @@ export const createActionsController = ({ bridge, getProject, refreshDashboard, 
       return
     }
 
-    if (["open-mail", "open-pma", "toggle-xdebug", "check-health"].includes(action)) {
+    if (["open-pma", "toggle-xdebug", "check-health"].includes(action)) {
       try {
         const message = await bridge.quickActionForProject(action, project)
         onStatus(message)
@@ -56,4 +56,3 @@ export const createActionsController = ({ bridge, getProject, refreshDashboard, 
 
   return { handle }
 }
-

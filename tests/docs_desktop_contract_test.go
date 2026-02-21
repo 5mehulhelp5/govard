@@ -31,7 +31,8 @@ func TestDocsDesktopCommandReferenceTracksLightweightSurface(t *testing.T) {
 	}
 
 	for _, required := range []string{
-		"Quick actions (Mailpit, PHPMyAdmin, Xdebug toggle, health)",
+		"Project workspace layout (environments, quick actions, onboarding)",
+		"Quick actions (PHPMyAdmin, Xdebug toggle, health)",
 		"Shell launcher (service, user, shell)",
 	} {
 		if !strings.Contains(content, required) {
@@ -57,7 +58,8 @@ func TestDocsArchitectureDesktopSectionTracksLightweightCore(t *testing.T) {
 	}
 
 	for _, required := range []string{
-		"quick actions (start/stop/open, Mailpit, PHPMyAdmin, Xdebug toggle, health)",
+		"quick actions (start/stop/open, PHPMyAdmin, Xdebug toggle, health)",
+		"workspace grouping environment list, quick actions, and onboarding",
 		"logs with service filtering and live streaming",
 		"shell launcher with project/service/user/shell selection",
 		"modular frontend split across feature modules and bridge/state services",

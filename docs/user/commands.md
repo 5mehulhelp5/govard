@@ -140,8 +140,8 @@ closed, and reuses the running instance on relaunch.
 
 Desktop highlights:
 - Environment dashboard with start/stop/open
-- Quick actions (Mailpit, PHPMyAdmin, Xdebug toggle, health)
-- Embedded Mailpit inbox tab with refresh/open actions
+- Project workspace layout (environments, quick actions, onboarding)
+- Quick actions (PHPMyAdmin, Xdebug toggle, health)
 - Manual project onboarding (select folder and add/init project)
 - Remotes tab (list/add remotes, run remote test, trigger sync plan presets)
 - Resource monitoring (CPU/RAM/NET and OOM hints)

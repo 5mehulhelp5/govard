@@ -51,6 +51,14 @@ test("quick actions uses structured action grids", async () => {
     true,
     "missing quick actions tools grid",
   )
+  assert.equal(html.includes('data-action="open-mail"'), false, "mail quick action should be removed")
+})
+
+test("project management workspace groups environments, quick actions, and onboarding", async () => {
+  const html = await readFile(new URL("../../desktop/frontend/index.html", import.meta.url), "utf8")
+  assert.equal(html.includes('class="grid grid--project"'), true, "missing project workspace grid")
+  assert.equal(html.includes('class="project-sidebar"'), true, "missing project management sidebar")
+  assert.equal(html.includes('id="onboarding"'), true, "missing onboarding panel")
 })
 
 test("logs section uses two-row controls layout", async () => {

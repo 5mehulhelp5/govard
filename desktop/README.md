@@ -20,7 +20,8 @@ The `frontend:install/build/dev` commands in `wails.json` are intentionally blan
 
 Lightweight dashboard highlights:
 - Environment list with start/stop/open
-- Quick actions (Mailpit, PHPMyAdmin, Xdebug toggle, health)
+- Project workspace layout (environments, quick actions, onboarding)
+- Quick actions (PHPMyAdmin, Xdebug toggle, health)
 - Log viewer with service selection and live streaming
 - Shell launcher with persisted user + shell override
 - Settings drawer (theme, proxy target, preferred browser)

@@ -85,7 +85,7 @@
         </div>
       </section>
 
-      <section class="grid grid--two">
+      <section class="grid grid--project">
         <article class="panel" id="environments">
           <header class="panel__header">
             <h2>Environments</h2>
@@ -93,66 +93,55 @@
           <div id="envList" class="env-list"></div>
         </article>
 
-        <article class="panel quick-actions">
-          <header class="panel__header">
-            <h2>Quick Actions</h2>
-          </header>
-          <label class="field quick-actions__target">
-            Target environment
-            <select id="envSelector"></select>
-          </label>
-          <div class="quick-actions__primary action-grid action-grid--primary">
-            <button class="button button--ghost" data-action="env-start">Start</button>
-            <button class="button button--ghost" data-action="env-stop">Stop</button>
-            <button class="button button--ghost" data-action="env-open">Open</button>
-          </div>
-          <div class="quick-actions__tools action-grid action-grid--tools">
-            <button class="button button--ghost" data-action="open-mail">Mailpit</button>
-            <button class="button button--ghost" data-action="open-pma">PHPMyAdmin</button>
-            <button class="button button--ghost" data-action="toggle-xdebug">Toggle Xdebug</button>
-            <button class="button button--ghost" data-action="check-health">Health</button>
-          </div>
-        </article>
-      </section>
+        <div class="project-sidebar">
+          <article class="panel quick-actions">
+            <header class="panel__header">
+              <h2>Quick Actions</h2>
+            </header>
+            <label class="field quick-actions__target">
+              Target environment
+              <select id="envSelector"></select>
+            </label>
+            <div class="quick-actions__primary action-grid action-grid--primary">
+              <button class="button button--ghost" data-action="env-start">Start</button>
+              <button class="button button--ghost" data-action="env-stop">Stop</button>
+              <button class="button button--ghost" data-action="env-open">Open</button>
+            </div>
+            <div class="quick-actions__tools action-grid action-grid--tools">
+              <button class="button button--ghost" data-action="open-pma">PHPMyAdmin</button>
+              <button class="button button--ghost" data-action="toggle-xdebug">Toggle Xdebug</button>
+              <button class="button button--ghost" data-action="check-health">Health</button>
+            </div>
+          </article>
 
-      <section class="panel panel--mail" id="mailpit">
-        <header class="panel__header">
-          <h2>Mailpit Inbox</h2>
-          <div class="row row--wrap">
-            <button class="button button--ghost" data-action="refresh-mail">Refresh Inbox</button>
-            <button class="button button--ghost" data-action="open-mail-external">Open External</button>
-          </div>
-        </header>
-        <p class="mail-location" id="mailLocation">https://mail.govard.test</p>
-        <iframe id="mailFrame" title="Mailpit Inbox" loading="lazy" src="https://mail.govard.test"></iframe>
-      </section>
-
-      <section class="panel panel--onboarding" id="onboarding">
-        <header class="panel__header">
-          <h2>Project Onboarding</h2>
-        </header>
-        <div class="onboarding-grid">
-          <label class="field">
-            Project path
-            <input id="projectPath" type="text" placeholder="/path/to/project" />
-          </label>
-          <label class="field field--compact">
-            Recipe (optional)
-            <select id="projectRecipe">
-              <option value="auto">auto-detect</option>
-              <option value="magento2">magento2</option>
-              <option value="magento1">magento1</option>
-              <option value="laravel">laravel</option>
-              <option value="symfony">symfony</option>
-              <option value="wordpress">wordpress</option>
-              <option value="nextjs">nextjs</option>
-              <option value="custom">custom</option>
-            </select>
-          </label>
-        </div>
-        <div class="onboarding-actions">
-          <button class="button button--ghost" data-action="browse-project">Browse Folder</button>
-          <button class="button button--ghost" data-action="add-project">Add Project</button>
+          <section class="panel panel--onboarding" id="onboarding">
+            <header class="panel__header">
+              <h2>Project Onboarding</h2>
+            </header>
+            <div class="onboarding-grid">
+              <label class="field">
+                Project path
+                <input id="projectPath" type="text" placeholder="/path/to/project" />
+              </label>
+              <label class="field field--compact">
+                Recipe (optional)
+                <select id="projectRecipe">
+                  <option value="auto">auto-detect</option>
+                  <option value="magento2">magento2</option>
+                  <option value="magento1">magento1</option>
+                  <option value="laravel">laravel</option>
+                  <option value="symfony">symfony</option>
+                  <option value="wordpress">wordpress</option>
+                  <option value="nextjs">nextjs</option>
+                  <option value="custom">custom</option>
+                </select>
+              </label>
+            </div>
+            <div class="onboarding-actions">
+              <button class="button button--ghost" data-action="browse-project">Browse Folder</button>
+              <button class="button button--ghost" data-action="add-project">Add Project</button>
+            </div>
+          </section>
         </div>
       </section>
 

@@ -13,9 +13,10 @@ test("normalizeMailpitURL normalizes proxy targets", () => {
   assert.equal(normalizeMailpitURL("https://workspace.internal/"), "https://mail.workspace.internal")
 })
 
-test("desktop layout exposes mailpit inbox section", async () => {
+test("desktop layout removes mailpit inbox section", async () => {
   const html = await readFile(new URL("../../desktop/frontend/index.html", import.meta.url), "utf8")
-  assert.equal(html.includes('id="mailpit"'), true, "missing mailpit panel")
-  assert.equal(html.includes('id="mailFrame"'), true, "missing mail iframe")
-  assert.equal(html.includes('data-action="refresh-mail"'), true, "missing mail refresh action")
+  assert.equal(html.includes('id="mailpit"'), false, "mailpit panel should be removed")
+  assert.equal(html.includes('id="mailFrame"'), false, "mail iframe should be removed")
+  assert.equal(html.includes('data-action="refresh-mail"'), false, "mail refresh action should be removed")
+  assert.equal(html.includes('data-action="open-mail-external"'), false, "mail external action should be removed")
 })

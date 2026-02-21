@@ -81,7 +81,8 @@ For Magento 2:
 - **Frontend**: `desktop/frontend`
 - **Bindings**: `internal/desktop` exposes API methods to the UI
 - **One-screen status**: dashboard summary cards plus environment list with start/stop/open controls
-- **Action surface**: quick actions (start/stop/open, Mailpit, PHPMyAdmin, Xdebug toggle, health)
+- **Action surface**: quick actions (start/stop/open, PHPMyAdmin, Xdebug toggle, health)
+- **Project management surface**: dedicated workspace grouping environment list, quick actions, and onboarding
 - **Observability**: logs with service filtering and live streaming
 - **Command access**: shell launcher with project/service/user/shell selection
 - **Preferences**: theme, proxy target, preferred browser, and per-project shell-user preferences persisted in desktop preferences
