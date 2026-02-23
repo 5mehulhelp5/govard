@@ -1,303 +1,1956 @@
 <!doctype html>
-<html lang="en">
+<html class="dark" lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Govard Desktop</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Govard Dashboard</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              primary: "#0df259",
+              "primary-dark": "#0abf46",
+              "background-light": "#f5f8f6",
+              "background-dark": "#102316",
+              "surface-dark": "#1a3322",
+              "surface-light": "#ffffff",
+            },
+            fontFamily: {
+              display: ["Inter", "sans-serif"],
+            },
+            borderRadius: {
+              DEFAULT: "0.25rem",
+              lg: "0.5rem",
+              xl: "0.75rem",
+              "2xl": "1rem",
+              full: "9999px",
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #102316;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #22492f;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #366b47;
+      }
+      .glass-panel {
+        background: rgba(34, 73, 47, 0.4);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(144, 203, 164, 0.1);
+      }
+      .neon-glow {
+        box-shadow: 0 0 10px rgba(13, 242, 89, 0.2);
+      }
+    </style>
+    <style>
+      .tab-content.hidden {
+        display: none !important;
+      }
+      .drawer.hidden {
+        display: none !important;
+      }
+    </style>
   </head>
-  <body>
-    <main class="app">
-      <header class="topbar panel">
-        <div>
-          <p class="eyebrow">Govard Desktop</p>
-          <h1>Lightweight Workspace Core</h1>
-          <p class="subtitle">Control environments, quick actions, logs, shell, and settings.</p>
-        </div>
-        <div class="topbar__actions">
-          <button class="button button--ghost" id="refresh" type="button">Refresh</button>
-          <button class="button" id="openSettings" type="button">Settings</button>
-        </div>
-      </header>
+  <body class="bg-[#102316] text-slate-100 h-screen overflow-hidden">
+    <!-- App Container -->
+    <div
+      id="app"
+      class="flex flex-col h-screen w-full max-w-[1440px] mx-auto border-x border-[#22492f] shadow-2xl relative bg-background-dark overflow-hidden"
+    >
+      <!-- Top Content (Header + Sidebar + View) -->
+      <div class="flex flex-1 overflow-hidden">
+        <!-- Sidebar -->
 
-      <section class="panel status-panel">
-        <p id="status">Status: ready.</p>
-      </section>
-
-      <section class="stats">
-        <article class="panel stat">
-          <h2>Active Environments</h2>
-          <p class="stat__value" id="statActive">0</p>
-          <p class="stat__hint" id="statActiveHint">No environments detected</p>
-        </article>
-        <article class="panel stat">
-          <h2>Running Services</h2>
-          <p class="stat__value" id="statServices">0</p>
-          <p class="stat__hint" id="statServicesHint">Waiting for service data</p>
-        </article>
-        <article class="panel stat">
-          <h2>Queued Tasks</h2>
-          <p class="stat__value" id="statQueue">0</p>
-          <p class="stat__hint" id="statQueueHint">Queue idle</p>
-        </article>
-      </section>
-
-      <section class="panel panel--metrics" id="metrics">
-        <header class="panel__header">
-          <h2>Resource Monitor</h2>
-          <button class="button button--ghost" data-action="refresh-metrics">Refresh Metrics</button>
-        </header>
-        <div class="metrics-summary">
-          <article class="metric">
-            <p class="metric__label">Active Projects</p>
-            <p class="metric__value" id="metricActiveProjects">0</p>
-          </article>
-          <article class="metric">
-            <p class="metric__label">CPU</p>
-            <p class="metric__value" id="metricCPU">0.0%</p>
-          </article>
-          <article class="metric">
-            <p class="metric__label">Memory</p>
-            <p class="metric__value" id="metricMemory">0.0 MB</p>
-          </article>
-          <article class="metric">
-            <p class="metric__label">NET RX</p>
-            <p class="metric__value" id="metricNetRx">0.0 MB</p>
-          </article>
-          <article class="metric">
-            <p class="metric__label">NET TX</p>
-            <p class="metric__value" id="metricNetTx">0.0 MB</p>
-          </article>
-          <article class="metric">
-            <p class="metric__label">OOM Projects</p>
-            <p class="metric__value" id="metricOOM">0</p>
-          </article>
-        </div>
-        <ul class="warning-list metrics-warnings" id="metricsWarnings"></ul>
-        <div class="metrics-list" id="metricsList">
-          <div class="panel__empty">No running resource metrics yet.</div>
-        </div>
-      </section>
-
-      <section class="grid grid--project">
-        <article class="panel" id="environments">
-          <header class="panel__header">
-            <h2>Environments</h2>
+        <aside
+          class="w-64 bg-background-dark border-r border-[#22492f] flex flex-col justify-between shrink-0 transition-all duration-300"
+        >
+          <div class="flex flex-col h-full">
+            <div class="p-6 pb-2">
+              <div class="flex items-center gap-3">
+                <div class="bg-primary/20 p-2 rounded-lg relative group">
+                  <div
+                    class="absolute inset-0 bg-primary/20 blur-sm rounded-lg group-hover:bg-primary/40 transition-all"
+                  ></div>
+                  <span
+                    class="material-symbols-outlined text-primary relative z-10"
+                    style="font-size: 28px"
+                    >deployed_code</span
+                  >
+                </div>
+                <div class="flex flex-col">
+                  <h1
+                    class="text-white text-xl font-bold leading-none tracking-tight"
+                  >
+                    Govard
+                  </h1>
+                  <p
+                    class="text-[#90cba4] text-[10px] font-mono uppercase tracking-widest mt-1.5 opacity-80"
+                  >
+                    Container Mgr
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div
+              class="flex-1 overflow-y-auto px-3 py-4 space-y-1"
+              id="envList"
+            >
+              <div
+                class="px-3 mb-2 text-xs font-semibold text-[#90cba4] uppercase tracking-wider"
+              >
+                Environments
+              </div>
+              <!-- Environments will be rendered here by JavaScript -->
+            </div>
+            <div class="p-4 border-t border-[#22492f]">
+              <button
+                data-action="open-onboarding"
+                class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-dashed border-[#90cba4]/30 hover:border-primary/50 hover:bg-[#22492f]/30 text-[#90cba4] hover:text-primary transition-all text-sm font-medium"
+              >
+                <span class="material-symbols-outlined text-lg">add</span>
+                New Environment
+              </button>
+            </div>
+          </div>
+        </aside>
+        <main class="flex-1 flex flex-col h-full overflow-hidden relative">
+          <header
+            class="h-16 border-b border-[#22492f] bg-background-dark/95 backdrop-blur flex items-center justify-between px-6 shrink-0 z-20"
+          >
+            <div class="flex-1 max-w-xl">
+              <!-- Search and global info -->
+              <div class="relative group">
+                <div
+                  class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+                >
+                  <span class="material-symbols-outlined text-[#90cba4]"
+                    >search</span
+                  >
+                </div>
+                <input
+                  class="block w-full pl-10 pr-12 py-2 bg-[#1a3322] border border-transparent focus:border-primary/30 text-white placeholder-[#5d856b] rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/30 sm:text-sm transition-all"
+                  placeholder="Search in Govard..."
+                  type="text"
+                />
+                <div
+                  class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none"
+                >
+                  <span
+                    class="text-[#5d856b] text-xs border border-[#2e573a] rounded px-1.5 py-0.5"
+                    >⌘K</span
+                  >
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-4 ml-6">
+              <button
+                class="relative p-2 text-[#90cba4] hover:text-white hover:bg-[#22492f] rounded-lg transition-colors"
+              >
+                <span class="material-symbols-outlined">notifications</span>
+                <span
+                  class="absolute top-2 right-2 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-[#102316]"
+                ></span>
+              </button>
+              <button
+                class="p-2 text-[#90cba4] hover:text-white hover:bg-[#22492f] rounded-lg transition-colors"
+                id="openSettings"
+                data-action="open-settings"
+              >
+                <span class="material-symbols-outlined">settings</span>
+              </button>
+              <div class="h-8 w-px bg-[#22492f] mx-1"></div>
+              <button
+                class="flex items-center gap-2 pl-2 pr-1 py-1 rounded-full hover:bg-[#22492f] transition-colors group"
+              >
+                <div
+                  class="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center text-background-dark font-bold text-xs shadow-lg shadow-primary/20"
+                >
+                  JD
+                </div>
+                <span
+                  class="hidden xl:block text-xs font-medium text-slate-300 group-hover:text-white pr-2"
+                  >John Dev</span
+                >
+              </button>
+            </div>
+            <button id="refresh" class="hidden"></button>
           </header>
-          <div id="envList" class="env-list"></div>
-        </article>
 
-        <div class="project-sidebar">
-          <article class="panel quick-actions">
-            <header class="panel__header">
-              <h2>Quick Actions</h2>
-            </header>
-            <label class="field quick-actions__target">
-              Target environment
-              <select id="envSelector"></select>
-            </label>
-            <div class="quick-actions__primary action-grid action-grid--primary">
-              <button class="button button--ghost" data-action="env-start">Start</button>
-              <button class="button button--ghost" data-action="env-stop">Stop</button>
-              <button class="button button--ghost" data-action="env-open">Open</button>
-            </div>
-            <div class="quick-actions__tools action-grid action-grid--tools">
-              <button class="button button--ghost" data-action="open-pma">PHPMyAdmin</button>
-              <button class="button button--ghost" data-action="toggle-xdebug">Toggle Xdebug</button>
-              <button class="button button--ghost" data-action="check-health">Health</button>
-            </div>
-          </article>
-
-          <section class="panel panel--onboarding" id="onboarding">
-            <header class="panel__header">
-              <h2>Project Onboarding</h2>
-            </header>
-            <div class="onboarding-grid">
-              <label class="field">
-                Project path
-                <input id="projectPath" type="text" placeholder="/path/to/project" />
-              </label>
-              <label class="field field--compact">
-                Recipe (optional)
-                <select id="projectRecipe">
-                  <option value="auto">auto-detect</option>
-                  <option value="magento2">magento2</option>
-                  <option value="magento1">magento1</option>
-                  <option value="laravel">laravel</option>
-                  <option value="symfony">symfony</option>
-                  <option value="wordpress">wordpress</option>
-                  <option value="nextjs">nextjs</option>
-                  <option value="custom">custom</option>
-                </select>
-              </label>
-            </div>
-            <div class="onboarding-actions">
-              <button class="button button--ghost" data-action="browse-project">Browse Folder</button>
-              <button class="button button--ghost" data-action="add-project">Add Project</button>
+          <section id="projectHero" class="px-6 lg:px-10 pt-6">
+            <div
+              class="relative rounded-2xl overflow-hidden min-h-[280px] flex flex-col justify-end group border border-[#2e573a] bg-[#1a3322]/20 shadow-2xl"
+            >
+              <div class="absolute inset-0 z-0">
+                <div
+                  class="absolute inset-0 bg-gradient-to-t from-[#102316] via-[#102316]/80 to-[#102316]/30 z-10"
+                ></div>
+                <img
+                  alt="Abstract code on monitor dark background"
+                  class="w-full h-full object-cover opacity-30 mix-blend-overlay"
+                  data-alt="Dark code editor background with abstract digital patterns"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4QH2F6JMZkDaFAB41GVa1pezOcG7AJFRfV0tT3L1VOOLHTyDmCCr6yMKO6aCUEkr7b_o_2QpUkL4lqBcvbYweP2pRHZBgL_AIyLUtw9zl8-YYzmsjkxNKVEKg_mbhe4Hg6XDF-xnndaSmqRwcC5rDlRdsPSRznFqjseY4e9tZeCCbyTruzHjqZN17yV69AKH-y33qDHyNQlCHp_BolYK59dzvRAD6l1oDKECs0PmmjRJtfbr99QvgT33rMYLWkT11jFN-vZ-75RE"
+                />
+              </div>
+              <div
+                class="relative z-20 p-8 flex flex-col md:flex-row md:items-end justify-between gap-6"
+              >
+                <div class="flex items-start gap-6">
+                  <div
+                    class="h-24 w-24 rounded-xl bg-white/5 backdrop-blur-md border border-white/10 flex items-center justify-center shadow-2xl shrink-0 group-hover:scale-105 transition-transform duration-500"
+                  >
+                    <span
+                      class="material-symbols-outlined text-primary drop-shadow-[0_0_15px_rgba(13,242,89,0.3)]"
+                      style="font-size: 48px"
+                      >layers</span
+                    >
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-3 mb-2">
+                      <h2
+                        id="projectTitle"
+                        class="text-4xl font-bold text-white tracking-tight"
+                      >
+                        Project Alpha
+                      </h2>
+                      <span
+                        id="projectStatusBadge"
+                        class="px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-xs font-bold uppercase tracking-wide neon-glow flex items-center gap-1.5"
+                      >
+                        <span
+                          class="w-2 h-2 rounded-full bg-primary animate-pulse"
+                        ></span>
+                        <span id="projectStatusText">Running</span>
+                      </span>
+                    </div>
+                    <a
+                      id="projectUrl"
+                      class="text-[#90cba4] hover:text-primary flex items-center gap-1.5 text-sm transition-colors mb-4 group/link"
+                      href="http://project-alpha.test"
+                      target="_blank"
+                    >
+                      <span id="projectUrlText">http://project-alpha.test</span>
+                      <span
+                        class="material-symbols-outlined text-sm group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform"
+                        >open_in_new</span
+                      >
+                    </a>
+                    <div
+                      id="projectTechnologies"
+                      class="flex flex-wrap gap-2 text-xs text-slate-400"
+                    >
+                      <!-- Technologies will be added here -->
+                      <span
+                        class="flex items-center gap-1 bg-[#1a3322] px-2 py-1 rounded border border-[#2e573a]"
+                      >
+                        <span
+                          class="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"
+                        ></span>
+                        PHP 8.2
+                      </span>
+                      <span
+                        class="flex items-center gap-1 bg-[#1a3322] px-2 py-1 rounded border border-[#2e573a]"
+                      >
+                        <span
+                          class="w-1.5 h-1.5 rounded-full bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.5)]"
+                        ></span>
+                        MySQL 8.0
+                      </span>
+                      <span
+                        class="flex items-center gap-1 bg-[#1a3322] px-2 py-1 rounded border border-[#2e573a]"
+                      >
+                        <span
+                          class="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"
+                        ></span>
+                        Redis
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <button
+                    data-action="env-restart"
+                    id="heroRestartBtn"
+                    class="h-12 px-6 bg-primary text-background-dark rounded-lg text-sm font-bold hover:bg-primary/90 transition-all flex items-center gap-2 shadow-lg shadow-primary/10 active:scale-95"
+                  >
+                    <span class="material-symbols-outlined text-lg"
+                      >restart_alt</span
+                    >
+                    Restart
+                  </button>
+                  <button
+                    data-action="env-stop"
+                    id="heroStopBtn"
+                    class="h-12 w-12 bg-[#1a3322] text-[#90cba4] hover:text-white border border-[#2e573a] rounded-lg hover:bg-red-500/20 hover:border-red-500/30 transition-all active:scale-95 flex items-center justify-center"
+                    title="Stop Environment"
+                  >
+                    <span
+                      class="material-symbols-outlined fill-1"
+                      style="font-variation-settings: &quot;FILL&quot; 1"
+                      >stop</span
+                    >
+                  </button>
+                </div>
+              </div>
             </div>
           </section>
-        </div>
-      </section>
 
-      <section class="panel panel--remotes" id="remotes">
-        <header class="panel__header">
-          <h2>Remotes</h2>
-          <button class="button button--ghost" data-action="refresh-remotes">Refresh Remotes</button>
-        </header>
-        <ul class="warning-list remotes-warnings" id="remotesWarnings"></ul>
-        <div class="remotes-list" id="remotesList">
-          <div class="panel__empty">Select an environment to load remotes.</div>
-        </div>
-        <div class="remotes-form">
-          <h3>Add or Update Remote</h3>
-          <div class="remotes-form__grid">
-            <label class="field field--compact">
-              Name
-              <input id="remoteName" type="text" placeholder="staging" />
-            </label>
-            <label class="field field--compact">
-              Host
-              <input id="remoteHost" type="text" placeholder="staging.example.com" />
-            </label>
-            <label class="field field--compact">
-              User
-              <input id="remoteUser" type="text" placeholder="deploy" />
-            </label>
-            <label class="field field--compact">
-              Path
-              <input id="remotePath" type="text" placeholder="/var/www/current" />
-            </label>
-            <label class="field field--compact">
-              Port
-              <input id="remotePort" type="number" min="1" max="65535" value="22" />
-            </label>
-            <label class="field field--compact">
-              Environment
-              <select id="remoteEnvironment">
-                <option value="dev">dev</option>
-                <option value="staging" selected>staging</option>
-                <option value="prod">prod</option>
-              </select>
-            </label>
-            <label class="field field--compact">
-              Capabilities
-              <input id="remoteCapabilities" type="text" value="files,media,db,deploy" />
-            </label>
-            <label class="field field--compact">
-              Auth
-              <select id="remoteAuthMethod">
-                <option value="keychain" selected>keychain</option>
-                <option value="ssh-agent">ssh-agent</option>
-                <option value="keyfile">keyfile</option>
-              </select>
-            </label>
-            <label class="field field--checkbox">
-              <input id="remoteProtected" type="checkbox" />
-              Protected
-            </label>
+          <div class="border-b border-[#2e573a] px-6 lg:px-10 mt-2">
+            <nav aria-label="Tabs" class="-mb-px flex space-x-6">
+              <a
+                aria-current="page"
+                class="border-primary text-primary whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2"
+                href="#"
+                data-action="switch-tab"
+                data-tab="dashboard"
+              >
+                <span class="material-symbols-outlined text-[18px]"
+                  >dashboard</span
+                >
+                Dashboard
+              </a>
+              <a
+                class="border-transparent text-[#90cba4] hover:border-[#90cba4] hover:text-white whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors"
+                href="#"
+                data-action="switch-tab"
+                data-tab="remotes"
+              >
+                <span class="material-symbols-outlined text-[18px]"
+                  >cloud_sync</span
+                >
+                Remotes
+              </a>
+              <a
+                class="border-transparent text-[#90cba4] hover:border-[#90cba4] hover:text-white whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors"
+                href="#"
+                data-action="switch-tab"
+                data-tab="logs"
+              >
+                <span class="material-symbols-outlined text-[18px]"
+                  >terminal</span
+                >
+                Logs &amp; Shell
+              </a>
+            </nav>
           </div>
-          <div class="remotes-form__actions">
-            <button class="button button--ghost" data-action="save-remote">Save Remote</button>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel panel--logs" id="logs">
-        <header class="panel__header">
-          <h2>Logs + Shell</h2>
-        </header>
-        <div class="logs-controls">
-          <div class="logs-controls__row logs-controls__row--top">
-            <label class="field field--compact logs-controls__field">
-              Environment
-              <select id="logSelector"></select>
-            </label>
-            <label class="field field--compact logs-controls__field">
-              Service
-              <select id="logServiceSelector"></select>
-            </label>
-            <div class="logs-controls__buttons logs-controls__buttons--primary">
-              <button class="button button--ghost" data-action="refresh-logs">Refresh</button>
-              <button class="button button--ghost" data-action="toggle-live" id="toggleLive">Live: Off</button>
-              <button class="button button--ghost" data-action="open-shell">Open Shell</button>
+          <div
+            class="flex-1 overflow-y-auto bg-background-dark p-6 lg:p-10 scroll-smooth tab-content active"
+            id="tab-dashboard"
+          >
+            <div class="max-w-[1200px] mx-auto space-y-8">
+              <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-4">
+                <div class="lg:col-span-2 space-y-6">
+                  <h3
+                    class="text-white text-lg font-semibold flex items-center gap-2"
+                  >
+                    <span class="material-symbols-outlined text-primary"
+                      >monitoring</span
+                    >
+                    System Resources
+                  </h3>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div
+                      class="glass-panel p-6 rounded-xl border border-[#2e573a] relative overflow-hidden group"
+                    >
+                      <div class="absolute right-0 top-0 p-4 opacity-50">
+                        <span
+                          class="material-symbols-outlined text-6xl text-primary/10 rotate-12"
+                          >memory</span
+                        >
+                      </div>
+                      <h4 class="text-slate-400 text-sm font-medium mb-1">
+                        CPU Usage
+                      </h4>
+                      <div class="flex items-baseline gap-2 mb-4">
+                        <span
+                          class="text-3xl font-bold text-white"
+                          id="metricCPU"
+                          >12%</span
+                        >
+                        <span class="text-xs text-green-400 flex items-center"
+                          ><span class="material-symbols-outlined text-[12px]"
+                            >arrow_downward</span
+                          >
+                          2%</span
+                        >
+                      </div>
+                      <div
+                        class="h-2 bg-[#102316] rounded-full overflow-hidden w-full"
+                      >
+                        <div
+                          class="h-full bg-primary w-[12%] rounded-full shadow-[0_0_10px_rgba(13,242,89,0.5)]"
+                        ></div>
+                      </div>
+                      <div
+                        class="mt-4 flex justify-between text-xs text-slate-500"
+                      >
+                        <span>2 Cores</span>
+                        <span>Intel Core i9</span>
+                      </div>
+                    </div>
+                    <div
+                      class="glass-panel p-6 rounded-xl border border-[#2e573a] relative overflow-hidden group"
+                    >
+                      <div class="absolute right-0 top-0 p-4 opacity-50">
+                        <span
+                          class="material-symbols-outlined text-6xl text-blue-500/10 rotate-12"
+                          >hard_drive</span
+                        >
+                      </div>
+                      <h4 class="text-slate-400 text-sm font-medium mb-1">
+                        Memory Usage
+                      </h4>
+                      <div class="flex items-baseline gap-2 mb-4">
+                        <span
+                          class="text-3xl font-bold text-white"
+                          id="metricMemory"
+                          >4.2<span class="text-lg text-slate-400 font-normal"
+                            >GB</span
+                          ></span
+                        >
+                        <span class="text-xs text-slate-500">/ 8GB</span>
+                      </div>
+                      <div
+                        class="h-2 bg-[#102316] rounded-full overflow-hidden w-full"
+                      >
+                        <div
+                          class="h-full bg-blue-500 w-[52%] rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                        ></div>
+                      </div>
+                      <div
+                        class="mt-4 flex justify-between text-xs text-slate-500"
+                      >
+                        <span>Running 5 Containers</span>
+                        <span class="text-blue-400">Normal Load</span>
+                      </div>
+                    </div>
+                  </div>
+                  <h3
+                    class="text-white text-lg font-semibold flex items-center gap-2 pt-4"
+                  >
+                    <span class="material-symbols-outlined text-primary"
+                      >view_agenda</span
+                    >
+                    Active Services
+                  </h3>
+                  <div class="space-y-4" id="metricsList">
+                    <div
+                      class="glass-panel p-4 rounded-xl border border-[#2e573a] hover:border-primary/30 transition-all flex items-center justify-between group"
+                    >
+                      <div class="flex items-center gap-4">
+                        <div
+                          class="p-2 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                        >
+                          <span class="material-symbols-outlined">php</span>
+                        </div>
+                        <div>
+                          <h4 class="text-white font-medium text-sm">
+                            app-service
+                          </h4>
+                          <div class="flex items-center gap-2 text-xs mt-1">
+                            <span class="text-slate-400">Port: 8000</span>
+                            <span
+                              class="w-1 h-1 rounded-full bg-slate-600"
+                            ></span>
+                            <span class="text-green-400">Healthy</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        class="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <button
+                          class="p-1.5 rounded hover:bg-[#22492f] text-slate-400 hover:text-white transition-colors"
+                          title="View Logs"
+                        >
+                          <span class="material-symbols-outlined text-lg"
+                            >list_alt</span
+                          >
+                        </button>
+                        <button
+                          class="p-1.5 rounded hover:bg-[#22492f] text-slate-400 hover:text-white transition-colors"
+                          title="Terminal"
+                        >
+                          <span class="material-symbols-outlined text-lg"
+                            >terminal</span
+                          >
+                        </button>
+                      </div>
+                    </div>
+                    <div
+                      class="glass-panel p-4 rounded-xl border border-[#2e573a] hover:border-primary/30 transition-all flex items-center justify-between group"
+                    >
+                      <div class="flex items-center gap-4">
+                        <div
+                          class="p-2 rounded bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
+                        >
+                          <span class="material-symbols-outlined"
+                            >database</span
+                          >
+                        </div>
+                        <div>
+                          <h4 class="text-white font-medium text-sm">
+                            db-service
+                          </h4>
+                          <div class="flex items-center gap-2 text-xs mt-1">
+                            <span class="text-slate-400">Port: 3306</span>
+                            <span
+                              class="w-1 h-1 rounded-full bg-slate-600"
+                            ></span>
+                            <span class="text-green-400">Healthy</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        class="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <button
+                          class="p-1.5 rounded hover:bg-[#22492f] text-slate-400 hover:text-white transition-colors"
+                          title="View Logs"
+                        >
+                          <span class="material-symbols-outlined text-lg"
+                            >list_alt</span
+                          >
+                        </button>
+                        <button
+                          class="p-1.5 rounded hover:bg-[#22492f] text-slate-400 hover:text-white transition-colors"
+                          title="Terminal"
+                        >
+                          <span class="material-symbols-outlined text-lg"
+                            >terminal</span
+                          >
+                        </button>
+                      </div>
+                    </div>
+                    <div
+                      class="glass-panel p-4 rounded-xl border border-[#2e573a] hover:border-primary/30 transition-all flex items-center justify-between group"
+                    >
+                      <div class="flex items-center gap-4">
+                        <div
+                          class="p-2 rounded bg-red-500/10 text-red-400 border border-red-500/20"
+                        >
+                          <span class="material-symbols-outlined">bolt</span>
+                        </div>
+                        <div>
+                          <h4 class="text-white font-medium text-sm">
+                            redis-cache
+                          </h4>
+                          <div class="flex items-center gap-2 text-xs mt-1">
+                            <span class="text-slate-400">Port: 6379</span>
+                            <span
+                              class="w-1 h-1 rounded-full bg-slate-600"
+                            ></span>
+                            <span class="text-green-400">Healthy</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        class="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <button
+                          class="p-1.5 rounded hover:bg-[#22492f] text-slate-400 hover:text-white transition-colors"
+                          title="View Logs"
+                        >
+                          <span class="material-symbols-outlined text-lg"
+                            >list_alt</span
+                          >
+                        </button>
+                        <button
+                          class="p-1.5 rounded hover:bg-[#22492f] text-slate-400 hover:text-white transition-colors"
+                          title="Terminal"
+                        >
+                          <span class="material-symbols-outlined text-lg"
+                            >terminal</span
+                          >
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="lg:col-span-1 space-y-6">
+                  <h3
+                    class="text-white text-lg font-semibold flex items-center gap-2"
+                  >
+                    <span class="material-symbols-outlined text-primary"
+                      >bolt</span
+                    >
+                    Quick Actions
+                  </h3>
+                  <div class="grid grid-cols-2 gap-3">
+                    <button
+                      data-action="open-folder"
+                      class="p-4 bg-[#1a3322] border border-[#2e573a] rounded-xl hover:bg-[#22492f] hover:border-primary/40 transition-all group text-left"
+                    >
+                      <span
+                        class="material-symbols-outlined text-slate-400 group-hover:text-primary mb-2"
+                        >folder_open</span
+                      >
+                      <span class="block text-slate-200 text-sm font-medium"
+                        >Reveal File</span
+                      >
+                      <span class="block text-slate-500 text-[10px] mt-1"
+                        >Show in Finder</span
+                      >
+                    </button>
+                    <button
+                      data-action="open-ide"
+                      class="p-4 bg-[#1a3322] border border-[#2e573a] rounded-xl hover:bg-[#22492f] hover:border-primary/40 transition-all group text-left"
+                    >
+                      <span
+                        class="material-symbols-outlined text-slate-400 group-hover:text-primary mb-2"
+                        >code</span
+                      >
+                      <span class="block text-slate-200 text-sm font-medium"
+                        >Open IDE</span
+                      >
+                      <span class="block text-slate-500 text-[10px] mt-1"
+                        >Launch VS Code</span
+                      >
+                    </button>
+                    <button
+                      data-action="open-db-client"
+                      class="p-4 bg-[#1a3322] border border-[#2e573a] rounded-xl hover:bg-[#22492f] hover:border-primary/40 transition-all group text-left"
+                    >
+                      <span
+                        class="material-symbols-outlined text-slate-400 group-hover:text-primary mb-2"
+                        >database</span
+                      >
+                      <span class="block text-slate-200 text-sm font-medium"
+                        >TablePlus</span
+                      >
+                      <span class="block text-slate-500 text-[10px] mt-1"
+                        >Connect DB</span
+                      >
+                    </button>
+                    <button
+                      data-action="open-mail-client"
+                      class="p-4 bg-[#1a3322] border border-[#2e573a] rounded-xl hover:bg-[#22492f] hover:border-primary/40 transition-all group text-left"
+                    >
+                      <span
+                        class="material-symbols-outlined text-slate-400 group-hover:text-primary mb-2"
+                        >mail</span
+                      >
+                      <span class="block text-slate-200 text-sm font-medium"
+                        >MailHog</span
+                      >
+                      <span class="block text-slate-500 text-[10px] mt-1"
+                        >View Emails</span
+                      >
+                    </button>
+                  </div>
+                  <div
+                    class="glass-panel p-5 rounded-xl border border-[#2e573a] mt-6"
+                  >
+                    <h4
+                      class="text-white text-sm font-semibold mb-4 border-b border-[#22492f] pb-2"
+                    >
+                      Environment Variables
+                    </h4>
+                    <div id="envVarsList" class="space-y-3">
+                      <div
+                        class="flex justify-between items-center group cursor-pointer hover:bg-[#22492f]/50 p-1.5 -mx-1.5 rounded transition-colors"
+                      >
+                        <span class="text-xs text-[#90cba4] font-mono"
+                          >APP_ENV</span
+                        >
+                        <span
+                          class="text-xs text-white font-mono bg-[#102316] px-2 py-0.5 rounded border border-[#2e573a]"
+                          >local</span
+                        >
+                      </div>
+                      <div
+                        class="flex justify-between items-center group cursor-pointer hover:bg-[#22492f]/50 p-1.5 -mx-1.5 rounded transition-colors"
+                      >
+                        <span class="text-xs text-[#90cba4] font-mono"
+                          >APP_DEBUG</span
+                        >
+                        <span
+                          class="text-xs text-white font-mono bg-[#102316] px-2 py-0.5 rounded border border-[#2e573a]"
+                          >true</span
+                        >
+                      </div>
+                      <div
+                        class="flex justify-between items-center group cursor-pointer hover:bg-[#22492f]/50 p-1.5 -mx-1.5 rounded transition-colors"
+                      >
+                        <span class="text-xs text-[#90cba4] font-mono"
+                          >DB_HOST</span
+                        >
+                        <span
+                          class="text-xs text-white font-mono bg-[#102316] px-2 py-0.5 rounded border border-[#2e573a]"
+                          >mysql</span
+                        >
+                      </div>
+                    </div>
+                    <button
+                      class="w-full mt-4 py-2 rounded bg-[#22492f] hover:bg-[#2e573a] text-xs font-medium text-white border border-[#366b47] transition-all flex items-center justify-center gap-2"
+                    >
+                      <span class="material-symbols-outlined text-sm"
+                        >edit</span
+                      >
+                      Edit .env
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="logs-controls__row logs-controls__row--bottom">
-            <label class="field field--compact logs-controls__field">
-              Shell user
-              <input id="shellUser" type="text" placeholder="www-data" />
-            </label>
-            <label class="field field--compact logs-controls__field">
-              Severity
-              <select id="logSeverity">
-                <option value="all">all</option>
-                <option value="error">error</option>
-                <option value="warn">warn</option>
-                <option value="info">info</option>
-              </select>
-            </label>
-            <label class="field field--compact logs-controls__field">
-              Shell
-              <select id="shellCommand">
-                <option value="bash">bash</option>
-                <option value="sh">sh</option>
-              </select>
-            </label>
-            <label class="field field--compact logs-controls__field">
-              Search
-              <input id="logSearch" type="text" placeholder="error text..." />
-            </label>
-            <div class="logs-controls__buttons logs-controls__buttons--secondary">
-              <button class="button button--ghost" data-action="reset-shell-users">Reset Shell Users</button>
+          <div
+            id="tab-remotes"
+            class="flex-1 overflow-y-auto bg-background-dark p-6 lg:p-10 scroll-smooth tab-content hidden"
+          >
+            <div class="max-w-[1200px] mx-auto space-y-8">
+              <div class="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+                <ul
+                  id="remotesWarnings"
+                  class="text-red-500 mb-4 px-4 text-sm list-disc"
+                ></ul>
+                <div class="lg:col-span-3 space-y-6" id="remotesList">
+                  <div class="flex items-center justify-between pb-2">
+                    <h3
+                      class="text-white text-lg font-semibold flex items-center gap-2"
+                    >
+                      Connected Remotes
+                    </h3>
+                    <button
+                      class="px-4 py-2 bg-[#22492f] text-white rounded-lg text-sm font-medium hover:bg-[#2e573a] transition-colors border border-[#366b47] flex items-center gap-2 shadow-sm shadow-[#102316]"
+                    >
+                      <span class="material-symbols-outlined text-lg"
+                        >add_link</span
+                      >
+                      Connect New Remote
+                    </button>
+                  </div>
+                  <div class="glass-card rounded-xl p-0 overflow-hidden group">
+                    <div
+                      class="p-6 border-b border-[#22492f] flex justify-between items-start bg-gradient-to-r from-[#1a3322] to-[#1a3322]/50"
+                    >
+                      <div class="flex items-start gap-4">
+                        <div
+                          class="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400"
+                        >
+                          <span class="material-symbols-outlined">science</span>
+                        </div>
+                        <div>
+                          <h3
+                            class="text-white text-lg font-semibold flex items-center gap-2"
+                          >
+                            Staging
+                            <span
+                              class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30 uppercase tracking-wide"
+                              >Connected</span
+                            >
+                          </h3>
+                          <div
+                            class="flex items-center gap-4 mt-1 text-xs text-slate-400 font-mono"
+                          >
+                            <span class="flex items-center gap-1">
+                              <span
+                                class="material-symbols-outlined text-[14px]"
+                                >dns</span
+                              >
+                              192.168.1.45
+                            </span>
+                            <span class="flex items-center gap-1">
+                              <span
+                                class="material-symbols-outlined text-[14px]"
+                                >schedule</span
+                              >
+                              Last sync: 2m ago
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="relative">
+                        <button
+                          class="text-slate-400 hover:text-white transition-colors"
+                        >
+                          <span class="material-symbols-outlined"
+                            >more_vert</span
+                          >
+                        </button>
+                      </div>
+                    </div>
+                    <div class="p-6">
+                      <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div
+                          class="bg-[#102316]/50 rounded-lg p-3 border border-[#2e573a]"
+                        >
+                          <div class="text-xs text-slate-500 mb-1">
+                            Database Size
+                          </div>
+                          <div class="text-white font-mono font-medium">
+                            458 MB
+                          </div>
+                        </div>
+                        <div
+                          class="bg-[#102316]/50 rounded-lg p-3 border border-[#2e573a]"
+                        >
+                          <div class="text-xs text-slate-500 mb-1">
+                            Media Files
+                          </div>
+                          <div class="text-white font-mono font-medium">
+                            1.2 GB
+                          </div>
+                        </div>
+                      </div>
+                      <div class="flex flex-wrap gap-3">
+                        <button
+                          class="flex-1 px-4 py-2.5 bg-[#22492f] hover:bg-[#2e573a] border border-[#366b47] rounded-lg text-sm text-white font-medium transition-all flex items-center justify-center gap-2 group/btn"
+                        >
+                          <span
+                            class="material-symbols-outlined text-[18px] group-hover/btn:text-primary transition-colors"
+                            >database</span
+                          >
+                          Pull Database
+                        </button>
+                        <button
+                          class="flex-1 px-4 py-2.5 bg-[#22492f] hover:bg-[#2e573a] border border-[#366b47] rounded-lg text-sm text-white font-medium transition-all flex items-center justify-center gap-2 group/btn"
+                        >
+                          <span
+                            class="material-symbols-outlined text-[18px] group-hover/btn:text-blue-400 transition-colors"
+                            >perm_media</span
+                          >
+                          Pull Media
+                        </button>
+                        <button
+                          class="px-3 py-2.5 bg-[#102316] hover:bg-[#1a3322] border border-[#2e573a] rounded-lg text-slate-400 hover:text-white transition-all"
+                          title="Test Connection"
+                        >
+                          <span class="material-symbols-outlined text-[18px]"
+                            >wifi_tethering</span
+                          >
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    class="glass-card rounded-xl p-0 overflow-hidden group border-amber-500/20"
+                  >
+                    <div
+                      class="p-6 border-b border-[#22492f] flex justify-between items-start bg-gradient-to-r from-[#1a3322] to-[#1a3322]/50 relative overflow-hidden"
+                    >
+                      <div
+                        class="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-amber-500/10 to-transparent pointer-events-none"
+                      ></div>
+                      <div class="flex items-start gap-4 z-10">
+                        <div
+                          class="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-500"
+                        >
+                          <span class="material-symbols-outlined"
+                            >rocket_launch</span
+                          >
+                        </div>
+                        <div>
+                          <h3
+                            class="text-white text-lg font-semibold flex items-center gap-2"
+                          >
+                            Production
+                            <span
+                              class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-500 border border-amber-500/30 uppercase tracking-wide"
+                              >Protected</span
+                            >
+                          </h3>
+                          <div
+                            class="flex items-center gap-4 mt-1 text-xs text-slate-400 font-mono"
+                          >
+                            <span class="flex items-center gap-1">
+                              <span
+                                class="material-symbols-outlined text-[14px]"
+                                >dns</span
+                              >
+                              203.0.113.15
+                            </span>
+                            <span class="flex items-center gap-1">
+                              <span
+                                class="material-symbols-outlined text-[14px]"
+                                >lock</span
+                              >
+                              SSH Key Auth
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="relative z-10">
+                        <button
+                          class="text-slate-400 hover:text-white transition-colors"
+                        >
+                          <span class="material-symbols-outlined"
+                            >more_vert</span
+                          >
+                        </button>
+                      </div>
+                    </div>
+                    <div class="p-6">
+                      <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div
+                          class="bg-[#102316]/50 rounded-lg p-3 border border-[#2e573a]"
+                        >
+                          <div class="text-xs text-slate-500 mb-1">
+                            Database Size
+                          </div>
+                          <div class="text-white font-mono font-medium">
+                            2.4 GB
+                          </div>
+                        </div>
+                        <div
+                          class="bg-[#102316]/50 rounded-lg p-3 border border-[#2e573a]"
+                        >
+                          <div class="text-xs text-slate-500 mb-1">
+                            Media Files
+                          </div>
+                          <div class="text-white font-mono font-medium">
+                            8.5 GB
+                          </div>
+                        </div>
+                      </div>
+                      <div class="flex flex-wrap gap-3">
+                        <button
+                          class="flex-1 px-4 py-2.5 bg-[#22492f] hover:bg-[#2e573a] border border-[#366b47] rounded-lg text-sm text-white font-medium transition-all flex items-center justify-center gap-2 group/btn"
+                        >
+                          <span
+                            class="material-symbols-outlined text-[18px] group-hover/btn:text-primary transition-colors"
+                            >database</span
+                          >
+                          Pull Database
+                        </button>
+                        <button
+                          class="flex-1 px-4 py-2.5 bg-[#22492f] hover:bg-[#2e573a] border border-[#366b47] rounded-lg text-sm text-white font-medium transition-all flex items-center justify-center gap-2 group/btn"
+                        >
+                          <span
+                            class="material-symbols-outlined text-[18px] group-hover/btn:text-blue-400 transition-colors"
+                            >perm_media</span
+                          >
+                          Pull Media
+                        </button>
+                        <button
+                          class="px-3 py-2.5 bg-[#102316] hover:bg-[#1a3322] border border-[#2e573a] rounded-lg text-green-400 hover:text-green-300 transition-all border-green-500/20"
+                          title="Connection Active"
+                        >
+                          <span class="material-symbols-outlined text-[18px]"
+                            >check_circle</span
+                          >
+                        </button>
+                      </div>
+                      <div
+                        class="mt-4 flex items-center gap-2 p-2 bg-amber-900/10 border border-amber-900/30 rounded text-amber-500/80 text-xs"
+                      >
+                        <span class="material-symbols-outlined text-[16px]"
+                          >info</span
+                        >
+                        Syncing from Production creates a local backup
+                        automatically.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="lg:col-span-2">
+                  <div class="sticky top-6">
+                    <h3
+                      class="text-white text-lg font-semibold flex items-center gap-2 mb-6"
+                    >
+                      <span class="material-symbols-outlined text-primary"
+                        >account_tree</span
+                      >
+                      Sync Flow
+                    </h3>
+                    <div
+                      class="glass-panel rounded-xl p-8 border border-[#2e573a] relative overflow-hidden flex flex-col items-center justify-center min-h-[400px]"
+                    >
+                      <div
+                        class="absolute inset-0 z-0 opacity-10"
+                        style="
+                          background-image: radial-gradient(
+                            #90cba4 1px,
+                            transparent 1px
+                          );
+                          background-size: 20px 20px;
+                        "
+                      ></div>
+                      <div class="relative z-10 w-full max-w-[200px]">
+                        <div
+                          class="bg-[#1a3322] border border-blue-500/30 rounded-lg p-4 shadow-lg shadow-blue-500/5 relative"
+                        >
+                          <div
+                            class="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#102316] px-2 text-[10px] text-blue-400 border border-blue-500/30 rounded-full uppercase font-bold tracking-wider"
+                          >
+                            Source
+                          </div>
+                          <div class="flex items-center justify-center gap-3">
+                            <span
+                              class="material-symbols-outlined text-blue-400 text-3xl"
+                              >cloud</span
+                            >
+                            <div class="text-left">
+                              <div class="text-white text-sm font-bold">
+                                Remote
+                              </div>
+                              <div class="text-slate-500 text-xs">
+                                Staging/Prod
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="h-24 w-px dashed-line relative my-2">
+                        <div
+                          class="absolute top-0 left-1/2 -translate-x-1/2 -ml-[2px] w-1 h-3 bg-primary rounded-full animate-[bounce_2s_infinite]"
+                        ></div>
+                      </div>
+                      <div class="relative z-10">
+                        <div
+                          class="bg-[#102316] border border-[#366b47] rounded-full h-12 w-12 flex items-center justify-center shadow-[0_0_15px_rgba(13,242,89,0.2)]"
+                        >
+                          <span
+                            class="material-symbols-outlined text-primary animate-pulse"
+                            >lock_open</span
+                          >
+                        </div>
+                      </div>
+                      <div class="h-24 w-px dashed-line relative my-2">
+                        <div
+                          class="absolute bottom-0 left-1/2 -translate-x-1/2 -ml-[2px] w-1 h-3 bg-primary rounded-full animate-[bounce_2s_infinite_reverse]"
+                        ></div>
+                      </div>
+                      <div class="relative z-10 w-full max-w-[200px]">
+                        <div
+                          class="bg-[#22492f] border border-primary/40 rounded-lg p-4 shadow-lg shadow-primary/10 relative"
+                        >
+                          <div
+                            class="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#102316] px-2 text-[10px] text-primary border border-primary/30 rounded-full uppercase font-bold tracking-wider"
+                          >
+                            Destination
+                          </div>
+                          <div class="flex items-center justify-center gap-3">
+                            <span
+                              class="material-symbols-outlined text-primary text-3xl"
+                              >laptop_mac</span
+                            >
+                            <div class="text-left">
+                              <div class="text-white text-sm font-bold">
+                                Localhost
+                              </div>
+                              <div class="text-slate-400 text-xs">
+                                Docker Container
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="mt-8 text-center px-4">
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                          Data flows strictly from
+                          <span class="text-blue-400">Remote</span> to
+                          <span class="text-primary">Local</span>. Govard
+                          prevents accidental pushes to production environments.
+                        </p>
+                      </div>
+                    </div>
+                    <div
+                      class="mt-6 p-4 rounded-xl border border-[#2e573a] bg-[#1a3322]/50"
+                    >
+                      <h4 class="text-sm font-medium text-white mb-3">
+                        Sync Configuration
+                      </h4>
+                      <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                          <span class="text-xs text-slate-400"
+                            >Sanitize Personal Data</span
+                          >
+                          <button
+                            data-action="toggle-sync-config"
+                            data-config="sanitize"
+                            id="syncToggleSanitize"
+                            class="w-8 h-4 bg-primary/20 rounded-full relative transition-colors border border-primary/30 group"
+                          >
+                            <span
+                              class="absolute right-0.5 top-0.5 w-3 h-3 bg-primary rounded-full shadow-sm transition-all"
+                            ></span>
+                          </button>
+                        </div>
+                        <div class="flex items-center justify-between">
+                          <span class="text-xs text-slate-400"
+                            >Exclude Log Tables</span
+                          >
+                          <button
+                            data-action="toggle-sync-config"
+                            data-config="excludeLogs"
+                            id="syncToggleExcludeLogs"
+                            class="w-8 h-4 bg-primary/20 rounded-full relative transition-colors border border-primary/30"
+                          >
+                            <span
+                              class="absolute right-0.5 top-0.5 w-3 h-3 bg-primary rounded-full shadow-sm transition-all"
+                            ></span>
+                          </button>
+                        </div>
+                        <div class="flex items-center justify-between">
+                          <span class="text-xs text-slate-400"
+                            >Compress Transfer</span
+                          >
+                          <button
+                            data-action="toggle-sync-config"
+                            data-config="compress"
+                            id="syncToggleCompress"
+                            class="w-8 h-4 bg-[#102316] rounded-full relative transition-colors border border-slate-700"
+                          >
+                            <span
+                              class="absolute left-0.5 top-0.5 w-3 h-3 bg-slate-500 rounded-full shadow-sm transition-all"
+                            ></span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-        <pre class="logs" id="logOutput">Select an environment to view logs.</pre>
-      </section>
+          <div
+            class="flex-1 overflow-hidden flex flex-col bg-background-dark tab-content hidden"
+            id="tab-logs"
+          >
+            <div class="flex-1 flex flex-col overflow-hidden p-6 lg:p-6 gap-6">
+              <div class="flex-1 flex flex-col gap-4 overflow-hidden">
+                <div
+                  class="flex-1 flex flex-col rounded-xl border border-[#2e573a] bg-[#0c1810] overflow-hidden shadow-lg relative"
+                >
+                  <div
+                    class="flex items-center justify-between p-3 border-b border-[#2e573a] bg-[#1a3322]"
+                  >
+                    <div class="flex items-center gap-4">
+                      <h3
+                        class="text-sm font-semibold text-white flex items-center gap-2"
+                      >
+                        <span
+                          class="material-symbols-outlined text-primary text-lg"
+                          >receipt_long</span
+                        >
+                        Live Logs
+                      </h3>
+                      <div class="h-4 w-px bg-[#2e573a]"></div>
+                      <div
+                        id="logServiceSelector"
+                        class="flex bg-[#102316] rounded-lg p-0.5 border border-[#2e573a]"
+                      >
+                        <!-- Service buttons will be rendered here -->
+                        <button
+                          data-action="filter-service"
+                          data-service="all"
+                          class="px-2.5 py-1 rounded text-xs font-medium bg-[#2e573a] text-white"
+                        >
+                          All
+                        </button>
+                      </div>
+                      <button
+                        id="toggleLive"
+                        data-action="toggle-live"
+                        class="ml-2 px-2.5 py-1 rounded text-xs font-medium bg-[#2e573a] text-white hover:bg-[#366b47]"
+                      >
+                        Live: Off
+                      </button>
+                      <button
+                        data-action="refresh-logs"
+                        class="ml-2 px-2.5 py-1 rounded text-xs font-medium text-[#90cba4] hover:text-white hover:bg-[#2e573a]/50"
+                      >
+                        Refresh
+                      </button>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <div class="relative">
+                        <span
+                          class="absolute inset-y-0 left-2 flex items-center"
+                        >
+                          <span
+                            class="material-symbols-outlined text-[#5d856b] text-base"
+                            >search</span
+                          >
+                        </span>
+                        <input
+                          class="bg-[#102316] text-xs text-white pl-8 pr-3 py-1.5 rounded border border-[#2e573a] focus:border-primary/50 focus:outline-none placeholder-[#5d856b] w-48"
+                          placeholder="Filter logs..."
+                          type="text"
+                          id="logSearch"
+                        />
+                      </div>
+                      <button
+                        class="text-[#90cba4] hover:text-primary transition-colors"
+                        title="Clear Logs"
+                      >
+                        <span class="material-symbols-outlined text-lg"
+                          >block</span
+                        >
+                      </button>
+                      <button
+                        class="text-[#90cba4] hover:text-primary transition-colors"
+                        title="Download Logs"
+                      >
+                        <span class="material-symbols-outlined text-lg"
+                          >download</span
+                        >
+                      </button>
+                    </div>
+                    <div
+                      id="logSeverity"
+                      class="flex rounded-lg overflow-hidden border border-[#2e573a] ml-3"
+                    >
+                      <button
+                        data-action="filter-severity"
+                        data-severity="all"
+                        class="px-3 py-1 bg-[#2e573a] text-primary text-[10px] font-bold uppercase transition-colors hover:bg-[#2e573a]/80"
+                      >
+                        All
+                      </button>
+                      <button
+                        data-action="filter-severity"
+                        data-severity="error"
+                        class="px-3 py-1 bg-[#102316] text-[#90cba4] text-[10px] font-bold uppercase hover:bg-[#1a3322] border-l border-[#2e573a] transition-colors"
+                      >
+                        Error
+                      </button>
+                      <button
+                        data-action="filter-severity"
+                        data-severity="warn"
+                        class="px-3 py-1 bg-[#102316] text-[#90cba4] text-[10px] font-bold uppercase hover:bg-[#1a3322] border-l border-[#2e573a] transition-colors"
+                      >
+                        Warn
+                      </button>
+                    </div>
+                  </div>
+                  <div
+                    class="flex-1 overflow-y-auto p-4 terminal-text text-xs space-y-1 bg-[#0c1810] custom-scrollbar"
+                  >
+                    <pre id="logOutput" class="font-mono whitespace-pre-wrap">
+Select an environment to view logs.</pre
+                    >
+                  </div>
+                </div>
+                <div
+                  class="h-1.5 bg-[#1a3322] hover:bg-primary/50 cursor-row-resize flex items-center justify-center rounded transition-colors group/resizer"
+                >
+                  <div
+                    class="w-10 h-1 bg-[#2e573a] rounded-full group-hover/resizer:bg-white/50"
+                  ></div>
+                </div>
+                <div
+                  class="h-1/3 flex flex-col rounded-xl border border-[#2e573a] bg-[#0c1810] overflow-hidden shadow-lg"
+                >
+                  <div
+                    class="flex items-center justify-between p-2 pl-3 border-b border-[#2e573a] bg-[#1a3322]"
+                  >
+                    <div class="flex items-center gap-2">
+                      <span
+                        class="material-symbols-outlined text-slate-400 text-sm"
+                        >terminal</span
+                      >
+                      <span class="text-xs font-semibold text-slate-300"
+                        >Terminal — bash</span
+                      >
+                    </div>
+                    <div class="flex gap-2">
+                      <button
+                        class="p-1 hover:bg-white/10 rounded text-slate-400 hover:text-white"
+                      >
+                        <span class="material-symbols-outlined text-sm"
+                          >add</span
+                        >
+                      </button>
+                      <button
+                        class="p-1 hover:bg-white/10 rounded text-slate-400 hover:text-white"
+                      >
+                        <span class="material-symbols-outlined text-sm"
+                          >open_in_full</span
+                        >
+                      </button>
+                      <button
+                        class="p-1 hover:bg-white/10 rounded text-slate-400 hover:text-white"
+                      >
+                        <span class="material-symbols-outlined text-sm"
+                          >close</span
+                        >
+                      </button>
+                    </div>
+                  </div>
+                  <div
+                    class="flex-1 p-4 terminal-text text-sm overflow-y-auto bg-[#0c1810]"
+                  >
+                    <div class="text-slate-300 mb-1">
+                      Welcome to Govard Shell v2.4.1
+                    </div>
+                    <div class="text-slate-500 mb-2">
+                      Type 'help' for a list of available commands.
+                    </div>
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="text-primary">dev@govard</span>
+                      <span class="text-slate-500">:</span>
+                      <span class="text-blue-400">~/project-alpha</span>
+                      <span class="text-slate-500">$</span>
+                      <span class="text-slate-200">ls -la</span>
+                    </div>
+                    <div
+                      class="text-slate-300 mb-2 whitespace-pre font-mono text-xs leading-relaxed"
+                    >
+                      drwxr-xr-x 8 root root 256 Oct 24 10:00 . drwxr-xr-x 3
+                      root root 96 Oct 24 09:55 .. -rw-r--r-- 1 root root 452
+                      Oct 24 10:00 .env -rw-r--r-- 1 root root 1240 Oct 24 10:00
+                      docker-compose.yml drwxr-xr-x 4 root root 128 Oct 24 10:00
+                      nginx drwxr-xr-x 5 root root 160 Oct 24 10:00 php
+                      drwxr-xr-x 3 root root 96 Oct 24 10:00 src
+                    </div>
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="text-primary">dev@govard</span>
+                      <span class="text-slate-500">:</span>
+                      <span class="text-blue-400">~/project-alpha</span>
+                      <span class="text-slate-500">$</span>
+                      <span class="text-slate-200"
+                        >php artisan migrate:status</span
+                      >
+                    </div>
+                    <div
+                      class="text-slate-300 mb-2 whitespace-pre font-mono text-xs leading-relaxed"
+                    >
+                      +------+-------------------------------------------------------+-------+
+                      | Ran? | Migration | Batch |
+                      +------+-------------------------------------------------------+-------+
+                      | Yes | 2014_10_12_000000_create_users_table | 1 | | Yes |
+                      2014_10_12_100000_create_password_reset_tokens_table | 1 |
+                      | Yes | 2019_08_19_000000_create_failed_jobs_table | 1 | |
+                      Yes |
+                      2019_12_14_000001_create_personal_access_tokens_table | 1
+                      |
+                      +------+-------------------------------------------------------+-------+
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-primary">dev@govard</span>
+                      <span class="text-slate-500">:</span>
+                      <span class="text-blue-400">~/project-alpha</span>
+                      <span class="text-slate-500">$</span>
+                      <span class="text-slate-200 blink-cursor">_</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
 
-      <section class="panel" id="health">
-        <header class="panel__header">
-          <h2>Warnings</h2>
-        </header>
-        <ul class="warning-list" id="warningList"></ul>
-      </section>
-    </main>
+      <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+      <div class="hidden">
+        <div id="statActive"></div>
+        <div id="statServices"></div>
+        <div id="statQueue"></div>
+        <div id="statActiveHint"></div>
+        <div id="statServicesHint"></div>
+        <div id="statQueueHint"></div>
+        <div id="metricActiveProjects"></div>
+        <div id="metricCPU"></div>
+        <div id="metricMemory"></div>
+        <div id="metricNetRx"></div>
+        <div id="metricNetTx"></div>
+        <div id="metricOOM"></div>
+        <div id="metricsList"></div>
+        <div id="metricsWarnings"></div>
+        <div id="remotesWarnings"></div>
+        <div id="warningList"></div>
+        <select id="envSelector"></select>
+      </div>
 
-    <div class="drawer" id="settingsDrawer" aria-hidden="true">
-      <div class="drawer__content">
-        <div class="drawer__header">
-          <h3>Desktop Settings</h3>
-          <button class="button button--ghost" id="closeSettings" type="button">Close</button>
-        </div>
-        <label class="field">
-          Theme
-          <select id="themeSelect">
-            <option value="system">System</option>
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-          </select>
-        </label>
-        <label class="field">
-          Proxy target
-          <input id="proxyTarget" type="text" placeholder="govard.test" />
-        </label>
-        <label class="field">
-          Preferred browser
-          <input id="preferredBrowser" type="text" placeholder="firefox" />
-        </label>
-        <div class="row">
-          <button class="button button--ghost" data-action="reset-settings">Reset Settings</button>
+      <!-- Modals & Drawers -->
+      <div
+        id="onboardingModal"
+        class="hidden fixed inset-0 z-[100] bg-[#0c1810]/80 backdrop-blur-sm flex items-center justify-center p-4 md:p-8"
+      >
+        <div
+          class="bg-white dark:bg-[#102316] w-full max-w-5xl h-[85vh] rounded-2xl flex flex-col overflow-hidden shadow-2xl relative border border-slate-200 dark:border-white/10"
+        >
+          <header
+            class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-white/10 px-8 py-5 bg-surface-light dark:bg-[#1a3322] shrink-0"
+          >
+            <div class="flex items-center gap-4">
+              <div
+                class="size-10 text-primary flex items-center justify-center bg-primary/10 rounded-xl"
+              >
+                <span class="material-symbols-outlined text-2xl"
+                  >add_circle</span
+                >
+              </div>
+              <div>
+                <h2
+                  class="text-slate-900 dark:text-white text-xl font-bold leading-tight tracking-tight"
+                >
+                  Project Onboarding
+                </h2>
+                <p class="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
+                  Initialize a new project environment
+                </p>
+              </div>
+            </div>
+            <button
+              data-action="close-onboarding"
+              class="text-slate-400 hover:text-white transition-colors"
+            >
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </header>
+
+          <main
+            class="flex-1 overflow-hidden relative flex flex-col lg:flex-row bg-background-light dark:bg-[#102316]/50"
+          >
+            <!-- Sidebar/Steps -->
+            <aside
+              class="lg:w-1/3 flex flex-col border-r border-slate-200 dark:border-white/10 bg-surface-light dark:bg-[#1a3322] overflow-y-auto shrink-0"
+            >
+              <div class="p-8 flex flex-col gap-8 h-full">
+                <div class="flex flex-col gap-4">
+                  <div
+                    class="text-xs font-bold text-primary uppercase tracking-wider"
+                  >
+                    Step 1 of 3
+                  </div>
+                  <h1
+                    class="text-3xl font-black tracking-tight text-slate-900 dark:text-white"
+                  >
+                    Project Source
+                  </h1>
+                  <p class="text-slate-500 dark:text-slate-400 text-sm">
+                    Review detected framework and settings.
+                  </p>
+                </div>
+
+                <!-- Project Path Input -->
+                <div
+                  class="group relative rounded-xl bg-slate-100 dark:bg-black/40 border border-slate-200 dark:border-white/5 p-4 transition-all hover:border-primary/50"
+                >
+                  <div class="flex items-center gap-3 mb-2">
+                    <span class="material-symbols-outlined text-slate-400"
+                      >folder_open</span
+                    >
+                    <span
+                      class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider"
+                      >Local Path</span
+                    >
+                  </div>
+                  <div
+                    class="font-mono text-sm text-slate-700 dark:text-slate-200 break-all"
+                    id="displayProjectPath"
+                  >
+                    Click 'Edit' to select project
+                  </div>
+                  <input type="hidden" id="projectPath" />
+                  <button
+                    data-action="browse-project"
+                    class="absolute top-3 right-3 p-1 rounded hover:bg-white/10 text-slate-400 hover:text-primary transition-colors"
+                  >
+                    <span class="material-symbols-outlined text-[18px]"
+                      >edit</span
+                    >
+                  </button>
+                </div>
+
+                <!-- Detection Card -->
+                <div
+                  class="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 p-6 flex flex-col gap-4"
+                >
+                  <div
+                    class="absolute -right-4 -top-4 w-24 h-24 bg-primary/20 rounded-full blur-2xl"
+                  ></div>
+                  <div class="flex items-start justify-between">
+                    <div class="rounded-full bg-primary/20 p-2 text-primary">
+                      <span class="material-symbols-outlined text-2xl"
+                        >check_circle</span
+                      >
+                    </div>
+                    <span
+                      class="px-2 py-1 rounded text-[10px] font-bold bg-primary text-primary-content uppercase"
+                      >Auto-detected</span
+                    >
+                  </div>
+                  <div>
+                    <h3
+                      class="text-xl font-bold text-slate-900 dark:text-white mb-1"
+                    >
+                      Found Project
+                    </h3>
+                    <p class="text-sm text-primary/80 font-medium">
+                      Framework recognized successfully
+                    </p>
+                  </div>
+                  <div class="h-px w-full bg-primary/10"></div>
+                  <div class="flex flex-col gap-2">
+                    <div
+                      class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300"
+                    >
+                      <span
+                        class="material-symbols-outlined text-[14px] text-primary"
+                        >code</span
+                      >
+                      <span>Optimization: Enabled</span>
+                    </div>
+                    <div
+                      class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300"
+                    >
+                      <span
+                        class="material-symbols-outlined text-[14px] text-primary"
+                        >folder_zip</span
+                      >
+                      <span>Manifest found</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Timeline -->
+                <div class="mt-auto pt-8">
+                  <div class="flex flex-col gap-0 relative">
+                    <div
+                      class="absolute left-[15px] top-3 bottom-3 w-0.5 bg-slate-200 dark:bg-white/10"
+                    ></div>
+                    <div class="flex items-center gap-4 relative z-10 pb-6">
+                      <div
+                        class="w-8 h-8 rounded-full bg-primary text-primary-content flex items-center justify-center font-bold text-sm shadow-[0_0_10px_rgba(13,242,89,0.4)]"
+                      >
+                        1
+                      </div>
+                      <span class="font-medium text-slate-900 dark:text-white"
+                        >Source & Detection</span
+                      >
+                    </div>
+                    <div
+                      class="flex items-center gap-4 relative z-10 pb-6 opacity-40"
+                    >
+                      <div
+                        class="w-8 h-8 rounded-full bg-slate-200 dark:bg-white/10 text-slate-500 dark:text-slate-400 flex items-center justify-center font-bold text-sm border border-slate-300 dark:border-white/10"
+                      >
+                        2
+                      </div>
+                      <span
+                        class="font-medium text-slate-500 dark:text-slate-400"
+                        >Environment Config</span
+                      >
+                    </div>
+                    <div
+                      class="flex items-center gap-4 relative z-10 opacity-40"
+                    >
+                      <div
+                        class="w-8 h-8 rounded-full bg-slate-200 dark:bg-white/10 text-slate-500 dark:text-slate-400 flex items-center justify-center font-bold text-sm border border-slate-300 dark:border-white/10"
+                      >
+                        3
+                      </div>
+                      <span
+                        class="font-medium text-slate-500 dark:text-slate-400"
+                        >Build Container</span
+                      >
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </aside>
+
+            <!-- Main Config Area -->
+            <div class="flex-1 overflow-y-auto relative">
+              <div
+                class="p-8 lg:p-12 max-w-3xl mx-auto w-full flex flex-col gap-10 pb-32"
+              >
+                <div>
+                  <h2
+                    class="text-2xl font-bold text-slate-900 dark:text-white mb-2"
+                  >
+                    Govard Configuration
+                  </h2>
+                  <p class="text-slate-500 dark:text-slate-400">
+                    Set up your local domain and required services.
+                  </p>
+                </div>
+
+                <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div class="flex flex-col gap-2">
+                    <label
+                      class="text-sm font-medium text-slate-700 dark:text-slate-300 flex justify-between"
+                    >
+                      Local Domain
+                      <span class="text-xs text-slate-400 dark:text-slate-500"
+                        >Must be unique</span
+                      >
+                    </label>
+                    <div class="relative flex items-center">
+                      <input
+                        id="projectDomain"
+                        class="w-full bg-white dark:bg-surface-dark border border-slate-300 dark:border-white/10 rounded-lg pl-4 pr-16 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-shadow"
+                        placeholder="project-name"
+                        type="text"
+                      />
+                      <span
+                        class="absolute right-4 text-slate-400 dark:text-slate-500 pointer-events-none font-mono text-sm"
+                        >.test</span
+                      >
+                    </div>
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <label
+                      class="text-sm font-medium text-slate-700 dark:text-slate-300 flex justify-between"
+                    >
+                      Architecture / Recipe
+                      <span class="text-xs text-primary"
+                        >Recommended: auto</span
+                      >
+                    </label>
+                    <div class="relative">
+                      <select
+                        id="projectRecipe"
+                        class="w-full appearance-none bg-white dark:bg-surface-dark border border-slate-300 dark:border-white/10 rounded-lg px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-shadow cursor-pointer"
+                      >
+                        <option value="auto">Auto-detect</option>
+                        <option value="magento2">Magento 2</option>
+                        <option value="magento1">Magento 1</option>
+                        <option value="laravel">Laravel</option>
+                        <option value="symfony">Symfony</option>
+                        <option value="wordpress">WordPress</option>
+                        <option value="nextjs">Next.js</option>
+                        <option value="custom">Custom</option>
+                      </select>
+                      <div
+                        class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"
+                      >
+                        <span class="material-symbols-outlined"
+                          >expand_more</span
+                        >
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <hr class="border-slate-200 dark:border-white/5" />
+
+                <section class="flex flex-col gap-6">
+                  <div class="flex items-center justify-between">
+                    <h3
+                      class="text-lg font-bold text-slate-900 dark:text-white"
+                    >
+                      Auxiliary Services
+                    </h3>
+                    <span
+                      class="text-xs font-medium px-2 py-1 rounded bg-slate-200 dark:bg-white/5 text-slate-500 dark:text-slate-400"
+                      >Optional</span
+                    >
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Varnish -->
+                    <label
+                      class="glass-panel group relative flex flex-col gap-4 rounded-xl p-5 cursor-pointer hover:border-primary/50 transition-colors"
+                    >
+                      <div class="flex items-center justify-between">
+                        <div
+                          class="p-2 rounded-lg bg-orange-500/10 text-orange-500"
+                        >
+                          <span class="material-symbols-outlined">speed</span>
+                        </div>
+                        <div
+                          class="relative inline-block w-10 h-6 align-middle select-none transition duration-200 ease-in"
+                        >
+                          <input
+                            id="onboardVarnish"
+                            class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-4 border-slate-600 appearance-none cursor-pointer transition-all duration-300 top-1 left-1 checked:left-5 checked:bg-white checked:border-white/0"
+                            type="checkbox"
+                            value="varnish"
+                          />
+                          <span
+                            class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-700 cursor-pointer transition-colors duration-300 group-hover:bg-slate-600"
+                          ></span>
+                        </div>
+                      </div>
+                      <div>
+                        <h4
+                          class="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors"
+                        >
+                          Varnish Cache
+                        </h4>
+                        <p
+                          class="text-xs text-slate-500 dark:text-slate-400 mt-1"
+                        >
+                          HTTP accelerator.
+                        </p>
+                      </div>
+                    </label>
+                    <!-- Redis -->
+                    <label
+                      class="glass-panel group relative flex flex-col gap-4 rounded-xl p-5 cursor-pointer hover:border-primary/50 transition-colors"
+                    >
+                      <div class="flex items-center justify-between">
+                        <div class="p-2 rounded-lg bg-red-500/10 text-red-500">
+                          <span class="material-symbols-outlined"
+                            >database</span
+                          >
+                        </div>
+                        <div
+                          class="relative inline-block w-10 h-6 align-middle select-none transition duration-200 ease-in"
+                        >
+                          <input
+                            checked
+                            id="onboardRedis"
+                            class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-4 border-slate-600 appearance-none cursor-pointer transition-all duration-300 top-1 left-1 checked:left-5 checked:bg-white checked:border-white/0"
+                            type="checkbox"
+                            value="redis"
+                          />
+                          <span
+                            class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-700 cursor-pointer transition-colors duration-300 group-hover:bg-slate-600"
+                          ></span>
+                        </div>
+                      </div>
+                      <div>
+                        <h4
+                          class="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors"
+                        >
+                          Redis
+                        </h4>
+                        <p
+                          class="text-xs text-slate-500 dark:text-slate-400 mt-1"
+                        >
+                          Cache & Database.
+                        </p>
+                      </div>
+                    </label>
+                    <!-- RabbitMQ -->
+                    <label
+                      class="glass-panel group relative flex flex-col gap-4 rounded-xl p-5 cursor-pointer hover:border-primary/50 transition-colors"
+                    >
+                      <div class="flex items-center justify-between">
+                        <div
+                          class="p-2 rounded-lg bg-orange-600/10 text-orange-600"
+                        >
+                          <span class="material-symbols-outlined">mail</span>
+                        </div>
+                        <div
+                          class="relative inline-block w-10 h-6 align-middle select-none transition duration-200 ease-in"
+                        >
+                          <input
+                            id="onboardRabbitMQ"
+                            class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-4 border-slate-600 appearance-none cursor-pointer transition-all duration-300 top-1 left-1 checked:left-5 checked:bg-white checked:border-white/0"
+                            type="checkbox"
+                            value="rabbitmq"
+                          />
+                          <span
+                            class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-700 cursor-pointer transition-colors duration-300 group-hover:bg-slate-600"
+                          ></span>
+                        </div>
+                      </div>
+                      <div>
+                        <h4
+                          class="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors"
+                        >
+                          RabbitMQ
+                        </h4>
+                        <p
+                          class="text-xs text-slate-500 dark:text-slate-400 mt-1"
+                        >
+                          Message broker.
+                        </p>
+                      </div>
+                    </label>
+                    <!-- Elasticsearch -->
+                    <label
+                      class="glass-panel group relative flex flex-col gap-4 rounded-xl p-5 cursor-pointer hover:border-primary/50 transition-colors"
+                    >
+                      <div class="flex items-center justify-between">
+                        <div
+                          class="p-2 rounded-lg bg-yellow-400/10 text-yellow-400"
+                        >
+                          <span class="material-symbols-outlined">search</span>
+                        </div>
+                        <div
+                          class="relative inline-block w-10 h-6 align-middle select-none transition duration-200 ease-in"
+                        >
+                          <input
+                            checked
+                            id="onboardElasticsearch"
+                            class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-4 border-slate-600 appearance-none cursor-pointer transition-all duration-300 top-1 left-1 checked:left-5 checked:bg-white checked:border-white/0"
+                            type="checkbox"
+                            value="elasticsearch"
+                          />
+                          <span
+                            class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-700 cursor-pointer transition-colors duration-300 group-hover:bg-slate-600"
+                          ></span>
+                        </div>
+                      </div>
+                      <div>
+                        <h4
+                          class="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors"
+                        >
+                          Elasticsearch
+                        </h4>
+                        <p
+                          class="text-xs text-slate-500 dark:text-slate-400 mt-1"
+                        >
+                          Search engine.
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                </section>
+              </div>
+            </div>
+          </main>
+
+          <footer
+            class="shrink-0 p-6 bg-surface-light dark:bg-[#102316] border-t border-slate-200 dark:border-white/10 flex justify-end items-center gap-4 z-20 shadow-[0_-4px_12px_rgba(0,0,0,0.1)]"
+          >
+            <button
+              data-action="close-onboarding"
+              class="px-6 py-3 rounded-lg text-slate-600 dark:text-slate-400 font-medium hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              id="onboardingSubmit"
+              data-action="add-project"
+              class="flex items-center gap-2 bg-primary hover:bg-primary/90 text-background-dark px-8 py-3 rounded-lg font-bold shadow-lg shadow-primary/20 transition-all transform active:scale-95"
+            >
+              <span>Initialize Project</span>
+              <span class="material-symbols-outlined text-[20px]"
+                >arrow_forward</span
+              >
+            </button>
+          </footer>
         </div>
       </div>
-    </div>
 
-    <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+      <div
+        class="drawer hidden fixed inset-0 z-[100] bg-[#0c1810]/40 backdrop-blur-sm"
+        id="settingsDrawer"
+        aria-hidden="true"
+      >
+        <div
+          class="bg-[#1a3322] border-l border-[#2e573a] h-full ml-auto w-[420px] p-8 flex flex-col gap-6 shadow-2xl"
+        >
+          <div
+            class="flex justify-between items-center mb-4 border-b border-[#2e573a] pb-4"
+          >
+            <h3 class="text-white text-lg font-bold">Govard Settings</h3>
+            <button
+              class="p-2 rounded hover:bg-white/5 text-slate-400 hover:text-white flex items-center justify-center h-9 w-9"
+              id="closeSettings"
+              type="button"
+            >
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+          <!-- Settings fields -->
+          <div class="flex flex-col gap-6 overflow-y-auto pr-2">
+            <label
+              class="flex flex-col gap-2 text-sm font-medium text-slate-300"
+            >
+              Theme
+              <select
+                id="themeSelect"
+                class="bg-[#102316] border border-[#2e573a] rounded-lg px-4 py-3 text-white outline-none focus:border-primary/50"
+              >
+                <option value="system">System</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+              </select>
+            </label>
+            <label
+              class="flex flex-col gap-2 text-sm font-medium text-slate-300"
+            >
+              Proxy target
+              <input
+                id="proxyTarget"
+                type="text"
+                placeholder="govard.test"
+                class="bg-[#102316] border border-[#2e573a] rounded-lg px-4 py-3 text-white outline-none focus:border-primary/50"
+              />
+            </label>
+            <label
+              class="flex flex-col gap-2 text-sm font-medium text-slate-300"
+            >
+              Preferred browser
+              <input
+                id="preferredBrowser"
+                type="text"
+                placeholder="firefox"
+                class="bg-[#102316] border border-[#2e573a] rounded-lg px-4 py-3 text-white outline-none focus:border-primary/50"
+              />
+            </label>
+          </div>
+          <div class="mt-auto">
+            <button
+              class="w-full px-5 py-3 bg-[#22492f] border border-[#366b47] rounded-lg text-sm text-white hover:bg-[#2e573a] transition-all"
+              data-action="reset-settings"
+            >
+              Reset Settings
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <footer
+        class="h-8 bg-[#0c1810] border-t border-[#2e573a] flex items-center justify-between px-4 shrink-0 z-[60]"
+      >
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-1.5">
+            <span
+              class="w-2 h-2 rounded-full bg-primary shadow-[0_0_5px_rgba(13,242,89,0.5)]"
+            ></span>
+            <span
+              id="status"
+              class="text-[10px] font-mono text-[#90cba4] uppercase tracking-wider"
+              >Status: Ready</span
+            >
+          </div>
+          <div class="h-3 w-px bg-[#2e573a]"></div>
+          <div
+            class="flex items-center gap-1.5 text-[10px] text-slate-500 font-mono"
+          >
+            <span class="material-symbols-outlined text-[14px]">terminal</span>
+            Govard Engine v2.4.1
+          </div>
+        </div>
+        <div class="flex items-center gap-4">
+          <div
+            class="flex items-center gap-1 text-[10px] text-slate-500 font-mono"
+          >
+            <span class="material-symbols-outlined text-[14px]">memory</span>
+            <span id="footerCPU">0%</span>
+          </div>
+          <div
+            class="flex items-center gap-1 text-[10px] text-slate-500 font-mono"
+          >
+            <span class="material-symbols-outlined text-[14px]"
+              >hard_drive</span
+            >
+            <span id="footerMemory">0 MB</span>
+          </div>
+          <div class="h-8 w-px bg-[#2e573a]"></div>
+          <button class="text-[#90cba4] hover:text-white transition-colors">
+            <span class="material-symbols-outlined text-[16px]">sync</span>
+          </button>
+        </div>
+      </footer>
+    </div>
+    <!-- End #app Root Container -->
+
     <script type="module" src="main.js"></script>
   </body>
 </html>
