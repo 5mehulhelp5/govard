@@ -15,7 +15,7 @@ govard bootstrap --fresh --version 2.4.8
 `govard bootstrap` can orchestrate:
 
 1. `govard init` automatically if `govard.yml` is missing
-2. `govard up` (unless `--skip-up`)
+2. `govard env up` (unless `--skip-up`)
 3. Clone flow (`sync` + DB import + configure + admin setup)
 4. Fresh install flow (`composer create-project` + setup install + optional sample/Hyva)
 
@@ -41,7 +41,7 @@ govard bootstrap --fresh --version 2.4.8
 - `--mage-password` Magento marketplace password for auth bootstrap
 - `--fix-deps` Run `govard custom fix-deps` before bootstrap (auto-detects remote Magento version when cloning and `--version` is omitted)
 - `--download-source` Legacy alias for `--clone --code-only`
-- `--skip-up` Skip `govard up` stage
+- `--skip-up` Skip `govard env up` stage
 
 ## Notes
 

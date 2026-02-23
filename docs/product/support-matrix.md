@@ -36,7 +36,7 @@
 ## Command Contract Notes
 
 - `govard doctor` is diagnostics-only.
-- `govard deps` checks required host dependencies (`docker`, `docker compose`, `ssh`, `rsync`).
-- `govard profile` is read-only.
-- `govard profile apply` writes runtime choices into `govard.yml` only.
+- `govard doctor fix-deps` checks required host dependencies (`docker`, `docker compose`, `ssh`, `rsync`).
+- `govard config profile` is read-only.
+- `govard config profile apply` writes runtime choices into `govard.yml` only.
 

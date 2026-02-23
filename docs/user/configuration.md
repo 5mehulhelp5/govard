@@ -18,7 +18,7 @@ Example:
 
 ```bash
 export GOVARD_ENV=staging
-govard up
+govard env up
 ```
 
 When `GOVARD_ENV=staging`, Govard will additionally load `govard.staging.yml` and `.govard/govard.staging.yml` if they exist.
@@ -87,11 +87,11 @@ stack:
 
 #### `lock.strict`
 - **Type**: boolean
-- **Description**: Enforce lock-file compliance during `govard up`
+- **Description**: Enforce lock-file compliance during `govard env up`
 - **Default**: `false`
 - **Notes**:
-  - When `true`, `govard up` fails if `govard.lock` is missing.
-  - When `true`, `govard up` fails when lock mismatches are detected.
+  - When `true`, `govard env up` fails if `govard.lock` is missing.
+  - When `true`, `govard env up` fails when lock mismatches are detected.
   - Use `govard lock generate` to create/update the lock file.
 
 #### `blueprint_registry`
@@ -272,7 +272,7 @@ Templates located in `blueprints/` that define the Docker Compose structure.
 
 ### Blueprint Assets
 
-Static assets like `varnish/default.vcl` are stored in `blueprints/[recipe]/` and mapped to containers during `govard up`.
+Static assets like `varnish/default.vcl` are stored in `blueprints/[recipe]/` and mapped to containers during `govard env up`.
 
 ### Custom Blueprints
 

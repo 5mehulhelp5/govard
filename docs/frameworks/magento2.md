@@ -4,7 +4,7 @@ Govard provides deep integration for Magento 2 development with automated config
 
 ## Auto-Configuration
 
-The `govard configure` command automates the injection of environment settings into `app/etc/env.php`.
+The `govard config auto` command automates the injection of environment settings into `app/etc/env.php`.
 
 ### What is configured?
 
@@ -17,15 +17,15 @@ The `govard configure` command automates the injection of environment settings i
 
 ### Execution
 
-Run this command after `govard up` has finished starting the containers:
+Run this command after `govard env up` has finished starting the containers:
 
 ```bash
-govard configure
+govard config auto
 ```
 
 **Requirements:**
 - Magento 2 must be installed
-- Containers must be running (`govard up`)
+- Containers must be running (`govard env up`)
 - `bin/magento` must be available
 
 ### Configuration Details
@@ -128,18 +128,18 @@ Single Redis service for cache and sessions:
 Run Magento CLI commands directly:
 
 ```bash
-govard magento [command]
+govard tool magento [command]
 ```
 
 Examples:
 
 ```bash
-govard magento cache:clean
-govard magento cache:flush
-govard magento setup:upgrade
-govard magento indexer:reindex
-govard magento maintenance:enable
-govard magento maintenance:disable
+govard tool magento cache:clean
+govard tool magento cache:flush
+govard tool magento setup:upgrade
+govard tool magento indexer:reindex
+govard tool magento maintenance:enable
+govard tool magento maintenance:disable
 ```
 
 **User**: Commands run as the project runtime user (`stack.user_id:stack.group_id`
@@ -152,10 +152,10 @@ workspace configuration.
 
 ```bash
 # Start environment
-govard up
+govard env up
 
 # Configure (first time or after env changes)
-govard configure
+govard config auto
 
 # Enter container
 govard shell
@@ -164,20 +164,20 @@ govard shell
 govard debug on
 
 # Check logs
-govard logs -e  # Error only
+govard env logs -e  # Error only
 ```
 
 ### Cache Management
 
 ```bash
 # Clean all caches
-govard magento cache:clean
+govard tool magento cache:clean
 
 # Clean specific cache
-govard magento cache:clean config full_page
+govard tool magento cache:clean config full_page
 
 # Flush cache
-govard magento cache:flush
+govard tool magento cache:flush
 ```
 
 ### Database Operations
@@ -214,7 +214,7 @@ Varnish may cache responses. To purge:
 docker restart {project}-varnish-1
 
 # Or restart all
-govard stop && govard up
+govard env stop && govard env up
 ```
 
 ### Elasticsearch Connection
@@ -222,7 +222,7 @@ govard stop && govard up
 If search doesn't work:
 
 ```bash
-govard magento config:set catalog/search/engine opensearch
-govard magento config:set catalog/search/opensearch_server_hostname elasticsearch
-govard magento config:set catalog/search/opensearch_server_port 9200
+govard tool magento config:set catalog/search/engine opensearch
+govard tool magento config:set catalog/search/opensearch_server_hostname elasticsearch
+govard tool magento config:set catalog/search/opensearch_server_port 9200
 ```

@@ -30,9 +30,9 @@ Compares current environment values with lock file values and reports mismatches
 Current behavior:
 - Returns success when fully compliant.
 - Returns a non-zero exit code when mismatches are found.
-- Used by `govard up` in warning-only mode (does not block startup).
+- Used by `govard env up` in warning-only mode (does not block startup).
 
-## Strict Mode (`govard up`)
+## Strict Mode (`govard env up`)
 
 Enable strict lock enforcement in `govard.yml`:
 
@@ -42,9 +42,9 @@ lock:
 ```
 
 When enabled:
-- `govard up` fails if `govard.lock` is missing.
-- `govard up` fails if lock mismatches are detected.
-- `govard up` still prints lock mismatch details before exiting.
+- `govard env up` fails if `govard.lock` is missing.
+- `govard env up` fails if lock mismatches are detected.
+- `govard env up` still prints lock mismatch details before exiting.
 
 ## Options
 

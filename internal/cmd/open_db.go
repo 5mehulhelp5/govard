@@ -7,9 +7,11 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"os/signal"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"govard/internal/engine"
 	engineremote "govard/internal/engine/remote"
@@ -58,13 +60,8 @@ func runOpenDBTarget(config engine.Config, requestedEnvironment string) error {
 	}
 
 	connectionURL := buildOpenDBConnectionURL(credentials, localPort)
-	pterm.Info.Printf("Opening DB URL %s\n", connectionURL)
-	if err := openURL(connectionURL); err != nil {
-		return err
-	}
-
 	pterm.Info.Printf(
-		"Starting SSH tunnel for remote '%s' (127.0.0.1:%d -> %s:%d). Press Ctrl+C to close.\n",
+		"Starting SSH tunnel for remote '%s' (127.0.0.1:%d -> %s:%d).\n",
 		environment,
 		localPort,
 		remoteHost,
@@ -75,13 +72,25 @@ func runOpenDBTarget(config engine.Config, requestedEnvironment string) error {
 	tunnelCmd.Stdout = os.Stdout
 	tunnelCmd.Stderr = os.Stderr
 
-	if err := tunnelCmd.Run(); err != nil {
-		if isInterruptExit(err) {
-			return nil
-		}
+	if err := tunnelCmd.Start(); err != nil {
 		return err
 	}
-	return nil
+
+	if err := waitForOpenDBTunnel(localPort, 5*time.Second); err != nil {
+		_ = tunnelCmd.Process.Kill()
+		_ = tunnelCmd.Wait()
+		return fmt.Errorf("wait for DB tunnel: %w", err)
+	}
+
+	pterm.Info.Printf("Opening DB URL %s\n", connectionURL)
+	if err := openURL(connectionURL); err != nil {
+		_ = tunnelCmd.Process.Kill()
+		_ = tunnelCmd.Wait()
+		return err
+	}
+
+	pterm.Info.Println("Tunnel active. Press Ctrl+C to close.")
+	return waitForOpenDBTunnelExit(tunnelCmd)
 }
 
 func resolveOpenDBEnvironment(config engine.Config, requestedEnvironment string) (string, bool, error) {
@@ -170,6 +179,47 @@ func isInterruptExit(err error) bool {
 		return false
 	}
 	return exitErr.ExitCode() == 130
+}
+
+func waitForOpenDBTunnel(localPort int, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	target := net.JoinHostPort("127.0.0.1", strconv.Itoa(localPort))
+	for {
+		conn, err := net.DialTimeout("tcp", target, 250*time.Millisecond)
+		if err == nil {
+			_ = conn.Close()
+			return nil
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("timeout waiting for tunnel on %s", target)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
+func waitForOpenDBTunnelExit(tunnelCmd *exec.Cmd) error {
+	waitCh := make(chan error, 1)
+	go func() {
+		waitCh <- tunnelCmd.Wait()
+	}()
+
+	interruptCh := make(chan os.Signal, 1)
+	signal.Notify(interruptCh, os.Interrupt)
+	defer signal.Stop(interruptCh)
+
+	for {
+		select {
+		case err := <-waitCh:
+			if err == nil || isInterruptExit(err) {
+				return nil
+			}
+			return err
+		case <-interruptCh:
+			if tunnelCmd.Process != nil {
+				_ = tunnelCmd.Process.Signal(os.Interrupt)
+			}
+		}
+	}
 }
 
 func ResolveOpenDBEnvironmentForTest(config engine.Config, requestedEnvironment string) (string, bool, error) {

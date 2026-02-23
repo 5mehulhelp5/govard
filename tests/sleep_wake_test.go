@@ -25,17 +25,17 @@ type sleepProjectEntry struct {
 func TestSleepWakeCommandsExist(t *testing.T) {
 	root := cmd.RootCommandForTest()
 
-	sleepCommand, _, err := root.Find([]string{"sleep"})
+	sleepCommand, _, err := root.Find([]string{"svc", "sleep"})
 	if err != nil {
-		t.Fatalf("find sleep command: %v", err)
+		t.Fatalf("find svc sleep command: %v", err)
 	}
 	if sleepCommand == nil || sleepCommand.Use != "sleep" {
 		t.Fatalf("unexpected sleep command: %#v", sleepCommand)
 	}
 
-	wakeCommand, _, err := root.Find([]string{"wake"})
+	wakeCommand, _, err := root.Find([]string{"svc", "wake"})
 	if err != nil {
-		t.Fatalf("find wake command: %v", err)
+		t.Fatalf("find svc wake command: %v", err)
 	}
 	if wakeCommand == nil || wakeCommand.Use != "wake" {
 		t.Fatalf("unexpected wake command: %#v", wakeCommand)

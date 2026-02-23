@@ -34,7 +34,7 @@ Govard is a professional-grade local development orchestrator built in Go. It re
 
 **Key Features:**
 - Automatic framework detection (Magento 1/OpenMage, Magento 2, Laravel, Next.js, Drupal, Symfony, Shopware, CakePHP, WordPress)
-- One-command environment setup with `govard up`
+- One-command environment setup with `govard env up`
 - Built-in HTTPS support via Caddy
 - Xdebug integration
 - Dedicated `php-debug` container with cookie-based routing
@@ -56,7 +56,7 @@ cd /path/to/your/project
 govard init
 
 # 3. Start the environment
-govard up
+govard env up
 
 # 4. Access your site
 # Open https://your-project.test in browser

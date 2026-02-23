@@ -51,15 +51,15 @@ func TestDocsFrameworkCommandsMatchSupportedShortcuts(t *testing.T) {
 
 	for _, required := range []string{
 		"### Drupal",
-		"govard drush [command]",
+		"govard tool drush [command]",
 		"### Symfony",
-		"govard symfony [command]",
+		"govard tool symfony [command]",
 		"### Shopware",
-		"govard shopware [command]",
+		"govard tool shopware [command]",
 		"### CakePHP",
-		"govard cake [command]",
+		"govard tool cake [command]",
 		"### WordPress",
-		"govard wp [command]",
+		"govard tool wp [command]",
 	} {
 		if !strings.Contains(content, required) {
 			t.Fatalf("framework command docs missing %q", required)
