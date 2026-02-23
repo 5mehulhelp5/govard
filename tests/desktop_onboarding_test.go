@@ -113,3 +113,85 @@ domain: shop.test
 		t.Fatalf("expected recipe magento2, got %s", entries[0].Recipe)
 	}
 }
+
+func TestDesktopPkgOnboardProjectWithOptionsForPathForTestAppliesOverrides(t *testing.T) {
+	root := t.TempDir()
+	registryPath := filepath.Join(t.TempDir(), "projects.json")
+	t.Setenv(engine.ProjectRegistryPathEnvVar, registryPath)
+
+	content := strings.TrimSpace(`
+project_name: shop
+recipe: laravel
+domain: shop.test
+stack:
+  php_version: "8.3"
+  node_version: "22"
+  db_type: mariadb
+  db_version: "10.6"
+  web_root: /public
+  services:
+    web_server: nginx
+    search: none
+    cache: none
+    queue: none
+  features:
+    xdebug: true
+    varnish: false
+`) + "\n"
+	if err := os.WriteFile(filepath.Join(root, "govard.yml"), []byte(content), 0o644); err != nil {
+		t.Fatalf("write govard.yml: %v", err)
+	}
+
+	restore := desktop.SetRunGovardCommandForDesktopForTest(func(dir string, args []string) (string, error) {
+		t.Fatalf("did not expect init command for preconfigured project; dir=%s args=%#v", dir, args)
+		return "", nil
+	})
+	defer restore()
+
+	message, err := desktop.OnboardProjectWithOptionsForPathForTest(
+		root,
+		"",
+		"custom-shop",
+		true,
+		true,
+		true,
+		true,
+	)
+	if err != nil {
+		t.Fatalf("onboard project with options: %v", err)
+	}
+	if !strings.Contains(strings.ToLower(message), "added") {
+		t.Fatalf("expected added message, got %q", message)
+	}
+
+	cfg, err := engine.LoadBaseConfigFromDir(root, true)
+	if err != nil {
+		t.Fatalf("reload config: %v", err)
+	}
+	if cfg.Domain != "custom-shop.test" {
+		t.Fatalf("expected domain custom-shop.test, got %s", cfg.Domain)
+	}
+	if !cfg.Stack.Features.Varnish {
+		t.Fatalf("expected varnish enabled after onboarding override")
+	}
+	if cfg.Stack.Services.Cache != "redis" {
+		t.Fatalf("expected cache redis, got %s", cfg.Stack.Services.Cache)
+	}
+	if cfg.Stack.Services.Queue != "rabbitmq" {
+		t.Fatalf("expected queue rabbitmq, got %s", cfg.Stack.Services.Queue)
+	}
+	if cfg.Stack.Services.Search != "elasticsearch" {
+		t.Fatalf("expected search elasticsearch, got %s", cfg.Stack.Services.Search)
+	}
+
+	entries, err := engine.ReadProjectRegistryEntries()
+	if err != nil {
+		t.Fatalf("read registry: %v", err)
+	}
+	if len(entries) != 1 {
+		t.Fatalf("expected one registry entry, got %d", len(entries))
+	}
+	if entries[0].Domain != "custom-shop.test" {
+		t.Fatalf("expected registry domain custom-shop.test, got %s", entries[0].Domain)
+	}
+}

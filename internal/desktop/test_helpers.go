@@ -103,6 +103,25 @@ func BuildRemoteSyncPlanArgsForTest(remoteName string, preset string) ([]string,
 	return buildRemoteSyncPlanArgs(remoteName, preset)
 }
 
+// BuildRemoteSyncPlanArgsWithOptionsForTest exposes sync preset argument generation with desktop sync toggles.
+func BuildRemoteSyncPlanArgsWithOptionsForTest(
+	remoteName string,
+	preset string,
+	sanitize bool,
+	excludeLogs bool,
+	compress bool,
+) ([]string, error) {
+	return buildRemoteSyncPlanArgsWithOptions(
+		remoteName,
+		preset,
+		remoteSyncPlanOptions{
+			Sanitize:    sanitize,
+			ExcludeLogs: excludeLogs,
+			Compress:    compress,
+		},
+	)
+}
+
 // ListProjectRemotesForPathForTest exposes path-based remotes loading for tests.
 func ListProjectRemotesForPathForTest(root string) (RemoteSnapshot, error) {
 	return listProjectRemotesByPath(root)
@@ -129,6 +148,28 @@ func SetRunGovardCommandForDesktopForTest(fn func(root string, args []string) (s
 // OnboardProjectForPathForTest exposes onboarding flow for tests.
 func OnboardProjectForPathForTest(projectPath string, recipe string) (string, error) {
 	return onboardProject(projectPath, recipe)
+}
+
+// OnboardProjectWithOptionsForPathForTest exposes onboarding flow with desktop overrides.
+func OnboardProjectWithOptionsForPathForTest(
+	projectPath string,
+	recipe string,
+	domain string,
+	varnishEnabled bool,
+	redisEnabled bool,
+	rabbitMQEnabled bool,
+	elasticsearchEnabled bool,
+) (string, error) {
+	return onboardProjectWithOptions(
+		projectPath,
+		recipe,
+		domain,
+		varnishEnabled,
+		redisEnabled,
+		rabbitMQEnabled,
+		elasticsearchEnabled,
+		true,
+	)
 }
 
 // LooksLikeGovardForTest exposes desktop project filtering for tests.

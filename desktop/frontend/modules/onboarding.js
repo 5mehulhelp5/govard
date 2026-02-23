@@ -18,6 +18,28 @@ export const normalizeOnboardingRecipe = (recipe = "") => {
   return normalized;
 };
 
+const inferProjectNameFromPath = (projectPath = "") => {
+  const parts = String(projectPath || "")
+    .split(/[\\/]+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return parts.at(-1) || "";
+};
+
+const normalizeOnboardingDomain = (domain = "", projectPath = "") => {
+  const trimmed = String(domain || "")
+    .trim()
+    .toLowerCase();
+  const base = trimmed || inferProjectNameFromPath(projectPath).toLowerCase();
+  if (!base) {
+    return "";
+  }
+  if (base.includes(".")) {
+    return base;
+  }
+  return `${base}.test`;
+};
+
 export const createOnboardingController = ({
   bridge,
   refs,
@@ -36,6 +58,9 @@ export const createOnboardingController = ({
     if (refs.displayProjectPath) {
       refs.displayProjectPath.textContent = path;
     }
+    if (refs.projectDomain && !String(refs.projectDomain.value || "").trim()) {
+      refs.projectDomain.value = inferProjectNameFromPath(path);
+    }
     onStatus(`Status: selected project path ${path}`);
   };
 
@@ -48,8 +73,16 @@ export const createOnboardingController = ({
     }
 
     const recipe = normalizeOnboardingRecipe(refs.projectRecipe?.value || "");
+    const domain = normalizeOnboardingDomain(refs.projectDomain?.value || "", projectPath);
+    const serviceOptions = {
+      varnish: Boolean(refs.onboardVarnish?.checked),
+      redis: Boolean(refs.onboardRedis?.checked),
+      rabbitmq: Boolean(refs.onboardRabbitMQ?.checked),
+      elasticsearch: Boolean(refs.onboardElasticsearch?.checked),
+    };
     const message = String(
-      (await bridge.onboardProject(projectPath, recipe)) || "",
+      (await bridge.onboardProject(projectPath, recipe, domain, serviceOptions)) ||
+        "",
     );
     const isError = message.toLowerCase().includes("failed");
     onStatus(message || "Status: project onboarding finished");

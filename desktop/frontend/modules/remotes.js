@@ -250,6 +250,7 @@ export const createRemotesController = ({
   bridge,
   refs,
   getProject,
+  getSyncConfig,
   onStatus,
   onToast,
 }) => {
@@ -345,10 +346,16 @@ export const createRemotesController = ({
       return;
     }
 
+    const syncConfig = getSyncConfig?.() || {};
     const message = await bridge.runRemoteSyncPreset(
       project,
       remoteName,
       normalizedPreset,
+      {
+        sanitize: Boolean(syncConfig.sanitize),
+        excludeLogs: Boolean(syncConfig.excludeLogs),
+        compress: Boolean(syncConfig.compress),
+      },
     );
     const response = String(message || "");
     const isError = response.toLowerCase().includes("failed");

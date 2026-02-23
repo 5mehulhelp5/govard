@@ -13,6 +13,7 @@ type SyncOptions struct {
 	DB          bool
 	Delete      bool
 	Resume      bool
+	NoCompress  bool
 	Path        string
 	Include     []string
 	Exclude     []string
@@ -25,7 +26,10 @@ type SyncPlan struct {
 }
 
 func BuildSyncPlan(opts SyncOptions) SyncPlan {
-	cmd := "rsync -az"
+	cmd := "rsync -a"
+	if !opts.NoCompress {
+		cmd += "z"
+	}
 	if opts.Delete {
 		cmd += " --delete"
 	}

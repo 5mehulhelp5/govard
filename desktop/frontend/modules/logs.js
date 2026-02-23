@@ -137,6 +137,20 @@ export const createLogsController = ({
   let liveEnabled = false;
   let rawLogOutput = "";
 
+  const buildLogFilename = (project, service) => {
+    const sanitize = (value, fallback) =>
+      String(value || "")
+        .trim()
+        .replace(/[^a-zA-Z0-9._-]+/g, "-")
+        .replace(/^-+|-+$/g, "") || fallback;
+    const stamp = new Date()
+      .toISOString()
+      .replace(/[:.]/g, "-")
+      .replace("T", "_")
+      .replace("Z", "");
+    return `govard-${sanitize(project, "project")}-${sanitize(service, "all")}-${stamp}.log`;
+  };
+
   const renderFilteredOutput = () => {
     if (!refs.logOutput) {
       return;
@@ -227,6 +241,35 @@ export const createLogsController = ({
     await startLive();
   };
 
+  const clearLogs = async () => {
+    await stopLive();
+    rawLogOutput = "";
+    renderFilteredOutput();
+    onStatus("Status: logs cleared.");
+    onToast("Logs cleared.", "success");
+  };
+
+  const downloadLogs = () => {
+    const output = String(rawLogOutput || "").trim();
+    if (!output) {
+      onStatus("Status: no logs to download.");
+      onToast("No logs to download.", "warning");
+      return;
+    }
+    const { project, service } = readSelection();
+    const blob = new Blob([output + "\n"], { type: "text/plain;charset=utf-8" });
+    const href = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = href;
+    anchor.download = buildLogFilename(project, service);
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(href);
+    onStatus("Status: logs downloaded.");
+    onToast("Logs downloaded.", "success");
+  };
+
   if (runtime?.EventsOn) {
     runtime.EventsOn("logs:line", appendLogLine);
     runtime.EventsOn("logs:status", (message) => {
@@ -243,6 +286,8 @@ export const createLogsController = ({
     refresh,
     applyFilters: renderFilteredOutput,
     toggleLive,
+    clearLogs,
+    downloadLogs,
     stopLive,
     isLiveEnabled: () => liveEnabled,
   };

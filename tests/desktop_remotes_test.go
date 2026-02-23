@@ -90,6 +90,36 @@ func TestDesktopPkgBuildRemoteSyncPlanArgsForTest(t *testing.T) {
 	}
 }
 
+func TestDesktopPkgBuildRemoteSyncPlanArgsWithOptionsForTest(t *testing.T) {
+	args, err := desktop.BuildRemoteSyncPlanArgsWithOptionsForTest(
+		"staging",
+		"files",
+		true,
+		true,
+		false,
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, expectedArg := range []string{
+		"sync",
+		"--source",
+		"staging",
+		"--destination",
+		"local",
+		"--file",
+		"--exclude",
+		".env",
+		"var/log/**",
+		"--no-compress",
+		"--plan",
+	} {
+		if !containsString(args, expectedArg) {
+			t.Fatalf("expected %q in sync args: %#v", expectedArg, args)
+		}
+	}
+}
+
 func TestDesktopPkgListAndUpsertProjectRemotesForPathForTest(t *testing.T) {
 	root := t.TempDir()
 	baseConfig := strings.TrimSpace(`
@@ -158,4 +188,13 @@ remotes:
 	if !foundProd {
 		t.Fatal("expected prod remote after upsert")
 	}
+}
+
+func containsString(items []string, expected string) bool {
+	for _, item := range items {
+		if item == expected {
+			return true
+		}
+	}
+	return false
 }

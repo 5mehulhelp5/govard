@@ -60,7 +60,7 @@ func TestBuildRsyncCommandUsesSSHPolicy(t *testing.T) {
 			StrictHostKey: true,
 		},
 	}
-	cmd := remote.BuildRsyncCommand("staging", "src/", "deploy@example.com:/srv/www/app/", cfg, false, true, nil, nil)
+	cmd := remote.BuildRsyncCommand("staging", "src/", "deploy@example.com:/srv/www/app/", cfg, false, true, false, nil, nil)
 	joined := strings.Join(cmd.Args, " ")
 	if !strings.Contains(joined, "StrictHostKeyChecking=yes") {
 		t.Fatalf("expected strict host key in rsync ssh args, got: %s", joined)
@@ -80,6 +80,7 @@ func TestBuildRsyncCommandIncludeExcludePatterns(t *testing.T) {
 		cfg,
 		false,
 		true,
+		false,
 		[]string{"app/*"},
 		[]string{"vendor/"},
 	)

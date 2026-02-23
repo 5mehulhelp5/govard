@@ -38,46 +38,34 @@ test("core layout excludes removed heavyweight sections", async () => {
   }
 })
 
-test("quick actions uses structured action grids", async () => {
+test("quick actions exposes desktop action contracts", async () => {
   const html = await readFile(new URL("../../desktop/frontend/index.html", import.meta.url), "utf8")
-  assert.equal(html.includes('class="panel quick-actions"'), true, "missing quick-actions panel class")
-  assert.equal(
-    html.includes('class="quick-actions__primary action-grid action-grid--primary"'),
-    true,
-    "missing quick actions primary grid",
-  )
-  assert.equal(
-    html.includes('class="quick-actions__tools action-grid action-grid--tools"'),
-    true,
-    "missing quick actions tools grid",
-  )
-  assert.equal(html.includes('data-action="open-mail"'), false, "mail quick action should be removed")
+  for (const action of ["open-folder", "open-ide", "open-db-client", "open-mail-client"]) {
+    assert.equal(html.includes(`data-action="${action}"`), true, `missing quick action ${action}`)
+  }
+  assert.equal(html.includes('data-action="open-mail"'), false, "legacy quick action should stay removed")
 })
 
-test("project management workspace groups environments, quick actions, and onboarding", async () => {
+test("project management workspace keeps core IDs for controllers", async () => {
   const html = await readFile(new URL("../../desktop/frontend/index.html", import.meta.url), "utf8")
-  assert.equal(html.includes('class="grid grid--project"'), true, "missing project workspace grid")
-  assert.equal(html.includes('class="project-sidebar"'), true, "missing project management sidebar")
-  assert.equal(html.includes('id="onboarding"'), true, "missing onboarding panel")
+  assert.equal(html.includes('id="envList"'), true, "missing environment list container")
+  assert.equal(html.includes('id="metricsList"'), true, "missing metrics list container")
+  assert.equal(html.includes('id="onboardingModal"'), true, "missing onboarding modal")
+  assert.equal(html.includes('data-action="open-onboarding"'), true, "missing onboarding open action")
 })
 
-test("logs section uses two-row controls layout", async () => {
+test("logs section exposes filtering and streaming controls", async () => {
   const html = await readFile(new URL("../../desktop/frontend/index.html", import.meta.url), "utf8")
-  assert.equal(html.includes('class="panel panel--logs" id="logs"'), true, "missing logs panel class")
-  assert.equal(html.includes('class="logs-controls__row logs-controls__row--top"'), true, "missing logs top row")
-  assert.equal(
-    html.includes('class="logs-controls__row logs-controls__row--bottom"'),
-    true,
-    "missing logs bottom row",
-  )
+  assert.equal(html.includes('id="tab-logs"'), true, "missing logs tab")
+  assert.equal(html.includes('id="logServiceSelector"'), true, "missing log service selector")
+  assert.equal(html.includes('id="logSeverity"'), true, "missing log severity selector")
+  assert.equal(html.includes('data-action="refresh-logs"'), true, "missing refresh logs action")
+  assert.equal(html.includes('data-action="toggle-live"'), true, "missing toggle live action")
 })
 
 test("metrics section is present for resource monitoring", async () => {
   const html = await readFile(new URL("../../desktop/frontend/index.html", import.meta.url), "utf8")
-  assert.equal(html.includes('id="metrics"'), true, "missing metrics section")
-  assert.equal(
-    html.includes('data-action="refresh-metrics"'),
-    true,
-    "missing metrics refresh action button",
-  )
+  for (const id of ["metricCPU", "metricMemory", "metricsList"]) {
+    assert.equal(html.includes(`id="${id}"`), true, `missing metrics field ${id}`)
+  }
 })

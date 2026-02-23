@@ -34,10 +34,15 @@ func BuildRsyncCommand(
 	remoteCfg engine.RemoteConfig,
 	deleteFiles bool,
 	resume bool,
+	noCompress bool,
 	includePatterns []string,
 	excludePatterns []string,
 ) *exec.Cmd {
-	args := []string{"-az"}
+	rsyncMode := "-a"
+	if !noCompress {
+		rsyncMode = "-az"
+	}
+	args := []string{rsyncMode}
 	if deleteFiles {
 		args = append(args, "--delete")
 	}

@@ -266,6 +266,7 @@ const remotesController = createRemotesController({
   bridge: desktopBridge,
   refs,
   getProject: () => getState().selectedProject,
+  getSyncConfig: () => getState().syncConfig,
   onStatus: setStatus,
   onToast: showToast,
 });
@@ -416,6 +417,14 @@ document.addEventListener("click", async (event) => {
   }
   if (action === "toggle-live") {
     await logsController.toggleLive();
+    return;
+  }
+  if (action === "clear-logs") {
+    await logsController.clearLogs();
+    return;
+  }
+  if (action === "download-logs") {
+    logsController.downloadLogs();
     return;
   }
   if (action === "open-shell") {

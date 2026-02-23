@@ -100,8 +100,25 @@ func (app *App) PickProjectDirectory() string {
 	return path
 }
 
-func (app *App) OnboardProject(projectPath string, recipe string) string {
-	message, err := onboardProject(projectPath, recipe)
+func (app *App) OnboardProject(
+	projectPath string,
+	recipe string,
+	domain string,
+	varnishEnabled bool,
+	redisEnabled bool,
+	rabbitMQEnabled bool,
+	elasticsearchEnabled bool,
+) string {
+	message, err := onboardProjectWithOptions(
+		projectPath,
+		recipe,
+		domain,
+		varnishEnabled,
+		redisEnabled,
+		rabbitMQEnabled,
+		elasticsearchEnabled,
+		true,
+	)
 	if err != nil {
 		return "Failed to onboard project: " + err.Error()
 	}
@@ -183,8 +200,24 @@ func (app *App) TestRemote(project string, remoteName string) string {
 	return output
 }
 
-func (app *App) RunRemoteSyncPreset(project string, remoteName string, preset string) string {
-	output, err := runRemoteSyncPreset(project, remoteName, preset)
+func (app *App) RunRemoteSyncPreset(
+	project string,
+	remoteName string,
+	preset string,
+	sanitize bool,
+	excludeLogs bool,
+	compress bool,
+) string {
+	output, err := runRemoteSyncPresetWithOptions(
+		project,
+		remoteName,
+		preset,
+		remoteSyncPlanOptions{
+			Sanitize:    sanitize,
+			ExcludeLogs: excludeLogs,
+			Compress:    compress,
+		},
+	)
 	if err != nil {
 		return "Remote sync plan failed: " + err.Error()
 	}
@@ -218,14 +251,14 @@ func (app *App) QuickAction(action string) string {
 	if message, err := quickAction(app.ctx, action, ""); err == nil {
 		return message
 	}
-	return "Action received: " + action
+	return "Action failed: unsupported action " + action
 }
 
 func (app *App) QuickActionForProject(action string, project string) string {
 	if message, err := quickAction(app.ctx, action, project); err == nil {
 		return message
 	}
-	return "Action received: " + action
+	return "Action failed: unsupported action " + action
 }
 
 func (app *App) GetLogs(project string) string {

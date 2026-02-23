@@ -18,9 +18,9 @@ import (
 
 func quickAction(ctx context.Context, action string, project string) (string, error) {
 	switch action {
-	case "open-mail":
+	case "open-mail", "open-mail-client":
 		return openDestination(ctx, buildProxyURL("mail"), "Opening Mailpit...")
-	case "open-pma":
+	case "open-pma", "open-db-client":
 		return openDestination(ctx, buildProxyURL("pma"), "Opening PHPMyAdmin...")
 	case "toggle-xdebug":
 		return toggleXdebug(project)

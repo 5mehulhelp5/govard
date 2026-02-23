@@ -29,6 +29,28 @@ func pickProjectDirectory(ctx context.Context) (string, error) {
 }
 
 func onboardProject(projectPath string, recipe string) (string, error) {
+	return onboardProjectWithOptions(
+		projectPath,
+		recipe,
+		"",
+		false,
+		false,
+		false,
+		false,
+		false,
+	)
+}
+
+func onboardProjectWithOptions(
+	projectPath string,
+	recipe string,
+	domain string,
+	varnishEnabled bool,
+	redisEnabled bool,
+	rabbitMQEnabled bool,
+	elasticsearchEnabled bool,
+	applyOverrides bool,
+) (string, error) {
 	startedAt := time.Now()
 	status := engine.OperationStatusFailure
 	category := "runtime"
@@ -79,6 +101,27 @@ func onboardProject(projectPath string, recipe string) (string, error) {
 		if !hasConfig {
 			message = "govard.yml not found after init"
 			return "", fmt.Errorf("govard.yml not found after init")
+		}
+	}
+
+	if applyOverrides &&
+		applyOnboardingOverrides(
+			&config,
+			domain,
+			varnishEnabled,
+			redisEnabled,
+			rabbitMQEnabled,
+			elasticsearchEnabled,
+		) {
+		engine.NormalizeConfig(&config)
+		if err := writeBaseConfig(root, config); err != nil {
+			message = err.Error()
+			return "", err
+		}
+		if err := engine.RenderBlueprint(root, config); err != nil {
+			// Keep onboarding resilient: config and registry update are primary outcomes.
+			// Compose render can be retried later via regular runtime commands.
+			message = "compose render skipped: " + err.Error()
 		}
 	}
 
@@ -157,6 +200,73 @@ func normalizeOnboardingRecipe(recipe string) string {
 	default:
 		return strings.ToLower(strings.TrimSpace(recipe))
 	}
+}
+
+func applyOnboardingOverrides(
+	config *engine.Config,
+	domain string,
+	varnishEnabled bool,
+	redisEnabled bool,
+	rabbitMQEnabled bool,
+	elasticsearchEnabled bool,
+) bool {
+	if config == nil {
+		return false
+	}
+
+	changed := false
+
+	if normalizedDomain := normalizeOnboardingDomain(domain); normalizedDomain != "" {
+		if strings.TrimSpace(config.Domain) != normalizedDomain {
+			config.Domain = normalizedDomain
+			changed = true
+		}
+	}
+
+	if config.Stack.Features.Varnish != varnishEnabled {
+		config.Stack.Features.Varnish = varnishEnabled
+		changed = true
+	}
+
+	cacheTarget := "none"
+	if redisEnabled {
+		cacheTarget = "redis"
+	}
+	if strings.ToLower(strings.TrimSpace(config.Stack.Services.Cache)) != cacheTarget {
+		config.Stack.Services.Cache = cacheTarget
+		changed = true
+	}
+
+	queueTarget := "none"
+	if rabbitMQEnabled {
+		queueTarget = "rabbitmq"
+	}
+	if strings.ToLower(strings.TrimSpace(config.Stack.Services.Queue)) != queueTarget {
+		config.Stack.Services.Queue = queueTarget
+		changed = true
+	}
+
+	searchTarget := "none"
+	if elasticsearchEnabled {
+		searchTarget = "elasticsearch"
+	}
+	if strings.ToLower(strings.TrimSpace(config.Stack.Services.Search)) != searchTarget {
+		config.Stack.Services.Search = searchTarget
+		changed = true
+	}
+
+	return changed
+}
+
+func normalizeOnboardingDomain(domain string) string {
+	normalized := strings.ToLower(strings.TrimSpace(domain))
+	if normalized == "" {
+		return ""
+	}
+	if !strings.Contains(normalized, ".") {
+		normalized += ".test"
+	}
+	return normalized
 }
 
 func buildProjectRegistryEntry(root string, config engine.Config, command string) engine.ProjectRegistryEntry {

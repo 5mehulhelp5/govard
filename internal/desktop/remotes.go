@@ -36,6 +36,29 @@ var defaultRunGovardCommandForDesktop = func(root string, args []string) (string
 
 var runGovardCommandForDesktop = defaultRunGovardCommandForDesktop
 
+var defaultSyncSanitizeExcludePatterns = []string{
+	".env",
+	"*.pem",
+	"*.key",
+}
+
+var defaultSyncLogExcludePatterns = []string{
+	"var/log/**",
+	"storage/logs/**",
+}
+
+type remoteSyncPlanOptions struct {
+	Sanitize    bool
+	ExcludeLogs bool
+	Compress    bool
+}
+
+func defaultRemoteSyncPlanOptions() remoteSyncPlanOptions {
+	return remoteSyncPlanOptions{
+		Compress: true,
+	}
+}
+
 func listProjectRemotes(project string) (RemoteSnapshot, error) {
 	root, err := resolveProjectRootForRemotes(project)
 	if err != nil {
@@ -199,6 +222,20 @@ func testRemote(project string, remoteName string) (string, error) {
 }
 
 func runRemoteSyncPreset(project string, remoteName string, preset string) (string, error) {
+	return runRemoteSyncPresetWithOptions(
+		project,
+		remoteName,
+		preset,
+		defaultRemoteSyncPlanOptions(),
+	)
+}
+
+func runRemoteSyncPresetWithOptions(
+	project string,
+	remoteName string,
+	preset string,
+	options remoteSyncPlanOptions,
+) (string, error) {
 	startedAt := time.Now()
 	status := engine.OperationStatusFailure
 	category := "runtime"
@@ -241,7 +278,7 @@ func runRemoteSyncPreset(project string, remoteName string, preset string) (stri
 		return "", fmt.Errorf("%s", message)
 	}
 
-	args, err := buildRemoteSyncPlanArgs(remoteName, preset)
+	args, err := buildRemoteSyncPlanArgsWithOptions(remoteName, preset, options)
 	if err != nil {
 		category = "validation"
 		message = err.Error()
@@ -361,6 +398,18 @@ func buildRemoteEntries(remotes map[string]engine.RemoteConfig) []RemoteEntry {
 }
 
 func buildRemoteSyncPlanArgs(remoteName string, preset string) ([]string, error) {
+	return buildRemoteSyncPlanArgsWithOptions(
+		remoteName,
+		preset,
+		defaultRemoteSyncPlanOptions(),
+	)
+}
+
+func buildRemoteSyncPlanArgsWithOptions(
+	remoteName string,
+	preset string,
+	options remoteSyncPlanOptions,
+) ([]string, error) {
 	normalizedPreset, err := normalizeRemoteSyncPreset(preset)
 	if err != nil {
 		return nil, err
@@ -378,6 +427,22 @@ func buildRemoteSyncPlanArgs(remoteName string, preset string) ([]string, error)
 		args = append(args, "--full")
 	default:
 		return nil, fmt.Errorf("unsupported sync preset '%s'", normalizedPreset)
+	}
+
+	if options.Sanitize {
+		for _, pattern := range defaultSyncSanitizeExcludePatterns {
+			args = append(args, "--exclude", pattern)
+		}
+	}
+
+	if options.ExcludeLogs {
+		for _, pattern := range defaultSyncLogExcludePatterns {
+			args = append(args, "--exclude", pattern)
+		}
+	}
+
+	if !options.Compress {
+		args = append(args, "--no-compress")
 	}
 
 	args = append(args, "--plan")

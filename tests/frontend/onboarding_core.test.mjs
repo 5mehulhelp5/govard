@@ -14,7 +14,7 @@ test("normalizeOnboardingRecipe canonicalizes empty and aliases", () => {
 
 test("desktop layout exposes onboarding section and actions", async () => {
   const html = await readFile(new URL("../../desktop/frontend/index.html", import.meta.url), "utf8")
-  assert.equal(html.includes('id="onboarding"'), true, "missing onboarding section")
+  assert.equal(html.includes('id="onboardingModal"'), true, "missing onboarding modal")
   assert.equal(html.includes('data-action="browse-project"'), true, "missing browse action")
   assert.equal(html.includes('data-action="add-project"'), true, "missing add project action")
 })

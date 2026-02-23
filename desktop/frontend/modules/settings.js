@@ -10,14 +10,21 @@ export const applyTheme = (theme) => {
   if (!root) {
     return;
   }
+  const setDarkClass = (darkEnabled) => {
+    if (darkEnabled) {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+  };
   if (theme === "system") {
     const prefersDark =
       window.matchMedia &&
       window.matchMedia("(prefers-color-scheme: dark)").matches;
-    root.dataset.theme = prefersDark ? "dark" : "light";
+    setDarkClass(prefersDark);
     return;
   }
-  root.dataset.theme = theme;
+  setDarkClass(theme === "dark");
 };
 
 export const createSettingsController = ({

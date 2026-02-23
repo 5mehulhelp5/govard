@@ -1,5 +1,6 @@
 import test from "node:test"
 import assert from "node:assert/strict"
+import { readFile } from "node:fs/promises"
 
 import {
   classifyLogSeverity,
@@ -44,4 +45,14 @@ test("filterLogsText filters by severity and search query", () => {
   assert.equal(filterLogsText(logs, "all", "retry"), "Info retry success")
   assert.equal(filterLogsText(logs, "info", "worker"), "Info worker ready")
   assert.equal(filterLogsText(logs, "error", "worker"), "")
+})
+
+test("logs tab exposes shell controls contract", async () => {
+  const html = await readFile(new URL("../../desktop/frontend/index.html", import.meta.url), "utf8")
+  for (const id of ["shellUser", "shellCommand"]) {
+    assert.equal(html.includes(`id="${id}"`), true, `missing shell control ${id}`)
+  }
+  for (const action of ["open-shell", "reset-shell-users"]) {
+    assert.equal(html.includes(`data-action="${action}"`), true, `missing shell action ${action}`)
+  }
 })

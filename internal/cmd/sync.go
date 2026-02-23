@@ -37,6 +37,7 @@ var syncCmd = &cobra.Command{
 		planOnly, _ := cmd.Flags().GetBool("plan")
 		resume, _ := cmd.Flags().GetBool("resume")
 		noResume, _ := cmd.Flags().GetBool("no-resume")
+		noCompress, _ := cmd.Flags().GetBool("no-compress")
 		includePatternsRaw, _ := cmd.Flags().GetStringArray("include")
 		excludePatternsRaw, _ := cmd.Flags().GetStringArray("exclude")
 		includePatterns := normalizeSyncPatterns(includePatternsRaw)
@@ -115,19 +116,21 @@ var syncCmd = &cobra.Command{
 			DB:          database,
 			Delete:      deleteFiles,
 			Resume:      resumeTransfers,
+			NoCompress:  noCompress,
 			Path:        path,
 			Include:     includePatterns,
 			Exclude:     excludePatterns,
 		})
 		execOpts := syncExecutionOptions{
-			Files:   files,
-			Media:   media,
-			DB:      database,
-			Delete:  deleteFiles,
-			Resume:  resumeTransfers,
-			Path:    path,
-			Include: includePatterns,
-			Exclude: excludePatterns,
+			Files:      files,
+			Media:      media,
+			DB:         database,
+			Delete:     deleteFiles,
+			Resume:     resumeTransfers,
+			NoCompress: noCompress,
+			Path:       path,
+			Include:    includePatterns,
+			Exclude:    excludePatterns,
 		}
 
 		endpoints, err := resolveSyncEndpoints(config, source, destination)
@@ -211,6 +214,7 @@ func init() {
 	syncCmd.Flags().Bool("delete", false, "Delete destination files missing on source")
 	syncCmd.Flags().Bool("resume", true, "Enable resumable rsync transfers (--partial --append-verify)")
 	syncCmd.Flags().Bool("no-resume", false, "Disable resumable rsync transfers")
+	syncCmd.Flags().Bool("no-compress", false, "Disable rsync compression")
 	syncCmd.Flags().String("path", "", "Sync a specific path")
 	syncCmd.Flags().StringArray("include", nil, "Rsync include pattern (repeatable)")
 	syncCmd.Flags().StringArray("exclude", nil, "Rsync exclude pattern (repeatable)")
@@ -238,14 +242,15 @@ type resolvedSyncEndpoints struct {
 }
 
 type syncExecutionOptions struct {
-	Files   bool
-	Media   bool
-	DB      bool
-	Delete  bool
-	Resume  bool
-	Path    string
-	Include []string
-	Exclude []string
+	Files      bool
+	Media      bool
+	DB         bool
+	Delete     bool
+	Resume     bool
+	NoCompress bool
+	Path       string
+	Include    []string
+	Exclude    []string
 }
 
 type syncExecutionPlan struct {
@@ -321,6 +326,7 @@ func buildSyncExecutionPlan(config engine.Config, endpoints resolvedSyncEndpoint
 			destinationPath,
 			opts.Delete,
 			opts.Resume,
+			opts.NoCompress,
 			opts.Include,
 			opts.Exclude,
 		)
@@ -339,6 +345,7 @@ func buildSyncExecutionPlan(config engine.Config, endpoints resolvedSyncEndpoint
 			endpoints.Destination.MediaPath,
 			opts.Delete,
 			opts.Resume,
+			opts.NoCompress,
 			opts.Include,
 			opts.Exclude,
 		)
@@ -403,6 +410,9 @@ func evaluateSyncPolicy(endpoints resolvedSyncEndpoints, opts syncExecutionOptio
 	if opts.Resume && !opts.Files && !opts.Media {
 		warnings = append(warnings, "--resume applies to file/media rsync scopes only.")
 	}
+	if opts.NoCompress && !opts.Files && !opts.Media {
+		warnings = append(warnings, "--no-compress applies to file/media rsync scopes only.")
+	}
 	if !endpoints.Destination.IsLocal {
 		warnings = append(warnings, fmt.Sprintf("This operation writes to remote destination '%s'.", endpoints.Destination.Name))
 	}
@@ -425,6 +435,7 @@ func buildSyncPlanSummary(endpoints resolvedSyncEndpoints, execution syncExecuti
 		fmt.Sprintf("include patterns: %s", syncPatternSummary(opts.Include)),
 		fmt.Sprintf("exclude patterns: %s", syncPatternSummary(opts.Exclude)),
 		fmt.Sprintf("resume mode: %s", boolLabel(opts.Resume, "enabled", "disabled")),
+		fmt.Sprintf("compression: %s", boolLabel(!opts.NoCompress, "enabled", "disabled")),
 		fmt.Sprintf("delete mode: %s", boolLabel(opts.Delete, "enabled", "disabled")),
 	}
 
@@ -459,6 +470,7 @@ func buildFallbackSyncPlanSummary(source, destination string, opts syncExecution
 		fmt.Sprintf("include patterns: %s", syncPatternSummary(opts.Include)),
 		fmt.Sprintf("exclude patterns: %s", syncPatternSummary(opts.Exclude)),
 		fmt.Sprintf("resume mode: %s", boolLabel(opts.Resume, "enabled", "disabled")),
+		fmt.Sprintf("compression: %s", boolLabel(!opts.NoCompress, "enabled", "disabled")),
 		fmt.Sprintf("delete mode: %s", boolLabel(opts.Delete, "enabled", "disabled")),
 		"risk: medium (endpoint details unavailable)",
 		fmt.Sprintf("warning: endpoint resolution failed: %v", resolveErr),
@@ -574,6 +586,7 @@ func buildRsyncForEndpoints(
 	destinationPath string,
 	deleteFiles bool,
 	resume bool,
+	noCompress bool,
 	includePatterns []string,
 	excludePatterns []string,
 ) (*exec.Cmd, string, error) {
@@ -589,6 +602,7 @@ func buildRsyncForEndpoints(
 			destination.RemoteCfg,
 			deleteFiles,
 			resume,
+			noCompress,
 			includePatterns,
 			excludePatterns,
 		)
@@ -602,6 +616,7 @@ func buildRsyncForEndpoints(
 		source.RemoteCfg,
 		deleteFiles,
 		resume,
+		noCompress,
 		includePatterns,
 		excludePatterns,
 	)

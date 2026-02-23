@@ -148,6 +148,47 @@ remotes:
 	}
 }
 
+func TestSyncCommandPlanNoCompress(t *testing.T) {
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, "govard.yml")
+	config := `project_name: test
+domain: test.test
+recipe: laravel
+remotes:
+  staging:
+    host: staging.example.com
+    user: deploy
+    path: /srv/www/app
+`
+	if err := os.WriteFile(configPath, []byte(config), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cwd, _ := os.Getwd()
+	defer os.Chdir(cwd)
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatal(err)
+	}
+
+	root := cmd.RootCommandForTest()
+	buf := &bytes.Buffer{}
+	root.SetOut(buf)
+	root.SetErr(io.Discard)
+	root.SetArgs([]string{"sync", "--plan", "--file", "--no-compress"})
+
+	if err := root.Execute(); err != nil {
+		t.Fatalf("execute: %v", err)
+	}
+
+	out := buf.String()
+	if !strings.Contains(out, "compression: disabled") {
+		t.Fatalf("expected compression disabled in plan output, got: %s", out)
+	}
+	if strings.Contains(out, "rsync -az") {
+		t.Fatalf("did not expect compressed rsync mode when --no-compress is set, got: %s", out)
+	}
+}
+
 func TestSyncCommandProtectedRemoteDestination(t *testing.T) {
 	tempDir := t.TempDir()
 	configPath := filepath.Join(tempDir, "govard.yml")
