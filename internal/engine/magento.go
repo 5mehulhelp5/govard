@@ -34,6 +34,7 @@ func ConfigureMagento(projectName string, config Config) error {
 	if err := ensureMagentoLocalWritableDirs(containerName, config); err != nil {
 		pterm.Warning.Printf("Could not prepare Magento writable dirs (continuing): %v\n", err)
 	}
+
 	commands := buildMagentoCommands(projectName, config)
 
 	for _, cmd := range commands {
@@ -133,6 +134,7 @@ func ensureMagentoLocalWritableDirs(containerName string, config Config) error {
 		"set -e",
 		`fix_dir() { p="$1"; if [ -L "$p" ]; then rm -f "$p"; fi; mkdir -p "$p"; }`,
 		"mkdir -p generated pub/static pub/media var",
+		"rm -rf generated/code/*",
 		"fix_dir var/session",
 		"fix_dir var/tmp",
 		"fix_dir var/report",
@@ -141,6 +143,7 @@ func ensureMagentoLocalWritableDirs(containerName string, config Config) error {
 		"fix_dir var/import_history",
 		"fix_dir var/importexport",
 		"fix_dir pub/static/_cache",
+		"fix_dir pub/.well-known",
 	}, " && ")
 
 	args := magentoDockerExecArgs(containerName, config, "sh", "-lc", script)

@@ -368,7 +368,7 @@ func runStreamDBImport(cmd *cobra.Command, config engine.Config, options dbComma
 		}
 		defer fileReader.Close()
 
-		if err := runImportFromReader(destinationImportCmd, fileReader, false, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
+		if err := RunImportFromReader(destinationImportCmd, fileReader, false, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
 			return fmt.Errorf("stream-db local import step failed: %w", err)
 		}
 
@@ -376,7 +376,7 @@ func runStreamDBImport(cmd *cobra.Command, config engine.Config, options dbComma
 		return nil
 	}
 
-	if err := runDumpToImport(sourceDumpCmd, destinationImportCmd, sanitizeStreamDump, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
+	if err := RunDumpToImport(sourceDumpCmd, destinationImportCmd, sanitizeStreamDump, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
 		return fmt.Errorf("stream-db import failed: %w", err)
 	}
 	pterm.Success.Printf("Stream import completed from remote '%s' into local database.\n", options.Environment)
@@ -466,7 +466,7 @@ func runDirectDBImport(cmd *cobra.Command, config engine.Config, options dbComma
 		pterm.Description.Println("Tip: cat backup.sql | govard db import")
 	}
 
-	if err := runImportFromReader(importCommand, reader, options.ExcludeSensitiveData, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
+	if err := RunImportFromReader(importCommand, reader, options.ExcludeSensitiveData, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
 		return fmt.Errorf("db import failed: %w", err)
 	}
 	pterm.Success.Println("Database import completed.")
@@ -612,7 +612,7 @@ func runDumpToWriter(dumpCmd *exec.Cmd, writer io.Writer, sanitize bool, stderr 
 	return waitErr
 }
 
-func runImportFromReader(importCmd *exec.Cmd, reader io.Reader, sanitize bool, stdout io.Writer, stderr io.Writer) error {
+func RunImportFromReader(importCmd *exec.Cmd, reader io.Reader, sanitize bool, stdout io.Writer, stderr io.Writer) error {
 	stdin, err := importCmd.StdinPipe()
 	if err != nil {
 		return err
@@ -641,7 +641,7 @@ func runImportFromReader(importCmd *exec.Cmd, reader io.Reader, sanitize bool, s
 	return waitErr
 }
 
-func runDumpToImport(dumpCmd *exec.Cmd, importCmd *exec.Cmd, sanitize bool, stdout io.Writer, stderr io.Writer) error {
+func RunDumpToImport(dumpCmd *exec.Cmd, importCmd *exec.Cmd, sanitize bool, stdout io.Writer, stderr io.Writer) error {
 	dumpStdout, err := dumpCmd.StdoutPipe()
 	if err != nil {
 		return err

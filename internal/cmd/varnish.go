@@ -42,7 +42,6 @@ var varnishCmd = &cobra.Command{
 		default:
 			return fmt.Errorf("unknown varnish subcommand: %s", subcommand)
 		}
-		return nil
 	},
 }
 

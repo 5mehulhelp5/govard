@@ -4,7 +4,7 @@ FROM govard/php:${PHP_VERSION}
 
 USER root
 
-RUN apk add --no-cache nodejs npm curl
+RUN apk add --no-cache nodejs npm curl openssh-client
 
 RUN npm install -g grunt-cli gulp yarn
 

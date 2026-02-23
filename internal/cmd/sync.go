@@ -676,7 +676,7 @@ func buildDatabaseSyncAction(config engine.Config, source syncEndpoint, destinat
 			}
 			dumpCmd := remote.BuildSSHExecCommand(source.Name, source.RemoteCfg, true, buildRemoteMySQLDumpCommandString(remoteCredentials, false))
 			importCmd := buildLocalDBImportCommand(localDBContainer, localCredentials)
-			return pipeCommands(dumpCmd, importCmd)
+			return RunDumpToImport(dumpCmd, importCmd, true, os.Stdout, os.Stderr)
 		}, nil
 	case source.IsLocal && !destination.IsLocal:
 		desc := fmt.Sprintf("docker exec -i %s mysqldump ... | ssh %s \"mysql ...\"", localDBContainer, remote.RemoteTarget(destination.RemoteCfg))
@@ -687,7 +687,7 @@ func buildDatabaseSyncAction(config engine.Config, source syncEndpoint, destinat
 				pterm.Warning.Println(formatRemoteDBProbeWarning(destination.Name, probeErr))
 			}
 			importCmd := remote.BuildSSHExecCommand(destination.Name, destination.RemoteCfg, true, buildRemoteMySQLImportCommandString(remoteCredentials))
-			return pipeCommands(dumpCmd, importCmd)
+			return RunDumpToImport(dumpCmd, importCmd, true, os.Stdout, os.Stderr)
 		}, nil
 	default:
 		return "", nil, fmt.Errorf("database sync only supports local<->remote transfers")

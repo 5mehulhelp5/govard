@@ -135,7 +135,7 @@ var bootstrapCmd = &cobra.Command{
 		}
 
 		if !opts.SkipUp {
-			if err := runGovardSubcommand(cmd, "up"); err != nil {
+			if err := runGovardSubcommand(cmd, "env", "up"); err != nil {
 				return fmt.Errorf("failed to start local environment: %w", err)
 			}
 		}
@@ -751,6 +751,7 @@ func init() {
 	bootstrapCmd.Flags().BoolVar(&bootstrapNoStreamDB, "no-stream-db", false, "Disable stream-db import mode")
 	bootstrapCmd.Flags().StringVar(&bootstrapVersion, "version", "", "Magento version for fresh install")
 	bootstrapCmd.Flags().StringVarP(&bootstrapEnv, "environment", "e", "dev", "Source environment")
+	bootstrapCmd.Flags().StringVar(&bootstrapEnv, "remote", "dev", "Alias for --environment")
 	bootstrapCmd.Flags().StringVarP(&bootstrapRecipe, "recipe", "r", "", "Recipe to use when init is required")
 	bootstrapCmd.Flags().StringVar(&bootstrapFrameworkVersion, "framework-version", "", "Framework version when init is required")
 	bootstrapCmd.Flags().BoolVar(&bootstrapSkipUp, "skip-up", false, "Skip starting local containers before bootstrap steps")

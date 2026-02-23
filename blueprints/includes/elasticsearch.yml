@@ -5,7 +5,21 @@
 services:
   {{ if or (eq $search "elasticsearch") (eq $search "opensearch") }}
   elasticsearch:
-    image: {{ if eq $search "elasticsearch" }}docker.elastic.co/elasticsearch/elasticsearch:{{ $searchVersion }}{{ else }}opensearchproject/opensearch:{{ $searchVersion }}{{ end }}
+    image: >-
+      {{- if eq .Config.Recipe "magento2" -}}
+        {{- if eq $search "elasticsearch" -}}
+          govard/elasticsearch:{{ $searchVersion }}
+        {{- else -}}
+          govard/opensearch:{{ $searchVersion }}
+        {{- end -}}
+      {{- else -}}
+        {{- if eq $search "elasticsearch" -}}
+          docker.elastic.co/elasticsearch/elasticsearch:{{ $searchVersion }}
+        {{- else -}}
+          opensearchproject/opensearch:{{ $searchVersion }}
+        {{- end -}}
+      {{- end -}}
+
     environment:
       - discovery.type=single-node
       {{ if eq $search "elasticsearch" }}

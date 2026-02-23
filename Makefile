@@ -78,3 +78,6 @@ images:
 	docker build -t govard/nginx:latest docker/nginx
 	docker build -t govard/apache:latest docker/apache
 	docker build -t govard/varnish:latest docker/varnish
+	docker build -f docker/elasticsearch/Dockerfile -t govard/elasticsearch:7.17.10 --build-arg SEARCH_VERSION=7.17.10 docker/elasticsearch
+	docker build -f docker/opensearch/Dockerfile -t govard/opensearch:2.12.0 --build-arg SEARCH_VERSION=2.12.0 docker/opensearch
+
