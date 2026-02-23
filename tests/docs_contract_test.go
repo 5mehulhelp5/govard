@@ -115,13 +115,7 @@ func TestDocsUserCommandsGlobalSectionMatchesRootCLI(t *testing.T) {
 		t.Fatalf("docs/user/commands.md must not advertise unsupported global flag --verbose")
 	}
 
-	for _, required := range []string{
-		"### `govard completion`",
-		"govard completion bash",
-		"govard completion zsh",
-	} {
-		if !strings.Contains(content, required) {
-			t.Fatalf("docs/user/commands.md missing CLI global utility docs %q", required)
-		}
+	if strings.Contains(content, "### `govard completion`") {
+		t.Fatal("docs/user/commands.md must not advertise removed completion command")
 	}
 }

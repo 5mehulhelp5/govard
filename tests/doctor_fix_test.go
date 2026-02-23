@@ -31,15 +31,9 @@ func TestFixDepsCommandExists(t *testing.T) {
 		t.Fatalf("unexpected deps use: %s", command.Use)
 	}
 
-	aliases := command.Aliases
-	hasAlias := false
-	for _, alias := range aliases {
+	for _, alias := range command.Aliases {
 		if alias == "fix-deps" {
-			hasAlias = true
-			break
+			t.Fatal("did not expect legacy fix-deps alias")
 		}
-	}
-	if !hasAlias {
-		t.Fatal("expected fix-deps compatibility alias")
 	}
 }

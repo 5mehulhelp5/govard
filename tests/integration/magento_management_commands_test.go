@@ -48,8 +48,8 @@ func TestConfigCommandGetSetAndUnknownKey(t *testing.T) {
 	}
 
 	unknown := env.RunGovard(t, projectDir, "config", "set", "unknown.key", "x")
-	unknown.AssertSuccess(t)
-	assertContains(t, unknown.Stdout+unknown.Stderr, "Unknown config key: unknown.key")
+	unknown.AssertExitCode(t, 1)
+	assertContains(t, strings.ToLower(unknown.Stdout+unknown.Stderr), "unknown config key: unknown.key")
 }
 
 func TestExtensionsAndCustomCommandsLifecycle(t *testing.T) {
@@ -119,30 +119,31 @@ func TestExtensionsAndCustomCommandsLifecycle(t *testing.T) {
 	assertContains(t, string(forcedHelloContent), "Hello from .govard/commands/hello")
 }
 
-func TestProxyCommandsWithShims(t *testing.T) {
+func TestSvcCommandsWithShims(t *testing.T) {
 	env := NewTestEnvironment(t)
 	projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "proxy-m2")
 	shim := env.SetupRuntimeShims(t, map[string]int{"docker": 0, "ssh": 0, "rsync": 0})
 
-	startResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "proxy", "start")
-	startResult.AssertSuccess(t)
+	upResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "svc", "up")
+	upResult.AssertSuccess(t)
 
-	stopResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "proxy", "stop")
-	stopResult.AssertSuccess(t)
+	downResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "svc", "down")
+	downResult.AssertSuccess(t)
 
-	restartResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "proxy", "restart")
+	restartResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "svc", "restart")
 	restartResult.AssertSuccess(t)
 
-	statusResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "proxy", "status")
-	statusResult.AssertSuccess(t)
+	psResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "svc", "ps")
+	psResult.AssertSuccess(t)
 
-	routesResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "proxy", "routes")
-	routesResult.AssertSuccess(t)
+	logsResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "svc", "logs")
+	logsResult.AssertSuccess(t)
 
 	logs := shim.ReadLog(t)
-	assertContains(t, logs, "docker|start proxy-caddy-1")
-	assertContains(t, logs, "docker|stop proxy-caddy-1")
-	assertContains(t, logs, "docker|ps --filter name=proxy-caddy-1 --format {{.Names}}")
-	assertContains(t, logs, "docker|exec -i proxy-caddy-1 curl -s http://localhost:2019/config/")
-	assertContains(t, logs, "docker|exec -i proxy-caddy-1 curl -s -X POST http://localhost:2019/load")
+	assertContains(t, logs, "docker|compose --project-directory")
+	assertContains(t, logs, " -p proxy ")
+	assertContains(t, logs, " up -d")
+	assertContains(t, logs, " down")
+	assertContains(t, logs, " ps")
+	assertContains(t, logs, " logs -f --tail=100")
 }

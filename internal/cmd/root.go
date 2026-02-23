@@ -13,6 +13,9 @@ var Version = "1.0.0"
 var rootCmd = &cobra.Command{
 	Use:   "govard",
 	Short: "Govard is a high-performance local development orchestrator",
+	CompletionOptions: cobra.CompletionOptions{
+		DisableDefaultCmd: true,
+	},
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		if cmd.Name() == "help" {
 			ui.PrintBrand(Version)

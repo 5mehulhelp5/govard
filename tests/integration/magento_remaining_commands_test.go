@@ -27,7 +27,7 @@ func TestTrustCommandWithShims(t *testing.T) {
 		t.Fatalf("failed to create home dir: %v", err)
 	}
 
-	result := env.RunGovardWithEnv(t, projectDir, append(shim.Env(), "HOME="+homeDir), "trust")
+	result := env.RunGovardWithEnv(t, projectDir, append(shim.Env(), "HOME="+homeDir), "doctor", "trust")
 	result.AssertSuccess(t)
 
 	certPath := filepath.Join(homeDir, ".govard", "ssl", "root.crt")
@@ -120,7 +120,10 @@ func runGovardWithTimeout(t *testing.T, env *TestEnvironment, projectDir string,
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, env.BinaryPath, args...)
+	isolatedBinary := filepath.Join(t.TempDir(), "govard-self-update-test")
+	copyBinaryForTest(t, env.BinaryPath, isolatedBinary)
+
+	cmd := exec.CommandContext(ctx, isolatedBinary, args...)
 	cmd.Dir = projectDir
 	cmd.Env = append(os.Environ(), extraEnv...)
 
@@ -143,6 +146,17 @@ func runGovardWithTimeout(t *testing.T, env *TestEnvironment, projectDir string,
 		ExitCode: exitCode,
 		Duration: duration,
 		Error:    err,
+	}
+}
+
+func copyBinaryForTest(t *testing.T, src string, dst string) {
+	t.Helper()
+	data, err := os.ReadFile(src)
+	if err != nil {
+		t.Fatalf("failed to read binary %s: %v", src, err)
+	}
+	if err := os.WriteFile(dst, data, 0o755); err != nil {
+		t.Fatalf("failed to write isolated binary %s: %v", dst, err)
 	}
 }
 

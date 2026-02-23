@@ -39,4 +39,3 @@
 - `govard doctor fix-deps` checks required host dependencies (`docker`, `docker compose`, `ssh`, `rsync`).
 - `govard config profile` is read-only.
 - `govard config profile apply` writes runtime choices into `govard.yml` only.
-

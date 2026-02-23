@@ -45,7 +45,6 @@ Highlights:
 - Clone flow: file sync, optional composer install, DB/media sync, Magento configure, admin create
 - Fresh flow: create-project, setup install, optional sample data, optional Hyva install
 - Fresh mode does not require `--clone=false`; use `govard bootstrap --fresh ...` directly
-- Supports legacy bootstrap-compatible flags (`--download-source`, `--skip-db-import`, etc.)
 
 See `docs/commands/bootstrap.md`.
 
@@ -557,16 +556,6 @@ Display version information.
 
 ```bash
 govard version
-```
-
-### `govard completion`
-
-Generate shell completion scripts.
-
-```bash
-govard completion bash
-govard completion zsh
-govard completion fish
 ```
 
 ## Global Flags

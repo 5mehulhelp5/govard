@@ -61,7 +61,7 @@ func runBootstrapSymfonyFreshInstall(cmd *cobra.Command, config engine.Config, o
 		return err
 	}
 
-	if err := runGovardSubcommand(cmd, "configure"); err != nil {
+	if err := runGovardSubcommand(cmd, govardConfigureSubcommandArgs()...); err != nil {
 		return fmt.Errorf("configure failed: %w", err)
 	}
 
@@ -85,7 +85,7 @@ func runBootstrapLaravelFreshInstall(cmd *cobra.Command, config engine.Config, o
 		return err
 	}
 
-	if err := runGovardSubcommand(cmd, "configure"); err != nil {
+	if err := runGovardSubcommand(cmd, govardConfigureSubcommandArgs()...); err != nil {
 		return fmt.Errorf("configure failed: %w", err)
 	}
 
@@ -109,7 +109,7 @@ func runBootstrapDrupalFreshInstall(cmd *cobra.Command, config engine.Config, op
 		return err
 	}
 
-	if err := runGovardSubcommand(cmd, "configure"); err != nil {
+	if err := runGovardSubcommand(cmd, govardConfigureSubcommandArgs()...); err != nil {
 		return fmt.Errorf("configure failed: %w", err)
 	}
 
@@ -133,7 +133,7 @@ func runBootstrapWordPressFreshInstall(cmd *cobra.Command, config engine.Config,
 		return err
 	}
 
-	if err := runGovardSubcommand(cmd, "configure"); err != nil {
+	if err := runGovardSubcommand(cmd, govardConfigureSubcommandArgs()...); err != nil {
 		return fmt.Errorf("configure failed: %w", err)
 	}
 
@@ -157,7 +157,7 @@ func runBootstrapShopwareFreshInstall(cmd *cobra.Command, config engine.Config, 
 		return err
 	}
 
-	if err := runGovardSubcommand(cmd, "configure"); err != nil {
+	if err := runGovardSubcommand(cmd, govardConfigureSubcommandArgs()...); err != nil {
 		return fmt.Errorf("configure failed: %w", err)
 	}
 
@@ -181,7 +181,7 @@ func runBootstrapCakePHPFreshInstall(cmd *cobra.Command, config engine.Config, o
 		return err
 	}
 
-	if err := runGovardSubcommand(cmd, "configure"); err != nil {
+	if err := runGovardSubcommand(cmd, govardConfigureSubcommandArgs()...); err != nil {
 		return fmt.Errorf("configure failed: %w", err)
 	}
 
@@ -205,7 +205,7 @@ func runBootstrapOpenMageFreshInstall(cmd *cobra.Command, config engine.Config, 
 		return err
 	}
 
-	if err := runGovardSubcommand(cmd, "configure"); err != nil {
+	if err := runGovardSubcommand(cmd, govardConfigureSubcommandArgs()...); err != nil {
 		return fmt.Errorf("configure failed: %w", err)
 	}
 
@@ -250,7 +250,7 @@ func runBootstrapFreshInstall(cmd *cobra.Command, config engine.Config, opts boo
 	if err := runBootstrapMagentoSetupInstall(cmd, config, opts); err != nil {
 		return err
 	}
-	if err := runGovardSubcommand(cmd, "configure"); err != nil {
+	if err := runGovardSubcommand(cmd, govardConfigureSubcommandArgs()...); err != nil {
 		return fmt.Errorf("magento configure failed: %w", err)
 	}
 	if opts.IncludeSample {

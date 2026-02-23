@@ -13,9 +13,8 @@ import (
 )
 
 var fixDepsCmd = &cobra.Command{
-	Use:     "deps",
-	Aliases: []string{"fix-deps"},
-	Short:   "Check and report required system dependencies",
+	Use:   "deps",
+	Short: "Check and report required system dependencies",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		missing, warnings := missingDependenciesWithWarnings()
 		for _, warning := range warnings {
@@ -28,7 +27,7 @@ var fixDepsCmd = &cobra.Command{
 		}
 
 		pterm.Error.Printf("Missing dependencies: %s\n", strings.Join(missing, ", "))
-		pterm.Info.Println("Install missing tools, then run `govard deps` again.")
+		pterm.Info.Println("Install missing tools, then run `govard doctor fix-deps` again.")
 		return fmt.Errorf("missing dependencies: %s", strings.Join(missing, ", "))
 	},
 }

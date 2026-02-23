@@ -101,7 +101,7 @@ func TestLogsCommandPaths(t *testing.T) {
 		projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "logs-default-m2")
 		shim := env.SetupRuntimeShims(t, map[string]int{"docker": 0, "ssh": 0, "rsync": 0})
 
-		result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "logs")
+		result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "env", "logs")
 		result.AssertSuccess(t)
 
 		logs := shim.ReadLog(t)
@@ -114,7 +114,7 @@ func TestLogsCommandPaths(t *testing.T) {
 		shim := env.SetupRuntimeShims(t, map[string]int{"docker": 0, "ssh": 0, "rsync": 0})
 		installShellShim(t, shim)
 
-		result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "logs", "--errors")
+		result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "env", "logs", "--errors")
 		result.AssertSuccess(t)
 
 		logs := shim.ReadLog(t)
@@ -130,7 +130,7 @@ func TestFrameworkCommandRuntimeForMagentoProject(t *testing.T) {
 		projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "framework-magento-m2")
 		shim := env.SetupRuntimeShims(t, map[string]int{"docker": 0, "ssh": 0, "rsync": 0})
 
-		result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "magento", "cache:flush")
+		result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "tool", "magento", "cache:flush")
 		result.AssertSuccess(t)
 
 		config, _, err := engine.LoadConfigFromDir(projectDir, true)
@@ -159,7 +159,7 @@ func TestFrameworkCommandRuntimeForMagentoProject(t *testing.T) {
 		}
 
 		shim := env.SetupRuntimeShims(t, map[string]int{"docker": 0, "ssh": 0, "rsync": 0})
-		result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "composer", "install", "--no-dev")
+		result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "tool", "composer", "install", "--no-dev")
 		result.AssertSuccess(t)
 
 		logs := shim.ReadLog(t)

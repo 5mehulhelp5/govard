@@ -32,7 +32,6 @@ var (
 	bootstrapSkipComposer     bool
 	bootstrapSkipAdmin        bool
 	bootstrapNoStreamDB       bool
-	bootstrapDownloadSource   bool
 	bootstrapVersion          string
 	bootstrapEnv              string
 	bootstrapRecipe           string
@@ -189,10 +188,6 @@ func resolveBootstrapOptions(cmd *cobra.Command) (bootstrapRuntimeOptions, error
 	if opts.HyvaToken == "" {
 		opts.HyvaToken = defaultBootstrapHyvaToken
 	}
-	if bootstrapDownloadSource {
-		opts.Clone = true
-		opts.CodeOnly = true
-	}
 	cloneFlagExplicit := false
 	if cmd != nil {
 		cloneFlagExplicit = cmd.Flags().Changed("clone")
@@ -205,7 +200,7 @@ func resolveBootstrapOptions(cmd *cobra.Command) (bootstrapRuntimeOptions, error
 		}
 	}
 	if opts.Fresh && opts.Clone {
-		if cloneFlagExplicit || bootstrapDownloadSource {
+		if cloneFlagExplicit {
 			return bootstrapRuntimeOptions{}, fmt.Errorf("--fresh and --clone cannot be used together")
 		}
 		opts.Clone = false
@@ -257,7 +252,7 @@ func runBootstrapClone(cmd *cobra.Command, config engine.Config, opts bootstrapR
 			return err
 		}
 
-		installErr := runGovardSubcommand(cmd, "composer", "install", "-n")
+		installErr := runGovardSubcommand(cmd, govardComposerSubcommandArgs("install", "-n")...)
 		if installErr != nil {
 			autoloadPath := filepath.Join(cwd, "vendor", "autoload.php")
 			if fileExists(autoloadPath) {
@@ -289,7 +284,7 @@ func runBootstrapClone(cmd *cobra.Command, config engine.Config, opts bootstrapR
 		}
 	}
 
-	if err := runGovardSubcommand(cmd, "configure"); err != nil {
+	if err := runGovardSubcommand(cmd, govardConfigureSubcommandArgs()...); err != nil {
 		return fmt.Errorf("configure failed: %w", err)
 	}
 
@@ -344,7 +339,7 @@ func bootstrapComposerDumpAutoload(cmd *cobra.Command, cwd string) error {
 	if !fileExists(filepath.Join(cwd, "composer.json")) {
 		return nil
 	}
-	if err := runGovardSubcommand(cmd, "composer", "dump-autoload", "-o", "-n"); err != nil {
+	if err := runGovardSubcommand(cmd, govardComposerSubcommandArgs("dump-autoload", "-o", "-n")...); err != nil {
 		autoloadPath := filepath.Join(cwd, "vendor", "autoload.php")
 		if !fileExists(autoloadPath) {
 			return fmt.Errorf("composer autoload generation failed: %w", err)
@@ -568,6 +563,22 @@ func runGovardSubcommand(cmd *cobra.Command, args ...string) error {
 	return command.Run()
 }
 
+func govardComposerSubcommandArgs(args ...string) []string {
+	commandArgs := []string{"tool", "composer"}
+	commandArgs = append(commandArgs, args...)
+	return commandArgs
+}
+
+func govardMagentoSubcommandArgs(args ...string) []string {
+	commandArgs := []string{"tool", "magento"}
+	commandArgs = append(commandArgs, args...)
+	return commandArgs
+}
+
+func govardConfigureSubcommandArgs() []string {
+	return []string{"config", "auto"}
+}
+
 func runPHPContainerShellCommand(config engine.Config, commandLine string) error {
 	containerName := fmt.Sprintf("%s-php-1", config.ProjectName)
 	dockerArgs := []string{"exec"}
@@ -738,7 +749,6 @@ func init() {
 	bootstrapCmd.Flags().BoolVar(&bootstrapSkipComposer, "no-composer", false, "Skip composer install")
 	bootstrapCmd.Flags().BoolVar(&bootstrapSkipAdmin, "no-admin", false, "Skip admin user creation")
 	bootstrapCmd.Flags().BoolVar(&bootstrapNoStreamDB, "no-stream-db", false, "Disable stream-db import mode")
-	bootstrapCmd.Flags().BoolVar(&bootstrapDownloadSource, "download-source", false, "Clone source only (legacy alias for --clone --code-only)")
 	bootstrapCmd.Flags().StringVar(&bootstrapVersion, "version", "", "Magento version for fresh install")
 	bootstrapCmd.Flags().StringVarP(&bootstrapEnv, "environment", "e", "dev", "Source environment")
 	bootstrapCmd.Flags().StringVarP(&bootstrapRecipe, "recipe", "r", "", "Recipe to use when init is required")
@@ -753,11 +763,4 @@ func init() {
 	bootstrapCmd.Flags().StringVar(&bootstrapMagePassword, "mage-password", "", "Magento repo password for auth.json bootstrap")
 	bootstrapCmd.Flags().BoolVarP(&bootstrapAssumeYes, "yes", "y", false, "Assume yes for non-critical bootstrap prompts")
 	bootstrapCmd.Flags().BoolVar(&bootstrapIncludeProduct, "include-product", false, "Include catalog product images during media sync (Magento only)")
-
-	bootstrapCmd.Flags().BoolVar(&bootstrapFresh, "clean-install", false, "Alias of --fresh")
-	bootstrapCmd.Flags().BoolVar(&bootstrapFresh, "fresh-install", false, "Alias of --fresh")
-	bootstrapCmd.Flags().BoolVar(&bootstrapSkipDB, "skip-db-import", false, "Alias of --no-db")
-	bootstrapCmd.Flags().BoolVar(&bootstrapSkipMedia, "skip-media-sync", false, "Alias of --no-media")
-	bootstrapCmd.Flags().BoolVar(&bootstrapSkipComposer, "skip-composer-install", false, "Alias of --no-composer")
-	bootstrapCmd.Flags().BoolVar(&bootstrapSkipAdmin, "skip-admin-create", false, "Alias of --no-admin")
 }

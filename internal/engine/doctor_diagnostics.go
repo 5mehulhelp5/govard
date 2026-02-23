@@ -87,7 +87,7 @@ func RunDoctorDiagnostics(dependencies DoctorDependencies) DoctorReport {
 			Status:           DoctorStatusFail,
 			Message:          fmt.Sprintf("Docker is not running or not accessible: %v", err),
 			Hint:             "Start Docker Desktop/daemon and verify current user can access Docker socket.",
-			SuggestedCommand: "govard deps",
+			SuggestedCommand: "govard doctor fix-deps",
 		})
 	} else {
 		report.Checks = append(report.Checks, DoctorCheck{
@@ -105,7 +105,7 @@ func RunDoctorDiagnostics(dependencies DoctorDependencies) DoctorReport {
 			Status:           DoctorStatusFail,
 			Message:          err.Error(),
 			Hint:             "Install or enable the Docker Compose v2 plugin.",
-			SuggestedCommand: "govard deps",
+			SuggestedCommand: "govard doctor fix-deps",
 		})
 	} else {
 		report.Checks = append(report.Checks, DoctorCheck{

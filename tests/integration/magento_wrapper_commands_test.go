@@ -29,7 +29,7 @@ func TestFrameworkWrapperRecipeGuardsForMagentoProject(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.command, func(t *testing.T) {
-			result := env.RunGovard(t, projectDir, tt.command, "--version")
+			result := env.RunGovard(t, projectDir, "tool", tt.command, "--version")
 			if result.Success() {
 				t.Fatalf("expected %s command to fail on magento2 project", tt.command)
 			}
@@ -58,7 +58,7 @@ func TestGlobalWrapperCommandsUseMagentoExecUser(t *testing.T) {
 			projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "wrapper-"+tt.command+"-m2")
 			shim := env.SetupRuntimeShims(t, map[string]int{"docker": 0, "ssh": 0, "rsync": 0})
 
-			result := env.RunGovardWithEnv(t, projectDir, shim.Env(), tt.command, tt.arg)
+			result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "tool", tt.command, tt.arg)
 			result.AssertSuccess(t)
 
 			config, _, err := engine.LoadConfigFromDir(projectDir, true)
@@ -77,13 +77,11 @@ func TestGlobalWrapperCommandsUseMagentoExecUser(t *testing.T) {
 	}
 }
 
-func TestCompletionCommandRendersShellScript(t *testing.T) {
+func TestCompletionCommandIsUnavailable(t *testing.T) {
 	env := NewTestEnvironment(t)
 	projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "completion-m2")
 
 	result := env.RunGovard(t, projectDir, "completion", "bash")
-	result.AssertSuccess(t)
-
-	assertContains(t, result.Stdout, "bash completion V2 for govard")
-	assertContains(t, result.Stdout, "complete -o default -F __start_govard govard")
+	result.AssertExitCode(t, 1)
+	assertContains(t, result.Stdout+result.Stderr, "unknown command \"completion\"")
 }

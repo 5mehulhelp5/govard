@@ -15,25 +15,27 @@ import (
 func runBootstrapHyvaInstall(cmd *cobra.Command, opts bootstrapRuntimeOptions) error {
 	if err := runGovardSubcommand(
 		cmd,
-		"composer",
-		"config",
-		"http-basic.hyva-themes.repo.packagist.com",
-		"token",
-		opts.HyvaToken,
+		govardComposerSubcommandArgs(
+			"config",
+			"http-basic.hyva-themes.repo.packagist.com",
+			"token",
+			opts.HyvaToken,
+		)...,
 	); err != nil {
 		return fmt.Errorf("failed to set Hyva token: %w", err)
 	}
 	if err := runGovardSubcommand(
 		cmd,
-		"composer",
-		"config",
-		"repositories.hyva-themes",
-		"composer",
-		"https://hyva-themes.repo.packagist.com/app-hyva-test-dv1dgx/",
+		govardComposerSubcommandArgs(
+			"config",
+			"repositories.hyva-themes",
+			"composer",
+			"https://hyva-themes.repo.packagist.com/app-hyva-test-dv1dgx/",
+		)...,
 	); err != nil {
 		return fmt.Errorf("failed to add Hyva repository: %w", err)
 	}
-	if err := runGovardSubcommand(cmd, "composer", "require", "-n", "hyva-themes/magento2-default-theme"); err != nil {
+	if err := runGovardSubcommand(cmd, govardComposerSubcommandArgs("require", "-n", "hyva-themes/magento2-default-theme")...); err != nil {
 		return fmt.Errorf("failed to install Hyva package: %w", err)
 	}
 	return nil
@@ -46,7 +48,7 @@ func runBootstrapMagentoSetupInstall(cmd *cobra.Command, config engine.Config, o
 	}
 
 	setupArgs := []string{
-		"magento", "setup:install",
+		"setup:install",
 		"--backend-frontname=admin",
 		"--db-host=db",
 		"--db-name=magento",
@@ -69,7 +71,7 @@ func runBootstrapMagentoSetupInstall(cmd *cobra.Command, config engine.Config, o
 	if opts.MetaVersion != "" {
 		if comparison, comparable := compareNumericDotVersions(opts.MetaVersion, "2.4.8"); comparable && comparison < 0 {
 			setupArgs = []string{
-				"magento", "setup:install",
+				"setup:install",
 				"--backend-frontname=admin",
 				"--db-host=db",
 				"--db-name=magento",
@@ -91,7 +93,7 @@ func runBootstrapMagentoSetupInstall(cmd *cobra.Command, config engine.Config, o
 		}
 	}
 
-	if err := runGovardSubcommand(cmd, setupArgs...); err != nil {
+	if err := runGovardSubcommand(cmd, govardMagentoSubcommandArgs(setupArgs...)...); err != nil {
 		return fmt.Errorf("magento setup:install failed: %w", err)
 	}
 	return nil
@@ -99,13 +101,13 @@ func runBootstrapMagentoSetupInstall(cmd *cobra.Command, config engine.Config, o
 
 func runBootstrapSampleData(cmd *cobra.Command) error {
 	commands := [][]string{
-		{"magento", "sample:deploy"},
-		{"magento", "setup:upgrade"},
-		{"magento", "indexer:reindex"},
-		{"magento", "cache:flush"},
+		{"sample:deploy"},
+		{"setup:upgrade"},
+		{"indexer:reindex"},
+		{"cache:flush"},
 	}
 	for _, args := range commands {
-		if err := runGovardSubcommand(cmd, args...); err != nil {
+		if err := runGovardSubcommand(cmd, govardMagentoSubcommandArgs(args...)...); err != nil {
 			return fmt.Errorf("sample data step failed (%s): %w", strings.Join(args, " "), err)
 		}
 	}
@@ -120,13 +122,14 @@ func runBootstrapAdminCreate(cmd *cobra.Command, config engine.Config) {
 
 	err := runGovardSubcommand(
 		cmd,
-		"magento",
-		"admin:user:create",
-		"--admin-user=admin",
-		"--admin-password=Admin123$",
-		"--admin-firstname=Admin",
-		"--admin-lastname=User",
-		"--admin-email=admin@"+emailDomain,
+		govardMagentoSubcommandArgs(
+			"admin:user:create",
+			"--admin-user=admin",
+			"--admin-password=Admin123$",
+			"--admin-firstname=Admin",
+			"--admin-lastname=User",
+			"--admin-email=admin@"+emailDomain,
+		)...,
 	)
 	if err != nil {
 		pterm.Warning.Printf("Admin user creation skipped: %v\n", err)

@@ -26,10 +26,10 @@ govard bootstrap --fresh --version 2.4.8
 - `--fresh` Fresh Magento install (auto-disables default clone; explicit `--clone` is rejected)
 - `--include-sample` Install Magento sample data (fresh install)
 - `-e, --environment` Remote source environment (default: `dev`)
-- `--no-db` / `--skip-db-import` Skip DB import
-- `--no-media` / `--skip-media-sync` Skip media sync
-- `--no-composer` / `--skip-composer-install` Skip composer install
-- `--no-admin` / `--skip-admin-create` Skip admin user creation
+- `--no-db` Skip DB import
+- `--no-media` Skip media sync
+- `--no-composer` Skip composer install
+- `--no-admin` Skip admin user creation
 - `--no-stream-db` Disable stream DB import and use sync DB flow instead
 - `--db-dump` Import DB from local dump file
 - `--include-product` Include `pub/media/catalog/product` images during media sync (Magento only)
@@ -40,7 +40,6 @@ govard bootstrap --fresh --version 2.4.8
 - `--mage-username` Magento marketplace username for auth bootstrap
 - `--mage-password` Magento marketplace password for auth bootstrap
 - `--fix-deps` Run `govard custom fix-deps` before bootstrap (auto-detects remote Magento version when cloning and `--version` is omitted)
-- `--download-source` Legacy alias for `--clone --code-only`
 - `--skip-up` Skip `govard env up` stage
 
 ## Notes
@@ -71,7 +70,7 @@ govard init
 govard bootstrap
 
 # Clone source only, no DB/media
-govard bootstrap --download-source --environment dev
+govard bootstrap --clone --code-only --environment dev
 
 # Clone from staging, skip composer and admin user creation
 govard bootstrap --environment staging --no-composer --no-admin

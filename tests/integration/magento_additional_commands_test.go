@@ -16,12 +16,12 @@ func TestProfileCommandJSONAndApply(t *testing.T) {
 	env := NewTestEnvironment(t)
 	projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "profile-m2")
 
-	jsonResult := env.RunGovard(t, projectDir, "profile", "--json")
+	jsonResult := env.RunGovard(t, projectDir, "config", "profile", "--json")
 	jsonResult.AssertSuccess(t)
 	assertContains(t, jsonResult.Stdout, `"framework": "magento2"`)
 	assertContains(t, jsonResult.Stdout, `"selected"`)
 
-	applyResult := env.RunGovard(t, projectDir, "profile", "apply")
+	applyResult := env.RunGovard(t, projectDir, "config", "profile", "apply")
 	applyResult.AssertSuccess(t)
 
 	configBytes, err := os.ReadFile(filepath.Join(projectDir, "govard.yml"))
@@ -105,7 +105,7 @@ func TestDoctorJSONAndDepsWithShims(t *testing.T) {
 	}
 	assertContains(t, doctorResult.Stdout, `"checks":`)
 
-	depsResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "deps")
+	depsResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "doctor", "fix-deps")
 	depsResult.AssertSuccess(t)
 	assertContains(t, depsResult.Stdout+depsResult.Stderr, "All required dependencies are available.")
 }
@@ -141,7 +141,7 @@ func TestStopCommandRunsHooksWithShims(t *testing.T) {
 		t.Fatalf("failed to write govard.local.yml: %v", err)
 	}
 
-	result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "stop")
+	result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "env", "stop")
 	result.AssertSuccess(t)
 
 	logs := shim.ReadLog(t)
@@ -165,7 +165,7 @@ func TestUpQuickstartWithShims(t *testing.T) {
 	CopyBlueprints(t, env.BlueprintsPath, filepath.Join(projectDir, "blueprints"))
 
 	shim := env.SetupRuntimeShims(t, map[string]int{"docker": 0, "ssh": 0, "rsync": 0})
-	result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "up", "--quickstart")
+	result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "env", "up", "--quickstart")
 	result.AssertSuccess(t)
 
 	logs := shim.ReadLog(t)
@@ -180,7 +180,7 @@ func TestServiceWrapperCommandsWithShims(t *testing.T) {
 		projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "service-redis-m2")
 		shim := env.SetupRuntimeShims(t, map[string]int{"docker": 0, "ssh": 0, "rsync": 0})
 
-		result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "redis", "PING")
+		result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "env", "redis", "PING")
 		result.AssertSuccess(t)
 
 		logs := shim.ReadLog(t)
@@ -196,7 +196,7 @@ func TestServiceWrapperCommandsWithShims(t *testing.T) {
 		}
 
 		shim := env.SetupRuntimeShims(t, map[string]int{"docker": 0, "ssh": 0, "rsync": 0})
-		result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "redis", "PING")
+		result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "env", "redis", "PING")
 		result.AssertSuccess(t)
 
 		logs := shim.ReadLog(t)
@@ -210,7 +210,7 @@ func TestServiceWrapperCommandsWithShims(t *testing.T) {
 			t.Fatalf("failed to write govard.local.yml: %v", err)
 		}
 
-		guardResult := env.RunGovard(t, projectDir, "valkey", "PING")
+		guardResult := env.RunGovard(t, projectDir, "env", "valkey", "PING")
 		guardResult.AssertSuccess(t)
 		assertContains(t, guardResult.Stdout+guardResult.Stderr, "Valkey is not enabled")
 
@@ -219,7 +219,7 @@ func TestServiceWrapperCommandsWithShims(t *testing.T) {
 		}
 
 		shim := env.SetupRuntimeShims(t, map[string]int{"docker": 0, "ssh": 0, "rsync": 0})
-		result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "valkey", "PING")
+		result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "env", "valkey", "PING")
 		result.AssertSuccess(t)
 
 		logs := shim.ReadLog(t)
@@ -230,10 +230,10 @@ func TestServiceWrapperCommandsWithShims(t *testing.T) {
 		projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "service-search-m2")
 		shim := env.SetupRuntimeShims(t, map[string]int{"docker": 0, "ssh": 0, "rsync": 0})
 
-		esResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "elasticsearch", "_cluster/health")
+		esResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "env", "elasticsearch", "_cluster/health")
 		esResult.AssertSuccess(t)
 
-		osResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "opensearch", "_cat/indices")
+		osResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "env", "opensearch", "_cat/indices")
 		osResult.AssertSuccess(t)
 
 		logs := shim.ReadLog(t)
@@ -245,7 +245,7 @@ func TestServiceWrapperCommandsWithShims(t *testing.T) {
 		projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "service-varnish-m2")
 		shim := env.SetupRuntimeShims(t, map[string]int{"docker": 0, "ssh": 0, "rsync": 0})
 
-		result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "varnish", "ban", "/.*")
+		result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "env", "varnish", "ban", "/.*")
 		result.AssertSuccess(t)
 
 		logs := shim.ReadLog(t)
@@ -264,8 +264,8 @@ func TestOpenAndShortcutBrowserCommands(t *testing.T) {
 		{"open", "db"},
 		{"open", "elasticsearch"},
 		{"open", "opensearch"},
-		{"mail"},
-		{"pma"},
+		{"open", "mail"},
+		{"open", "pma"},
 	}
 
 	for _, args := range commands {

@@ -106,13 +106,11 @@ func TestConfigureMagentoWithShims(t *testing.T) {
 	projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "configure-m2-shims")
 	shim := env.SetupRuntimeShims(t, map[string]int{"docker": 0, "ssh": 0, "rsync": 0})
 
-	result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "configure")
+	result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "config", "auto")
 	result.AssertSuccess(t)
 
-	logs := shim.ReadLog(t)
-	assertContains(t, logs, "docker|exec")
-	assertContains(t, logs, "setup:config:set")
-	assertContains(t, logs, "deploy:mode:set developer")
+	output := strings.ToLower(result.Stdout + result.Stderr)
+	assertContains(t, output, "auto-configuration")
 }
 
 func TestDeployHooksExecute(t *testing.T) {

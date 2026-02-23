@@ -148,8 +148,8 @@ var profileApplyCmd = &cobra.Command{
 
 func init() {
 	registerProfileFlags(profileCmd)
-
 	profileCmd.AddCommand(profileApplyCmd)
+	configCmd.AddCommand(profileCmd)
 }
 
 func registerProfileFlags(command *cobra.Command) {

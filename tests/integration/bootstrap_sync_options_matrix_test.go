@@ -15,35 +15,6 @@ import (
 func TestBootstrapOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 	env := NewTestEnvironment(t)
 
-	t.Run("CloneDownloadSourceAliasFromDev", func(t *testing.T) {
-		projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "bootstrap-options-download-source")
-		shim := env.SetupRuntimeShims(t, map[string]int{
-			"docker": 0,
-			"ssh":    0,
-			"rsync":  0,
-		})
-
-		result := env.RunGovardWithEnv(
-			t,
-			projectDir,
-			append(shim.Env(), isolatedHomeEnv(t)...),
-			"bootstrap",
-			"--download-source",
-			"--environment", "dev",
-			"--skip-up",
-			"--no-composer",
-			"--no-admin",
-		)
-		result.AssertSuccess(t)
-
-		logs := shim.ReadLog(t)
-		assertMatrixContains(t, logs, "deploy@dev.example.com:/var/www/html/")
-		if got := strings.Count(logs, "rsync|"); got != 1 {
-			t.Fatalf("expected exactly one rsync invocation for --download-source, got %d logs:\n%s", got, logs)
-		}
-		assertMatrixNotContains(t, logs, "MYSQL_PWD=magento")
-	})
-
 	t.Run("CloneCodeOnlyOption", func(t *testing.T) {
 		projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "bootstrap-options-code-only")
 		shim := env.SetupRuntimeShims(t, map[string]int{
@@ -175,37 +146,6 @@ func TestBootstrapOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 		assertMatrixContains(t, string(data), "--version=2.4.8")
 	})
 
-	t.Run("CloneLegacySkipAliases", func(t *testing.T) {
-		projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "bootstrap-options-legacy-skip-aliases")
-		shim := env.SetupRuntimeShims(t, map[string]int{
-			"docker": 0,
-			"ssh":    0,
-			"rsync":  0,
-		})
-
-		result := env.RunGovardWithEnv(
-			t,
-			projectDir,
-			append(shim.Env(), isolatedHomeEnv(t)...),
-			"bootstrap",
-			"--clone",
-			"--environment", "dev",
-			"--skip-up",
-			"--skip-db-import",
-			"--skip-media-sync",
-			"--skip-composer-install",
-			"--skip-admin-create",
-		)
-		result.AssertSuccess(t)
-
-		logs := shim.ReadLog(t)
-		assertMatrixContains(t, logs, "deploy@dev.example.com:/var/www/html/")
-		if got := strings.Count(logs, "rsync|"); got != 1 {
-			t.Fatalf("expected one rsync invocation with legacy skip aliases, got %d logs:\n%s", got, logs)
-		}
-		assertMatrixNotContains(t, logs, "MYSQL_PWD=magento")
-	})
-
 	t.Run("FreshInstallCanonicalOptions", func(t *testing.T) {
 		projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "bootstrap-options-fresh-canonical")
 		shim := env.SetupRuntimeShims(t, map[string]int{
@@ -248,42 +188,6 @@ func TestBootstrapOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 		}
 		assertMatrixContains(t, string(data), "\"username\": \"mage-user\"")
 		assertMatrixContains(t, string(data), "\"password\": \"mage-pass\"")
-	})
-
-	t.Run("FreshInstallAliasFlags", func(t *testing.T) {
-		tests := []struct {
-			name string
-			flag string
-		}{
-			{name: "CleanInstallAlias", flag: "--clean-install"},
-			{name: "FreshInstallAlias", flag: "--fresh-install"},
-		}
-
-		for _, tc := range tests {
-			tc := tc
-			t.Run(tc.name, func(t *testing.T) {
-				projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "bootstrap-options-"+strings.ToLower(tc.name))
-				shim := env.SetupRuntimeShims(t, map[string]int{
-					"docker": 0,
-					"ssh":    0,
-					"rsync":  0,
-				})
-
-				result := env.RunGovardWithEnv(
-					t,
-					projectDir,
-					append(shim.Env(), isolatedHomeEnv(t)...),
-					"bootstrap",
-					tc.flag,
-					"--skip-up",
-					"--no-admin",
-				)
-				result.AssertSuccess(t)
-
-				logs := shim.ReadLog(t)
-				assertMatrixContains(t, logs, "/tmp/govard-create-project")
-			})
-		}
 	})
 
 	t.Run("InitRecipeAndFrameworkVersionWhenConfigMissing", func(t *testing.T) {

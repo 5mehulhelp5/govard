@@ -3,7 +3,10 @@
 
 package integration
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestMagentoRelevantCommandsPresent(t *testing.T) {
 	env := NewTestEnvironment(t)
@@ -15,15 +18,23 @@ func TestMagentoRelevantCommandsPresent(t *testing.T) {
 		"sync",
 		"bootstrap",
 		"db",
-		"configure",
+		"config",
+		"tool",
+		"env",
 		"deploy",
 		"remote",
-		"profile",
 		"snapshot",
 		"upgrade",
 	}
 
 	for _, name := range required {
 		assertContains(t, result.Stdout, name)
+	}
+
+	if strings.Contains(result.Stdout, "\n  deps") {
+		t.Fatalf("expected root help to exclude deps command, got:\n%s", result.Stdout)
+	}
+	if strings.Contains(result.Stdout, "\n  completion") {
+		t.Fatalf("expected root help to exclude completion command, got:\n%s", result.Stdout)
 	}
 }
