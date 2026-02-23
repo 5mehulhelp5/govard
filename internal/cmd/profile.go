@@ -147,12 +147,15 @@ var profileApplyCmd = &cobra.Command{
 }
 
 func init() {
-	profileCmd.PersistentFlags().StringVar(&profileFrameworkOverride, "framework", "", "Override detected framework")
-	profileCmd.PersistentFlags().StringVar(&profileVersionOverride, "framework-version", "", "Override detected framework version")
-	profileCmd.PersistentFlags().BoolVar(&profileJSONOutput, "json", false, "Output selected profile as JSON")
+	registerProfileFlags(profileCmd)
 
 	profileCmd.AddCommand(profileApplyCmd)
-	rootCmd.AddCommand(profileCmd)
+}
+
+func registerProfileFlags(command *cobra.Command) {
+	command.PersistentFlags().StringVar(&profileFrameworkOverride, "framework", "", "Override detected framework")
+	command.PersistentFlags().StringVar(&profileVersionOverride, "framework-version", "", "Override detected framework version")
+	command.PersistentFlags().BoolVar(&profileJSONOutput, "json", false, "Output selected profile as JSON")
 }
 
 func resolveProfileForCurrentProject() (engine.ProjectMetadata, engine.RuntimeProfileResult, error) {

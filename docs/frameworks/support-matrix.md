@@ -1,14 +1,14 @@
 # Framework Runtime Support Matrix
 
 This matrix defines how Govard chooses runtime defaults and version-aware overrides.
-Use it together with `govard profile` when validating project compatibility.
+Use it together with `govard config profile` when validating project compatibility.
 
 ## Selection Rules
 
 1. Govard auto-detects framework and version from project manifests.
 2. `--framework` and `--framework-version` overrides always win.
 3. If no version-specific override exists, Govard falls back to framework defaults.
-4. `govard profile --json` exposes the selected profile, source, notes, and warnings.
+4. `govard config profile --json` exposes the selected profile, source, notes, and warnings.
 
 ## Framework Defaults
 
@@ -50,13 +50,13 @@ Use it together with `govard profile` when validating project compatibility.
 
 ```bash
 # Inspect selected profile with explainable payload
-govard profile --json
+govard config profile --json
 
 # Force framework/version selection explicitly
-govard profile --framework laravel --framework-version ^11.0 --json
+govard config profile --framework laravel --framework-version ^11.0 --json
 
 # Apply selected profile into govard.yml
-govard profile apply --framework laravel --framework-version 11
+govard config profile apply --framework laravel --framework-version 11
 ```
 
 ## Notes

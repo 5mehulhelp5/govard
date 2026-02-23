@@ -12,7 +12,8 @@ import (
 
 var statusCmd = &cobra.Command{
 	Use:   "status",
-	Short: "List all running Govard environments",
+	Short: "List running Govard project environments across the workspace",
+	Long:  "Workspace-wide environment overview. Use `govard env ps` for the current project only.",
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.Background()
 		cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())

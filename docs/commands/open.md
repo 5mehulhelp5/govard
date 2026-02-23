@@ -7,6 +7,8 @@ Open common service URLs in your browser.
 ```bash
 govard open admin
 govard open db
+govard open mail
+govard open pma
 govard open db -e local
 govard open db -e staging
 govard open shell -e dev
@@ -19,14 +21,14 @@ govard open opensearch
 
 - `admin` Framework admin UI (https://<domain>/admin)
 - `db` Database access (remote tunnel or local PHPMyAdmin)
+- `mail` Local Mailpit UI (`https://mail.govard.test`)
+- `pma` Local PHPMyAdmin target (`https://pma.govard.test`)
 - `shell` Open local container shell or remote shell
 - `sftp` Open remote SFTP URL in local app
 - `elasticsearch` Elasticsearch endpoint
 - `opensearch` OpenSearch endpoint
 
 `target` is case-insensitive. Unknown targets return an error.
-
-For Mailpit, use `govard mail` (CLI) or the embedded Mailpit panel in `govard desktop`.
 
 Environment behavior (`-e/--environment`):
 - Omitted: local behavior for all targets.
@@ -36,7 +38,11 @@ Environment behavior (`-e/--environment`):
 For `db`:
 - Without `-e/--environment`: opens local PHPMyAdmin.
 - With `-e local`: opens local PHPMyAdmin (`https://pma.govard.test`).
-- With `-e <remote>`: starts an SSH tunnel and opens a `mysql://...` URL for local DB clients (for example BeeKeeper Studio). Keep the command running; `Ctrl+C` closes the tunnel.
+- With `-e <remote>`: starts an SSH tunnel first, then opens a `mysql://...` URL for local DB clients (for example BeeKeeper Studio). Keep the command running; `Ctrl+C` closes the tunnel.
+
+For `pma`:
+- Local only (`-e` omitted or `-e local`): opens `https://pma.govard.test`.
+- Remote (`-e <remote>`): not supported. Use `govard open db -e <remote>`.
 
 For `admin`:
 - Local: opens `https://<domain>/admin`.

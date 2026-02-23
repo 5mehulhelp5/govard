@@ -166,7 +166,7 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 		},
 		{
 			Name:         "Start",
-			OnFailureTip: "govard deps",
+			OnFailureTip: "govard doctor fix-deps",
 			Run: func() error {
 				command := exec.Command(
 					"docker",

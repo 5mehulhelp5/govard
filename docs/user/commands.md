@@ -49,13 +49,13 @@ Highlights:
 
 See `docs/commands/bootstrap.md`.
 
-### `govard up`
+### `govard env up`
 
 Renders the compose file at `~/.govard/compose/<project>-<hash>.yml` and starts Docker containers in detached mode.
 
 ```bash
-govard up
-govard up --quickstart
+govard env up
+govard env up --quickstart
 ```
 
 **Process:**
@@ -65,63 +65,71 @@ govard up --quickstart
 4. `Start` containers via Docker Compose
 5. `Verify` hosts/proxy wiring and post-up hooks
 
-On failure, `govard up` prints a suggested next command such as `govard doctor` or `govard deps`.
+On failure, `govard env up` prints a suggested next command such as `govard doctor` or `govard doctor fix-deps`.
 
 `--quickstart` applies a minimal runtime profile for the current startup (disables optional cache/search/queue/varnish/xdebug services) to reduce first-run time.
 
-### `govard stop`
+### `govard env`
+
+Project-scoped lifecycle and service wrapper command.
+
+```bash
+govard env up
+govard env start
+govard env stop
+govard env down
+govard env restart
+govard env ps
+govard env logs -e
+```
+
+Service access under project scope:
+
+```bash
+govard env redis
+govard env valkey
+govard env elasticsearch
+govard env opensearch
+govard env varnish log
+```
+
+### `govard env stop`
 
 Stops all project containers without removing them.
 
 ```bash
-govard stop
+govard env stop
 ```
 
-### `govard down`
+### `govard env down`
 
 Tear down project containers and networks.
 
 ```bash
-govard down
-govard down --volumes
-govard down --rmi local --timeout 20
+govard env down
+govard env down --volumes
+govard env down --rmi local --timeout 20
 ```
 
 See `docs/commands/down.md`.
 
-### `govard sleep`
+### `govard svc`
 
-Stop all running Govard projects detected from Docker and persist a wake snapshot.
-
-```bash
-govard sleep
-```
-
-Sleep state is saved to `~/.govard/sleep-state.json` (override via `GOVARD_SLEEP_STATE_PATH`).
-Only projects found in the project registry are included in the saved state.
-
-### `govard wake`
-
-Start all projects recorded by the latest sleep snapshot.
+Manage global services and workspace-wide sleep state.
 
 ```bash
-govard wake
+govard svc up
+govard svc down
+govard svc restart
+govard svc ps
+govard svc logs
+govard svc sleep
+govard svc wake
 ```
 
-When wake succeeds for all projects, the sleep-state file is removed.
-If some projects fail to start, only failed entries are kept for the next retry.
-
-### `govard proxy`
-
-Start, stop, restart, or check status of the global Caddy proxy.
-
-```bash
-govard proxy start
-govard proxy stop
-govard proxy restart
-govard proxy status
-govard proxy routes
-```
+`svc sleep` stops all running Govard projects detected from Docker and persists wake state to
+`~/.govard/sleep-state.json` (override with `GOVARD_SLEEP_STATE_PATH`).
+`svc wake` restores the recorded projects and clears the state file when all wake operations succeed.
 
 ### `govard desktop`
 
@@ -152,7 +160,8 @@ Desktop highlights:
 
 ### `govard status`
 
-Lists all running Govard environments.
+Lists running Govard project environments across the workspace.
+Use `govard env ps` for current-project container status.
 
 ```bash
 govard status
@@ -170,13 +179,13 @@ govard shell
 
 **User:** Runs as `www-data` for all frameworks.
 
-### `govard logs`
+### `govard env logs`
 
 Streams container logs.
 
 ```bash
-govard logs          # All logs
-govard logs -e       # Error-only filtering
+govard env logs      # All logs
+govard env logs -e   # Error-only filtering
 ```
 
 ### `govard debug`
@@ -193,7 +202,7 @@ govard debug shell   # Open shell in php-debug container
 When enabled, browser requests are routed to `php-debug` only if the `XDEBUG_SESSION`
 cookie matches `stack.xdebug_session`.
 
-### `govard profile`
+### `govard config profile`
 
 Inspect or apply framework-aware runtime profile selection.
 
@@ -288,70 +297,70 @@ Current provider support: Cloudflare (`cloudflared`) quick tunnels.
 
 See `docs/commands/tunnel.md`.
 
-## Framework Commands
+## Tool Commands
 
 ### Magento 2
 
 ```bash
-govard magento [command]     # Run Magento CLI (bin/magento)
+govard tool magento [command]     # Run Magento CLI (bin/magento)
 ```
 
 ### Magento 1 (OpenMage)
 
 ```bash
-govard magerun [command]     # Run n98-magerun
+govard tool magerun [command]     # Run n98-magerun
 ```
 
 ### Laravel
 
 ```bash
-govard artisan [command]     # Run Artisan commands
+govard tool artisan [command]     # Run Artisan commands
 ```
 
 ### Drupal
 
 ```bash
-govard drush [command]       # Run Drush commands
+govard tool drush [command]       # Run Drush commands
 ```
 
 ### Symfony
 
 ```bash
-govard symfony [command]     # Run Symfony CLI commands
+govard tool symfony [command]     # Run Symfony CLI commands
 ```
 
 ### Shopware
 
 ```bash
-govard shopware [command]    # Run Shopware CLI commands
+govard tool shopware [command]    # Run Shopware CLI commands
 ```
 
 ### CakePHP
 
 ```bash
-govard cake [command]        # Run CakePHP CLI commands
+govard tool cake [command]        # Run CakePHP CLI commands
 ```
 
 ### WordPress
 
 ```bash
-govard wp [command]          # Run WordPress CLI commands
+govard tool wp [command]          # Run WordPress CLI commands
 ```
 
 ### General PHP
 
 ```bash
-govard composer [command]    # Run Composer
+govard tool composer [command]    # Run Composer
 ```
 
 ### Node.js
 
 ```bash
-govard npm [command]         # Run npm
-govard yarn [command]        # Run yarn
-govard npx [command]         # Run npx
-govard pnpm [command]        # Run pnpm
-govard grunt [command]       # Run grunt
+govard tool npm [command]         # Run npm
+govard tool yarn [command]        # Run yarn
+govard tool npx [command]         # Run npx
+govard tool pnpm [command]        # Run pnpm
+govard tool grunt [command]       # Run grunt
 ```
 
 ## Service Commands
@@ -365,43 +374,49 @@ govard db                    # Database utilities (connect, dump, import)
 ### Redis
 
 ```bash
-govard redis                 # Interact with Redis (redis-cli)
-govard valkey                # Interact with Valkey (valkey-cli)
+govard env redis             # Project-scoped Redis (redis-cli)
+govard env valkey            # Project-scoped Valkey (valkey-cli)
 ```
 
 ### Search
 
 ```bash
-govard elasticsearch         # Query Elasticsearch API (curl)
-govard opensearch            # Query OpenSearch API (curl)
+govard env elasticsearch     # Project-scoped Elasticsearch (curl)
+govard env opensearch        # Project-scoped OpenSearch (curl)
 ```
 
 ### Caching
 
 ```bash
-govard varnish               # Varnish management commands
+govard env varnish           # Project-scoped Varnish commands
 ```
 
 ### Mail
 
 ```bash
-govard mail                  # Open Mailpit web interface
+govard open mail             # Mailpit target
 ```
 
 ### Database Admin
 
 ```bash
-govard pma                   # Open PHPMyAdmin interface
+govard open pma              # PHPMyAdmin target
+govard open db               # Generic DB target
+govard open db -e staging    # Remote DB via SSH tunnel
 ```
+
+Notes:
+- `open pma` is local-only (`https://pma.govard.test`).
+- Use `open db -e <remote>` for remote DB access.
 
 ## Configuration Commands
 
-### `govard configure`
+### `govard config auto`
 
 Auto-injects stack settings into application config (Magento 2 only).
 
 ```bash
-govard configure
+govard config auto
 ```
 
 **Configures:**
@@ -417,6 +432,16 @@ Manage Govard configuration.
 
 ```bash
 govard config [subcommand]
+```
+
+Common subcommands:
+
+```bash
+govard config get php_version
+govard config set php_version 8.4
+govard config auto
+govard config profile
+govard config profile apply
 ```
 
 ### `govard extensions`
@@ -439,6 +464,8 @@ govard doctor
 govard doctor --fix
 govard doctor --json
 govard doctor --pack
+govard doctor trust
+govard doctor fix-deps
 ```
 
 **Checks:**
@@ -459,23 +486,21 @@ govard doctor --pack
 - Pack also includes best-effort runtime command snapshots and remote audit log snapshot when available.
 - JSON report includes `issue_cards` for warn/fail checks, intended for Desktop troubleshooting card rendering.
 
-### `govard deps`
+### `govard doctor fix-deps`
 
 Checks required host dependencies used by Govard (`docker`, `docker compose`, `ssh`, `rsync`).
 
 ```bash
-govard deps
+govard doctor fix-deps
 ```
 
-`govard fix-deps` remains available as a compatibility alias.
-
-### `govard trust`
+### `govard doctor trust`
 
 Installs the Caddy CA into the system trust store for HTTPS.
 
 ```bash
-govard proxy start
-govard trust
+govard svc up
+govard doctor trust
 ```
 
 Notes:
@@ -497,8 +522,8 @@ govard lock generate --file .govard/govard.lock
 Behavior:
 - `lock generate` captures current Govard/Docker toolchain values and runtime stack metadata.
 - `lock check` compares current environment values against the lock file and reports mismatches.
-- `govard up` performs a non-blocking lockfile warning check when `govard.lock` exists.
-- Set `lock.strict: true` in `govard.yml` to make `govard up` fail on lock mismatches
+- `govard env up` performs a non-blocking lockfile warning check when `govard.lock` exists.
+- Set `lock.strict: true` in `govard.yml` to make `govard env up` fail on lock mismatches
   (and fail when the lock file is missing).
 
 See `docs/commands/lock.md`.

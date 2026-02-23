@@ -3,70 +3,73 @@ package cmd
 import (
 	"fmt"
 	"govard/internal/engine"
+	"io"
 	"strings"
 
-	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 )
 
 var configCmd = &cobra.Command{
-	Use:   "config [get|set] [key] [value]",
+	Use:   "config",
 	Short: "Manage govard.yml configuration from CLI",
-	Args:  cobra.MinimumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		subcommand := args[0]
-
-		switch subcommand {
-		case "get":
-			config := loadFullConfig()
-			if len(args) < 2 {
-				pterm.Error.Println("Usage: govard config get <key>")
-				return
-			}
-			key := args[1]
-			val := getConfigValue(config, key)
-			fmt.Println(val)
-		case "set":
-			config := loadWritableConfig()
-			if len(args) < 3 {
-				pterm.Error.Println("Usage: govard config set <key> <value>")
-				return
-			}
-			key, value := args[1], args[2]
-			if setConfigValue(&config, key, value) {
-				engine.NormalizeConfig(&config)
-				saveConfig(config)
-				pterm.Success.Printf("Config updated: %s = %s\n", key, value)
-			} else {
-				pterm.Error.Printf("Unknown config key: %s\n", key)
-			}
-		default:
-			pterm.Error.Printf("Unknown config subcommand: %s\n", subcommand)
-		}
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return cmd.Help()
 	},
 }
 
-func getConfigValue(config engine.Config, key string) string {
+var configGetCmd = &cobra.Command{
+	Use:   "get [key]",
+	Short: "Read a config value from govard.yml",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		config := loadFullConfig()
+		value, ok := getConfigValue(config, args[0])
+		if !ok {
+			return fmt.Errorf("unknown config key: %s", args[0])
+		}
+		_, err := io.WriteString(cmd.OutOrStdout(), value+"\n")
+		return err
+	},
+}
+
+var configSetCmd = &cobra.Command{
+	Use:   "set [key] [value]",
+	Short: "Write a config value into govard.yml",
+	Args:  cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		config := loadWritableConfig()
+		key, value := args[0], args[1]
+		if !setConfigValue(&config, key, value) {
+			return fmt.Errorf("unknown config key: %s", key)
+		}
+		engine.NormalizeConfig(&config)
+		saveConfig(config)
+		_, err := io.WriteString(cmd.OutOrStdout(), fmt.Sprintf("Config updated: %s = %s\n", key, value))
+		return err
+	},
+}
+
+func getConfigValue(config engine.Config, key string) (string, bool) {
 	// Simple key mapping for common fields
 	switch strings.ToLower(key) {
 	case "project_name":
-		return config.ProjectName
+		return config.ProjectName, true
 	case "domain":
-		return config.Domain
+		return config.Domain, true
 	case "framework_version":
-		return config.FrameworkVersion
+		return config.FrameworkVersion, true
 	case "php_version":
-		return config.Stack.PHPVersion
+		return config.Stack.PHPVersion, true
 	case "db_type":
-		return config.Stack.DBType
+		return config.Stack.DBType, true
 	case "services.web_server", "web_server":
-		return config.Stack.Services.WebServer
+		return config.Stack.Services.WebServer, true
 	case "services.search", "search":
-		return config.Stack.Services.Search
+		return config.Stack.Services.Search, true
 	case "services.cache", "cache":
-		return config.Stack.Services.Cache
+		return config.Stack.Services.Cache, true
 	}
-	return "N/A"
+	return "", false
 }
 
 func setConfigValue(config *engine.Config, key string, value string) bool {
@@ -89,4 +92,9 @@ func setConfigValue(config *engine.Config, key string, value string) bool {
 		return false
 	}
 	return true
+}
+
+func init() {
+	configCmd.AddCommand(configGetCmd)
+	configCmd.AddCommand(configSetCmd)
 }

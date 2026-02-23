@@ -84,15 +84,15 @@ func TestCLIDoctorCommand(t *testing.T) {
 	}
 }
 
-func TestCLIProxyCommand(t *testing.T) {
+func TestCLISvcCommand(t *testing.T) {
 	env := NewTestEnvironment(t)
 
-	projectDir := env.CreateTestProject(t, "proxy-cmd-test", map[string]string{})
+	projectDir := env.CreateTestProject(t, "svc-cmd-test", map[string]string{})
 
-	result := env.RunGovard(t, projectDir, "proxy", "--help")
+	result := env.RunGovard(t, projectDir, "svc", "--help")
 	result.AssertSuccess(t)
 
-	result.AssertOutputContains(t, "proxy")
+	result.AssertOutputContains(t, "global services")
 }
 
 func TestCLIDebugCommand(t *testing.T) {
@@ -155,7 +155,7 @@ func TestCLILogsCommand(t *testing.T) {
 
 	projectDir := env.CreateTestProject(t, "logs-cmd-test", files)
 
-	result := env.RunGovard(t, projectDir, "logs", "--help")
+	result := env.RunGovard(t, projectDir, "env", "logs", "--help")
 	result.AssertSuccess(t)
 }
 
@@ -251,7 +251,7 @@ func TestCLIRedisCommand(t *testing.T) {
 
 	projectDir := env.CreateTestProject(t, "redis-cmd-test", files)
 
-	result := env.RunGovard(t, projectDir, "redis", "--help")
+	result := env.RunGovard(t, projectDir, "env", "redis", "--help")
 	result.AssertSuccess(t)
 }
 
@@ -260,7 +260,7 @@ func TestCLITrustCommand(t *testing.T) {
 
 	projectDir := env.CreateTestProject(t, "trust-cmd-test", map[string]string{})
 
-	result := env.RunGovard(t, projectDir, "trust", "--help")
+	result := env.RunGovard(t, projectDir, "doctor", "trust", "--help")
 	result.AssertSuccess(t)
 }
 
@@ -292,7 +292,7 @@ func TestCLIConfigureCommand(t *testing.T) {
 
 	projectDir := env.CreateTestProject(t, "configure-cmd-test", files)
 
-	result := env.RunGovard(t, projectDir, "configure", "--help")
+	result := env.RunGovard(t, projectDir, "config", "auto", "--help")
 	result.AssertSuccess(t)
 }
 
@@ -324,7 +324,7 @@ func TestCLIStopCommand(t *testing.T) {
 
 	projectDir := env.CreateTestProject(t, "stop-cmd-test", files)
 
-	result := env.RunGovard(t, projectDir, "stop", "--help")
+	result := env.RunGovard(t, projectDir, "env", "stop", "--help")
 	result.AssertSuccess(t)
 }
 
@@ -372,11 +372,10 @@ func TestCLIHelpFlag(t *testing.T) {
 
 	requiredCommands := []string{
 		"init",
-		"up",
-		"stop",
+		"env",
+		"svc",
 		"status",
 		"shell",
-		"logs",
 		"doctor",
 	}
 

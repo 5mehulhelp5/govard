@@ -10,23 +10,23 @@ import (
 
 func TestUpCommandQuickstartFlagExists(t *testing.T) {
 	root := cmd.RootCommandForTest()
-	command, _, err := root.Find([]string{"up"})
+	command, _, err := root.Find([]string{"env", "up"})
 	if err != nil {
-		t.Fatalf("find up: %v", err)
+		t.Fatalf("find env up: %v", err)
 	}
 	if command.Flags().Lookup("quickstart") == nil {
-		t.Fatal("expected --quickstart flag on up command")
+		t.Fatal("expected --quickstart flag on env up command")
 	}
 }
 
 func TestUpCommandUsesRunE(t *testing.T) {
 	root := cmd.RootCommandForTest()
-	command, _, err := root.Find([]string{"up"})
+	command, _, err := root.Find([]string{"env", "up"})
 	if err != nil {
-		t.Fatalf("find up: %v", err)
+		t.Fatalf("find env up: %v", err)
 	}
 	if command.RunE == nil {
-		t.Fatal("expected up command to use RunE so failures return a non-zero exit code")
+		t.Fatal("expected env up command to use RunE so failures return a non-zero exit code")
 	}
 }
 

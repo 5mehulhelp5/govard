@@ -69,6 +69,30 @@ var doctorCmd = &cobra.Command{
 	},
 }
 
+var doctorTrustCmd = &cobra.Command{
+	Use:   "trust",
+	Short: "Trust the local CA for SSL certificates",
+	Args:  cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if trustCmd.RunE == nil {
+			return fmt.Errorf("doctor trust is unavailable")
+		}
+		return trustCmd.RunE(cmd, args)
+	},
+}
+
+var doctorFixDepsCmd = &cobra.Command{
+	Use:   "fix-deps",
+	Short: "Check and report required system dependencies",
+	Args:  cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if fixDepsCmd.RunE == nil {
+			return fmt.Errorf("doctor fix-deps is unavailable")
+		}
+		return fixDepsCmd.RunE(cmd, args)
+	},
+}
+
 func renderDoctorReport(report engine.DoctorReport) {
 	for _, check := range report.Checks {
 		line := fmt.Sprintf("%s: %s", check.Title, check.Message)
@@ -108,4 +132,6 @@ func init() {
 	doctorCmd.Flags().Bool("fix", false, "Apply safe automatic fixes when available")
 	doctorCmd.Flags().Bool("pack", false, "Export a diagnostics support pack")
 	doctorCmd.Flags().String("pack-dir", "", "Output directory for diagnostics pack (default: ~/.govard/diagnostics)")
+	doctorCmd.AddCommand(doctorTrustCmd)
+	doctorCmd.AddCommand(doctorFixDepsCmd)
 }

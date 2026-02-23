@@ -19,6 +19,12 @@ type RecipeCommand struct {
 	DefaultUser string
 }
 
+var toolCmd = &cobra.Command{
+	Use:   "tool",
+	Short: "Run framework/tooling commands inside project containers",
+	Long:  "Project-scoped wrappers for framework CLIs and common package manager commands.",
+}
+
 var frameworkCommands = []RecipeCommand{
 	{
 		Name:        "magento",
@@ -161,8 +167,9 @@ func initFrameworkCommands() {
 				return runInContainer(containerName, user, target.Binary, append(target.PrependArgs, args...))
 			},
 		}
-		rootCmd.AddCommand(cmd)
+		toolCmd.AddCommand(cmd)
 	}
+	rootCmd.AddCommand(toolCmd)
 }
 
 func runInContainer(containerName string, user string, binary string, args []string) error {

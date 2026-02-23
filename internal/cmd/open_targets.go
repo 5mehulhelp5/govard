@@ -108,6 +108,34 @@ func runOpenSearchTarget(config engine.Config, target string, requestedEnvironme
 	return openURL(url)
 }
 
+func runOpenMailTarget(config engine.Config, requestedEnvironment string) error {
+	_, isRemote, err := resolveOpenEnvironment(config, requestedEnvironment)
+	if err != nil {
+		return err
+	}
+	if isRemote {
+		return fmt.Errorf("open mail with remote environment is not supported yet")
+	}
+
+	url := "https://mail.govard.test"
+	pterm.Info.Printf("Opening %s\n", url)
+	return openURL(url)
+}
+
+func runOpenPMATarget(config engine.Config, requestedEnvironment string) error {
+	_, isRemote, err := resolveOpenDBEnvironment(config, requestedEnvironment)
+	if err != nil {
+		return err
+	}
+	if isRemote {
+		return fmt.Errorf("open pma is local-only; use `govard open db -e <remote>` for remote DB access")
+	}
+
+	url := "https://pma.govard.test"
+	pterm.Info.Printf("Opening %s\n", url)
+	return openURL(url)
+}
+
 func openAdminURL(config engine.Config) string {
 	return "https://" + config.Domain + "/admin"
 }

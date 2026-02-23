@@ -1,13 +1,13 @@
-# govard down
+# govard env down
 
 Tear down the current project environment (containers and networks).
 
 ## Usage
 
 ```bash
-govard down
-govard down --volumes
-govard down --rmi local --timeout 20
+govard env down
+govard env down --volumes
+govard env down --rmi local --timeout 20
 ```
 
 ## Options
@@ -19,11 +19,11 @@ govard down --rmi local --timeout 20
 
 ## Notes
 
-- `govard down` uses `docker compose down` with the project compose file under `~/.govard/compose/`.
+- `govard env down` uses `docker compose down` with the project compose file under `~/.govard/compose/`.
 - It also unregisters the project domain from Govard proxy and removes the hosts entry when possible.
-- Lifecycle hooks `pre_stop` / `post_stop` are executed for consistency with `govard stop`.
+- Lifecycle hooks `pre_stop` / `post_stop` are executed for consistency with `govard env stop`.
 
 ## Related
 
-- `govard stop` only stops containers without removing networks/containers.
-- `govard up` recreates and starts the environment after teardown.
+- `govard env stop` only stops containers without removing networks/containers.
+- `govard env up` recreates and starts the environment after teardown.

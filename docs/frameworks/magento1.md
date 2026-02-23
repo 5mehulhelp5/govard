@@ -29,5 +29,5 @@ Govard detects Magento 1/OpenMage when one of the following is present:
 Use `n98-magerun` for Magento 1 CLI tasks:
 
 ```bash
-govard magerun cache:flush
+govard tool magerun cache:flush
 ```

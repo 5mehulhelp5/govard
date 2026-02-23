@@ -13,12 +13,12 @@ import (
 
 func TestProfileCommandExists(t *testing.T) {
 	root := cmd.RootCommandForTest()
-	command, _, err := root.Find([]string{"profile"})
+	command, _, err := root.Find([]string{"config", "profile"})
 	if err != nil {
-		t.Fatalf("find profile: %v", err)
+		t.Fatalf("find config profile: %v", err)
 	}
 	if command == nil || command.Use != "profile" {
-		t.Fatal("expected profile command")
+		t.Fatal("expected config profile command")
 	}
 }
 
@@ -39,7 +39,7 @@ func TestProfileJSONOutput(t *testing.T) {
 	buf := &bytes.Buffer{}
 	root.SetOut(buf)
 	root.SetErr(io.Discard)
-	root.SetArgs([]string{"profile", "--json"})
+	root.SetArgs([]string{"config", "profile", "--json"})
 	if err := root.Execute(); err != nil {
 		t.Fatalf("execute: %v", err)
 	}

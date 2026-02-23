@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const openSupportedTargets = "admin, db, shell, sftp, elasticsearch, opensearch"
+const openSupportedTargets = "admin, db, mail, pma, shell, sftp, elasticsearch, opensearch"
 
 var openEnvironment string
 
@@ -24,6 +24,10 @@ var openCmd = &cobra.Command{
 			return runOpenAdminTarget(config, openEnvironment)
 		case "db":
 			return runOpenDBTarget(config, openEnvironment)
+		case "mail":
+			return runOpenMailTarget(config, openEnvironment)
+		case "pma":
+			return runOpenPMATarget(config, openEnvironment)
 		case "shell":
 			return runOpenShellTarget(config, openEnvironment)
 		case "sftp":
