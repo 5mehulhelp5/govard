@@ -17,24 +17,25 @@ export const createToast = (container) => {
   const show = (message, type = "success") => {
     if (!container || !message) return;
 
-    // Simple deduplication to prevent flooding
-    if (activeMessages.has(message)) return;
-    activeMessages.add(message);
+    const msg = String(message).trim();
+    if (activeMessages.has(msg)) return;
+    activeMessages.add(msg);
 
     const item = document.createElement("div");
     item.className = `toast toast--${type} group`;
 
-    // Add progress bar for timing feedback
     const duration = type === "error" || type === "warning" ? 6000 : 4000;
 
     item.innerHTML = `
       <div class="toast-indicator"></div>
-      <span class="material-symbols-outlined text-[20px] shrink-0 toast-icon">${getIcon(type)}</span>
-      <div class="flex-1 min-w-0 py-0.5">
-        <p class="text-sm font-medium leading-normal text-white/95">${String(message)}</p>
+      <div class="toast-icon-wrapper">
+        <span class="material-symbols-outlined toast-icon">${getIcon(type)}</span>
       </div>
-      <button class="opacity-0 group-hover:opacity-100 p-1.5 -mr-1.5 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-all transform hover:scale-105" aria-label="Close">
-        <span class="material-symbols-outlined text-[18px]">close</span>
+      <div class="toast-content">
+        <p class="toast-message">${msg}</p>
+      </div>
+      <button class="toast-close" aria-label="Close">
+        <span class="material-symbols-outlined">close</span>
       </button>
       <div class="toast-progress" style="animation: toast-shrink ${duration}ms linear forwards"></div>
     `;
@@ -47,11 +48,11 @@ export const createToast = (container) => {
       item.classList.remove("is-visible");
       setTimeout(() => {
         item.remove();
-        activeMessages.delete(message);
+        activeMessages.delete(msg);
       }, 500);
     };
 
-    item.querySelector("button").addEventListener("click", (e) => {
+    item.querySelector(".toast-close").addEventListener("click", (e) => {
       e.stopPropagation();
       close();
     });
