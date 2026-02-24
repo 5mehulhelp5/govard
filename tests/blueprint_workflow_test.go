@@ -19,7 +19,7 @@ func TestFullSetupLogic(t *testing.T) {
 
 	_, filename, _, _ := runtime.Caller(0)
 	projectRoot := filepath.Join(filepath.Dir(filename), "..")
-	blueprintsDir := filepath.Join(projectRoot, "blueprints")
+	blueprintsDir := filepath.Join(projectRoot, "internal", "blueprints", "files")
 
 	destBlueprintsDir := filepath.Join(tempDir, "blueprints")
 	if err := copyDir(blueprintsDir, destBlueprintsDir); err != nil {
@@ -40,7 +40,7 @@ func TestFullSetupLogic(t *testing.T) {
 	}
 
 	data, _ := yaml.Marshal(&config)
-	os.WriteFile(filepath.Join(tempDir, ".govard.yml"), data, 0644)
+	os.WriteFile(filepath.Join(tempDir, "govard.yml"), data, 0644)
 
 	err := engine.RenderBlueprint(tempDir, config)
 	if err != nil {

@@ -63,7 +63,7 @@ func NewTestEnvironment(t *testing.T) *TestEnvironment {
 		ProjectRoot:    projectRoot,
 		TestProjects:   make(map[string]string),
 		BinaryPath:     binaryPath,
-		BlueprintsPath: filepath.Join(projectRoot, "blueprints"),
+		BlueprintsPath: filepath.Join(projectRoot, "internal", "blueprints", "files"),
 	}
 }
 
@@ -444,7 +444,7 @@ func MustMarshalYAML(t *testing.T, data interface{}) string {
 	return string(bytes)
 }
 
-// CreateGovardConfig creates a .govard.yml config file
+// CreateGovardConfig creates a govard.yml config file
 func CreateGovardConfig(t *testing.T, projectDir string, config engine.Config) {
 	t.Helper()
 
@@ -453,9 +453,9 @@ func CreateGovardConfig(t *testing.T, projectDir string, config engine.Config) {
 		t.Fatalf("Failed to marshal config: %v", err)
 	}
 
-	configPath := filepath.Join(projectDir, ".govard.yml")
+	configPath := filepath.Join(projectDir, "govard.yml")
 	if err := os.WriteFile(configPath, data, 0644); err != nil {
-		t.Fatalf("Failed to write .govard.yml: %v", err)
+		t.Fatalf("Failed to write govard.yml: %v", err)
 	}
 }
 
