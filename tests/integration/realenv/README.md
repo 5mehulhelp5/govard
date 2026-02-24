@@ -45,10 +45,11 @@ make test-realenv-setup
 ```
 
 This will:
+
 - Create SSH key pair for inter-container authentication
 - Prepare Magento 2 fixtures for all 3 environments
 - Start 9 Docker containers (3 PHP, 3 DB, 3 SSH)
-- Generate govard.yml configurations for each environment
+- Generate .govard.yml configurations for each environment
 - Verify SSH and database connectivity
 
 ### 2. Run All Real Environment Tests
@@ -163,6 +164,7 @@ Each environment is initialized with:
 - **STAGING**: Production-like setup with sanitized data
 
 Database schemas include:
+
 - `core_config_data` - Magento configuration
 - `test_markers` - Environment identification
 - `catalog_product_entity` - Sample products
@@ -177,12 +179,14 @@ Reuses existing fixtures from `tests/integration/projects/magento2/`:
 - **`options-staging/`** - STAGING environment (no remotes - it's a target, not a workstation)
 
 **Important**: In real environment tests:
+
 - The **LOCAL** fixture is used as the project (workstation)
 - **DEV** and **STAGING** are remote targets accessed via SSH
 - Tests run commands from LOCAL, syncing to/from DEV/STAGING
 
 Each fixture includes:
-- `govard.yml` - Govard configuration
+
+- `.govard.yml` - Govard configuration
 - `composer.json` - Magento 2 project definition
 - `app/etc/env.php` - Magento environment configuration
 - `init.sql` - Database initialization script
@@ -234,6 +238,7 @@ docker-compose -f tests/integration/realenv/docker-compose.three-env.yml restart
 ## CI/CD Integration
 
 These tests can be run in CI but require:
+
 - Docker-in-Docker or privileged mode
 - Sufficient resources (8GB+ RAM)
 - Extended timeout (30+ minutes)
@@ -245,6 +250,7 @@ Example GitHub Actions workflow is in `.github/workflows/real-env-tests.yml`
 ### Test Infrastructure (`real_env_test.go`)
 
 The `RealEnvTest` struct provides:
+
 - Automatic binary building
 - Environment health checks
 - Command execution with proper environment
@@ -253,6 +259,7 @@ The `RealEnvTest` struct provides:
 ### Environment Setup (`setup-three-env.sh`)
 
 The setup script handles:
+
 1. SSH key generation
 2. Fixture preparation
 3. Docker Compose orchestration
@@ -262,6 +269,7 @@ The setup script handles:
 ### Docker Compose (`docker-compose.three-env.yml`)
 
 Defines:
+
 - 3 PHP-FPM containers
 - 3 MySQL containers  
 - 3 SSH server containers
@@ -286,7 +294,7 @@ func TestMyNewFeature(t *testing.T) {
 }
 ```
 
-2. Run with realenv tag:
+1. Run with realenv tag:
 
 ```bash
 go test -tags realenv ./tests/integration/realenv/... -run TestMyNewFeature -v
@@ -295,6 +303,7 @@ go test -tags realenv ./tests/integration/realenv/... -run TestMyNewFeature -v
 ## Contributing
 
 When adding new tests:
+
 - Use the `RealEnvTest` infrastructure
 - Clean up any resources created during tests
 - Add both success and failure cases

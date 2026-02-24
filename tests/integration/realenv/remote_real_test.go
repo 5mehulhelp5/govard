@@ -10,9 +10,9 @@ import (
 func TestRemoteTestConnectionToDev(t *testing.T) {
 	env := NewRealEnvTest(t)
 	env.Setup(t)
-	
+
 	localDir := env.CreateTempProject(t, "local")
-	
+
 	result := env.RunGovard(t, localDir, "remote", "test", "dev")
 	result.AssertSuccess(t)
 }
@@ -20,9 +20,9 @@ func TestRemoteTestConnectionToDev(t *testing.T) {
 func TestRemoteTestConnectionToStaging(t *testing.T) {
 	env := NewRealEnvTest(t)
 	env.Setup(t)
-	
+
 	localDir := env.CreateTempProject(t, "local")
-	
+
 	result := env.RunGovard(t, localDir, "remote", "test", "staging")
 	result.AssertSuccess(t)
 }
@@ -30,9 +30,9 @@ func TestRemoteTestConnectionToStaging(t *testing.T) {
 func TestRemoteTestAllEnvironments(t *testing.T) {
 	env := NewRealEnvTest(t)
 	env.Setup(t)
-	
+
 	localDir := env.CreateTempProject(t, "local")
-	
+
 	// Test both DEV and STAGING
 	for _, remote := range []string{"dev", "staging"} {
 		result := env.RunGovard(t, localDir, "remote", "test", remote)
@@ -43,9 +43,9 @@ func TestRemoteTestAllEnvironments(t *testing.T) {
 func TestRemoteTestInvalidRemote(t *testing.T) {
 	env := NewRealEnvTest(t)
 	env.Setup(t)
-	
+
 	localDir := env.CreateTempProject(t, "local")
-	
+
 	// Try to test a non-configured remote
 	result := env.RunGovard(t, localDir, "remote", "test", "production")
 	result.AssertFailure(t)
@@ -54,9 +54,9 @@ func TestRemoteTestInvalidRemote(t *testing.T) {
 func TestRemoteExecOnDev(t *testing.T) {
 	env := NewRealEnvTest(t)
 	env.Setup(t)
-	
+
 	localDir := env.CreateTempProject(t, "local")
-	
+
 	result := env.RunGovard(t, localDir, "remote", "exec", "dev", "--", "pwd")
 	result.AssertSuccess(t)
 	result.AssertOutputContains(t, "/var/www/html")
@@ -65,9 +65,9 @@ func TestRemoteExecOnDev(t *testing.T) {
 func TestRemoteExecOnStaging(t *testing.T) {
 	env := NewRealEnvTest(t)
 	env.Setup(t)
-	
+
 	localDir := env.CreateTempProject(t, "local")
-	
+
 	result := env.RunGovard(t, localDir, "remote", "exec", "staging", "--", "echo", "test")
 	result.AssertSuccess(t)
 	result.AssertOutputContains(t, "test")
@@ -76,9 +76,9 @@ func TestRemoteExecOnStaging(t *testing.T) {
 func TestRemoteAuditDev(t *testing.T) {
 	env := NewRealEnvTest(t)
 	env.Setup(t)
-	
+
 	localDir := env.CreateTempProject(t, "local")
-	
+
 	result := env.RunGovard(t, localDir, "remote", "audit", "dev")
 	// May succeed or fail depending on implementation, but should not panic
 	if result.ExitCode != 0 {

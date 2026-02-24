@@ -10,42 +10,41 @@
 //
 // Usage:
 //
-//   1. Setup the environment:
-//      cd tests/integration/realenv && ./setup-three-env.sh
+//  1. Setup the environment:
+//     cd tests/integration/realenv && ./setup-three-env.sh
 //
-//   2. Run all real environment tests:
-//      go test -tags realenv ./tests/integration/realenv/... -v
+//  2. Run all real environment tests:
+//     go test -tags realenv ./tests/integration/realenv/... -v
 //
-//   3. Run specific test:
-//      go test -tags realenv ./tests/integration/realenv/... -run TestBootstrapClone -v
+//  3. Run specific test:
+//     go test -tags realenv ./tests/integration/realenv/... -run TestBootstrapClone -v
 //
-//   4. Cleanup:
-//      cd tests/integration/realenv && ./setup-three-env.sh cleanup
+//  4. Cleanup:
+//     cd tests/integration/realenv && ./setup-three-env.sh cleanup
 //
 // Environment Structure:
 //
-//   LOCAL Environment (Workstation):
-//     - MySQL: localhost:3306
-//     - SSH: localhost:9022
-//     - Role: The project where govard commands are run
-//     - Has remotes: dev (9023), staging (9024)
+//	LOCAL Environment (Workstation):
+//	  - MySQL: localhost:3306
+//	  - SSH: localhost:9022
+//	  - Role: The project where govard commands are run
+//	  - Has remotes: dev (9023), staging (9024)
 //
-//   DEV Environment (Remote Target):
-//     - MySQL: localhost:3307
-//     - SSH: localhost:9023
-//     - Role: Remote target for sync/clone operations
-//     - No remotes configured (it's a target, not a workstation)
+//	DEV Environment (Remote Target):
+//	  - MySQL: localhost:3307
+//	  - SSH: localhost:9023
+//	  - Role: Remote target for sync/clone operations
+//	  - No remotes configured (it's a target, not a workstation)
 //
-//   STAGING Environment (Remote Target):
-//     - MySQL: localhost:3308
-//     - SSH: localhost:9024
-//     - Role: Remote target for sync/clone operations
-//     - No remotes configured (it's a target, not a workstation)
+//	STAGING Environment (Remote Target):
+//	  - MySQL: localhost:3308
+//	  - SSH: localhost:9024
+//	  - Role: Remote target for sync/clone operations
+//	  - No remotes configured (it's a target, not a workstation)
 //
 // Requirements:
 //   - Docker 20.10+ and Docker Compose
 //   - Go 1.24+
 //   - OpenSSH client
 //   - 8GB+ RAM (16GB recommended)
-//
 package realenv

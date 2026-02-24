@@ -286,7 +286,7 @@ func TestConfigLayeringWithEmptyLocalFile(t *testing.T) {
 				},
 			},
 		}),
-		".govard.local.yml": "",
+		"govard.local.yml": "",
 	}
 
 	projectDir := env.CreateTestProject(t, "empty-local", files)
@@ -305,7 +305,7 @@ func TestConfigLayeringMissingBaseFile(t *testing.T) {
 	env := NewTestEnvironment(t)
 
 	files := map[string]string{
-		".govard.local.yml": MustMarshalYAML(t, map[string]interface{}{
+		"govard.local.yml": MustMarshalYAML(t, map[string]interface{}{
 			"stack": map[string]interface{}{
 				"features": map[string]interface{}{
 					"xdebug": true,

@@ -89,12 +89,12 @@ func TestBootstrapCloneRequiresConfiguredRemote(t *testing.T) {
 	env := NewRealEnvTest(t)
 	env.Setup(t)
 
-	// Create a minimal govard.yml with no remotes so ensureBootstrapInit skips
+	// Create a minimal .govard.yml with no remotes so ensureBootstrapInit skips
 	// running `govard init` (which would block waiting for interactive input).
 	localDir := t.TempDir()
 	minimalConfig := "project_name: test-no-remotes\ndomain: test-no-remotes.test\nrecipe: magento2\n"
-	if err := os.WriteFile(filepath.Join(localDir, "govard.yml"), []byte(minimalConfig), 0644); err != nil {
-		t.Fatalf("Failed to write govard.yml: %v", err)
+	if err := os.WriteFile(filepath.Join(localDir, ".govard.yml"), []byte(minimalConfig), 0644); err != nil {
+		t.Fatalf("Failed to write .govard.yml: %v", err)
 	}
 
 	result := env.RunGovard(t, localDir, "bootstrap", "--clone", "--environment", "dev", "--skip-up")

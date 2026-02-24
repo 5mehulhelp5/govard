@@ -128,7 +128,7 @@ func (r *RealEnvTest) RunGovard(t *testing.T, projectDir string, args ...string)
 	}
 }
 
-// CopyConfig copies the appropriate govard.yml to project directory
+// CopyConfig copies the appropriate .govard.yml to project directory
 // Uses existing fixtures from tests/integration/projects/magento2/
 // For real env tests, only 'local' fixture should be used as the project.
 // DEV and STAGING are remote targets, not local projects.
@@ -143,8 +143,8 @@ func (r *RealEnvTest) CopyConfig(t *testing.T, env string, projectDir string) {
 			"Use 'local' as project and specify remote via --environment flag")
 	}
 
-	src := filepath.Join(r.FixturesDir, "options-local", "govard.yml")
-	dst := filepath.Join(projectDir, "govard.yml")
+	src := filepath.Join(r.FixturesDir, "options-local", ".govard.yml")
+	dst := filepath.Join(projectDir, ".govard.yml")
 
 	data, err := os.ReadFile(src)
 	if err != nil {
@@ -170,7 +170,7 @@ func (r *RealEnvTest) CopyConfig(t *testing.T, env string, projectDir string) {
 	// Replace username
 	config = strings.ReplaceAll(config, "user: deploy", "user: linuxserver.io")
 
-	// Set SSH key path in govard.yml
+	// Set SSH key path in .govard.yml
 	if strings.Contains(config, "key_path: ~/.ssh/id_rsa") {
 		// Replace placeholder key path (note: 6 spaces indentation for auth sub-block)
 		config = strings.ReplaceAll(config, "key_path: ~/.ssh/id_rsa", "key_path: "+r.SSHKeyPath)
@@ -180,9 +180,9 @@ func (r *RealEnvTest) CopyConfig(t *testing.T, env string, projectDir string) {
 	}
 
 	if err := os.WriteFile(dst, []byte(config), 0644); err != nil {
-		t.Fatalf("Failed to write govard.yml: %v", err)
+		t.Fatalf("Failed to write .govard.yml: %v", err)
 	}
-	t.Logf("Generated govard.yml in %s:\n%s", projectDir, config)
+	t.Logf("Generated .govard.yml in %s:\n%s", projectDir, config)
 }
 
 // CreateTempProject creates a temporary project directory with config
