@@ -14,9 +14,9 @@ RUN npm install -g grunt-cli gulp yarn
 
 RUN set -eux \
     && PHP_VERSION=$(php -v | head -n1 | cut -d' ' -f2 | awk -F '.' '{print $1$2}') \
-    && if (( ${PHP_VERSION} < 80 )); \
-        then MAGERUN_PHAR_URL=https://files.magerun.net/n98-magerun2-7.5.0.phar; \
-        else MAGERUN_PHAR_URL=https://files.magerun.net/n98-magerun2.phar; \
+    && if [ "${PHP_VERSION}" -lt 80 ]; \
+    then MAGERUN_PHAR_URL=https://files.magerun.net/n98-magerun2-7.5.0.phar; \
+    else MAGERUN_PHAR_URL=https://files.magerun.net/n98-magerun2.phar; \
     fi \
     && mkdir -p /usr/local/bin \
     && curl -s ${MAGERUN_PHAR_URL} > /usr/local/bin/n98-magerun \

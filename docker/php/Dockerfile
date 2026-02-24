@@ -64,37 +64,37 @@ RUN set -eux; \
 RUN set -eux; \
     PHP_VERSION_INT=$(echo $PHP_VERSION | cut -d. -f1,2 | tr -d .); \
     if [ "$PHP_VERSION_INT" -ge 74 ]; then \
-        docker-php-ext-configure gd --with-freetype --with-jpeg; \
+    docker-php-ext-configure gd --with-freetype --with-jpeg; \
     else \
-        docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/; \
+    docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/; \
     fi; \
-    docker-php-ext-install -j$(nproc) \
-    bcmath \
-    bz2 \
-    calendar \
-    exif \
-    gd \
-    gettext \
-    gmp \
-    intl \
-    mysqli \
-    opcache \
-    pdo_mysql \
-    soap \
-    sockets \
-    sodium \
-    xsl \
-    zip \
-    pcntl \
-    ftp
+    CORE_EXTS="bcmath bz2 calendar exif gd gettext gmp intl mysqli opcache pdo_mysql soap sockets xsl zip pcntl ftp"; \
+    if [ "$PHP_VERSION_INT" -ge 72 ]; then \
+    CORE_EXTS="$CORE_EXTS sodium"; \
+    fi; \
+    docker-php-ext-install -j$(nproc) $CORE_EXTS
 
 # Install PECL extensions
 RUN set -eux; \
     PHP_VERSION_INT=$(echo $PHP_VERSION | cut -d. -f1,2 | tr -d .); \
     REDIS_VERSION="redis"; \
-    if [ "$PHP_VERSION_INT" -lt 72 ]; then REDIS_VERSION="redis-4.3.0"; fi; \
-    pecl install $REDIS_VERSION imagick amqp \
-    && docker-php-ext-enable redis imagick amqp
+    IMAGICK_VERSION="imagick"; \
+    AMQP_VERSION="amqp"; \
+    if [ "$PHP_VERSION_INT" -lt 72 ]; then \
+    REDIS_VERSION="redis-4.3.0"; \
+    fi; \
+    if [ "$PHP_VERSION_INT" -lt 73 ]; then \
+    IMAGICK_VERSION="imagick-3.4.4"; \
+    fi; \
+    if [ "$PHP_VERSION_INT" -lt 74 ]; then \
+    AMQP_VERSION="amqp-1.11.0"; \
+    fi; \
+    pecl install $REDIS_VERSION $IMAGICK_VERSION $AMQP_VERSION; \
+    if [ "$PHP_VERSION_INT" -lt 72 ]; then \
+    pecl install libsodium; \
+    docker-php-ext-enable sodium; \
+    fi; \
+    docker-php-ext-enable redis imagick amqp
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
