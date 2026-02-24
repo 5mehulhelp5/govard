@@ -81,6 +81,26 @@ func NormalizeConfig(config *Config) {
 		}
 	}
 
+	if config.Stack.NginxVersion == "" {
+		if profileAvailable && profile.NginxVersion != "" {
+			config.Stack.NginxVersion = profile.NginxVersion
+		} else if ok && fwConfig.DefaultNginxVer != "" {
+			config.Stack.NginxVersion = fwConfig.DefaultNginxVer
+		} else {
+			config.Stack.NginxVersion = "1.28"
+		}
+	}
+
+	if config.Stack.ApacheVersion == "" {
+		if profileAvailable && profile.ApacheVersion != "" {
+			config.Stack.ApacheVersion = profile.ApacheVersion
+		} else if ok && fwConfig.DefaultApacheVer != "" {
+			config.Stack.ApacheVersion = fwConfig.DefaultApacheVer
+		} else {
+			config.Stack.ApacheVersion = "2.4"
+		}
+	}
+
 	if config.Stack.Services.WebServer == "" {
 		if config.Stack.WebServer != "" {
 			config.Stack.Services.WebServer = config.Stack.WebServer
@@ -170,6 +190,18 @@ func NormalizeConfig(config *Config) {
 		} else {
 			config.Stack.SearchVersion = "3.4.0"
 		}
+	}
+
+	if !config.Stack.Features.Varnish {
+		config.Stack.VarnishVersion = ""
+	} else if config.Stack.VarnishVersion == "" &&
+		profileAvailable &&
+		profile.VarnishVersion != "" {
+		config.Stack.VarnishVersion = profile.VarnishVersion
+	} else if config.Stack.VarnishVersion == "" && ok && fwConfig.DefaultVarnishVer != "" {
+		config.Stack.VarnishVersion = fwConfig.DefaultVarnishVer
+	} else if config.Stack.VarnishVersion == "" {
+		config.Stack.VarnishVersion = "7.4"
 	}
 
 	if config.Stack.Services.Queue == "none" {

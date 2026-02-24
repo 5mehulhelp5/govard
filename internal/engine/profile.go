@@ -18,8 +18,11 @@ type RuntimeProfile struct {
 	WebServer        string
 	Cache            string
 	CacheVersion     string
+	NginxVersion     string
+	ApacheVersion    string
 	Search           string
 	SearchVersion    string
+	VarnishVersion   string
 	Queue            string
 	QueueVersion     string
 	XdebugSession    string
@@ -33,18 +36,21 @@ type RuntimeProfileResult struct {
 }
 
 type runtimeProfileOverride struct {
-	PHPVersion    string
-	NodeVersion   string
-	DBType        string
-	DBVersion     string
-	WebRoot       string
-	WebServer     string
-	Cache         string
-	CacheVersion  string
-	Search        string
-	SearchVersion string
-	Queue         string
-	QueueVersion  string
+	PHPVersion     string
+	NodeVersion    string
+	DBType         string
+	DBVersion      string
+	WebRoot        string
+	WebServer      string
+	Cache          string
+	CacheVersion   string
+	NginxVersion   string
+	ApacheVersion  string
+	Search         string
+	SearchVersion  string
+	VarnishVersion string
+	Queue          string
+	QueueVersion   string
 }
 
 var majorVersionPattern = regexp.MustCompile(`\d+`)
@@ -92,10 +98,13 @@ func ResolveRuntimeProfile(framework string, version string) (RuntimeProfileResu
 			DBVersion:        fwConfig.DefaultDBVer,
 			WebRoot:          fwConfig.NGINXPUBLIC,
 			WebServer:        normalizeProfileValue(fwConfig.DefaultWebServer, "nginx"),
+			NginxVersion:     fwConfig.DefaultNginxVer,
+			ApacheVersion:    fwConfig.DefaultApacheVer,
 			Cache:            normalizeProfileValue(fwConfig.DefaultCache, "none"),
 			CacheVersion:     fwConfig.DefaultCacheVer,
 			Search:           normalizeProfileValue(fwConfig.DefaultSearch, "none"),
 			SearchVersion:    fwConfig.DefaultSearchVer,
+			VarnishVersion:   fwConfig.DefaultVarnishVer,
 			Queue:            normalizeProfileValue(fwConfig.DefaultQueue, "none"),
 			QueueVersion:     fwConfig.DefaultQueueVer,
 			XdebugSession:    "PHPSTORM",
@@ -217,11 +226,20 @@ func applyRuntimeProfileOverride(profile *RuntimeProfile, override runtimeProfil
 	if override.CacheVersion != "" {
 		profile.CacheVersion = override.CacheVersion
 	}
+	if override.NginxVersion != "" {
+		profile.NginxVersion = override.NginxVersion
+	}
+	if override.ApacheVersion != "" {
+		profile.ApacheVersion = override.ApacheVersion
+	}
 	if override.Search != "" {
 		profile.Search = override.Search
 	}
 	if override.SearchVersion != "" {
 		profile.SearchVersion = override.SearchVersion
+	}
+	if override.VarnishVersion != "" {
+		profile.VarnishVersion = override.VarnishVersion
 	}
 	if override.Queue != "" {
 		profile.Queue = override.Queue
@@ -294,12 +312,14 @@ func resolveMagento24Override(major int, minor int, patch int, pPatch int) (runt
 		override.DBVersion = "11.4"
 		override.CacheVersion = "7.2"
 		override.SearchVersion = "3.0.0"
-		override.QueueVersion = "4.1.0"
+		override.VarnishVersion = "7.6"
+		override.QueueVersion = "4.1"
 	case patch == 8:
 		override.PHPVersion = "8.4"
 		override.DBVersion = "11.4"
 		override.CacheVersion = "7.2"
-		override.QueueVersion = "4.1.0"
+		override.VarnishVersion = "7.6"
+		override.QueueVersion = "4.1"
 		if pPatch >= 2 || pPatch == 0 {
 			override.SearchVersion = "3.0.0"
 		} else {
@@ -310,7 +330,8 @@ func resolveMagento24Override(major int, minor int, patch int, pPatch int) (runt
 		override.DBVersion = "10.6"
 		override.CacheVersion = "7.2"
 		override.SearchVersion = "2.12.0"
-		override.QueueVersion = "3.13.7"
+		override.VarnishVersion = "7.4"
+		override.QueueVersion = "3.13"
 		if pPatch >= 5 {
 			override.SearchVersion = "2.19.0"
 		}
@@ -318,22 +339,22 @@ func resolveMagento24Override(major int, minor int, patch int, pPatch int) (runt
 			override.DBVersion = "10.11"
 		}
 		if pPatch >= 7 {
-			override.QueueVersion = "4.1.0"
+			override.QueueVersion = "4.1"
 		}
 	case patch == 6:
 		override.PHPVersion = "8.2"
 		override.DBVersion = "10.6"
 		override.CacheVersion = "7.0"
 		override.SearchVersion = "2.5.0"
-		override.QueueVersion = "3.9.0"
+		override.QueueVersion = "3.9"
 		if pPatch >= 5 {
 			override.SearchVersion = "2.12.0"
 		}
 		if pPatch >= 6 {
-			override.QueueVersion = "3.12.0"
+			override.QueueVersion = "3.12"
 		}
 		if pPatch >= 7 {
-			override.QueueVersion = "3.13.7"
+			override.QueueVersion = "3.13"
 		}
 		if pPatch >= 8 {
 			override.CacheVersion = "7.2"
@@ -345,24 +366,24 @@ func resolveMagento24Override(major int, minor int, patch int, pPatch int) (runt
 			override.DBVersion = "10.11"
 		}
 		if pPatch >= 12 {
-			override.QueueVersion = "4.1.0"
+			override.QueueVersion = "4.1"
 		}
 	case patch == 5:
 		override.PHPVersion = "8.1"
 		override.DBVersion = "10.4"
 		override.CacheVersion = "6.2"
 		override.SearchVersion = "1.2.0"
-		override.QueueVersion = "3.9.0"
+		override.QueueVersion = "3.9"
 		if pPatch >= 7 {
 			override.SearchVersion = "1.3.0"
 			override.CacheVersion = "7.0"
 		}
 		if pPatch >= 8 {
 			override.DBVersion = "10.5"
-			override.QueueVersion = "3.11.0"
+			override.QueueVersion = "3.11"
 		}
 		if pPatch >= 9 {
-			override.QueueVersion = "3.13.7"
+			override.QueueVersion = "3.13"
 		}
 		if pPatch >= 10 {
 			override.CacheVersion = "7.2"
@@ -375,14 +396,14 @@ func resolveMagento24Override(major int, minor int, patch int, pPatch int) (runt
 			override.SearchVersion = "2.19.0"
 		}
 		if pPatch >= 14 {
-			override.QueueVersion = "4.1.0"
+			override.QueueVersion = "4.1"
 		}
 	case patch == 4:
 		override.PHPVersion = "8.1"
 		override.DBVersion = "10.4"
 		override.CacheVersion = "6.2"
 		override.SearchVersion = "1.2.0"
-		override.QueueVersion = "3.9.0"
+		override.QueueVersion = "3.9"
 		if pPatch >= 8 {
 			override.SearchVersion = "1.3.0"
 			override.CacheVersion = "7.0"
@@ -406,32 +427,33 @@ func resolveMagento24Override(major int, minor int, patch int, pPatch int) (runt
 		override.Cache = "redis"
 		override.CacheVersion = "6.0"
 		override.Search = "elasticsearch"
-		override.SearchVersion = "7.10.0"
-		override.QueueVersion = "3.8.0"
+		override.SearchVersion = "7.10.2"
+		override.VarnishVersion = "6.0"
+		override.QueueVersion = "3.8"
 	case patch == 2:
 		override.PHPVersion = "7.4"
 		override.DBVersion = "10.4"
 		override.Cache = "redis"
 		override.CacheVersion = "6.0"
 		override.Search = "elasticsearch"
-		override.SearchVersion = "7.9.0"
-		override.QueueVersion = "3.8.0"
+		override.SearchVersion = "7.9.3"
+		override.QueueVersion = "3.8"
 	case patch == 1:
 		override.PHPVersion = "7.4"
 		override.DBVersion = "10.4"
 		override.Cache = "redis"
 		override.CacheVersion = "6.0"
 		override.Search = "elasticsearch"
-		override.SearchVersion = "7.9.0"
-		override.QueueVersion = "3.8.0"
+		override.SearchVersion = "7.9.3"
+		override.QueueVersion = "3.8"
 	case patch == 0:
 		override.PHPVersion = "7.4"
 		override.DBVersion = "10.4"
 		override.Cache = "redis"
 		override.CacheVersion = "5.0"
 		override.Search = "elasticsearch"
-		override.SearchVersion = "7.6.0"
-		override.QueueVersion = "3.8.0"
+		override.SearchVersion = "7.6.2"
+		override.QueueVersion = "3.8"
 	default:
 		return runtimeProfileOverride{}, "", false
 	}
@@ -450,58 +472,61 @@ func resolveLegacyMagento2Override(major int, minor int, patch int, pPatch int) 
 
 	switch {
 	case major == 2 && minor == 3:
+		override.VarnishVersion = "6.0"
 		if patch == 0 {
 			override.PHPVersion = "7.1"
 			override.DBVersion = "10.1"
 			override.CacheVersion = "5.0"
-			override.SearchVersion = "5.2.0"
-			override.QueueVersion = "3.7.0"
+			override.SearchVersion = "5.6.16"
+			override.QueueVersion = "3.7"
 		} else if patch <= 2 {
 			override.PHPVersion = "7.2"
 			override.DBVersion = "10.2"
 			override.CacheVersion = "5.0"
-			override.SearchVersion = "6.0.0"
-			override.QueueVersion = "3.7.0"
+			override.SearchVersion = "6.8.23"
+			override.QueueVersion = "3.7"
 		} else if patch == 3 {
 			override.PHPVersion = "7.2"
 			override.DBVersion = "10.2"
 			override.CacheVersion = "5.0"
-			override.SearchVersion = "6.5.0"
-			override.QueueVersion = "3.8.0"
+			override.SearchVersion = "6.8.23"
+			override.QueueVersion = "3.8"
 		} else if patch == 4 {
 			override.PHPVersion = "7.2"
 			override.DBVersion = "10.2"
 			override.CacheVersion = "5.0"
-			override.SearchVersion = "6.8.0"
-			override.QueueVersion = "3.8.0"
+			override.SearchVersion = "6.8.23"
+			override.QueueVersion = "3.8"
 		} else if patch <= 6 {
 			override.PHPVersion = "7.3"
 			override.DBVersion = "10.4"
 			override.CacheVersion = "5.0"
-			override.SearchVersion = "7.6.0"
-			override.QueueVersion = "3.8.0"
+			override.SearchVersion = "7.6.2"
+			override.QueueVersion = "3.8"
 		} else {
 			override.PHPVersion = "7.4"
 			override.DBVersion = "10.4"
 			override.CacheVersion = "5.0"
-			override.SearchVersion = "7.9.0"
-			override.QueueVersion = "3.8.0"
+			override.SearchVersion = "7.9.3"
+			override.QueueVersion = "3.8"
 		}
 	case major == 2 && minor == 2:
 		override.PHPVersion = "7.1"
 		override.DBVersion = "10.1"
-		override.CacheVersion = "3.2"
-		override.SearchVersion = "2.4.0"
-		override.QueueVersion = "3.7.0"
+		override.CacheVersion = "5.0"
+		override.SearchVersion = "5.6.16"
+		override.VarnishVersion = "6.0"
+		override.QueueVersion = "3.7"
 		if patch == 0 {
 			override.DBVersion = "10.0"
 		}
 	case major == 2 && (minor == 1 || minor == 0):
-		override.PHPVersion = "7.0"
+		override.PHPVersion = "7.1"
 		override.DBVersion = "10.0"
-		override.CacheVersion = "3.0"
-		override.SearchVersion = "1.7.0"
-		override.QueueVersion = "3.5.0"
+		override.CacheVersion = "5.0"
+		override.SearchVersion = "2.4.6"
+		override.VarnishVersion = "6.0"
+		override.QueueVersion = "3.7"
 	default:
 		return runtimeProfileOverride{}, "", false
 	}
