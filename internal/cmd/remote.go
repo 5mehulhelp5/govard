@@ -23,7 +23,7 @@ var remoteAddCmd = &cobra.Command{
 	Use:   "add [name]",
 	Short: "Add or update a remote environment",
 	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		startedAt := time.Now()
 		operationStatus := engine.OperationStatusFailure
 		operationCategory := ""
@@ -62,7 +62,8 @@ var remoteAddCmd = &cobra.Command{
 		knownHostsFile, _ := cmd.Flags().GetString("known-hosts-file")
 
 		if host == "" || user == "" || path == "" {
-			pterm.Error.Println("host, user, and path are required")
+			err := fmt.Errorf("host, user, and path are required")
+			pterm.Error.Println(err.Error())
 			operationCategory = "validation"
 			operationMessage = "missing required flags: host/user/path"
 			writeRemoteAuditEvent(remote.AuditEvent{
@@ -73,12 +74,13 @@ var remoteAddCmd = &cobra.Command{
 				DurationMS: time.Since(startedAt).Milliseconds(),
 				Message:    "missing required flags: host/user/path",
 			})
-			return
+			return err
 		}
 
 		environment = engine.NormalizeRemoteEnvironment(environment)
 		if !engine.IsValidRemoteEnvironment(environment) {
-			pterm.Error.Printf("unsupported remote environment '%s' (allowed: dev, staging, prod)\n", environment)
+			err := fmt.Errorf("unsupported remote environment '%s' (allowed: dev, staging, prod)", environment)
+			pterm.Error.Println(err.Error())
 			operationCategory = "validation"
 			operationMessage = "unsupported remote environment"
 			writeRemoteAuditEvent(remote.AuditEvent{
@@ -89,7 +91,7 @@ var remoteAddCmd = &cobra.Command{
 				DurationMS: time.Since(startedAt).Milliseconds(),
 				Message:    "unsupported remote environment",
 			})
-			return
+			return err
 		}
 		capabilities, err := engine.ParseRemoteCapabilitiesCSV(capabilitiesRaw)
 		if err != nil {
@@ -104,23 +106,23 @@ var remoteAddCmd = &cobra.Command{
 				DurationMS: time.Since(startedAt).Milliseconds(),
 				Message:    err.Error(),
 			})
-			return
+			return err
 		}
 		authMethod := remote.NormalizeAuthMethod(authMethodRaw)
 		if !remote.IsSupportedAuthMethod(authMethod) {
-			message := fmt.Sprintf("unsupported auth method '%s' (allowed: keychain, ssh-agent, keyfile)", authMethodRaw)
-			pterm.Error.Println(message)
+			err := fmt.Errorf("unsupported auth method '%s' (allowed: keychain, ssh-agent, keyfile)", authMethodRaw)
+			pterm.Error.Println(err.Error())
 			operationCategory = "validation"
-			operationMessage = message
+			operationMessage = err.Error()
 			writeRemoteAuditEvent(remote.AuditEvent{
 				Operation:  "remote.add",
 				Status:     remote.RemoteAuditStatusFailure,
 				Category:   "validation",
 				Remote:     name,
 				DurationMS: time.Since(startedAt).Milliseconds(),
-				Message:    message,
+				Message:    err.Error(),
 			})
-			return
+			return err
 		}
 
 		keyPath := strings.TrimSpace(keyPathRaw)
@@ -178,6 +180,7 @@ var remoteAddCmd = &cobra.Command{
 		})
 		operationStatus = engine.OperationStatusSuccess
 		operationMessage = "remote saved"
+		return nil
 	},
 }
 
@@ -185,7 +188,7 @@ var remoteExecCmd = &cobra.Command{
 	Use:   "exec [name] -- <command>",
 	Short: "Execute a command on a remote environment",
 	Args:  cobra.MinimumNArgs(2),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		startedAt := time.Now()
 		remoteName := args[0]
 		operationStatus := engine.OperationStatusFailure
@@ -223,12 +226,13 @@ var remoteExecCmd = &cobra.Command{
 				DurationMS: time.Since(startedAt).Milliseconds(),
 				Message:    err.Error(),
 			})
-			return
+			return err
 		}
 
 		commandLine := strings.TrimSpace(strings.Join(args[1:], " "))
 		if commandLine == "" {
-			pterm.Error.Println("missing remote command after '--'")
+			err := fmt.Errorf("missing remote command after '--'")
+			pterm.Error.Println(err.Error())
 			operationCategory = "validation"
 			operationMessage = "missing remote command after '--'"
 			writeRemoteAuditEvent(remote.AuditEvent{
@@ -239,7 +243,11 @@ var remoteExecCmd = &cobra.Command{
 				DurationMS: time.Since(startedAt).Milliseconds(),
 				Message:    "missing remote command after '--'",
 			})
-			return
+			return err
+		}
+
+		if remoteCfg.Path != "" {
+			commandLine = fmt.Sprintf("cd %s && %s", remoteCfg.Path, commandLine)
 		}
 
 		sshCmd := remote.BuildSSHExecCommand(remoteName, remoteCfg, true, commandLine)
@@ -260,7 +268,7 @@ var remoteExecCmd = &cobra.Command{
 				DurationMS: time.Since(startedAt).Milliseconds(),
 				Message:    err.Error(),
 			})
-			return
+			return err
 		}
 		writeRemoteAuditEvent(remote.AuditEvent{
 			Operation:  "remote.exec",
@@ -270,6 +278,7 @@ var remoteExecCmd = &cobra.Command{
 		})
 		operationStatus = engine.OperationStatusSuccess
 		operationMessage = "remote exec completed"
+		return nil
 	},
 }
 
@@ -277,7 +286,7 @@ var remoteTestCmd = &cobra.Command{
 	Use:   "test [name]",
 	Short: "Test SSH connectivity to a remote",
 	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		remoteName := args[0]
 		startedAt := time.Now()
 		operationStatus := engine.OperationStatusFailure
@@ -314,7 +323,7 @@ var remoteTestCmd = &cobra.Command{
 				Remote:    remoteName,
 				Message:   err.Error(),
 			})
-			return
+			return err
 		}
 		pterm.Info.Printf(
 			"Remote profile: environment=%s, capabilities=%s, auth=%s, protected=%t, strict_host_key=%t\n",
@@ -343,12 +352,13 @@ var remoteTestCmd = &cobra.Command{
 				DurationMS: sshDuration.Milliseconds(),
 				Message:    err.Error(),
 			})
-			return
+			return err
 		}
 		if !strings.Contains(string(output), "govard-remote-ok") {
+			err := fmt.Errorf("unexpected SSH probe response")
 			details := reportRemoteCommandFailure(
 				"SSH connectivity",
-				fmt.Errorf("unexpected SSH probe response"),
+				err,
 				output,
 				sshDuration,
 				false,
@@ -363,7 +373,7 @@ var remoteTestCmd = &cobra.Command{
 				DurationMS: sshDuration.Milliseconds(),
 				Message:    "unexpected SSH probe response",
 			})
-			return
+			return err
 		}
 		pterm.Success.Printf("SSH connectivity check passed (%s).\n", formatDuration(sshDuration))
 		writeRemoteAuditEvent(remote.AuditEvent{
@@ -393,7 +403,7 @@ var remoteTestCmd = &cobra.Command{
 				DurationMS: rsyncDuration.Milliseconds(),
 				Message:    err.Error(),
 			})
-			return
+			return err
 		}
 		if strings.Contains(string(rsyncOutput), "govard-rsync-ok") {
 			pterm.Success.Printf("Remote rsync availability check passed (%s).\n", formatDuration(rsyncDuration))
@@ -404,12 +414,13 @@ var remoteTestCmd = &cobra.Command{
 				DurationMS: rsyncDuration.Milliseconds(),
 			})
 			operationMessage = "remote connectivity and rsync availability checks passed"
-			return
+			return nil
 		}
 
+		err = fmt.Errorf("unexpected rsync probe response")
 		details := reportRemoteCommandFailure(
 			"Remote rsync availability",
-			fmt.Errorf("unexpected rsync probe response"),
+			err,
 			rsyncOutput,
 			rsyncDuration,
 			true,
@@ -424,6 +435,7 @@ var remoteTestCmd = &cobra.Command{
 		})
 		operationCategory = details.Category
 		operationMessage = "remote SSH passed; rsync probe response was unexpected"
+		return err
 	},
 }
 

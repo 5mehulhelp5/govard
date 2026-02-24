@@ -118,7 +118,7 @@ func parseEnvMap(raw string) map[string]string {
 func buildRemoteMySQLDumpCommandString(credentials dbCredentials, full bool) string {
 	credentials = credentials.withDefaults()
 
-	args := []string{"mysqldump"}
+	args := []string{"mysqldump", "--no-tablespaces"}
 	if host := strings.TrimSpace(credentials.Host); host != "" {
 		args = append(args, "-h"+shellQuote(host))
 	}
@@ -198,7 +198,7 @@ func buildLocalDBDumpCommand(containerName string, credentials dbCredentials, fu
 
 func buildMySQLDumpCommandArgsWithCredentials(credentials dbCredentials, full bool) []string {
 	credentials = credentials.withDefaults()
-	args := []string{"mysqldump", "-u", credentials.Username}
+	args := []string{"mysqldump", "--no-tablespaces", "-u", credentials.Username}
 	if full {
 		args = append(args, "--routines", "--events", "--triggers")
 	}

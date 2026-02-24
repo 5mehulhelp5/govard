@@ -7,7 +7,7 @@ VERSION_RAW ?= $(shell git describe --tags --dirty --always 2>/dev/null || echo 
 VERSION ?= $(patsubst v%,%,$(VERSION_RAW))
 LDFLAGS ?= -s -w -X govard/internal/cmd.Version=$(VERSION)
 
-.PHONY: build clean test test-fast test-unit test-coverage test-integration test-integration-ci test-frontend build-test-binary install lint fmt vet push
+.PHONY: build clean test test-fast test-unit test-coverage test-integration test-integration-ci test-frontend build-test-binary install lint fmt vet push test-realenv-setup test-realenv test-realenv-clean
 
 build:
 	@echo "Building Govard..."
@@ -44,7 +44,7 @@ test-frontend:
 build-test-binary:
 	@echo "Building test binary..."
 	mkdir -p $(BUILD_DIR)
-	go build -ldflags "$(LDFLAGS)" -tags integration -o $(TEST_BINARY) cmd/govard/main.go
+	go build -mod=mod -ldflags "$(LDFLAGS)" -tags integration -o $(TEST_BINARY) cmd/govard/main.go
 
 lint:
 	@echo "Running linter..."
@@ -57,6 +57,27 @@ fmt:
 vet:
 	@echo "Running go vet..."
 	go vet ./...
+
+# Real environment tests (3 Magento 2 instances)
+REALENV_DIR := tests/integration/realenv
+
+.PHONY: test-realenv-setup test-realenv test-realenv-clean test-realenv-full
+
+test-realenv-setup: build-test-binary
+	@echo "Setting up three-environment test infrastructure..."
+	@cd $(REALENV_DIR) && chmod +x setup-three-env.sh && ./setup-three-env.sh
+
+test-realenv:
+	@echo "Running real environment tests..."
+	@go test -mod=mod -tags realenv ./tests/integration/realenv/... -v -timeout 30m
+
+test-realenv-clean:
+	@echo "Cleaning up real environment..."
+	@cd $(REALENV_DIR) && ./setup-three-env.sh cleanup 2>/dev/null || true
+	@docker-compose -f $(REALENV_DIR)/docker-compose.three-env.yml down -v 2>/dev/null || true
+
+# Full realenv test cycle
+test-realenv-full: test-realenv-clean test-realenv-setup test-realenv test-realenv-clean
 
 install:
 	go build -ldflags "$(LDFLAGS)" -o $(BINARY_NAME) cmd/govard/main.go

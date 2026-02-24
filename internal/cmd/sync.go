@@ -177,7 +177,8 @@ var syncCmd = &cobra.Command{
 			return fmt.Errorf("pre-sync hooks failed: %w", err)
 		}
 
-		for _, rsyncCmd := range executionPlan.RsyncCommands {
+		for i, rsyncCmd := range executionPlan.RsyncCommands {
+			pterm.Info.Printf("Executing: %s\n", executionPlan.Descriptions[i])
 			rsyncCmd.Stdout = cmd.OutOrStdout()
 			rsyncCmd.Stderr = cmd.ErrOrStderr()
 			if err := rsyncCmd.Run(); err != nil {
@@ -318,6 +319,11 @@ func buildSyncExecutionPlan(config engine.Config, endpoints resolvedSyncEndpoint
 		if strings.TrimSpace(opts.Path) != "" {
 			sourcePath = filepath.Join(endpoints.Source.RootPath, opts.Path)
 			destinationPath = filepath.Join(endpoints.Destination.RootPath, opts.Path)
+			if endpoints.Destination.IsLocal {
+				if err := os.MkdirAll(filepath.Dir(destinationPath), 0755); err != nil {
+					return syncExecutionPlan{}, fmt.Errorf("failed to create destination parent directory: %w", err)
+				}
+			}
 		}
 		rsyncCmd, desc, err := buildRsyncForEndpoints(
 			endpoints.Source,
@@ -334,7 +340,7 @@ func buildSyncExecutionPlan(config engine.Config, endpoints resolvedSyncEndpoint
 			return syncExecutionPlan{}, err
 		}
 		plan.RsyncCommands = append(plan.RsyncCommands, rsyncCmd)
-		plan.Descriptions = append(plan.Descriptions, desc)
+		plan.Descriptions = append(plan.Descriptions, "[sync:files] "+desc)
 	}
 
 	if opts.Media {
@@ -353,7 +359,7 @@ func buildSyncExecutionPlan(config engine.Config, endpoints resolvedSyncEndpoint
 			return syncExecutionPlan{}, err
 		}
 		plan.RsyncCommands = append(plan.RsyncCommands, rsyncCmd)
-		plan.Descriptions = append(plan.Descriptions, desc)
+		plan.Descriptions = append(plan.Descriptions, "[sync:media] "+desc)
 	}
 
 	if opts.DB {
@@ -361,7 +367,7 @@ func buildSyncExecutionPlan(config engine.Config, endpoints resolvedSyncEndpoint
 		if err != nil {
 			return syncExecutionPlan{}, err
 		}
-		plan.Descriptions = append(plan.Descriptions, dbDesc)
+		plan.Descriptions = append(plan.Descriptions, "[sync:db] "+dbDesc)
 		plan.DatabaseActions = append(plan.DatabaseActions, action)
 	}
 

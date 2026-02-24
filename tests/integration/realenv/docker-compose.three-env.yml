@@ -1,0 +1,205 @@
+version: "3.8"
+
+# Three-Environment Setup for Real Environment Tests
+# Uses existing fixtures from tests/integration/projects/magento2/
+#
+# Usage:
+#   cd tests/integration/realenv && ./setup-three-env.sh
+#   cd tests/integration/realenv && docker-compose -f docker-compose.three-env.yml up -d
+
+networks:
+  govard-test-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+
+services:
+  # ============================================
+  # LOCAL Environment (options-local fixture)
+  # ============================================
+  local-php:
+    container_name: m2-clone-basic-php-1
+    image: markoshust/magento-php:8.2-fpm
+    networks:
+      govard-test-net:
+        ipv4_address: 172.30.0.10
+    volumes:
+      - local_code:/var/www/html
+      - shared_ssh:/root/.ssh
+      # Mount existing fixture from tests/integration/projects/magento2/options-local
+      - ../projects/magento2/options-local:/fixtures:ro
+    environment:
+      - MYSQL_HOST=local-db
+      - MYSQL_DATABASE=magento
+      - MYSQL_USER=magento
+      - MYSQL_PASSWORD=magento
+    depends_on:
+      - local-db
+
+  local-db:
+    container_name: m2-clone-basic-db-1
+    image: mysql:8.0
+    networks:
+      govard-test-net:
+        ipv4_address: 172.30.0.11
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: magento
+      MYSQL_USER: magento
+      MYSQL_PASSWORD: magento
+    volumes:
+      - local_db_data:/var/lib/mysql
+      # Mount init.sql from existing fixture
+      - ../projects/magento2/options-local/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  local-ssh:
+    container_name: govard-test-local-ssh
+    image: lscr.io/linuxserver/openssh-server:latest
+    networks:
+      govard-test-net:
+        ipv4_address: 172.30.0.12
+    ports:
+      - "9022:2222"
+    volumes:
+      - local_code:/var/www/html
+      - shared_ssh:/config/.ssh
+      - shared_ssh:/root/.ssh
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=UTC
+      - PASSWORD_ACCESS=false
+      - PUBLIC_KEY_FILE=/config/.ssh/id_rsa.pub
+      - SUDO_ACCESS=true
+
+  # ============================================
+  # DEV Environment (options-dev fixture)
+  # ============================================
+  dev-php:
+    container_name: govard-test-dev-php
+    image: markoshust/magento-php:8.2-fpm
+    networks:
+      govard-test-net:
+        ipv4_address: 172.30.0.20
+    volumes:
+      - dev_code:/var/www/html
+      - shared_ssh:/root/.ssh
+      # Mount existing fixture from tests/integration/projects/magento2/options-dev
+      - ../projects/magento2/options-dev:/fixtures:ro
+    environment:
+      - MYSQL_HOST=dev-db
+      - MYSQL_DATABASE=magento
+      - MYSQL_USER=magento
+      - MYSQL_PASSWORD=magento
+    depends_on:
+      - dev-db
+
+  dev-db:
+    container_name: govard-test-dev-db
+    image: mysql:8.0
+    networks:
+      govard-test-net:
+        ipv4_address: 172.30.0.21
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: magento
+      MYSQL_USER: magento
+      MYSQL_PASSWORD: magento
+    volumes:
+      - dev_db_data:/var/lib/mysql
+      # Mount init.sql from existing fixture
+      - ../projects/magento2/options-dev/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  dev-ssh:
+    container_name: govard-test-dev-ssh
+    image: lscr.io/linuxserver/openssh-server:latest
+    networks:
+      govard-test-net:
+        ipv4_address: 172.30.0.22
+    ports:
+      - "9023:2222"
+    volumes:
+      - dev_code:/var/www/html
+      - shared_ssh:/config/.ssh
+      - shared_ssh:/root/.ssh
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=UTC
+      - PASSWORD_ACCESS=false
+      - PUBLIC_KEY_FILE=/config/.ssh/id_rsa.pub
+      - SUDO_ACCESS=true
+
+  # ============================================
+  # STAGING Environment (options-staging fixture)
+  # ============================================
+  staging-php:
+    container_name: govard-test-staging-php
+    image: markoshust/magento-php:8.2-fpm
+    networks:
+      govard-test-net:
+        ipv4_address: 172.30.0.30
+    volumes:
+      - staging_code:/var/www/html
+      - shared_ssh:/root/.ssh
+      # Mount existing fixture from tests/integration/projects/magento2/options-staging
+      - ../projects/magento2/options-staging:/fixtures:ro
+    environment:
+      - MYSQL_HOST=staging-db
+      - MYSQL_DATABASE=magento
+      - MYSQL_USER=magento
+      - MYSQL_PASSWORD=magento
+    depends_on:
+      - staging-db
+
+  staging-db:
+    container_name: govard-test-staging-db
+    image: mysql:8.0
+    networks:
+      govard-test-net:
+        ipv4_address: 172.30.0.31
+    ports:
+      - "3308:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: magento
+      MYSQL_USER: magento
+      MYSQL_PASSWORD: magento
+    volumes:
+      - staging_db_data:/var/lib/mysql
+      # Mount init.sql from existing fixture
+      - ../projects/magento2/options-staging/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  staging-ssh:
+    container_name: govard-test-staging-ssh
+    image: lscr.io/linuxserver/openssh-server:latest
+    networks:
+      govard-test-net:
+        ipv4_address: 172.30.0.32
+    ports:
+      - "9024:2222"
+    volumes:
+      - staging_code:/var/www/html
+      - shared_ssh:/config/.ssh
+      - shared_ssh:/root/.ssh
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=UTC
+      - PASSWORD_ACCESS=false
+      - PUBLIC_KEY_FILE=/config/.ssh/id_rsa.pub
+      - SUDO_ACCESS=true
+
+volumes:
+  local_code:
+  dev_code:
+  staging_code:
+  local_db_data:
+  dev_db_data:
+  staging_db_data:
+  shared_ssh:

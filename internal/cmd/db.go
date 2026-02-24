@@ -372,14 +372,14 @@ func runStreamDBImport(cmd *cobra.Command, config engine.Config, options dbComma
 			return fmt.Errorf("stream-db local import step failed: %w", err)
 		}
 
-		pterm.Success.Printf("Stream import completed from remote '%s' via file %s.\n", options.Environment, targetPath)
+		pterm.Success.Printf("stream import completed from remote '%s' via file %s.\n", options.Environment, targetPath)
 		return nil
 	}
 
 	if err := RunDumpToImport(sourceDumpCmd, destinationImportCmd, sanitizeStreamDump, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
 		return fmt.Errorf("stream-db import failed: %w", err)
 	}
-	pterm.Success.Printf("Stream import completed from remote '%s' into local database.\n", options.Environment)
+	pterm.Success.Printf("stream import completed from remote '%s' into local database.\n", options.Environment)
 	return nil
 }
 

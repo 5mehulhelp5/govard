@@ -4,6 +4,7 @@ recipe: magento2
 remotes:
   dev:
     host: dev.example.com
+    port: 22
     user: deploy
     path: /var/www/html
     capabilities:
@@ -11,8 +12,12 @@ remotes:
       media: true
       db: true
       deploy: false
+    auth:
+      method: keyfile
+      key_path: ~/.ssh/id_rsa
   staging:
     host: staging.example.com
+    port: 22
     user: deploy
     path: /srv/www/staging
     capabilities:
@@ -20,8 +25,12 @@ remotes:
       media: true
       db: true
       deploy: false
+    auth:
+      method: keyfile
+      key_path: ~/.ssh/id_rsa
   production:
     host: prod.example.com
+    port: 22
     user: deploy
     path: /var/www/html
     environment: production
@@ -31,8 +40,12 @@ remotes:
       media: true
       db: true
       deploy: true
+    auth:
+      method: keyfile
+      key_path: ~/.ssh/id_rsa
   prod:
     host: prod.example.com
+    port: 22
     user: deploy
     path: /srv/www/prod
     environment: production
@@ -42,3 +55,6 @@ remotes:
       media: true
       db: true
       deploy: true
+    auth:
+      method: keyfile
+      key_path: ~/.ssh/id_rsa
