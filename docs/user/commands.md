@@ -16,6 +16,7 @@ govard init -r custom
 ```
 
 **Detection Logic:**
+
 - Magento 1/OpenMage: `openmage/magento-lts` in composer.json or `app/Mage.php`
 - Magento 2: `magento/product-community-edition` in composer.json
 - Laravel: `laravel/framework` in composer.json
@@ -27,6 +28,7 @@ govard init -r custom
 - WordPress: `johnpbloch/wordpress` in composer.json
 
 **Options:**
+
 - `-r, --recipe` Override detected framework (useful for empty projects or when starting a new app)
 - `custom` recipe opens an interactive prompt to choose web server, DB, cache, search, and varnish
 
@@ -41,6 +43,7 @@ govard bootstrap --fresh --version 2.4.8
 ```
 
 Highlights:
+
 - Auto-runs `govard init` if `.govard.yml` is missing
 - Clone flow: file sync, optional composer install, DB/media sync, Magento configure, admin create
 - Fresh flow: create-project, setup install, optional sample data, optional Hyva install
@@ -58,6 +61,7 @@ govard env up --quickstart
 ```
 
 **Process:**
+
 1. `Detect` framework context from project files
 2. `Validate` layered config and startup prerequisites (Docker, Compose, ports, disk/network sanity)
 3. `Render` compose file (`~/.govard/compose/...`) and pre-up hooks
@@ -122,6 +126,7 @@ govard svc down
 govard svc restart
 govard svc ps
 govard svc logs
+govard svc logs --tail 50
 govard svc sleep
 govard svc wake
 ```
@@ -146,6 +151,7 @@ expects a built `govard-desktop` binary.
 closed, and reuses the running instance on relaunch.
 
 Desktop highlights:
+
 - Environment dashboard with start/stop/open
 - Project workspace layout (environments, quick actions, onboarding)
 - Quick actions (PHPMyAdmin, Xdebug toggle, health)
@@ -174,6 +180,7 @@ Opens a bash shell in the PHP container.
 
 ```bash
 govard shell
+govard shell --no-tty
 ```
 
 **User:** Runs as `www-data` for all frameworks.
@@ -185,6 +192,7 @@ Streams container logs.
 ```bash
 govard env logs      # All logs
 govard env logs -e   # Error-only filtering
+govard env logs --tail 200
 ```
 
 ### `govard debug`
@@ -211,6 +219,7 @@ See `docs/frameworks/support-matrix.md` for version-specific profile mappings.
 ### `govard custom`
 
 Run custom commands from:
+
 - project scope: `.govard/commands`
 - global scope: `~/.govard/commands` (override with `GOVARD_GLOBAL_COMMANDS_DIR`)
 
@@ -271,6 +280,7 @@ See `docs/commands/db.md`.
 Run deploy lifecycle hooks for the current project.
 
 Current behavior:
+
 - Executes `pre_deploy` and `post_deploy` hooks.
 - Prints `Deploying (strategy: native)`.
 - Strategy flags are accepted for forward compatibility and do not currently change execution behavior.
@@ -279,7 +289,7 @@ See `docs/commands/deploy.md`.
 
 ### `govard snapshot`
 
-Create, list, and restore local snapshots for database and media.
+Create, list, and restore local snapshots for database and media. Supports export and delete operations.
 
 See `docs/commands/snapshot.md`.
 
@@ -405,6 +415,7 @@ govard open db -e staging    # Remote DB via SSH tunnel
 ```
 
 Notes:
+
 - `open pma` is local-only (`https://pma.govard.test`).
 - Use `open db -e <remote>` for remote DB access.
 
@@ -419,6 +430,7 @@ govard config auto
 ```
 
 **Configures:**
+
 - Database connection
 - Redis cache and sessions
 - Varnish page cache
@@ -438,6 +450,7 @@ Common subcommands:
 ```bash
 govard config get php_version
 govard config set php_version 8.4
+govard config set stack.php_version 8.3  # Nested keys supported
 govard config auto
 govard config profile
 govard config profile apply
@@ -468,6 +481,7 @@ govard doctor fix-deps
 ```
 
 **Checks:**
+
 - Docker Desktop/Daemon connectivity
 - Docker Compose plugin availability
 - Port conflicts on host machine (80/443)
@@ -476,6 +490,7 @@ govard doctor fix-deps
 - Outbound network probe sanity
 
 **Output:**
+
 - Each check is reported as `pass`, `warn`, or `fail`.
 - `fail` checks return a non-zero exit code.
 - `--json` prints a machine-readable diagnostics report.
@@ -503,6 +518,7 @@ govard doctor trust
 ```
 
 Notes:
+
 - On Linux, this exports certs to `~/.govard/ssl/root.crt`.
 - On macOS, export the cert first: `docker cp proxy-caddy-1:/data/caddy/pki/authorities/local/root.crt /tmp/govard-ca.crt`.
 
@@ -519,6 +535,7 @@ govard lock generate --file .govard/govard.lock
 ```
 
 Behavior:
+
 - `lock generate` captures current Govard/Docker toolchain values and runtime stack metadata.
 - `lock check` compares current environment values against the lock file and reports mismatches.
 - `govard env up` performs a non-blocking lockfile warning check when `govard.lock` exists.
@@ -536,6 +553,7 @@ govard self-update
 ```
 
 **Process:**
+
 1. Queries GitHub API for latest release
 2. Downloads new binary
 3. Replaces current binary

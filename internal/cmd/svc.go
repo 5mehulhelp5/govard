@@ -72,8 +72,20 @@ var svcWakeCmd = &cobra.Command{
 	RunE:  runSvcWake,
 }
 
+var svcLogsTailCount int
+
 func runSvcUp(cmd *cobra.Command, args []string) error {
 	pterm.DefaultHeader.Println("Starting Govard Global Services")
+
+	// Check for port conflicts before starting
+	if !engine.CheckPortForGovardProxy("80") {
+		pterm.Warning.Println("Port 80 is already in use by another process. Govard Proxy might fail to start or route traffic.")
+		pterm.Info.Println("Tip: Run `sudo lsof -i :80` to find the conflicting process.")
+	}
+	if !engine.CheckPortForGovardProxy("443") {
+		pterm.Warning.Println("Port 443 is already in use by another process. Govard HTTPS Proxy might fail to start.")
+		pterm.Info.Println("Tip: Run `sudo lsof -i :443` to find the conflicting process.")
+	}
 
 	if err := engine.EnsureGlobalProxy(); err != nil {
 		return fmt.Errorf("ensure global proxy: %w", err)
@@ -87,7 +99,65 @@ func runSvcUp(cmd *cobra.Command, args []string) error {
 		pterm.Warning.Printf("Could not refresh global proxy routes: %v\n", err)
 	}
 
+	// Deep revival: re-register routes for all currently running projects
+	if err := reviveRunningProjectRoutes(); err != nil {
+		pterm.Warning.Printf("Could not fully revive all running project routes: %v\n", err)
+	}
+
 	pterm.Success.Println("✅ Global services are running.")
+	return nil
+}
+
+func reviveRunningProjectRoutes() error {
+	running, err := engine.GetRunningProjectNames()
+	if err != nil {
+		return fmt.Errorf("get running projects: %w", err)
+	}
+
+	if len(running) == 0 {
+		return nil
+	}
+
+	pterm.Debug.Printf("Found %d running projects to revive routes for...\n", len(running))
+
+	entries, err := engine.ReadProjectRegistryEntries()
+	if err != nil {
+		return fmt.Errorf("read registry: %w", err)
+	}
+
+	for _, projectName := range running {
+		var matchedEntry *engine.ProjectRegistryEntry
+		for _, entry := range entries {
+			if entry.ProjectName == projectName {
+				matchedEntry = &entry
+				break
+			}
+		}
+
+		if matchedEntry == nil {
+			pterm.Debug.Printf("Project %s is running but not found in registry, skipping route revival\n", projectName)
+			continue
+		}
+
+		// Try to load full config to get the correct proxy target (web vs varnish)
+		config, _, err := engine.LoadConfigFromDir(matchedEntry.Path, false)
+		if err != nil {
+			// Fallback to basic domain from registry if config load fails
+			if matchedEntry.Domain != "" {
+				target := projectName + "-web-1"
+				pterm.Debug.Printf("Reviving basic route for %s -> %s\n", matchedEntry.Domain, target)
+				_ = proxy.RegisterDomain(matchedEntry.Domain, target)
+			}
+			continue
+		}
+
+		target := ResolveUpProxyTarget(config)
+		pterm.Info.Printf("Reviving route for %s -> %s\n", config.Domain, target)
+		if err := proxy.RegisterDomain(config.Domain, target); err != nil {
+			pterm.Warning.Printf("Failed to revive route for %s: %v\n", config.Domain, err)
+		}
+	}
+
 	return nil
 }
 
@@ -128,7 +198,7 @@ func runSvcPs(cmd *cobra.Command, args []string) error {
 }
 
 func runSvcLogs(cmd *cobra.Command, args []string) error {
-	if err := runGlobalProxyCompose(cmd, "logs", "-f", "--tail=100"); err != nil {
+	if err := runGlobalProxyCompose(cmd, "logs", "-f", fmt.Sprintf("--tail=%d", svcLogsTailCount)); err != nil {
 		if errors.Is(err, errGlobalServicesNotInitialized) {
 			return fmt.Errorf("global services are not initialized yet, run `govard svc up` first")
 		}
@@ -192,6 +262,8 @@ func globalProxyComposeFilePath() string {
 }
 
 func init() {
+	svcLogsCmd.Flags().IntVar(&svcLogsTailCount, "tail", 100, "Number of lines to show from the end of the logs")
+
 	svcCmd.AddCommand(svcUpCmd)
 	svcCmd.AddCommand(svcDownCmd)
 	svcCmd.AddCommand(svcRestartCmd)

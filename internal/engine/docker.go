@@ -105,3 +105,44 @@ func CheckDockerComposePlugin() error {
 	}
 	return fmt.Errorf("docker compose plugin is not available: %w (%s)", err, trimmed)
 }
+
+func GetRunningProjectNames() ([]string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = cli.Close()
+	}()
+
+	containers, err := cli.ContainerList(ctx, container.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	projectMap := make(map[string]bool)
+	for _, c := range containers {
+		for _, name := range c.Names {
+			cleanName := strings.TrimPrefix(name, "/")
+			// Standard Govard naming pattern: projectname-service-1
+			parts := strings.Split(cleanName, "-")
+			if len(parts) >= 3 {
+				projectName := strings.Join(parts[:len(parts)-2], "-")
+				// Basic filtering - only consider it a govard project if it has standard services
+				serviceName := parts[len(parts)-2]
+				if serviceName == "web" || serviceName == "php" || serviceName == "db" {
+					projectMap[projectName] = true
+				}
+			}
+		}
+	}
+
+	projects := make([]string, 0, len(projectMap))
+	for p := range projectMap {
+		projects = append(projects, p)
+	}
+	return projects, nil
+}

@@ -54,20 +54,28 @@ func getConfigValue(config engine.Config, key string) (string, bool) {
 	switch strings.ToLower(key) {
 	case "project_name":
 		return config.ProjectName, true
+	case "recipe":
+		return config.Recipe, true
 	case "domain":
 		return config.Domain, true
 	case "framework_version":
 		return config.FrameworkVersion, true
-	case "php_version":
+	case "php_version", "stack.php_version":
 		return config.Stack.PHPVersion, true
-	case "db_type":
+	case "node_version", "stack.node_version":
+		return config.Stack.NodeVersion, true
+	case "db_type", "stack.db_type":
 		return config.Stack.DBType, true
-	case "services.web_server", "web_server":
+	case "db_version", "stack.db_version":
+		return config.Stack.DBVersion, true
+	case "services.web_server", "web_server", "stack.services.web_server":
 		return config.Stack.Services.WebServer, true
-	case "services.search", "search":
+	case "services.search", "search", "stack.services.search":
 		return config.Stack.Services.Search, true
-	case "services.cache", "cache":
+	case "services.cache", "cache", "stack.services.cache":
 		return config.Stack.Services.Cache, true
+	case "services.queue", "queue", "stack.services.queue":
+		return config.Stack.Services.Queue, true
 	}
 	return "", false
 }
@@ -76,18 +84,28 @@ func setConfigValue(config *engine.Config, key string, value string) bool {
 	switch strings.ToLower(key) {
 	case "project_name":
 		config.ProjectName = value
+	case "recipe":
+		config.Recipe = value
 	case "domain":
 		config.Domain = value
 	case "framework_version":
 		config.FrameworkVersion = value
-	case "php_version":
+	case "php_version", "stack.php_version":
 		config.Stack.PHPVersion = value
-	case "services.web_server", "web_server":
+	case "node_version", "stack.node_version":
+		config.Stack.NodeVersion = value
+	case "db_type", "stack.db_type":
+		config.Stack.DBType = value
+	case "db_version", "stack.db_version":
+		config.Stack.DBVersion = value
+	case "services.web_server", "web_server", "stack.services.web_server":
 		config.Stack.Services.WebServer = value
-	case "services.search", "search":
+	case "services.search", "search", "stack.services.search":
 		config.Stack.Services.Search = value
-	case "services.cache", "cache":
+	case "services.cache", "cache", "stack.services.cache":
 		config.Stack.Services.Cache = value
+	case "services.queue", "queue", "stack.services.queue":
+		config.Stack.Services.Queue = value
 	default:
 		return false
 	}

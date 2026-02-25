@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pterm/pterm"
 	"gopkg.in/yaml.v3"
 )
 
@@ -311,4 +312,37 @@ func BuildSnapshotImportCommandForTest(containerName string, username string, pa
 		Database: database,
 	})
 	return command.Args
+}
+func DeleteSnapshot(projectRoot string, name string) error {
+	snapshotDir := filepath.Join(SnapshotRoot(projectRoot), name)
+	if _, err := os.Stat(snapshotDir); err != nil {
+		return fmt.Errorf("snapshot %s not found", name)
+	}
+	return os.RemoveAll(snapshotDir)
+}
+
+func ExportSnapshot(projectRoot string, name string, targetPath string) error {
+	snapshotDir := filepath.Join(SnapshotRoot(projectRoot), name)
+	if _, err := os.Stat(snapshotDir); err != nil {
+		return fmt.Errorf("snapshot %s not found", name)
+	}
+
+	if targetPath == "" {
+		targetPath = fmt.Sprintf("%s.tar.gz", name)
+	}
+
+	absTargetPath, err := filepath.Abs(targetPath)
+	if err != nil {
+		return err
+	}
+
+	pterm.Info.Printf("Exporting snapshot %s to %s...\n", name, absTargetPath)
+
+	// Create a tar.gz of the snapshot directory
+	cmd := exec.Command("tar", "-czf", absTargetPath, "-C", filepath.Dir(snapshotDir), name)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("tar failed: %w\n%s", err, string(output))
+	}
+
+	return nil
 }

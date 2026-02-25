@@ -11,6 +11,8 @@ govard snapshot list
 govard snapshot restore before-upgrade
 govard snapshot restore before-upgrade --db-only
 govard snapshot restore before-upgrade --media-only
+govard snapshot export before-upgrade backup.tar.gz
+govard snapshot delete temporary-snap
 ```
 
 ## Subcommands
@@ -18,6 +20,8 @@ govard snapshot restore before-upgrade --media-only
 - `create [name]` Create a snapshot in `./.govard/snapshots/<name>`
 - `list` List available snapshots
 - `restore <name>` Restore an existing snapshot
+- `delete <name>` Permanently delete a snapshot
+- `export <name> [file]` Export a snapshot to a compressed `.tar.gz` file (defaults to `name.tar.gz`)
 
 ## Restore Options
 

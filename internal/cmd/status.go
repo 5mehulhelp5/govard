@@ -1,11 +1,8 @@
 package cmd
 
 import (
-	"context"
-	"strings"
+	"govard/internal/engine"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 )
@@ -15,60 +12,38 @@ var statusCmd = &cobra.Command{
 	Short: "List running Govard project environments across the workspace",
 	Long:  "Workspace-wide environment overview. Use `govard env ps` for the current project only.",
 	Run: func(cmd *cobra.Command, args []string) {
-		ctx := context.Background()
-		cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+		running, err := engine.GetRunningProjectNames()
 		if err != nil {
-			pterm.Error.Printf("Failed to connect to Docker: %v\n", err)
+			pterm.Error.Printf("Failed to list running environments: %v\n", err)
 			return
 		}
 
-		containers, err := cli.ContainerList(ctx, container.ListOptions{})
-		if err != nil {
-			pterm.Error.Printf("Failed to list containers: %v\n", err)
-			return
-		}
-
-		projects := make(map[string][]string)
-		for _, c := range containers {
-			for _, name := range c.Names {
-				cleanName := strings.TrimPrefix(name, "/")
-				// Standard Govard naming pattern: projectname-service-1
-				parts := strings.Split(cleanName, "-")
-				if len(parts) >= 3 {
-					projectName := strings.Join(parts[:len(parts)-2], "-")
-					projects[projectName] = append(projects[projectName], parts[len(parts)-2])
-				}
-			}
-		}
-
-		if len(projects) == 0 {
+		if len(running) == 0 {
 			pterm.Info.Println("No running Govard environments found.")
 			return
 		}
 
+		entries, _ := engine.ReadProjectRegistryEntries()
 		pterm.DefaultHeader.WithFullWidth().Println("Govard Environments")
 
 		tableData := pterm.TableData{
-			{"Project", "Status", "Services"},
+			{"Project", "Status", "Domain"},
 		}
 
-		for project, services := range projects {
-			// Basic filtering - only show if it looks like a govard project (has web/php/db)
-			isGovard := false
-			for _, s := range services {
-				if s == "web" || s == "php" || s == "db" {
-					isGovard = true
+		for _, project := range running {
+			domain := project + ".test"
+			for _, entry := range entries {
+				if entry.ProjectName == project && entry.Domain != "" {
+					domain = entry.Domain
 					break
 				}
 			}
 
-			if isGovard {
-				tableData = append(tableData, []string{
-					pterm.Magenta(project),
-					pterm.Green("Running"),
-					strings.Join(services, ", "),
-				})
-			}
+			tableData = append(tableData, []string{
+				pterm.Magenta(project),
+				pterm.Green("Running"),
+				domain,
+			})
 		}
 
 		pterm.DefaultTable.WithHasHeader().WithData(tableData).Render()

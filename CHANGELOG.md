@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] - 2026-02-26
+
+### Added
+
+- **Log Tailing**: Added `--tail` flag to `govard logs` and `govard svc logs` for better control over log output.
+- **Snapshot Management**: New `snapshot export` and `snapshot delete` subcommands.
+- **CI Support**: Added `--no-tty` flag to `govard shell` for non-interactive environments.
+- **Route Revival**: Automatically re-registers domains for all running project containers when global services (`svc`) start or restart.
+
+### Fixed
+
+- **Proxy Stability**: Improved `govard svc up` to handle stopped proxy containers and provide better port conflict diagnostics.
+- **Configuration**: Support for dot notation (nested keys) in `govard config set` (e.g., `stack.php_version`).
+- **SSL Trust**: Fixed diagnostics and instructions for Linux system trust store.
+
 ## [1.5.0] - 2026-02-25
 
 ### Added

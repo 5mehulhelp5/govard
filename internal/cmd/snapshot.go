@@ -92,6 +92,44 @@ var snapshotRestoreCmd = &cobra.Command{
 	},
 }
 
+var snapshotDeleteCmd = &cobra.Command{
+	Use:   "delete <name>",
+	Short: "Delete a snapshot",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cwd, _ := os.Getwd()
+		name := args[0]
+
+		if err := engine.DeleteSnapshot(cwd, name); err != nil {
+			return err
+		}
+
+		pterm.Success.Printf("Snapshot %s deleted.\n", name)
+		return nil
+	},
+}
+
+var snapshotExportCmd = &cobra.Command{
+	Use:   "export <name> [file]",
+	Short: "Export a snapshot to a tar.gz file",
+	Args:  cobra.RangeArgs(1, 2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cwd, _ := os.Getwd()
+		name := args[0]
+		target := ""
+		if len(args) == 2 {
+			target = args[1]
+		}
+
+		if err := engine.ExportSnapshot(cwd, name, target); err != nil {
+			return err
+		}
+
+		pterm.Success.Println("Snapshot exported successfully.")
+		return nil
+	},
+}
+
 func init() {
 	snapshotRestoreCmd.Flags().Bool("db-only", false, "Restore database only")
 	snapshotRestoreCmd.Flags().Bool("media-only", false, "Restore media only")
@@ -99,6 +137,8 @@ func init() {
 	snapshotCmd.AddCommand(snapshotCreateCmd)
 	snapshotCmd.AddCommand(snapshotListCmd)
 	snapshotCmd.AddCommand(snapshotRestoreCmd)
+	snapshotCmd.AddCommand(snapshotDeleteCmd)
+	snapshotCmd.AddCommand(snapshotExportCmd)
 
 	rootCmd.AddCommand(snapshotCmd)
 }

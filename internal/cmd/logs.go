@@ -10,7 +10,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var errorFilter bool
+var (
+	errorFilter bool
+	tailCount   int
+)
 
 var logsCmd = &cobra.Command{
 	Use:   "logs",
@@ -25,6 +28,9 @@ Case Studies:
 	Example: `  # Follow all project logs
   govard logs
 
+  # Show last 200 lines and follow
+  govard logs --tail 200
+
   # Show only error messages
   govard logs --errors`,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -33,15 +39,24 @@ Case Studies:
 		cwd, _ := os.Getwd()
 		composePath := engine.ComposeFilePath(cwd, config.ProjectName)
 
-		dockerArgs := []string{"compose", "--project-directory", cwd, "-f", composePath, "logs", "-f", "--tail=100"}
+		dockerArgs := []string{
+			"compose",
+			"--project-directory", cwd,
+			"-p", config.ProjectName,
+			"-f", composePath,
+			"logs", "-f",
+			fmt.Sprintf("--tail=%d", tailCount),
+		}
 
 		if errorFilter {
 			pterm.Info.Println("Filtering for errors...")
 			// Simple grep for error-like strings
 			filterCommand := fmt.Sprintf(
-				"docker compose --project-directory %q -f %q logs -f | grep -iE 'error|critical|fail|exception'",
+				"docker compose --project-directory %q -p %q -f %q logs -f --tail=%d | grep -iE 'error|critical|fail|exception'",
 				cwd,
+				config.ProjectName,
 				composePath,
+				tailCount,
 			)
 			c := exec.Command("sh", "-c", filterCommand)
 			c.Stdout, c.Stderr = os.Stdout, os.Stderr
@@ -58,4 +73,9 @@ Case Studies:
 		}
 		return nil
 	},
+}
+
+func init() {
+	logsCmd.Flags().BoolVar(&errorFilter, "errors", false, "Filter logs for error messages")
+	logsCmd.Flags().IntVar(&tailCount, "tail", 100, "Number of lines to show from the end of the logs")
 }

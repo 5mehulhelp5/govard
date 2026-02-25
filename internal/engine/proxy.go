@@ -41,9 +41,9 @@ func EnsureGlobalProxy() error {
 		}
 	}
 
-	// 2. Check if caddy container is running
+	// 2. Check if caddy container exists (running or stopped)
 	caddyFound := false
-	containers, _ := cli.ContainerList(ctx, container.ListOptions{})
+	containers, _ := cli.ContainerList(ctx, container.ListOptions{All: true})
 	for _, c := range containers {
 		for _, name := range c.Names {
 			if strings.Contains(name, "govard-proxy-caddy") || strings.Contains(name, "proxy-caddy-1") {
@@ -72,12 +72,21 @@ func EnsureGlobalProxy() error {
 			return err
 		}
 
-		cmd := exec.Command("docker", "compose", "up", "-d")
+		cmd := exec.Command("docker", "compose", "-p", "proxy", "up", "-d")
 		cmd.Dir = tempDir
-		if err := cmd.Run(); err != nil {
-			return err
+		if output, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("docker compose up: %w\n%s", err, string(output))
 		}
 		caddyFound = true
+	} else {
+		// If found but stopped, start it
+		pterm.Debug.Println("Global proxy already exists, ensuring it is started...")
+		tempDir := filepath.Join(os.Getenv("HOME"), ".govard", "proxy")
+		cmd := exec.Command("docker", "compose", "-p", "proxy", "up", "-d")
+		cmd.Dir = tempDir
+		if output, err := cmd.CombinedOutput(); err != nil {
+			pterm.Warning.Printf("Could not start existing global proxy: %v\n%s\n", err, string(output))
+		}
 	}
 
 	if err := proxy.EnsureTLS(); err != nil {
