@@ -59,6 +59,9 @@ services:
       {{ if .SSHAuthSock }}
       - "{{ .SSHAuthSock }}:/ssh-agent"
       {{ end }}
+      {{ if .HostComposerCacheDir }}
+      - "{{ .HostComposerCacheDir }}:/home/www-data/.cache/composer"
+      {{ end }}
     networks:
       - govard-net
     environment:
@@ -80,6 +83,9 @@ services:
       {{ end }}
       {{ if .SSHAuthSock }}
       - "{{ .SSHAuthSock }}:/ssh-agent"
+      {{ end }}
+      {{ if .HostComposerCacheDir }}
+      - "{{ .HostComposerCacheDir }}:/home/www-data/.cache/composer"
       {{ end }}
     networks:
       - govard-net

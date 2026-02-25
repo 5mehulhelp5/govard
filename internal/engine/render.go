@@ -26,6 +26,7 @@ type RenderData struct {
 	XdebugSessionPattern string
 	SSHAuthSock          string
 	HostSSHDir           string
+	HostComposerCacheDir string
 }
 
 func findBlueprintsDir(startDir string) (string, error) {
@@ -140,6 +141,18 @@ func RenderBlueprint(root string, config Config) error {
 		sshDir := filepath.Join(home, ".ssh")
 		if info, err := os.Stat(sshDir); err == nil && info.IsDir() {
 			renderData.HostSSHDir = sshDir
+		}
+
+		// Detect Composer cache directory
+		composerCacheCandidates := []string{
+			filepath.Join(home, ".cache", "composer"),
+			filepath.Join(home, ".composer", "cache"),
+		}
+		for _, candidate := range composerCacheCandidates {
+			if info, err := os.Stat(candidate); err == nil && info.IsDir() {
+				renderData.HostComposerCacheDir = candidate
+				break
+			}
 		}
 	}
 
