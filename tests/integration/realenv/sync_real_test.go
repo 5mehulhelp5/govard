@@ -223,9 +223,9 @@ func TestSyncComplexPatterns(t *testing.T) {
 	)
 	result.AssertSuccess(t)
 
-	result.AssertOutputContains(t, "--include='*.txt'")
-	result.AssertOutputContains(t, "--exclude='*.log'")
-	result.AssertOutputContains(t, "--exclude='*.tmp'")
+	result.AssertOutputContains(t, "--include *.txt")
+	result.AssertOutputContains(t, "--exclude *.log")
+	result.AssertOutputContains(t, "--exclude *.tmp")
 }
 
 func TestSyncStagingToLocal(t *testing.T) {
@@ -248,5 +248,6 @@ func TestSyncStagingToLocal(t *testing.T) {
 		"--file",
 	)
 	result.AssertSuccess(t)
-	result.AssertOutputContains(t, "staging")
+	// Verify it used port 9024 (staging's SSH port)
+	result.AssertOutputContains(t, "-p 9024")
 }

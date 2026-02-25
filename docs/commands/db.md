@@ -7,6 +7,8 @@ Database utilities for the local database container.
 ```bash
 govard db connect
 govard db dump > backup.sql
+govard db query "SELECT * FROM core_config_data LIMIT 5"
+govard db info
 cat backup.sql | govard db import
 govard db import --stream-db --environment staging
 govard db import --stream-db --environment staging --file staging.sql
@@ -19,6 +21,49 @@ govard db import --stream-db --environment staging --file staging.sql
 - `--stream-db` For `db import`: stream dump from remote environment into local database
 - `--full` For `db dump`: include routines, events, and triggers
 - `--exclude-sensitive-data` Apply SQL sanitization pipeline (DEFINER/GTID cleanup)
+
+## Subcommands
+
+### `connect`
+Open an interactive MySQL/MariaDB shell to the database container (local or remote).
+
+```bash
+govard db connect
+govard db connect -e staging
+```
+
+### `dump`
+Create a database dump. Supports `--full` for including routines/events/triggers and `--file` for output to a file.
+
+```bash
+govard db dump > backup.sql
+govard db dump --file backup.sql --full
+```
+
+### `import`
+Import SQL from stdin or a file. Use `--stream-db` to stream from a remote environment directly into local database.
+
+```bash
+cat backup.sql | govard db import
+govard db import --file backup.sql
+govard db import --stream-db -e staging
+```
+
+### `query`
+Execute a single SQL query and display results. Useful for quick data checks without opening an interactive shell.
+
+```bash
+govard db query "SELECT COUNT(*) FROM sales_order"
+govard db query "SELECT * FROM core_config_data WHERE path LIKE 'web/%'" -e staging
+```
+
+### `info`
+Display database connection information (host, port, username, database) for local or remote environments.
+
+```bash
+govard db info
+govard db info -e staging
+```
 
 ## Notes
 
@@ -41,7 +86,8 @@ govard db import --stream-db --environment staging --file staging.sql
 
 ```bash
 govard db dump > backup.sql
-cat backup.sql | govard db import
+govard db query "SELECT COUNT(*) FROM sales_order"
+govard db info
 govard db dump -e staging --file staging.sql --exclude-sensitive-data
 govard db import --stream-db -e staging
 ```
