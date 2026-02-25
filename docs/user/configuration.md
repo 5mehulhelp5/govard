@@ -158,7 +158,7 @@ Registry behavior:
 - **Description**: Node.js version for Node-based services (e.g. Next.js)
 - **Options**: `20`, `22`, `24`
 - **Default**: `24`
-- **Notes**: This value controls Node-based containers (e.g. Next.js). Magento 2 uses the `govard/php-magento2` image, which bundles Node.js from the image build.
+- **Notes**: This value controls Node-based containers (e.g. Next.js). Magento 2 uses the `ddtcorex/govard-php-magento2` image, which bundles Node.js from the image build.
 
 #### `stack.db_type`
 - **Type**: string

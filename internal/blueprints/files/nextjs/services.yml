@@ -23,14 +23,14 @@ services:
 
   {{ if or (eq $cache "redis") (eq $cache "valkey") }}
   redis:
-    image: {{ if eq $cache "valkey" }}{{ $.ImageRepository }}/valkey:{{ $cacheVersion }}{{ else }}{{ $.ImageRepository }}/redis:{{ $cacheVersion }}{{ end }}
+    image: {{ if eq $cache "valkey" }}{{ $.ImageRepository }}valkey:{{ $cacheVersion }}{{ else }}{{ $.ImageRepository }}redis:{{ $cacheVersion }}{{ end }}
     networks:
       - govard-net
     {{ end }}
 
   {{ if eq $queue "rabbitmq" }}
   rabbitmq:
-    image: {{ $.ImageRepository }}/rabbitmq:{{ $queueVersion }}
+    image: {{ $.ImageRepository }}rabbitmq:{{ $queueVersion }}
     networks:
       - govard-net
     {{ end }}

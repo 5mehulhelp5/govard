@@ -30,13 +30,13 @@ func TestRequiredRuntimeImagesMagento(t *testing.T) {
 	})
 
 	expected := map[string]bool{
-		"govard/nginx:1.28":        true,
-		"govard/php-magento2:8.3":  true,
-		"govard/mariadb:10.6":      true,
-		"govard/redis:7.4":         true,
-		"govard/opensearch:2.12.0": true,
-		"govard/rabbitmq:3.13.7":   true,
-		"govard/varnish:7.6":       true,
+		"ddtcorex/govard-nginx:1.28":        true,
+		"ddtcorex/govard-php-magento2:8.3":  true,
+		"ddtcorex/govard-mariadb:10.6":      true,
+		"ddtcorex/govard-redis:7.4":         true,
+		"ddtcorex/govard-opensearch:2.12.0": true,
+		"ddtcorex/govard-rabbitmq:3.13.7":   true,
+		"ddtcorex/govard-varnish:7.6":       true,
 	}
 
 	for _, image := range images {
@@ -64,13 +64,13 @@ func TestRequiredRuntimeImagesNextjs(t *testing.T) {
 
 	expected := map[string]bool{
 		"node:24-alpine":         true,
-		"govard/redis:7.4":       true,
-		"govard/rabbitmq:3.13.7": true,
+		"ddtcorex/govard-redis:7.4":       true,
+		"ddtcorex/govard-rabbitmq:3.13.7": true,
 	}
 
 	for _, image := range images {
 		delete(expected, image)
-		if image == "govard/php:8.4" || image == "govard/nginx:latest" {
+		if image == "ddtcorex/govard-php:8.4" || image == "ddtcorex/govard-nginx:latest" {
 			t.Fatalf("unexpected non-nextjs image: %s", image)
 		}
 	}
@@ -97,10 +97,10 @@ func TestRequiredRuntimeImagesMagentoHybrid(t *testing.T) {
 	})
 
 	expected := map[string]bool{
-		"govard/nginx:1.28":       true,
-		"govard/apache:2.4":       true,
-		"govard/php-magento2:8.3": true,
-		"govard/mariadb:10.6":     true,
+		"ddtcorex/govard-nginx:1.28":       true,
+		"ddtcorex/govard-apache:2.4":       true,
+		"ddtcorex/govard-php-magento2:8.3": true,
+		"ddtcorex/govard-mariadb:10.6":     true,
 	}
 
 	for _, image := range images {

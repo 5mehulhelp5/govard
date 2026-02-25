@@ -86,8 +86,8 @@ export PATH="$HOME/go/bin:$PATH"
 Govard uses a single PHP Dockerfile with build args instead of versioned folders.
 
 ```bash
-docker build -f docker/php/Dockerfile -t govard/php:8.4 --build-arg PHP_VERSION=8.4 docker/php
-docker build -f docker/php/magento2/Dockerfile -t govard/php-magento2:8.4 --build-arg PHP_VERSION=8.4 docker/php
+docker build -f docker/php/Dockerfile -t ddtcorex/govard-php:8.4 --build-arg PHP_VERSION=8.4 docker/php
+docker build -f docker/php/magento2/Dockerfile -t ddtcorex/govard-php-magento2:8.4 --build-arg PHP_VERSION=8.4 docker/php
 ```
 
 ---

@@ -3,7 +3,7 @@
 {{ if eq $queue "rabbitmq" }}
 services:
   rabbitmq:
-    image: {{ $.ImageRepository }}/rabbitmq:{{ $queueVersion }}
+    image: {{ $.ImageRepository }}rabbitmq:{{ $queueVersion }}
     networks:
       - govard-net
 {{ end }}

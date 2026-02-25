@@ -1,6 +1,6 @@
 ARG PHP_VERSION=8.4
 
-FROM govard/php:${PHP_VERSION}
+FROM ddtcorex/govard-php:${PHP_VERSION}
 ARG PHP_VERSION
 
 LABEL dev.govard.image.name="php-magento2"

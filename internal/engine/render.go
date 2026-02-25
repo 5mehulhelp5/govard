@@ -119,7 +119,7 @@ func RenderBlueprint(root string, config Config) error {
 	// Determine image repository
 	imageRepo := strings.TrimSpace(os.Getenv("GOVARD_IMAGE_REPOSITORY"))
 	if imageRepo == "" {
-		imageRepo = "govard"
+		imageRepo = "ddtcorex/govard-"
 	}
 
 	// Prepare render data

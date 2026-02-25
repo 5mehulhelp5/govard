@@ -86,8 +86,8 @@ Pre-configured with:
 - Required extensions: intl, gd, bcmath, soap, xsl, zip, sockets
 - Optimized `memory_limit` (4G)
 - Xdebug 3 support (toggle with `govard debug`)
-- Node.js + Grunt tooling for frontend builds (via `govard/php-magento2`)
-- Node.js is bundled in the `govard/php-magento2` image (version is tied to the image build)
+- Node.js + Grunt tooling for frontend builds (via `ddtcorex/govard-php-magento2`)
+- Node.js is bundled in the `ddtcorex/govard-php-magento2` image (version is tied to the image build)
 
 ### Database
 

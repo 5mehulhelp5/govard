@@ -106,13 +106,13 @@ Govard uses a single PHP Dockerfile with build args to avoid version-specific fo
 Base PHP image:
 
 ```bash
-docker build -f docker/php/Dockerfile -t govard/php:8.4 --build-arg PHP_VERSION=8.4 docker/php
+docker build -f docker/php/Dockerfile -t ddtcorex/govard-php:8.4 --build-arg PHP_VERSION=8.4 docker/php
 ```
 
 Magento 2 PHP image (adds Node.js, Grunt, and n98-magerun):
 
 ```bash
-docker build -f docker/php/magento2/Dockerfile -t govard/php-magento2:8.4 --build-arg PHP_VERSION=8.4 docker/php
+docker build -f docker/php/magento2/Dockerfile -t ddtcorex/govard-php-magento2:8.4 --build-arg PHP_VERSION=8.4 docker/php
 ```
 
 ## Testing

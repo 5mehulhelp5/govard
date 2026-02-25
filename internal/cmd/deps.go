@@ -104,7 +104,7 @@ func RequiredRuntimeImages(config engine.Config) []string {
 
 	imageRepo := strings.TrimSpace(os.Getenv("GOVARD_IMAGE_REPOSITORY"))
 	if imageRepo == "" {
-		imageRepo = "govard"
+		imageRepo = "ddtcorex/govard-"
 	}
 
 	images := make([]string, 0, 8)
@@ -120,44 +120,44 @@ func RequiredRuntimeImages(config engine.Config) []string {
 	} else {
 		switch strings.ToLower(config.Stack.Services.WebServer) {
 		case "apache":
-			push(fmt.Sprintf("%s/apache:%s", imageRepo, config.Stack.ApacheVersion))
+			push(fmt.Sprintf("%sapache:%s", imageRepo, config.Stack.ApacheVersion))
 		case "hybrid":
-			push(fmt.Sprintf("%s/nginx:%s", imageRepo, config.Stack.NginxVersion))
-			push(fmt.Sprintf("%s/apache:%s", imageRepo, config.Stack.ApacheVersion))
+			push(fmt.Sprintf("%snginx:%s", imageRepo, config.Stack.NginxVersion))
+			push(fmt.Sprintf("%sapache:%s", imageRepo, config.Stack.ApacheVersion))
 		default:
-			push(fmt.Sprintf("%s/nginx:%s", imageRepo, config.Stack.NginxVersion))
+			push(fmt.Sprintf("%snginx:%s", imageRepo, config.Stack.NginxVersion))
 		}
 		if config.Recipe == "magento2" {
-			push(fmt.Sprintf("%s/php-magento2:%s", imageRepo, config.Stack.PHPVersion))
+			push(fmt.Sprintf("%sphp-magento2:%s", imageRepo, config.Stack.PHPVersion))
 		} else {
-			push(fmt.Sprintf("%s/php:%s", imageRepo, config.Stack.PHPVersion))
+			push(fmt.Sprintf("%sphp:%s", imageRepo, config.Stack.PHPVersion))
 		}
 	}
 
 	if config.Stack.DBType != "" && config.Stack.DBType != "none" && config.Recipe != "nextjs" {
-		push(fmt.Sprintf("%s/%s:%s", imageRepo, config.Stack.DBType, config.Stack.DBVersion))
+		push(fmt.Sprintf("%s%s:%s", imageRepo, config.Stack.DBType, config.Stack.DBVersion))
 	}
 
 	switch config.Stack.Services.Cache {
 	case "redis":
-		push(fmt.Sprintf("%s/redis:%s", imageRepo, config.Stack.CacheVersion))
+		push(fmt.Sprintf("%sredis:%s", imageRepo, config.Stack.CacheVersion))
 	case "valkey":
-		push(fmt.Sprintf("%s/valkey:%s", imageRepo, config.Stack.CacheVersion))
+		push(fmt.Sprintf("%svalkey:%s", imageRepo, config.Stack.CacheVersion))
 	}
 
 	switch config.Stack.Services.Search {
 	case "elasticsearch":
-		push(fmt.Sprintf("%s/elasticsearch:%s", imageRepo, config.Stack.SearchVersion))
+		push(fmt.Sprintf("%selasticsearch:%s", imageRepo, config.Stack.SearchVersion))
 	case "opensearch":
-		push(fmt.Sprintf("%s/opensearch:%s", imageRepo, config.Stack.SearchVersion))
+		push(fmt.Sprintf("%sopensearch:%s", imageRepo, config.Stack.SearchVersion))
 	}
 
 	if config.Stack.Services.Queue == "rabbitmq" {
-		push(fmt.Sprintf("%s/rabbitmq:%s", imageRepo, config.Stack.QueueVersion))
+		push(fmt.Sprintf("%srabbitmq:%s", imageRepo, config.Stack.QueueVersion))
 	}
 
 	if config.Stack.Features.Varnish {
-		push(fmt.Sprintf("%s/varnish:%s", imageRepo, config.Stack.VarnishVersion))
+		push(fmt.Sprintf("%svarnish:%s", imageRepo, config.Stack.VarnishVersion))
 	}
 
 	seen := make(map[string]struct{}, len(images))
