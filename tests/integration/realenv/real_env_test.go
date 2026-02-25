@@ -54,7 +54,6 @@ type Capabilities struct {
 	Deploy bool `yaml:"deploy"`
 }
 
-
 // RealEnvTest provides infrastructure for real environment tests
 type RealEnvTest struct {
 	SSHKeyPath  string
@@ -163,88 +162,88 @@ func (r *RealEnvTest) RunGovard(t *testing.T, projectDir string, args ...string)
 // For real env tests, only 'local' fixture should be used as the project.
 // DEV and STAGING are remote targets, not local projects.
 func (r *RealEnvTest) CopyConfig(t *testing.T, env string, projectDir string) {
-    t.Helper()
+	t.Helper()
 
-    // For real env tests, we always use the LOCAL workstation as the project
-    // DEV and STAGING are remote environments, not local projects
-    if env != "local" {
-        t.Fatalf("For real environment tests, only 'local' should be used as project. " +
-            "DEV and STAGING are remote targets, not local projects. " +
-            "Use 'local' as project and specify remote via --environment flag")
-    }
+	// For real env tests, we always use the LOCAL workstation as the project
+	// DEV and STAGING are remote environments, not local projects
+	if env != "local" {
+		t.Fatalf("For real environment tests, only 'local' should be used as project. " +
+			"DEV and STAGING are remote targets, not local projects. " +
+			"Use 'local' as project and specify remote via --environment flag")
+	}
 
 	dst := filepath.Join(projectDir, ".govard.yml")
-    // Build a completely new config structure instead of parsing
-    // This ensures correct YAML formatting
-    config := struct {
-        ProjectName string            `yaml:"project_name"`
-        Domain      string            `yaml:"domain"`
-        Recipe      string            `yaml:"recipe"`
-        Remotes     map[string]Remote `yaml:"remotes"`
-    }{
-        ProjectName: "m2-clone-basic",
-        Domain:      "m2-clone-basic.test",
-        Recipe:      "magento2",
-        Remotes: map[string]Remote{
-            "dev": {
-                Host: "localhost",
-                Port: 9023,
-                User: "linuxserver.io",
-                Path: "/var/www/html",
-                Auth: Auth{
-                    KeyPath: r.SSHKeyPath,
-                },
-                Capabilities: Capabilities{
-                    Files:  true,
-                    Media:  true,
-                    DB:     true,
-                    Deploy: false,
-                },
-            },
-            "staging": {
-                Host: "localhost",
-                Port: 9024,
-                User: "linuxserver.io",
-                Path: "/var/www/html",
-                Auth: Auth{
-                    KeyPath: r.SSHKeyPath,
-                },
-                Capabilities: Capabilities{
-                    Files:  true,
-                    Media:  true,
-                    DB:     true,
-                    Deploy: false,
-                },
-            },
-            "production": {
-                Host:         "localhost",
-                Port:         9025,
-                User:         "linuxserver.io",
-                Path:         "/var/www/html",
-                Environment:  "production",
-                Protected:    true,
-                Auth: Auth{
-                    KeyPath: r.SSHKeyPath,
-                },
-                Capabilities: Capabilities{
-                    Files:  true,
-                    Media:  true,
-                    DB:     true,
-                    Deploy: true,
-                },
-            },
+	// Build a completely new config structure instead of parsing
+	// This ensures correct YAML formatting
+	config := struct {
+		ProjectName string            `yaml:"project_name"`
+		Domain      string            `yaml:"domain"`
+		Recipe      string            `yaml:"recipe"`
+		Remotes     map[string]Remote `yaml:"remotes"`
+	}{
+		ProjectName: "m2-clone-basic",
+		Domain:      "m2-clone-basic.test",
+		Recipe:      "magento2",
+		Remotes: map[string]Remote{
+			"dev": {
+				Host: "localhost",
+				Port: 9023,
+				User: "linuxserver.io",
+				Path: "/var/www/html",
+				Auth: Auth{
+					KeyPath: r.SSHKeyPath,
+				},
+				Capabilities: Capabilities{
+					Files:  true,
+					Media:  true,
+					DB:     true,
+					Deploy: false,
+				},
+			},
+			"staging": {
+				Host: "localhost",
+				Port: 9024,
+				User: "linuxserver.io",
+				Path: "/var/www/html",
+				Auth: Auth{
+					KeyPath: r.SSHKeyPath,
+				},
+				Capabilities: Capabilities{
+					Files:  true,
+					Media:  true,
+					DB:     true,
+					Deploy: false,
+				},
+			},
+			"production": {
+				Host:        "localhost",
+				Port:        9025,
+				User:        "linuxserver.io",
+				Path:        "/var/www/html",
+				Environment: "production",
+				Protected:   true,
+				Auth: Auth{
+					KeyPath: r.SSHKeyPath,
+				},
+				Capabilities: Capabilities{
+					Files:  true,
+					Media:  true,
+					DB:     true,
+					Deploy: true,
+				},
+			},
 		},
 	}
 
-    yamlData, err := yaml.Marshal(config)
-    if err != nil {
-        t.Fatalf("Failed to marshal config: %v", err)
-    }
+	yamlData, err := yaml.Marshal(config)
+	if err != nil {
+		t.Fatalf("Failed to marshal config: %v", err)
+	}
 
-    if err := os.WriteFile(dst, yamlData, 0644); err != nil {
-        t.Fatalf("Failed to write .govard.yml: %v", err)
-    }
-    t.Logf("Generated .govard.yml in %s:\n%s", projectDir, string(yamlData))
+	if err := os.WriteFile(dst, yamlData, 0644); err != nil {
+		t.Fatalf("Failed to write .govard.yml: %v", err)
+	}
+	t.Logf("Generated .govard.yml in %s:\n%s", projectDir, string(yamlData))
 }
 
 // CreateTempProject creates a temporary project directory with config

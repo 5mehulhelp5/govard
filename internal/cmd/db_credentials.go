@@ -257,7 +257,6 @@ func ParseEnvMapForTest(raw string) map[string]string {
 	return parseEnvMap(raw)
 }
 
-
 func buildLocalDBQueryCommand(containerName string, credentials dbCredentials, query string) *exec.Cmd {
 	credentials = credentials.withDefaults()
 	args := []string{"exec", "-i"}
@@ -270,10 +269,10 @@ func buildLocalDBQueryCommand(containerName string, credentials dbCredentials, q
 
 func buildLocalMySQLQueryCommandScript(credentials dbCredentials, query string) string {
 	credentials = credentials.withDefaults()
-	
+
 	escapedQuery := strings.ReplaceAll(query, "'", "'\"'\"'")
 	queryCmd := "exec \"$DB_CLI\" -u " + shellQuote(credentials.Username) + " -e '" + escapedQuery + "'" + " " + shellQuote(credentials.Database)
-	
+
 	return strings.Join([]string{
 		`if command -v mysql >/dev/null 2>&1; then DB_CLI=mysql; elif command -v mariadb >/dev/null 2>&1; then DB_CLI=mariadb; else echo "mysql client not found (mysql/mariadb)" >&2; exit 127; fi`,
 		queryCmd,
@@ -282,7 +281,7 @@ func buildLocalMySQLQueryCommandScript(credentials dbCredentials, query string) 
 
 func buildRemoteMySQLQueryCommandString(credentials dbCredentials, query string) string {
 	credentials = credentials.withDefaults()
-	
+
 	args := []string{"mysql"}
 	if host := strings.TrimSpace(credentials.Host); host != "" {
 		args = append(args, "-h"+shellQuote(host))
@@ -291,6 +290,6 @@ func buildRemoteMySQLQueryCommandString(credentials dbCredentials, query string)
 		args = append(args, "-P"+strconv.Itoa(credentials.Port))
 	}
 	args = append(args, "-u"+shellQuote(credentials.Username), "-e", shellQuote(query))
-	
+
 	return mysqlPasswordExportPrefix(credentials.Password) + strings.Join(args, " ")
 }

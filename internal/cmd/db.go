@@ -349,7 +349,7 @@ func runDBQuery(cmd *cobra.Command, config engine.Config, options dbCommandOptio
 			// Try to get from positional args passed to the command
 			query = strings.Join(extraArgs, " ")
 		}
-		
+
 		// If still empty, check if there are any non-flag arguments
 		if query == "" {
 			return fmt.Errorf("query argument is required. Usage: govard db query \"<SQL_QUERY>\"")
@@ -363,7 +363,7 @@ func runDBQuery(cmd *cobra.Command, config engine.Config, options dbCommandOptio
 
 			credentials := resolveLocalDBCredentials(containerName)
 			pterm.Info.Printf("Executing query on %s...\n", containerName)
-			
+
 			queryCmd := buildLocalDBQueryCommand(containerName, credentials, query)
 			queryCmd.Stdout = cmd.OutOrStdout()
 			queryCmd.Stderr = cmd.ErrOrStderr()
@@ -378,7 +378,7 @@ func runDBQuery(cmd *cobra.Command, config engine.Config, options dbCommandOptio
 		if probeErr != nil {
 			pterm.Warning.Println(formatRemoteDBProbeWarning(options.Environment, probeErr))
 		}
-		
+
 		queryCmd := remote.BuildSSHExecCommand(options.Environment, remoteCfg, false, buildRemoteMySQLQueryCommandString(credentials, query))
 		queryCmd.Stdout = cmd.OutOrStdout()
 		queryCmd.Stderr = cmd.ErrOrStderr()
@@ -390,7 +390,7 @@ func runDBInfo(cmd *cobra.Command, config engine.Config, options dbCommandOption
 	return runDBHooks(config, engine.HookPreDBConnect, engine.HookPostDBConnect, cmd, func() error {
 		fmt.Fprintln(cmd.OutOrStdout(), "Database Connection Info")
 		fmt.Fprintln(cmd.OutOrStdout(), "========================")
-		
+
 		if options.Environment == "local" {
 			containerName := dbContainerName(config)
 			if err := ensureLocalDBRunning(containerName); err != nil {
@@ -398,7 +398,7 @@ func runDBInfo(cmd *cobra.Command, config engine.Config, options dbCommandOption
 			}
 
 			credentials := resolveLocalDBCredentials(containerName)
-			
+
 			fmt.Fprintf(cmd.OutOrStdout(), "Environment:  local\n")
 			fmt.Fprintf(cmd.OutOrStdout(), "Container:    %s\n", containerName)
 			fmt.Fprintf(cmd.OutOrStdout(), "Host:         %s\n", credentials.Host)
@@ -423,7 +423,7 @@ func runDBInfo(cmd *cobra.Command, config engine.Config, options dbCommandOption
 			if probeErr != nil {
 				pterm.Warning.Println(formatRemoteDBProbeWarning(options.Environment, probeErr))
 			}
-			
+
 			fmt.Fprintf(cmd.OutOrStdout(), "Environment:  %s\n", options.Environment)
 			fmt.Fprintf(cmd.OutOrStdout(), "Host:         %s\n", credentials.Host)
 			if credentials.Host == "" {
