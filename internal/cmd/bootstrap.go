@@ -79,9 +79,16 @@ var bootstrapRemoteDirExists = func(remoteName string, remoteCfg engine.RemoteCo
 
 var bootstrapCmd = &cobra.Command{
 	Use:   "bootstrap [flags]",
-	Short: "Bootstrap local project setup and clone a remote environment",
-	Long: `Quickly set up a project by cloning from a remote environment or creating a fresh installation.
-Ideal for onboarding new team members or starting a new project from scratch.
+	Short: "Bootstrap local environment: import DB/media from remote, or full clone with --clone",
+	Long: `Quickly set up a local project from a remote environment or a fresh installation.
+Ideal for onboarding new team members or re-initialising a local workspace.
+
+Two primary modes:
+  Default (no --clone): Starts the local environment, runs composer install, imports the
+    remote database, and syncs media — but does NOT rsync the source code files. Use this
+    when your source code is already checked out from Git.
+  --clone: Performs a full file rsync FROM the remote before the steps above. Use this only
+    when you need an exact copy of the remote source (e.g. first-time onboarding without Git).
 
 Framework Specifics:
 - Magento 2: Automates auth.json, env.php, database import, media sync, and admin user creation.
@@ -89,20 +96,24 @@ Framework Specifics:
 - WordPress: Configures wp-config.php and imports database.
 
 Case Studies:
-- New Team Member: Run 'govard bootstrap --environment staging' to get a carbon copy of the staging site.
-- Fresh Start: Run 'govard bootstrap --fresh --version 2.4.7' to start a clean Magento 2.4.7 project.
-- Fast Sync: Use --code-only to skip DB and media if you only need the source code.`,
-	Example: `  # Clone from staging environment (auto-detects framework)
-  govard bootstrap --environment staging
+- Day-to-day refresh: 'govard bootstrap -e staging' — syncs DB and media, keeps your local git tree.
+- First-time onboarding (no git clone): 'govard bootstrap --clone -e staging' — pulls all source files.
+- Fresh Start: 'govard bootstrap --fresh --version 2.4.7' — clean Magento install from Composer.
+- Code only: 'govard bootstrap --clone --code-only -e dev' — files only, skip DB and media.`,
+	Example: `  # Refresh DB + media from dev (default — does NOT overwrite source files)
+  govard bootstrap --environment dev
+
+  # Full clone (source files + DB + media) from staging
+  govard bootstrap --clone --environment staging
 
   # Fresh Magento 2.4.7 install with sample data
   govard bootstrap --fresh --version 2.4.7 --include-sample
 
-  # Clone from production but skip media files
-  govard bootstrap --environment prod --no-media
+  # Clone from dev but skip media sync
+  govard bootstrap --clone --environment dev --no-media
 
-  # Clone code only (skip DB and media)
-  govard bootstrap --code-only`,
+  # Clone source code only (skip DB and media)
+  govard bootstrap --clone --code-only --environment dev`,
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		pterm.DefaultHeader.Println("Govard Bootstrap")
 		startedAt := time.Now()
@@ -767,7 +778,7 @@ func bootstrapMagentoMediaSyncArgs(opts bootstrapRuntimeOptions) []string {
 }
 
 func init() {
-	bootstrapCmd.Flags().BoolVarP(&bootstrapClone, "clone", "c", false, "Clone project from remote")
+	bootstrapCmd.Flags().BoolVarP(&bootstrapClone, "clone", "c", false, "Rsync source files from remote before composer/DB/media steps (use when you have no local git checkout)")
 	bootstrapCmd.Flags().BoolVar(&bootstrapCodeOnly, "code-only", false, "Clone code only (skip DB/media)")
 	bootstrapCmd.Flags().BoolVar(&bootstrapFresh, "fresh", false, "Create a fresh project install")
 	bootstrapCmd.Flags().BoolVar(&bootstrapIncludeSample, "include-sample", false, "Install sample data (fresh install, Magento only)")
