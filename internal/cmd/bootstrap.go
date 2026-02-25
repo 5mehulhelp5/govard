@@ -164,7 +164,7 @@ Case Studies:
 		}
 
 		if opts.Clone {
-			if err := runBootstrapClone(cmd, config, opts); err != nil {
+			if err := runBootstrapRemote(cmd, config, opts); err != nil {
 				return err
 			}
 		}
@@ -252,7 +252,7 @@ func normalizeBootstrapSource(raw string) string {
 	return value
 }
 
-func runBootstrapClone(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions) error {
+func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions) error {
 	if _, ok := config.Remotes[opts.Source]; !ok {
 		return fmt.Errorf("remote '%s' is not configured. Add it to remotes in %s", opts.Source, engine.BaseConfigFile)
 	}
@@ -261,8 +261,10 @@ func runBootstrapClone(cmd *cobra.Command, config engine.Config, opts bootstrapR
 		return fmt.Errorf("remote test failed for '%s': %w", opts.Source, err)
 	}
 
-	if err := runGovardSubcommand(cmd, bootstrapFileSyncArgs(opts)...); err != nil {
-		return fmt.Errorf("file sync failed: %w", err)
+	if opts.Clone {
+		if err := runGovardSubcommand(cmd, bootstrapFileSyncArgs(opts)...); err != nil {
+			return fmt.Errorf("file sync failed: %w", err)
+		}
 	}
 
 	cwd, _ := os.Getwd()
@@ -271,8 +273,10 @@ func runBootstrapClone(cmd *cobra.Command, config engine.Config, opts bootstrapR
 		if err := ensureBootstrapAuthJSON(config, opts); err != nil {
 			return err
 		}
-		if err := runBootstrapComposerPrepare(config); err != nil {
-			return err
+		if opts.Clone {
+			if err := runBootstrapComposerPrepare(config); err != nil {
+				return err
+			}
 		}
 
 		installErr := runGovardSubcommand(cmd, govardComposerSubcommandArgs("install", "-n")...)
@@ -763,7 +767,7 @@ func bootstrapMagentoMediaSyncArgs(opts bootstrapRuntimeOptions) []string {
 }
 
 func init() {
-	bootstrapCmd.Flags().BoolVarP(&bootstrapClone, "clone", "c", true, "Clone project from remote")
+	bootstrapCmd.Flags().BoolVarP(&bootstrapClone, "clone", "c", false, "Clone project from remote")
 	bootstrapCmd.Flags().BoolVar(&bootstrapCodeOnly, "code-only", false, "Clone code only (skip DB/media)")
 	bootstrapCmd.Flags().BoolVar(&bootstrapFresh, "fresh", false, "Create a fresh project install")
 	bootstrapCmd.Flags().BoolVar(&bootstrapIncludeSample, "include-sample", false, "Install sample data (fresh install, Magento only)")
