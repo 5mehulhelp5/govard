@@ -14,7 +14,7 @@ var statusCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		running, err := engine.GetRunningProjectNames()
 		if err != nil {
-			pterm.Error.Printf("Failed to list running environments: %v\n", err)
+			pterm.Error.Println(err)
 			return
 		}
 

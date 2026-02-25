@@ -112,7 +112,7 @@ func GetRunningProjectNames() ([]string, error) {
 
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to connect to Docker: %w", err)
 	}
 	defer func() {
 		_ = cli.Close()
@@ -120,7 +120,7 @@ func GetRunningProjectNames() ([]string, error) {
 
 	containers, err := cli.ContainerList(ctx, container.ListOptions{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to list containers: %w", err)
 	}
 
 	projectMap := make(map[string]bool)
