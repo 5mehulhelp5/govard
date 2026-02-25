@@ -80,6 +80,9 @@ RUN set -eux; \
     REDIS_VERSION="redis"; \
     IMAGICK_VERSION="imagick"; \
     AMQP_VERSION="amqp"; \
+    if [ "$PHP_VERSION_INT" -lt 74 ]; then \
+    REDIS_VERSION="redis-5.3.7"; \
+    fi; \
     if [ "$PHP_VERSION_INT" -lt 72 ]; then \
     REDIS_VERSION="redis-4.3.0"; \
     fi; \
