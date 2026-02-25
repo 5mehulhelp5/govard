@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-02-25
+
+### Added
+
+- **Database Commands**: Added `db query` and `db info` commands for easier direct database interaction.
+- **Enhanced Integration Tests**: Comprehensive realenv integration tests for bootstrap, sync, db, and open commands.
+- **Improved Warden Migration**: Support for modern remotes and stack versions.
+
+### Changed
+
+- **Docker Organization**: Introduced `DOCKER_ORG` variable for better flexibility in image naming.
+- **Help Documentation**: Major refactor of help commands with detailed examples and case studies.
+
 ## [1.4.0] - 2026-02-25
 
 ### Added

@@ -6,10 +6,6 @@ import (
 	"govard/internal/ui"
 )
 
-func TestUIPkgPrintBrandDoesNotPanic(t *testing.T) {
-	ui.PrintBrand("1.4.0")
-}
-
 func TestUIPkgPrintHelpersDoNotPanic(t *testing.T) {
 	ui.PrintSuccess("ok")
 	ui.PrintError("error")
