@@ -159,7 +159,7 @@ images:
 	docker build -t $(DOCKER_ORG)varnish:7.6 --build-arg VARNISH_VERSION=7.6 docker/varnish
 	docker build -t $(DOCKER_ORG)varnish:7.4 --build-arg VARNISH_VERSION=7.4 docker/varnish
 	docker build -t $(DOCKER_ORG)varnish:7.0 --build-arg VARNISH_VERSION=7.0 docker/varnish
-	docker build -t $(DOCKER_ORG)varnish:6.0 --build-arg VARNISH_VERSION=6.0 docker/varnish
+	docker build -t $(DOCKER_ORG)varnish:6.0 --build-arg VARNISH_VERSION=6.0 --build-arg VARNISH_IMAGE_TAG=6.0 docker/varnish
 	docker build -t $(DOCKER_ORG)varnish:latest --build-arg VARNISH_VERSION=7.6 docker/varnish
 
 push:
