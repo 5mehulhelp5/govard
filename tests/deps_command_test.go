@@ -63,7 +63,7 @@ func TestRequiredRuntimeImagesNextjs(t *testing.T) {
 	})
 
 	expected := map[string]bool{
-		"node:24-alpine":         true,
+		"node:24-alpine":                  true,
 		"ddtcorex/govard-redis:7.4":       true,
 		"ddtcorex/govard-rabbitmq:3.13.7": true,
 	}
