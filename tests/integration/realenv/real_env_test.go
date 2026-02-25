@@ -19,11 +19,41 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
+
+// Auth represents SSH authentication configuration
+type Auth struct {
+	Method         string `yaml:"method,omitempty"`
+	KeyPath        string `yaml:"key_path,omitempty"`
+	StrictHostKey  bool   `yaml:"strict_host_key,omitempty"`
+	KnownHostsFile string `yaml:"known_hosts_file,omitempty"`
+}
+
+// Remote represents a remote environment configuration
+type Remote struct {
+	Host         string       `yaml:"host"`
+	Port         int          `yaml:"port,omitempty"`
+	User         string       `yaml:"user"`
+	Path         string       `yaml:"path"`
+	Environment  string       `yaml:"environment,omitempty"`
+	Protected    bool         `yaml:"protected,omitempty"`
+	Auth         Auth         `yaml:"auth,omitempty"`
+	Capabilities Capabilities `yaml:"capabilities"`
+}
+
+// Capabilities represents remote capabilities
+type Capabilities struct {
+	Files  bool `yaml:"files"`
+	Media  bool `yaml:"media"`
+	DB     bool `yaml:"db"`
+	Deploy bool `yaml:"deploy"`
+}
+
 
 // RealEnvTest provides infrastructure for real environment tests
 type RealEnvTest struct {
@@ -60,7 +90,7 @@ func (r *RealEnvTest) Setup(t *testing.T) {
 
 	// Check if environment is running
 	if !r.isEnvironmentRunning() {
-		t.Skip("Three-environment setup not running. Run: cd tests/integration/environments && ./setup-three-env.sh")
+		t.Skip("Three-environment setup not running. Run: cd tests/integration/realenv && ./setup-three-env.sh")
 	}
 
 	// Ensure binary exists
@@ -133,56 +163,88 @@ func (r *RealEnvTest) RunGovard(t *testing.T, projectDir string, args ...string)
 // For real env tests, only 'local' fixture should be used as the project.
 // DEV and STAGING are remote targets, not local projects.
 func (r *RealEnvTest) CopyConfig(t *testing.T, env string, projectDir string) {
-	t.Helper()
+    t.Helper()
 
-	// For real env tests, we always use the LOCAL workstation as the project
-	// DEV and STAGING are remote environments, not local projects
-	if env != "local" {
-		t.Fatalf("For real environment tests, only 'local' should be used as project. " +
-			"DEV and STAGING are remote targets, not local projects. " +
-			"Use 'local' as project and specify remote via --environment flag")
-	}
+    // For real env tests, we always use the LOCAL workstation as the project
+    // DEV and STAGING are remote environments, not local projects
+    if env != "local" {
+        t.Fatalf("For real environment tests, only 'local' should be used as project. " +
+            "DEV and STAGING are remote targets, not local projects. " +
+            "Use 'local' as project and specify remote via --environment flag")
+    }
 
-	src := filepath.Join(r.FixturesDir, "options-local", ".govard.yml")
 	dst := filepath.Join(projectDir, ".govard.yml")
-
-	data, err := os.ReadFile(src)
-	if err != nil {
-		t.Fatalf("Failed to read config from %s: %v", src, err)
+    // Build a completely new config structure instead of parsing
+    // This ensures correct YAML formatting
+    config := struct {
+        ProjectName string            `yaml:"project_name"`
+        Domain      string            `yaml:"domain"`
+        Recipe      string            `yaml:"recipe"`
+        Remotes     map[string]Remote `yaml:"remotes"`
+    }{
+        ProjectName: "m2-clone-basic",
+        Domain:      "m2-clone-basic.test",
+        Recipe:      "magento2",
+        Remotes: map[string]Remote{
+            "dev": {
+                Host: "localhost",
+                Port: 9023,
+                User: "linuxserver.io",
+                Path: "/var/www/html",
+                Auth: Auth{
+                    KeyPath: r.SSHKeyPath,
+                },
+                Capabilities: Capabilities{
+                    Files:  true,
+                    Media:  true,
+                    DB:     true,
+                    Deploy: false,
+                },
+            },
+            "staging": {
+                Host: "localhost",
+                Port: 9024,
+                User: "linuxserver.io",
+                Path: "/var/www/html",
+                Auth: Auth{
+                    KeyPath: r.SSHKeyPath,
+                },
+                Capabilities: Capabilities{
+                    Files:  true,
+                    Media:  true,
+                    DB:     true,
+                    Deploy: false,
+                },
+            },
+            "production": {
+                Host:         "localhost",
+                Port:         9025,
+                User:         "linuxserver.io",
+                Path:         "/var/www/html",
+                Environment:  "production",
+                Protected:    true,
+                Auth: Auth{
+                    KeyPath: r.SSHKeyPath,
+                },
+                Capabilities: Capabilities{
+                    Files:  true,
+                    Media:  true,
+                    DB:     true,
+                    Deploy: true,
+                },
+            },
+		},
 	}
 
-	// Replace example.com hosts with localhost and set correct ports for real env tests
-	config := string(data)
+    yamlData, err := yaml.Marshal(config)
+    if err != nil {
+        t.Fatalf("Failed to marshal config: %v", err)
+    }
 
-	// Replace dev remote: dev.example.com -> localhost:9023 (note: 4 spaces indentation)
-	config = strings.Replace(config, "    host: dev.example.com\n    port: 22", "    host: localhost\n    port: 9023", 1)
-
-	// Replace staging remote: staging.example.com -> localhost:9024 (note: 4 spaces indentation)
-	config = strings.Replace(config, "    host: staging.example.com\n    port: 22", "    host: localhost\n    port: 9024", 1)
-
-	// Replace production remotes: prod.example.com -> localhost:9025 (note: 4 spaces indentation)
-	config = strings.Replace(config, "    host: prod.example.com\n    port: 22", "    host: localhost\n    port: 9025", -1)
-
-	// Ensure all remote paths are /var/www/html for the test environment
-	config = strings.ReplaceAll(config, "path: /srv/www/staging", "path: /var/www/html")
-	config = strings.ReplaceAll(config, "path: /srv/www/prod", "path: /var/www/html")
-
-	// Replace username
-	config = strings.ReplaceAll(config, "user: deploy", "user: linuxserver.io")
-
-	// Set SSH key path in .govard.yml
-	if strings.Contains(config, "key_path: ~/.ssh/id_rsa") {
-		// Replace placeholder key path (note: 6 spaces indentation for auth sub-block)
-		config = strings.ReplaceAll(config, "key_path: ~/.ssh/id_rsa", "key_path: "+r.SSHKeyPath)
-	} else if !strings.Contains(config, "key_path:") {
-		// Add key_path to each remote block if missing
-		config = strings.ReplaceAll(config, "capabilities:", "capabilities:\n      key_path: "+r.SSHKeyPath)
-	}
-
-	if err := os.WriteFile(dst, []byte(config), 0644); err != nil {
-		t.Fatalf("Failed to write .govard.yml: %v", err)
-	}
-	t.Logf("Generated .govard.yml in %s:\n%s", projectDir, config)
+    if err := os.WriteFile(dst, yamlData, 0644); err != nil {
+        t.Fatalf("Failed to write .govard.yml: %v", err)
+    }
+    t.Logf("Generated .govard.yml in %s:\n%s", projectDir, string(yamlData))
 }
 
 // CreateTempProject creates a temporary project directory with config

@@ -21,26 +21,26 @@ func TestOpenTargets(t *testing.T) {
 		t.Run(target, func(t *testing.T) {
 			result := env.RunGovard(t, localDir, "open", target)
 
-			// We don't necessarily expect success if openURL fails due to missing xdg-open/browser
-			// but we want to see the URL in the output.
-			result.AssertOutputContains(t, "Opening")
-
 			switch target {
 			case "admin":
+				result.AssertOutputContains(t, "Opening")
 				result.AssertOutputContains(t, "admin")
 			case "mail":
+				result.AssertOutputContains(t, "Opening")
 				result.AssertOutputContains(t, "mail.govard.test")
 			case "pma":
+				result.AssertOutputContains(t, "Opening")
 				result.AssertOutputContains(t, "pma.govard.test")
 			case "sftp":
 				// sftp requires a remote environment by default if no local sftp configured
 				// Actually open_targets.go says "SFTP is not supported for local target"
-				if result.ExitCode != 0 {
-					result.AssertOutputContains(t, "SFTP is not supported for local target")
-				}
+				// For local SFTP, it prints an info message instead of "Opening"
+				result.AssertOutputContains(t, "SFTP is not supported for local target")
 			case "elasticsearch":
+				result.AssertOutputContains(t, "Opening")
 				result.AssertOutputContains(t, "elasticsearch.govard.test")
 			case "opensearch":
+				result.AssertOutputContains(t, "Opening")
 				result.AssertOutputContains(t, "opensearch.govard.test")
 			}
 		})
@@ -56,7 +56,8 @@ func TestOpenRemoteTargets(t *testing.T) {
 	t.Run("admin-dev", func(t *testing.T) {
 		result := env.RunGovard(t, localDir, "open", "admin", "--environment", "dev")
 		result.AssertOutputContains(t, "Opening")
-		result.AssertOutputContains(t, "localhost:9023")
+		// Remote admin URL uses the remote host (localhost) without SSH port
+		result.AssertOutputContains(t, "https://localhost/admin")
 	})
 
 	t.Run("sftp-staging", func(t *testing.T) {

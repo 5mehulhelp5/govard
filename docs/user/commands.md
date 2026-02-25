@@ -260,9 +260,9 @@ See `docs/commands/sync.md`.
 
 ### `govard db`
 
-Database utilities with subcommands `connect`, `dump`, and `import`.
-Supports remote-source streaming for local imports (`db import --stream-db -e <remote>`)
-and file mode with `--file`.
+Database utilities with subcommands `connect`, `dump`, `import`, `query`, and `info`.
+Supports remote-source streaming for local imports (`db import --stream-db -e <remote>`),
+file mode with `--file`, SQL query execution (`db query "SELECT ..."`), and connection info (`db info`).
 
 See `docs/commands/db.md`.
 

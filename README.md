@@ -277,7 +277,7 @@ _Note: Once trusted, all `*.test` domains managed by Govard will show a "Green L
 | `govard svc`        | Manage global services and workspace sleep state             |
 | `govard tool`       | Run framework/tooling CLIs inside project containers         |
 | `govard shell`      | Enter the application container                              |
-| `govard db`         | Database operations (`connect`, `dump`, `import`, `stream`) |
+| `govard db`         | Database operations (`connect`, `dump`, `import`, `query`, `info`) |
 | `govard debug`      | Toggle Xdebug for the current environment                    |
 | `govard open`       | Open common service URLs                                     |
 | `govard remote`     | Manage remote environments                                   |

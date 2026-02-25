@@ -175,9 +175,21 @@ func TestDBImportGzipped(t *testing.T) {
 		t.Fatalf("Failed to write gzip file: %v", err)
 	}
 
+	// Note: govard db import doesn't auto-decompress .gz files
+	// We need to decompress first, then import
+	decompressedFile := filepath.Join(t.TempDir(), "decompressed.sql")
+	gunzipCmd := exec.Command("gunzip", "-c", gzipFile)
+	decompressed, err := gunzipCmd.Output()
+	if err != nil {
+		t.Fatalf("Failed to decompress file: %v", err)
+	}
+	if err := os.WriteFile(decompressedFile, decompressed, 0644); err != nil {
+		t.Fatalf("Failed to write decompressed file: %v", err)
+	}
+
 	result := env.RunGovard(t, localDir, "db", "import",
 		"--environment", "local",
-		"--file", gzipFile,
+		"--file", decompressedFile,
 	)
 	result.AssertSuccess(t)
 }

@@ -21,7 +21,7 @@ import (
 )
 
 var dbCmd = &cobra.Command{
-	Use:   "db [connect|import|dump]",
+	Use:   "db [connect|import|dump|query|info]",
 	Short: "Interact with the database container",
 	Long: `Manage your project's database. Supports connecting to the container shell,
 importing SQL dumps, and creating backups. Works for both local and remote environments.
@@ -44,11 +44,26 @@ Case Studies:
   govard db import --stream-db --environment prod
 
   # Create a database dump with routines and triggers
-  govard db dump --full --file my_backup.sql`,
-	Args: cobra.ExactArgs(1),
+  govard db dump --full --file my_backup.sql
+
+  # Execute a SQL query
+  govard db query "SELECT * FROM core_config_data LIMIT 5"
+
+  # Show database connection info
+  govard db info`,
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) < 1 {
+			return errors.New("requires at least one argument (subcommand)")
+		}
+		subcommand := strings.ToLower(strings.TrimSpace(args[0]))
+		if subcommand == "query" && len(args) < 2 {
+			return errors.New("query subcommand requires a SQL query argument")
+		}
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		subcommand := strings.ToLower(strings.TrimSpace(args[0]))
-		if err := runDBSubcommand(cmd, subcommand); err != nil {
+		if err := runDBSubcommand(cmd, subcommand, args[1:]); err != nil {
 			return err
 		}
 		return nil
@@ -80,7 +95,7 @@ func ValidateDBCommandOptions(subcommand string, options DBCommandOptions) error
 	return validateDBCommandOptions(subcommand, options)
 }
 
-func runDBSubcommand(cmd *cobra.Command, subcommand string) (err error) {
+func runDBSubcommand(cmd *cobra.Command, subcommand string, extraArgs []string) (err error) {
 	startedAt := time.Now()
 	operationStatus := engine.OperationStatusFailure
 	operationCategory := ""
@@ -212,6 +227,24 @@ func runDBSubcommand(cmd *cobra.Command, subcommand string) (err error) {
 			operationStatus = engine.OperationStatusSuccess
 		}
 		return err
+	case "query":
+		err = runDBQuery(cmd, config, options, extraArgs)
+		if err == nil {
+			auditStatus = remote.RemoteAuditStatusSuccess
+			auditMessage = "db query completed"
+			operationStatus = engine.OperationStatusSuccess
+			operationMessage = "db query completed"
+		}
+		return err
+	case "info":
+		err = runDBInfo(cmd, config, options)
+		if err == nil {
+			auditStatus = remote.RemoteAuditStatusSuccess
+			auditMessage = "db info completed"
+			operationStatus = engine.OperationStatusSuccess
+			operationMessage = "db info completed"
+		}
+		return err
 	default:
 		return fmt.Errorf("unknown db subcommand: %s", subcommand)
 	}
@@ -269,6 +302,10 @@ func validateDBCommandOptions(subcommand string, options dbCommandOptions) error
 		if options.StreamDB && options.Environment == "local" {
 			return errors.New("--stream-db requires a remote --environment source")
 		}
+	case "query", "info":
+		if options.File != "" || options.StreamDB || options.Full || options.ExcludeSensitiveData {
+			return errors.New("query and info do not support --file, --stream-db, --full, or --exclude-sensitive-data")
+		}
 	default:
 		return fmt.Errorf("unknown db subcommand: %s", subcommand)
 	}
@@ -301,6 +338,108 @@ func runDBConnect(cmd *cobra.Command, config engine.Config, options dbCommandOpt
 		connectCmd := remote.BuildSSHExecCommand(options.Environment, remoteCfg, true, buildRemoteMySQLConnectCommandString(credentials))
 		connectCmd.Stdin, connectCmd.Stdout, connectCmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 		return connectCmd.Run()
+	})
+}
+
+func runDBQuery(cmd *cobra.Command, config engine.Config, options dbCommandOptions, extraArgs []string) error {
+	return runDBHooks(config, engine.HookPreDBConnect, engine.HookPostDBConnect, cmd, func() error {
+		// Get the query from remaining args (after subcommand)
+		query := ""
+		if query == "" {
+			// Try to get from positional args passed to the command
+			query = strings.Join(extraArgs, " ")
+		}
+		
+		// If still empty, check if there are any non-flag arguments
+		if query == "" {
+			return fmt.Errorf("query argument is required. Usage: govard db query \"<SQL_QUERY>\"")
+		}
+
+		if options.Environment == "local" {
+			containerName := dbContainerName(config)
+			if err := ensureLocalDBRunning(containerName); err != nil {
+				return err
+			}
+
+			credentials := resolveLocalDBCredentials(containerName)
+			pterm.Info.Printf("Executing query on %s...\n", containerName)
+			
+			queryCmd := buildLocalDBQueryCommand(containerName, credentials, query)
+			queryCmd.Stdout = cmd.OutOrStdout()
+			queryCmd.Stderr = cmd.ErrOrStderr()
+			return queryCmd.Run()
+		}
+
+		remoteCfg, err := resolveDBRemote(config, options.Environment, false)
+		if err != nil {
+			return err
+		}
+		credentials, probeErr := resolveRemoteDBCredentials(config, options.Environment, remoteCfg)
+		if probeErr != nil {
+			pterm.Warning.Println(formatRemoteDBProbeWarning(options.Environment, probeErr))
+		}
+		
+		queryCmd := remote.BuildSSHExecCommand(options.Environment, remoteCfg, false, buildRemoteMySQLQueryCommandString(credentials, query))
+		queryCmd.Stdout = cmd.OutOrStdout()
+		queryCmd.Stderr = cmd.ErrOrStderr()
+		return queryCmd.Run()
+	})
+}
+
+func runDBInfo(cmd *cobra.Command, config engine.Config, options dbCommandOptions) error {
+	return runDBHooks(config, engine.HookPreDBConnect, engine.HookPostDBConnect, cmd, func() error {
+		fmt.Fprintln(cmd.OutOrStdout(), "Database Connection Info")
+		fmt.Fprintln(cmd.OutOrStdout(), "========================")
+		
+		if options.Environment == "local" {
+			containerName := dbContainerName(config)
+			if err := ensureLocalDBRunning(containerName); err != nil {
+				return err
+			}
+
+			credentials := resolveLocalDBCredentials(containerName)
+			
+			fmt.Fprintf(cmd.OutOrStdout(), "Environment:  local\n")
+			fmt.Fprintf(cmd.OutOrStdout(), "Container:    %s\n", containerName)
+			fmt.Fprintf(cmd.OutOrStdout(), "Host:         %s\n", credentials.Host)
+			if credentials.Host == "" {
+				fmt.Fprintf(cmd.OutOrStdout(), "Host:         localhost (inside container)\n")
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "Port:         %d\n", credentials.Port)
+			if credentials.Port == 0 {
+				fmt.Fprintf(cmd.OutOrStdout(), "Port:         3306 (default)\n")
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "Username:     %s\n", credentials.Username)
+			fmt.Fprintf(cmd.OutOrStdout(), "Database:     %s\n", credentials.Database)
+			fmt.Fprintln(cmd.OutOrStdout())
+			fmt.Fprintln(cmd.OutOrStdout(), "To connect:")
+			fmt.Fprintf(cmd.OutOrStdout(), "  govard db connect\n")
+		} else {
+			remoteCfg, err := resolveDBRemote(config, options.Environment, false)
+			if err != nil {
+				return err
+			}
+			credentials, probeErr := resolveRemoteDBCredentials(config, options.Environment, remoteCfg)
+			if probeErr != nil {
+				pterm.Warning.Println(formatRemoteDBProbeWarning(options.Environment, probeErr))
+			}
+			
+			fmt.Fprintf(cmd.OutOrStdout(), "Environment:  %s\n", options.Environment)
+			fmt.Fprintf(cmd.OutOrStdout(), "Host:         %s\n", credentials.Host)
+			if credentials.Host == "" {
+				fmt.Fprintf(cmd.OutOrStdout(), "Host:         localhost (or internal container hostname)\n")
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "Port:         %d\n", credentials.Port)
+			if credentials.Port == 0 {
+				fmt.Fprintf(cmd.OutOrStdout(), "Port:         3306 (default)\n")
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "Username:     %s\n", credentials.Username)
+			fmt.Fprintf(cmd.OutOrStdout(), "Database:     %s\n", credentials.Database)
+			fmt.Fprintln(cmd.OutOrStdout())
+			fmt.Fprintln(cmd.OutOrStdout(), "To connect:")
+			fmt.Fprintf(cmd.OutOrStdout(), "  govard db connect --environment %s\n", options.Environment)
+		}
+		return nil
 	})
 }
 
