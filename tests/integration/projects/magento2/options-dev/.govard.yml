@@ -1,3 +1,3 @@
 project_name: m2-fresh-basic
 domain: m2-fresh-basic.test
-recipe: magento2
+framework: magento2

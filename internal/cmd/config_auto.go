@@ -15,21 +15,21 @@ var configAutoCmd = &cobra.Command{
 		pterm.DefaultHeader.Println("Govard Auto-Configuration")
 
 		config := loadFullConfig()
-		if err := applyRecipeAutoConfiguration(config); err != nil {
+		if err := applyFrameworkAutoConfiguration(config); err != nil {
 			return fmt.Errorf("configuration failed: %w", err)
 		}
 		return nil
 	},
 }
 
-func applyRecipeAutoConfiguration(config engine.Config) error {
-	switch config.Recipe {
+func applyFrameworkAutoConfiguration(config engine.Config) error {
+	switch config.Framework {
 	case "magento2":
 		return engine.ConfigureMagento(config.ProjectName, config)
 	default:
 		pterm.Warning.Printf(
-			"Auto configuration is not supported for recipe %q yet.\n",
-			config.Recipe,
+			"Auto configuration is not supported for framework %q yet.\n",
+			config.Framework,
 		)
 		return nil
 	}

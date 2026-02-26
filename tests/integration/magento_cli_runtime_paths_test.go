@@ -33,7 +33,7 @@ hooks:
 		t.Fatalf("failed to update .govard.yml: %v", err)
 	}
 
-	result := env.RunGovard(t, projectDir, "init", "--recipe", "magento2", "--framework-version", "2.4.7-p3")
+	result := env.RunGovard(t, projectDir, "init", "--framework", "magento2", "--framework-version", "2.4.7-p3")
 	result.AssertSuccess(t)
 
 	config, _, err := engine.LoadConfigFromDir(projectDir, true)
@@ -41,8 +41,8 @@ hooks:
 		t.Fatalf("failed to load generated config: %v", err)
 	}
 
-	if config.Recipe != "magento2" {
-		t.Fatalf("expected recipe=magento2, got %q", config.Recipe)
+	if config.Framework != "magento2" {
+		t.Fatalf("expected framework=magento2, got %q", config.Framework)
 	}
 	if config.FrameworkVersion != "2.4.7-p3" {
 		t.Fatalf("expected framework_version=2.4.7-p3, got %q", config.FrameworkVersion)

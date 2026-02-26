@@ -21,7 +21,7 @@ func TestEdgeCaseProjectNameWithUnderscores(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: "my_test_project_123",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "my-test-project.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -62,7 +62,7 @@ func TestEdgeCaseProjectNameWithHyphens(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: "my-test-project",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "my-test-project.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -105,7 +105,7 @@ func TestEdgeCaseDomainWithMultipleSubdomains(t *testing.T) {
 		}),
 		".govard.yml": MustMarshalYAML(t, map[string]interface{}{
 			"project_name": "test",
-			"recipe":       "magento2",
+			"framework":    "magento2",
 			"domain":       "sub1.sub2.example.test",
 			"stack": map[string]interface{}{
 				"php_version": "8.3",
@@ -151,7 +151,7 @@ func TestEdgeCasePHPVersionEdgeValues(t *testing.T) {
 	for _, tc := range testCases {
 		config := engine.Config{
 			ProjectName: "test",
-			Recipe:      "magento2",
+			Framework:   "magento2",
 			Domain:      "test.test",
 			Stack: engine.Stack{
 				PHPVersion: tc.version,
@@ -179,7 +179,7 @@ func TestEdgeCaseEmptyBlueprintIncludes(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: "test-empty",
-		Recipe:      "custom",
+		Framework:   "custom",
 		Domain:      "test-empty.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -195,12 +195,12 @@ func TestEdgeCaseEmptyBlueprintIncludes(t *testing.T) {
 
 	err := engine.RenderBlueprint(projectDir, config)
 	if err != nil {
-		t.Fatalf("Failed with custom recipe: %v", err)
+		t.Fatalf("Failed with custom framework: %v", err)
 	}
 
 	composePath := engine.ComposeFilePath(projectDir, config.ProjectName)
 	if _, err := os.Stat(composePath); os.IsNotExist(err) {
-		t.Error("Compose file was not created for custom recipe")
+		t.Error("Compose file was not created for custom framework")
 	}
 }
 
@@ -233,7 +233,7 @@ func TestEdgeCaseDuplicateFeatureFlags(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: "test-dup",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "test-dup.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -279,7 +279,7 @@ func TestEdgeCaseDuplicateFeatureFlags(t *testing.T) {
 func TestEdgeCaseNilConfigFeatures(t *testing.T) {
 	config := engine.Config{
 		ProjectName: "test",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "test.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -312,7 +312,7 @@ func TestEdgeCaseVeryLongProjectName(t *testing.T) {
 	longName := "very-long-project-name-that-exceeds-normal-length-limits-for-testing-purposes"
 	config := engine.Config{
 		ProjectName: longName,
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      longName + ".test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -347,7 +347,7 @@ func TestEdgeCaseSpecialCharactersInDomain(t *testing.T) {
 	for _, domain := range invalidDomains {
 		config := engine.Config{
 			ProjectName: "test",
-			Recipe:      "magento2",
+			Framework:   "magento2",
 			Domain:      domain,
 			Stack: engine.Stack{
 				Services: engine.Services{

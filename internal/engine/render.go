@@ -111,7 +111,7 @@ func RenderBlueprint(root string, config Config) error {
 	NormalizeConfig(&config)
 
 	// Get framework configuration
-	fwConfig, ok := GetFrameworkConfig(config.Recipe)
+	fwConfig, ok := GetFrameworkConfig(config.Framework)
 	if !ok {
 		// Fallback to old single-file approach for backward compatibility
 		return renderLegacyBlueprint(root, blueprintsFS, config)
@@ -158,7 +158,7 @@ func RenderBlueprint(root string, config Config) error {
 
 	// Ensure support assets (Varnish, etc)
 	if config.Stack.Features.Varnish {
-		vclSrc := path.Join(config.Recipe, "varnish", "default.vcl")
+		vclSrc := path.Join(config.Framework, "varnish", "default.vcl")
 		vclDestDir := filepath.Join(root, "varnish")
 		vclDest := filepath.Join(vclDestDir, "default.vcl")
 
@@ -347,7 +347,7 @@ func mergeComposeMap(dst, src map[string]interface{}) {
 
 // renderLegacyBlueprint renders using the old single-file approach
 func renderLegacyBlueprint(root string, blueprintsFS fs.FS, config Config) error {
-	tmplPath := config.Recipe + ".tmpl"
+	tmplPath := config.Framework + ".tmpl"
 
 	tmpl, err := template.ParseFS(blueprintsFS, tmplPath)
 	if err != nil {

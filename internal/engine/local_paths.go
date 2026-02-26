@@ -3,7 +3,7 @@ package engine
 import "path/filepath"
 
 func ResolveLocalMediaPath(cfg Config, root string) string {
-	switch cfg.Recipe {
+	switch cfg.Framework {
 	case "magento2", "magento1":
 		return filepath.Join(root, "pub", "media")
 	case "wordpress":

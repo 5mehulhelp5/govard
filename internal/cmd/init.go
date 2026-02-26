@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"govard/internal/engine"
 	"os"
 	"path/filepath"
@@ -19,7 +21,7 @@ var initCmd = &cobra.Command{
 	Short: "Initialize a new project configuration",
 	Long: `Initialize a Govard project configuration in the current directory.
 It automatically detects the framework (Magento, Laravel, Symfony, etc.) and generates a .govard.yml file.
-If detection fails, it prompts you to select a recipe (defaulting to 'custom').
+If detection fails, it prompts you to select a framework (defaulting to 'custom').
 
 Common Framework Versions:
 - Magento: 2.4.4, 2.4.5, 2.4.6, 2.4.7
@@ -34,14 +36,14 @@ Case Studies:
 	Example: `  # Auto-detect framework and initialize
   govard init
 
-  # Explicitly set the framework/recipe
-  govard init --recipe magento2
+  # Explicitly set the framework/framework
+  govard init --framework magento2
 
   # Initialize from a DDEV configuration
   govard init --migrate-from ddev
 
   # Specify framework version during init
-  govard init --recipe laravel --framework-version 11`,
+  govard init --framework laravel --framework-version 11`,
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		pterm.DefaultHeader.Println("Govard Initialization")
 		startedAt := time.Now()
@@ -93,11 +95,11 @@ Case Studies:
 		}
 
 		metadata := engine.DetectFramework(cwd)
-		if migrated.Recipe != "" {
-			metadata.Framework = migrated.Recipe
+		if migrated.Framework != "" {
+			metadata.Framework = migrated.Framework
 		}
-		if initRecipe != "" {
-			metadata.Framework = strings.ToLower(initRecipe)
+		if initFramework != "" {
+			metadata.Framework = strings.ToLower(initFramework)
 		}
 		if initFrameworkVersion != "" {
 			metadata.Version = initFrameworkVersion
@@ -105,20 +107,20 @@ Case Studies:
 		if metadata.Framework == "" || metadata.Framework == "generic" {
 			pterm.Warning.Println("Could not detect framework confidently.")
 
-			recipeOptions := make([]string, 0, len(engine.FrameworkConfigs))
+			frameworkOptions := make([]string, 0, len(engine.FrameworkConfigs))
 			for k := range engine.FrameworkConfigs {
-				recipeOptions = append(recipeOptions, k)
+				frameworkOptions = append(frameworkOptions, k)
 			}
-			sort.Strings(recipeOptions)
+			sort.Strings(frameworkOptions)
 
-			metadata.Framework = selectOption("Select project recipe", recipeOptions, "custom")
+			metadata.Framework = selectOption("Select project framework", frameworkOptions, "custom")
 			metadata.Version = ""
 		}
 
 		if metadata.Version != "" {
-			pterm.Success.Printf("Detected Framework: %s (%s)\n", strings.Title(metadata.Framework), metadata.Version)
+			pterm.Success.Printf("Detected Framework: %s (%s)\n", cases.Title(language.Und).String(metadata.Framework), metadata.Version)
 		} else {
-			pterm.Success.Printf("Detected Framework: %s\n", strings.Title(metadata.Framework))
+			pterm.Success.Printf("Detected Framework: %s\n", cases.Title(language.Und).String(metadata.Framework))
 		}
 
 		profileResult, err := engine.ResolveRuntimeProfile(metadata.Framework, metadata.Version)
@@ -139,7 +141,7 @@ Case Studies:
 		enableVarnish := false
 
 		if metadata.Framework == "custom" {
-			pterm.Info.Println("Customize your stack services for the custom recipe.")
+			pterm.Info.Println("Customize your stack services for the custom framework.")
 			if webRoot == "" {
 				webRoot = "/public"
 			}
@@ -167,7 +169,7 @@ Case Studies:
 
 		config := engine.Config{
 			ProjectName:      filepath.Base(cwd),
-			Recipe:           metadata.Framework,
+			Framework:        metadata.Framework,
 			FrameworkVersion: metadata.Version,
 			Domain:           fmt.Sprintf("%s.test", filepath.Base(cwd)),
 			Stack: engine.Stack{
@@ -323,13 +325,13 @@ func loadExistingInitConfig(cwd string) (engine.Config, bool) {
 }
 
 var (
-	initRecipe           string
+	initFramework        string
 	initFrameworkVersion string
 	migrateFrom          string
 )
 
 func init() {
-	initCmd.Flags().StringVarP(&initRecipe, "recipe", "r", "", "Override detected framework (e.g., magento2)")
+	initCmd.Flags().StringVarP(&initFramework, "framework", "r", "", "Override detected framework (e.g., magento2)")
 	initCmd.Flags().StringVar(&initFrameworkVersion, "framework-version", "", "Override detected framework version (e.g., 11)")
 	initCmd.Flags().StringVar(&migrateFrom, "migrate-from", "", "Migrate configuration from another tool (ddev, warden)")
 }

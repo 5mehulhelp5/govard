@@ -32,9 +32,8 @@ var (
 	bootstrapSkipComposer     bool
 	bootstrapSkipAdmin        bool
 	bootstrapNoStreamDB       bool
-	bootstrapVersion          string
 	bootstrapEnv              string
-	bootstrapRecipe           string
+	bootstrapFramework        string
 	bootstrapFrameworkVersion string
 	bootstrapSkipUp           bool
 	bootstrapMetaPackage      string
@@ -98,7 +97,7 @@ Framework Specifics:
 Case Studies:
 - Day-to-day refresh: 'govard bootstrap -e staging' — syncs DB and media, keeps your local git tree.
 - First-time onboarding (no git clone): 'govard bootstrap --clone -e staging' — pulls all source files.
-- Fresh Start: 'govard bootstrap --fresh --version 2.4.7' — clean Magento install from Composer.
+- Fresh Start: 'govard bootstrap --fresh --framework-version 2.4.7' — clean Magento install from Composer.
 - Code only: 'govard bootstrap --clone --code-only -e dev' — files only, skip DB and media.`,
 	Example: `  # Refresh DB + media from dev (default — does NOT overwrite source files)
   govard bootstrap --environment dev
@@ -107,7 +106,7 @@ Case Studies:
   govard bootstrap --clone --environment staging
 
   # Fresh Magento 2.4.7 install with sample data
-  govard bootstrap --fresh --version 2.4.7 --include-sample
+  govard bootstrap --fresh --framework-version 2.4.7 --include-sample
 
   # Clone from dev but skip media sync
   govard bootstrap --clone --environment dev --no-media
@@ -156,10 +155,10 @@ Case Studies:
 
 		config := loadFullConfig()
 		configForObservability = config
-		supportedRecipes := []string{"magento2", "magento1", "openmage", "symfony", "laravel", "drupal", "wordpress", "nextjs", "shopware", "cakephp"}
-		if !stringSliceContains(supportedRecipes, config.Recipe) {
+		supportedFrameworks := []string{"magento2", "magento1", "openmage", "symfony", "laravel", "drupal", "wordpress", "nextjs", "shopware", "cakephp"}
+		if !stringSliceContains(supportedFrameworks, config.Framework) {
 			return fmt.Errorf("bootstrap currently supports %s projects only (detected: %s)",
-				strings.Join(supportedRecipes, ", "), config.Recipe)
+				strings.Join(supportedFrameworks, ", "), config.Framework)
 		}
 
 		maybeAutoDetectBootstrapVersion(config, &opts)
@@ -203,7 +202,7 @@ func resolveBootstrapOptions(cmd *cobra.Command) (bootstrapRuntimeOptions, error
 		StreamDB:        !bootstrapNoStreamDB,
 		SkipUp:          bootstrapSkipUp,
 		MetaPackage:     strings.TrimSpace(bootstrapMetaPackage),
-		MetaVersion:     strings.TrimSpace(bootstrapVersion),
+		MetaVersion:     strings.TrimSpace(bootstrapFrameworkVersion),
 		DBDump:          strings.TrimSpace(bootstrapDBDump),
 		FixDeps:         bootstrapFixDeps,
 		HyvaInstall:     bootstrapHyvaInstall,
@@ -238,7 +237,7 @@ func resolveBootstrapOptions(cmd *cobra.Command) (bootstrapRuntimeOptions, error
 	if opts.MetaVersion != "" {
 		comparison, comparable := compareNumericDotVersions(opts.MetaVersion, "2.0.0")
 		if !comparable || comparison < 0 {
-			return bootstrapRuntimeOptions{}, fmt.Errorf("invalid --version value %q (must be Magento 2.0.0+)", opts.MetaVersion)
+			return bootstrapRuntimeOptions{}, fmt.Errorf("invalid --framework-version value %q (must be Magento 2.0.0+)", opts.MetaVersion)
 		}
 	}
 	if opts.Fresh && opts.Clone {
@@ -328,7 +327,7 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrap
 		}
 	}
 
-	if config.Recipe == "magento2" {
+	if config.Framework == "magento2" {
 		if err := ensureBootstrapMagentoEnvPHP(config, opts); err != nil {
 			return err
 		}
@@ -358,11 +357,11 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrap
 				return err
 			}
 		}
-	} else if config.Recipe == "symfony" {
+	} else if config.Framework == "symfony" {
 		pterm.Info.Println("Skipping Symfony post-clone setup because composer install is disabled.")
 	}
 
-	if opts.AdminCreate && config.Recipe == "magento2" {
+	if opts.AdminCreate && config.Framework == "magento2" {
 		runBootstrapAdminCreate(cmd, config)
 	}
 
@@ -373,7 +372,7 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrap
 			return nil
 		}
 		args := []string{"sync", "--source", opts.Source, "--media"}
-		if config.Recipe == "magento2" {
+		if config.Framework == "magento2" {
 			args = append(args, bootstrapMagentoMediaSyncArgs(opts)...)
 		}
 		if err := runGovardSubcommand(cmd, args...); err != nil {
@@ -407,7 +406,7 @@ func runBootstrapComposerPrepare(config engine.Config) error {
 }
 
 func ensureBootstrapMagentoEnvPHP(config engine.Config, opts bootstrapRuntimeOptions) error {
-	if config.Recipe != "magento2" {
+	if config.Framework != "magento2" {
 		return nil
 	}
 
@@ -526,8 +525,8 @@ func ensureBootstrapInit(cmd *cobra.Command, cwd string) error {
 
 	pterm.Info.Printf("%s not found. Running `govard init` first.\n", engine.BaseConfigFile)
 	initArgs := []string{"init"}
-	if bootstrapRecipe != "" {
-		initArgs = append(initArgs, "--recipe", bootstrapRecipe)
+	if bootstrapFramework != "" {
+		initArgs = append(initArgs, "--framework", bootstrapFramework)
 	}
 	if bootstrapFrameworkVersion != "" {
 		initArgs = append(initArgs, "--framework-version", bootstrapFrameworkVersion)
@@ -672,7 +671,7 @@ func stringSliceContains(slice []string, item string) bool {
 }
 
 func shouldRunSymfonyPostClone(config engine.Config, opts bootstrapRuntimeOptions) bool {
-	return config.Recipe == "symfony" && opts.ComposerInstall
+	return config.Framework == "symfony" && opts.ComposerInstall
 }
 
 func shouldIgnoreSymfonyPostCloneError(err error, cwd string) bool {
@@ -711,8 +710,8 @@ func shouldSkipBootstrapMediaSync(config engine.Config, opts bootstrapRuntimeOpt
 	return false, ""
 }
 
-func ShouldRunSymfonyPostCloneForTest(recipe string, composerInstall bool) bool {
-	return shouldRunSymfonyPostClone(engine.Config{Recipe: recipe}, bootstrapRuntimeOptions{ComposerInstall: composerInstall})
+func ShouldRunSymfonyPostCloneForTest(framework string, composerInstall bool) bool {
+	return shouldRunSymfonyPostClone(engine.Config{Framework: framework}, bootstrapRuntimeOptions{ComposerInstall: composerInstall})
 }
 
 func ShouldIgnoreSymfonyPostCloneErrorForTest(err error, cwd string) bool {
@@ -811,11 +810,10 @@ func init() {
 	bootstrapCmd.Flags().BoolVar(&bootstrapSkipComposer, "no-composer", false, "Skip composer install")
 	bootstrapCmd.Flags().BoolVar(&bootstrapSkipAdmin, "no-admin", false, "Skip admin user creation (Magento only)")
 	bootstrapCmd.Flags().BoolVar(&bootstrapNoStreamDB, "no-stream-db", false, "Disable stream-db import mode")
-	bootstrapCmd.Flags().StringVar(&bootstrapVersion, "version", "", "Framework version for fresh install (e.g. 2.4.7 for Magento, 11 for Laravel)")
 	bootstrapCmd.Flags().StringVarP(&bootstrapEnv, "environment", "e", "dev", "Source environment")
 	bootstrapCmd.Flags().StringVar(&bootstrapEnv, "remote", "dev", "Alias for --environment")
-	bootstrapCmd.Flags().StringVarP(&bootstrapRecipe, "recipe", "r", "", "Recipe to use when init is required")
-	bootstrapCmd.Flags().StringVar(&bootstrapFrameworkVersion, "framework-version", "", "Framework version when init is required")
+	bootstrapCmd.Flags().StringVarP(&bootstrapFramework, "framework", "r", "", "Framework to use when init is required")
+	bootstrapCmd.Flags().StringVar(&bootstrapFrameworkVersion, "framework-version", "", "Framework version (e.g. 2.4.7 for Magento, 11 for Laravel)")
 	bootstrapCmd.Flags().BoolVar(&bootstrapSkipUp, "skip-up", false, "Skip starting local containers before bootstrap steps")
 	bootstrapCmd.Flags().StringVarP(&bootstrapMetaPackage, "meta-package", "p", defaultBootstrapMetaPackage, "Composer meta-package for fresh install (Magento only)")
 	bootstrapCmd.Flags().StringVar(&bootstrapDBDump, "db-dump", "", "Import database from a local dump file")

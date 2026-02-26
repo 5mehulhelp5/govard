@@ -10,11 +10,11 @@ var upgradeCmd = &cobra.Command{
 	Short: "Upgrade the framework version",
 	Run: func(cmd *cobra.Command, args []string) {
 		config := loadFullConfig()
-		if config.Recipe == "" {
-			pterm.Warning.Println("No recipe configured in .govard.yml.")
+		if config.Framework == "" {
+			pterm.Warning.Println("No framework configured in .govard.yml.")
 			return
 		}
-		pterm.Info.Printf("Upgrade for %s is not implemented yet.\n", config.Recipe)
+		pterm.Info.Printf("Upgrade for %s is not implemented yet.\n", config.Framework)
 	},
 }
 

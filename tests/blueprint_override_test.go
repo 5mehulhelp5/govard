@@ -39,7 +39,7 @@ func TestRenderBlueprintMergesProjectComposeOverride(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: "demo",
-		Recipe:      "laravel",
+		Framework:   "laravel",
 		Domain:      "demo.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.4",

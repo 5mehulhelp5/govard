@@ -25,7 +25,7 @@ func trackProjectRegistry(config engine.Config, cwd string, command string) erro
 		Path:        projectRoot,
 		ProjectName: normalizeProjectName(config.ProjectName, projectRoot),
 		Domain:      strings.TrimSpace(config.Domain),
-		Recipe:      strings.TrimSpace(config.Recipe),
+		Framework:   strings.TrimSpace(config.Framework),
 		LastCommand: strings.TrimSpace(command),
 		LastSeenAt:  time.Now().UTC(),
 	}

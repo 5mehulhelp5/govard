@@ -10,7 +10,7 @@ Scans for `composer.json` or `package.json`, detects framework, and generates `.
 
 ```bash
 govard init
-govard init --recipe magento2
+govard init --framework magento2
 govard init -r laravel
 govard init -r custom
 ```
@@ -29,17 +29,16 @@ govard init -r custom
 
 **Options:**
 
-- `-r, --recipe` Override detected framework (useful for empty projects or when starting a new app)
-- `custom` recipe opens an interactive prompt to choose web server, DB, cache, search, and varnish
+- `-r, --framework` Override detected framework (useful for empty projects or when starting a new app)
+- `custom` framework opens an interactive prompt to choose web server, DB, cache, search, and varnish
 
 ### `govard bootstrap`
 
-Bootstrap project local setup with clone/fresh workflows (Magento and other supported recipes).
+Bootstrap project local setup with clone/fresh workflows (Magento and other supported frameworks).
 
 ```bash
 govard bootstrap
-govard bootstrap --environment dev
-govard bootstrap --fresh --version 2.4.8
+govard bootstrap --fresh --framework-version 2.4.8
 ```
 
 Highlights:

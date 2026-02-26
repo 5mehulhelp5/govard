@@ -2,8 +2,8 @@ package bootstrap
 
 import "fmt"
 
-func Run(recipe string, opts Options) error {
-	switch recipe {
+func Run(framework string, opts Options) error {
+	switch framework {
 	case "magento2":
 		return BootstrapMagento2(opts)
 	case "magento1":
@@ -25,7 +25,7 @@ func Run(recipe string, opts Options) error {
 	case "cakephp":
 		return BootstrapCakePHP(opts)
 	default:
-		return fmt.Errorf("unsupported recipe: %s", recipe)
+		return fmt.Errorf("unsupported framework: %s", framework)
 	}
 }
 

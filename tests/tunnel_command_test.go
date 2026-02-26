@@ -85,7 +85,7 @@ func TestTunnelStartPlanUsesConfigDomainByDefault(t *testing.T) {
 	tempDir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(tempDir, ".govard.yml"), []byte(`project_name: demo
 domain: demo.test
-recipe: laravel
+framework: laravel
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +152,7 @@ func TestTunnelStartRejectsConflictingURLInputs(t *testing.T) {
 	tempDir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(tempDir, ".govard.yml"), []byte(`project_name: demo
 domain: demo.test
-recipe: laravel
+framework: laravel
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}

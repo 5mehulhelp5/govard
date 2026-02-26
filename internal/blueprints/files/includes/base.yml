@@ -50,7 +50,7 @@ services:
   {{ end }}
 
   php:
-    image: {{ if eq .Config.Recipe "magento2" }}{{ $.ImageRepository }}php-magento2:{{ .Config.Stack.PHPVersion }}{{ else }}{{ $.ImageRepository }}php:{{ .Config.Stack.PHPVersion }}{{ end }}
+    image: {{ if eq .Config.Framework "magento2" }}{{ $.ImageRepository }}php-magento2:{{ .Config.Stack.PHPVersion }}{{ else }}{{ $.ImageRepository }}php:{{ .Config.Stack.PHPVersion }}{{ end }}
     volumes:
       - .:/var/www/html
       {{ if .HostSSHDir }}
@@ -75,7 +75,7 @@ services:
 
   {{ if .Config.Stack.Features.Xdebug }}
   php-debug:
-    image: {{ if eq .Config.Recipe "magento2" }}{{ $.ImageRepository }}php-magento2:{{ .Config.Stack.PHPVersion }}{{ else }}{{ $.ImageRepository }}php:{{ .Config.Stack.PHPVersion }}{{ end }}
+    image: {{ if eq .Config.Framework "magento2" }}{{ $.ImageRepository }}php-magento2:{{ .Config.Stack.PHPVersion }}{{ else }}{{ $.ImageRepository }}php:{{ .Config.Stack.PHPVersion }}{{ end }}
     volumes:
       - .:/var/www/html
       {{ if .HostSSHDir }}

@@ -15,11 +15,11 @@ import (
 func runBootstrapFrameworkFreshInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions) error {
 	cwd, _ := os.Getwd()
 
-	switch config.Recipe {
+	switch config.Framework {
 	case "magento2":
 		return runBootstrapMagentoFreshInstall(cmd, config, opts)
 	case "magento1":
-		return fmt.Errorf("fresh install not supported for %s (use openmage instead)", config.Recipe)
+		return fmt.Errorf("fresh install not supported for %s (use openmage instead)", config.Framework)
 	case "openmage":
 		return runBootstrapOpenMageFreshInstall(cmd, config, opts, cwd)
 	case "symfony":
@@ -37,7 +37,7 @@ func runBootstrapFrameworkFreshInstall(cmd *cobra.Command, config engine.Config,
 	case "cakephp":
 		return runBootstrapCakePHPFreshInstall(cmd, config, opts, cwd)
 	default:
-		return fmt.Errorf("fresh install not supported for recipe: %s", config.Recipe)
+		return fmt.Errorf("fresh install not supported for framework: %s", config.Framework)
 	}
 }
 

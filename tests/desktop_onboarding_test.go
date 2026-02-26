@@ -25,7 +25,7 @@ func TestDesktopPkgOnboardProjectForPathForTestInitializesWhenMissingConfig(t *t
 		gotArgs = append([]string{}, args...)
 		content := strings.TrimSpace(`
 project_name: demo
-recipe: laravel
+framework: laravel
 domain: demo.test
 `) + "\n"
 		if err := os.WriteFile(filepath.Join(dir, ".govard.yml"), []byte(content), 0o644); err != nil {
@@ -45,7 +45,7 @@ domain: demo.test
 	if gotDir != root {
 		t.Fatalf("expected init dir %s, got %s", root, gotDir)
 	}
-	expectedArgs := []string{"init", "--recipe", "laravel"}
+	expectedArgs := []string{"init", "--framework", "laravel"}
 	if !reflect.DeepEqual(gotArgs, expectedArgs) {
 		t.Fatalf("unexpected init args: %#v", gotArgs)
 	}
@@ -66,8 +66,8 @@ domain: demo.test
 	if entries[0].ProjectName != "demo" {
 		t.Fatalf("expected project name demo, got %s", entries[0].ProjectName)
 	}
-	if entries[0].Recipe != "laravel" {
-		t.Fatalf("expected recipe laravel, got %s", entries[0].Recipe)
+	if entries[0].Framework != "laravel" {
+		t.Fatalf("expected framework laravel, got %s", entries[0].Framework)
 	}
 }
 
@@ -78,7 +78,7 @@ func TestDesktopPkgOnboardProjectForPathForTestAddsConfiguredProjectWithoutInit(
 
 	content := strings.TrimSpace(`
 project_name: shop
-recipe: magento2
+framework: magento2
 domain: shop.test
 `) + "\n"
 	if err := os.WriteFile(filepath.Join(root, ".govard.yml"), []byte(content), 0o644); err != nil {
@@ -109,8 +109,8 @@ domain: shop.test
 	if entries[0].ProjectName != "shop" {
 		t.Fatalf("expected project name shop, got %s", entries[0].ProjectName)
 	}
-	if entries[0].Recipe != "magento2" {
-		t.Fatalf("expected recipe magento2, got %s", entries[0].Recipe)
+	if entries[0].Framework != "magento2" {
+		t.Fatalf("expected framework magento2, got %s", entries[0].Framework)
 	}
 }
 
@@ -121,7 +121,7 @@ func TestDesktopPkgOnboardProjectWithOptionsForPathForTestAppliesOverrides(t *te
 
 	content := strings.TrimSpace(`
 project_name: shop
-recipe: laravel
+framework: laravel
 domain: shop.test
 stack:
   php_version: "8.3"

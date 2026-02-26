@@ -18,7 +18,7 @@ func TestRenderBlueprintWorksWithFallback(t *testing.T) {
 	// No blueprints in projectDir/blueprints, should use embedded fallback
 	config := engine.Config{
 		ProjectName: "test-fallback",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "test-fallback.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -49,7 +49,7 @@ func TestLoadConfigInvalidYAML(t *testing.T) {
 	files := map[string]string{
 		".govard.yml": `
 project_name: test
-recipe: magento2
+framework: magento2
 stack:
   php_version: 8.3
   invalid_yaml_here: [
@@ -120,7 +120,7 @@ func TestDetectFrameworkEmptyFiles(t *testing.T) {
 func TestValidateConfigEmptyProjectName(t *testing.T) {
 	config := engine.Config{
 		ProjectName: "",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "test.test",
 		Stack: engine.Stack{
 			Services: engine.Services{
@@ -145,7 +145,7 @@ func TestValidateConfigEmptyProjectName(t *testing.T) {
 func TestValidateConfigEmptyDomain(t *testing.T) {
 	config := engine.Config{
 		ProjectName: "test",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "",
 		Stack: engine.Stack{
 			Services: engine.Services{
@@ -166,7 +166,7 @@ func TestValidateConfigEmptyDomain(t *testing.T) {
 func TestValidateConfigWhitespaceInDomain(t *testing.T) {
 	config := engine.Config{
 		ProjectName: "test",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "test domain.test",
 		Stack: engine.Stack{
 			Services: engine.Services{
@@ -187,7 +187,7 @@ func TestValidateConfigWhitespaceInDomain(t *testing.T) {
 func TestValidateConfigInvalidWebServer(t *testing.T) {
 	config := engine.Config{
 		ProjectName: "test",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "test.test",
 		Stack: engine.Stack{
 			Services: engine.Services{
@@ -208,7 +208,7 @@ func TestValidateConfigInvalidWebServer(t *testing.T) {
 func TestValidateConfigInvalidSearchService(t *testing.T) {
 	config := engine.Config{
 		ProjectName: "test",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "test.test",
 		Stack: engine.Stack{
 			Services: engine.Services{
@@ -229,7 +229,7 @@ func TestValidateConfigInvalidSearchService(t *testing.T) {
 func TestValidateConfigInvalidCacheService(t *testing.T) {
 	config := engine.Config{
 		ProjectName: "test",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "test.test",
 		Stack: engine.Stack{
 			Services: engine.Services{
@@ -250,7 +250,7 @@ func TestValidateConfigInvalidCacheService(t *testing.T) {
 func TestValidateConfigInvalidQueueService(t *testing.T) {
 	config := engine.Config{
 		ProjectName: "test",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "test.test",
 		Stack: engine.Stack{
 			Services: engine.Services{
@@ -274,7 +274,7 @@ func TestConfigLayeringWithEmptyLocalFile(t *testing.T) {
 	files := map[string]string{
 		".govard.yml": MustMarshalYAML(t, map[string]interface{}{
 			"project_name": "base",
-			"recipe":       "magento2",
+			"framework":    "magento2",
 			"domain":       "base.test",
 			"stack": map[string]interface{}{
 				"php_version": "8.3",
@@ -327,7 +327,7 @@ func TestCreateSnapshotNonExistentProject(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: "test",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "test.test",
 		Stack: engine.Stack{
 			Services: engine.Services{
@@ -354,7 +354,7 @@ func TestBlueprintRenderWithSpecialCharactersInProjectName(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: "test_project-123",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "test-project.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -407,7 +407,7 @@ func TestFrameworkDetectionWithVeryLongVersionString(t *testing.T) {
 func TestNormalizeConfigWithInvalidPHPVersion(t *testing.T) {
 	config := engine.Config{
 		ProjectName: "test",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "test.test",
 		Stack: engine.Stack{
 			PHPVersion: "99.99",
@@ -430,7 +430,7 @@ func TestNormalizeConfigWithInvalidPHPVersion(t *testing.T) {
 func TestNormalizeConfigDefaultsForUnknownFramework(t *testing.T) {
 	config := engine.Config{
 		ProjectName: "test",
-		Recipe:      "unknown-framework",
+		Framework:   "unknown-framework",
 		Domain:      "test.test",
 		Stack: engine.Stack{
 			Services: engine.Services{

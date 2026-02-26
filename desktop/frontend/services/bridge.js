@@ -25,12 +25,12 @@ export const desktopBridge = {
   async pickProjectDirectory() {
     return call(bridge?.PickProjectDirectory?.bind(bridge));
   },
-  async onboardProject(projectPath, recipe, domain = "", serviceOptions = {}) {
+  async onboardProject(projectPath, framework, domain = "", serviceOptions = {}) {
     const options = serviceOptions || {};
     return call(
       bridge?.OnboardProject?.bind(bridge),
       projectPath,
-      recipe,
+      framework,
       domain,
       Boolean(options.varnish),
       Boolean(options.redis),

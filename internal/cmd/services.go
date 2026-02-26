@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"os"
 	"os/exec"
 	"strings"
@@ -45,10 +47,10 @@ func runServiceCLI(serviceName string, binary string, args []string) error {
 
 	check := exec.Command("docker", "inspect", "-f", "{{.State.Running}}", containerName)
 	if output, err := check.Output(); err != nil || strings.TrimSpace(string(output)) != "true" {
-		return fmt.Errorf("%s container %s is not running", strings.Title(serviceName), containerName)
+		return fmt.Errorf("%s container %s is not running", cases.Title(language.Und).String(serviceName), containerName)
 	}
 
-	pterm.Info.Printf("Connecting to %s on %s...\n", strings.Title(serviceName), containerName)
+	pterm.Info.Printf("Connecting to %s on %s...\n", cases.Title(language.Und).String(serviceName), containerName)
 
 	dockerArgs := []string{"exec", "-it", containerName, binary}
 	dockerArgs = append(dockerArgs, args...)
@@ -56,7 +58,7 @@ func runServiceCLI(serviceName string, binary string, args []string) error {
 	c := exec.Command("docker", dockerArgs...)
 	c.Stdin, c.Stdout, c.Stderr = os.Stdin, os.Stdout, os.Stderr
 	if err := c.Run(); err != nil {
-		return fmt.Errorf("%s CLI failed: %w", strings.Title(serviceName), err)
+		return fmt.Errorf("%s CLI failed: %w", cases.Title(language.Und).String(serviceName), err)
 	}
 	return nil
 }
@@ -67,7 +69,7 @@ func runSearchQuery(serviceName string, port int, args []string) error {
 
 	check := exec.Command("docker", "inspect", "-f", "{{.State.Running}}", containerName)
 	if output, err := check.Output(); err != nil || strings.TrimSpace(string(output)) != "true" {
-		return fmt.Errorf("%s container %s is not running", strings.Title(serviceName), containerName)
+		return fmt.Errorf("%s container %s is not running", cases.Title(language.Und).String(serviceName), containerName)
 	}
 
 	path := "/"
@@ -79,12 +81,12 @@ func runSearchQuery(serviceName string, port int, args []string) error {
 	}
 
 	url := fmt.Sprintf("http://localhost:%d%s", port, path)
-	pterm.Info.Printf("Querying %s: %s\n", strings.Title(serviceName), url)
+	pterm.Info.Printf("Querying %s: %s\n", cases.Title(language.Und).String(serviceName), url)
 
 	c := exec.Command("docker", "exec", "-i", containerName, "curl", "-s", "-X", "GET", url)
 	c.Stdout, c.Stderr = os.Stdout, os.Stderr
 	if err := c.Run(); err != nil {
-		return fmt.Errorf("%s query failed: %w", strings.Title(serviceName), err)
+		return fmt.Errorf("%s query failed: %w", cases.Title(language.Und).String(serviceName), err)
 	}
 	fmt.Println() // Add newline at the end
 	return nil

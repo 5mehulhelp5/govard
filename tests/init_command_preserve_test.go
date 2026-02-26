@@ -17,7 +17,7 @@ func TestInitPreservesExistingRemotesAndHooks(t *testing.T) {
 	configPath := filepath.Join(tempDir, ".govard.yml")
 	config := `project_name: test
 domain: test.test
-recipe: magento2
+framework: magento2
 remotes:
   dev:
     host: dev.example.com
@@ -42,7 +42,7 @@ hooks:
 	root := cmd.RootCommandForTest()
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
-	root.SetArgs([]string{"init", "--recipe", "magento2", "--framework-version", "2.4.7-p3"})
+	root.SetArgs([]string{"init", "--framework", "magento2", "--framework-version", "2.4.7-p3"})
 	if err := root.Execute(); err != nil {
 		t.Fatalf("execute: %v", err)
 	}
@@ -83,7 +83,7 @@ func TestInitOmitsRuntimeUserAndGroupFromConfigFile(t *testing.T) {
 	root := cmd.RootCommandForTest()
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
-	root.SetArgs([]string{"init", "--recipe", "magento2"})
+	root.SetArgs([]string{"init", "--framework", "magento2"})
 	if err := root.Execute(); err != nil {
 		t.Fatalf("execute: %v", err)
 	}
@@ -154,7 +154,7 @@ func TestInitOmitsEmptyQueueVersionAndHooks(t *testing.T) {
 	root := cmd.RootCommandForTest()
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
-	root.SetArgs([]string{"init", "--recipe", "symfony"})
+	root.SetArgs([]string{"init", "--framework", "symfony"})
 	if err := root.Execute(); err != nil {
 		t.Fatalf("execute: %v", err)
 	}

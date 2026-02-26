@@ -17,7 +17,7 @@ import (
 type SnapshotMetadata struct {
 	Name      string    `yaml:"name"`
 	CreatedAt time.Time `yaml:"created_at"`
-	Recipe    string    `yaml:"recipe"`
+	Framework string    `yaml:"framework"`
 	Domain    string    `yaml:"domain"`
 	DB        bool      `yaml:"db"`
 	Media     bool      `yaml:"media"`
@@ -51,7 +51,7 @@ func CreateSnapshot(projectRoot string, config Config, name string) (string, err
 	meta := SnapshotMetadata{
 		Name:      name,
 		CreatedAt: time.Now(),
-		Recipe:    config.Recipe,
+		Framework: config.Framework,
 		Domain:    config.Domain,
 		DB:        false,
 		Media:     false,

@@ -115,7 +115,7 @@ func RequiredRuntimeImages(config engine.Config) []string {
 		}
 	}
 
-	if config.Recipe == "nextjs" {
+	if config.Framework == "nextjs" {
 		push(fmt.Sprintf("node:%s-alpine", config.Stack.NodeVersion))
 	} else {
 		switch strings.ToLower(config.Stack.Services.WebServer) {
@@ -127,14 +127,14 @@ func RequiredRuntimeImages(config engine.Config) []string {
 		default:
 			push(fmt.Sprintf("%snginx:%s", imageRepo, config.Stack.NginxVersion))
 		}
-		if config.Recipe == "magento2" {
+		if config.Framework == "magento2" {
 			push(fmt.Sprintf("%sphp-magento2:%s", imageRepo, config.Stack.PHPVersion))
 		} else {
 			push(fmt.Sprintf("%sphp:%s", imageRepo, config.Stack.PHPVersion))
 		}
 	}
 
-	if config.Stack.DBType != "" && config.Stack.DBType != "none" && config.Recipe != "nextjs" {
+	if config.Stack.DBType != "" && config.Stack.DBType != "none" && config.Framework != "nextjs" {
 		push(fmt.Sprintf("%s%s:%s", imageRepo, config.Stack.DBType, config.Stack.DBVersion))
 	}
 

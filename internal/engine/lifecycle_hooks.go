@@ -61,7 +61,7 @@ func RunHooks(config Config, event string, stdout, stderr io.Writer) error {
 			"GOVARD_HOOK_EVENT="+event,
 			"GOVARD_PROJECT_NAME="+config.ProjectName,
 			"GOVARD_DOMAIN="+config.Domain,
-			"GOVARD_RECIPE="+config.Recipe,
+			"GOVARD_FRAMEWORK="+config.Framework,
 		)
 		if stdout != nil {
 			cmd.Stdout = stdout

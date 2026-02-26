@@ -12,7 +12,7 @@
 ## 🚀 Key Features
 
 - **Framework Discovery**: Automatically detects Magento 1/OpenMage, Magento 2, Laravel, Next.js, Drupal, Symfony, Shopware, CakePHP, and WordPress to generate tailored configurations.
-- **Custom Recipe**: Interactive prompt to pick web server, database, cache, search, queue, and varnish for bespoke stacks.
+- **Custom Framework**: Interactive prompt to pick web server, database, cache, search, queue, and varnish for bespoke stacks.
 - **Xdebug Routing**: Dedicated `php-debug` container, activated only when `XDEBUG_SESSION` cookie is present.
 - **Queue Support**: Optional RabbitMQ service for async workloads.
 - **High Performance**: Built with Go and utilizes the native Docker SDK for direct container orchestration.

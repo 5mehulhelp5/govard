@@ -257,7 +257,7 @@ func TestConfigLayeringIntegration(t *testing.T) {
 		}),
 		".govard.yml": MustMarshalYAML(t, map[string]interface{}{
 			"project_name": "base-project",
-			"recipe":       "magento2",
+			"framework":    "magento2",
 			"stack": map[string]interface{}{
 				"php_version": "8.1",
 				"features": map[string]interface{}{
@@ -313,7 +313,7 @@ func TestConfigValidationIntegration(t *testing.T) {
 			name: "Valid Magento 2 config",
 			config: engine.Config{
 				ProjectName: "test",
-				Recipe:      "magento2",
+				Framework:   "magento2",
 				Domain:      "test.test",
 				Stack: engine.Stack{
 					PHPVersion: "8.3",
@@ -331,8 +331,8 @@ func TestConfigValidationIntegration(t *testing.T) {
 		{
 			name: "Missing project name",
 			config: engine.Config{
-				Recipe: "magento2",
-				Domain: "test.test",
+				Framework: "magento2",
+				Domain:    "test.test",
 				Stack: engine.Stack{
 					PHPVersion: "8.3",
 					Services: engine.Services{
@@ -349,7 +349,7 @@ func TestConfigValidationIntegration(t *testing.T) {
 			name: "Missing domain",
 			config: engine.Config{
 				ProjectName: "test",
-				Recipe:      "magento2",
+				Framework:   "magento2",
 				Stack: engine.Stack{
 					PHPVersion: "8.3",
 					Services: engine.Services{
@@ -395,7 +395,7 @@ func TestFrameworkConfigOverride(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: "override-test",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "override-test.test",
 		Stack: engine.Stack{
 			WebRoot: "custom-web",

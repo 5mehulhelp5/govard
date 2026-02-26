@@ -1,6 +1,6 @@
-# Custom Recipe
+# Custom Framework
 
-The `custom` recipe lets you build a stack by selecting the services you want.
+The `custom` framework lets you build a stack by selecting the services you want.
 
 ## Quick Start
 
@@ -23,7 +23,7 @@ You'll be prompted for:
 The prompt generates a `.govard.yml` that you can edit later. The key fields are:
 
 ```yaml
-recipe: custom
+framework: custom
 stack:
   web_root: "/public"
   services:

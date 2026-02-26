@@ -1,5 +1,5 @@
-export const normalizeOnboardingRecipe = (recipe = "") => {
-  const normalized = String(recipe || "")
+export const normalizeOnboardingFramework = (framework = "") => {
+  const normalized = String(framework || "")
     .trim()
     .toLowerCase();
 
@@ -72,7 +72,7 @@ export const createOnboardingController = ({
       return;
     }
 
-    const recipe = normalizeOnboardingRecipe(refs.projectRecipe?.value || "");
+    const framework = normalizeOnboardingFramework(refs.projectFramework?.value || "");
     const domain = normalizeOnboardingDomain(refs.projectDomain?.value || "", projectPath);
     const serviceOptions = {
       varnish: Boolean(refs.onboardVarnish?.checked),
@@ -81,7 +81,7 @@ export const createOnboardingController = ({
       elasticsearch: Boolean(refs.onboardElasticsearch?.checked),
     };
     const message = String(
-      (await bridge.onboardProject(projectPath, recipe, domain, serviceOptions)) ||
+      (await bridge.onboardProject(projectPath, framework, domain, serviceOptions)) ||
         "",
     );
     const isError = message.toLowerCase().includes("failed");

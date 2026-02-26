@@ -19,7 +19,7 @@ type ProjectRegistryEntry struct {
 	Path        string    `json:"path"`
 	ProjectName string    `json:"project_name"`
 	Domain      string    `json:"domain,omitempty"`
-	Recipe      string    `json:"recipe,omitempty"`
+	Framework   string    `json:"framework,omitempty"`
 	LastSeenAt  time.Time `json:"last_seen_at"`
 	LastCommand string    `json:"last_command,omitempty"`
 }
@@ -110,7 +110,7 @@ func normalizeProjectRegistryEntry(entry ProjectRegistryEntry) (ProjectRegistryE
 	entry.Path = filepath.Clean(entry.Path)
 	entry.ProjectName = strings.TrimSpace(entry.ProjectName)
 	entry.Domain = strings.TrimSpace(entry.Domain)
-	entry.Recipe = strings.TrimSpace(strings.ToLower(entry.Recipe))
+	entry.Framework = strings.TrimSpace(strings.ToLower(entry.Framework))
 	entry.LastCommand = strings.TrimSpace(strings.ToLower(entry.LastCommand))
 	if entry.LastSeenAt.IsZero() {
 		entry.LastSeenAt = time.Now().UTC()

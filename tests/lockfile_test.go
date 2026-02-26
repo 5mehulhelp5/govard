@@ -25,7 +25,7 @@ func TestBuildLockFileFromConfigWithDependencies(t *testing.T) {
 	cfg := engine.Config{
 		ProjectName:      "demo",
 		Domain:           "demo.test",
-		Recipe:           "magento2",
+		Framework:        "magento2",
 		FrameworkVersion: "2.4.8-p3",
 		Stack: engine.Stack{
 			PHPVersion:    "8.4",
@@ -103,7 +103,7 @@ func TestCompareLockFileDetectsMismatches(t *testing.T) {
 	expected := engine.LockFile{
 		Govard:   engine.LockGovardInfo{Version: "1.2.3"},
 		Host:     engine.LockHostInfo{DockerVersion: "27.2.1", DockerComposeVersion: "2.29.7"},
-		Project:  engine.LockProjectInfo{Recipe: "magento2"},
+		Project:  engine.LockProjectInfo{Framework: "magento2"},
 		Stack:    engine.LockStackInfo{PHPVersion: "8.4", DBVersion: "11.4"},
 		Services: map[string]string{"db": "mariadb:11.4"},
 	}

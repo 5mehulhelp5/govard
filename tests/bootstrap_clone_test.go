@@ -14,25 +14,25 @@ import (
 func TestShouldRunSymfonyPostClone(t *testing.T) {
 	testCases := []struct {
 		name            string
-		recipe          string
+		framework       string
 		composerInstall bool
 		want            bool
 	}{
 		{
 			name:            "runs for symfony when composer install enabled",
-			recipe:          "symfony",
+			framework:       "symfony",
 			composerInstall: true,
 			want:            true,
 		},
 		{
 			name:            "skips for symfony when composer install disabled",
-			recipe:          "symfony",
+			framework:       "symfony",
 			composerInstall: false,
 			want:            false,
 		},
 		{
 			name:            "skips for non symfony",
-			recipe:          "laravel",
+			framework:       "laravel",
 			composerInstall: true,
 			want:            false,
 		},
@@ -41,7 +41,7 @@ func TestShouldRunSymfonyPostClone(t *testing.T) {
 	for _, testCase := range testCases {
 		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
-			got := cmd.ShouldRunSymfonyPostCloneForTest(testCase.recipe, testCase.composerInstall)
+			got := cmd.ShouldRunSymfonyPostCloneForTest(testCase.framework, testCase.composerInstall)
 			if got != testCase.want {
 				t.Fatalf("expected %v, got %v", testCase.want, got)
 			}
@@ -74,7 +74,7 @@ func TestShouldSkipBootstrapMediaSync(t *testing.T) {
 	defer restore()
 
 	config := engine.Config{
-		Recipe: "symfony",
+		Framework: "symfony",
 		Remotes: map[string]engine.RemoteConfig{
 			"dev": {
 				Path: "/srv/www/app",

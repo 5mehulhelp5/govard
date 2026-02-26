@@ -7,15 +7,15 @@ func ResolveRemotePaths(cfg Config, name string) (string, string) {
 	if !ok {
 		return "", ""
 	}
-	return ResolveRemotePathsForConfig(cfg.Recipe, remote)
+	return ResolveRemotePathsForConfig(cfg.Framework, remote)
 }
 
-func ResolveRemotePathsForConfig(recipe string, remote RemoteConfig) (string, string) {
+func ResolveRemotePathsForConfig(framework string, remote RemoteConfig) (string, string) {
 	root := remote.Path
 	if strings.TrimSpace(remote.Paths.Media) != "" {
 		return root, remote.Paths.Media
 	}
-	switch recipe {
+	switch framework {
 	case "magento2", "magento1":
 		return root, root + "/pub/media"
 	case "wordpress":

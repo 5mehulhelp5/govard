@@ -139,8 +139,8 @@ func buildDashboard() (Dashboard, error) {
 			if entry.Domain != "" {
 				env.Name = entry.Domain
 			}
-			if recipe := strings.TrimSpace(entry.Recipe); recipe != "" {
-				env.Framework = displayFramework(recipe)
+			if framework := strings.TrimSpace(entry.Framework); framework != "" {
+				env.Framework = displayFramework(framework)
 			}
 			environments = append(environments, env)
 			knownProjects[projectName] = true
@@ -298,7 +298,7 @@ func buildEnvironment(info *projectInfo) Environment {
 
 	if info.configLoaded {
 		env.Domain = info.config.Domain
-		env.Framework = displayFramework(info.config.Recipe)
+		env.Framework = displayFramework(info.config.Framework)
 		env.PHP = info.config.Stack.PHPVersion
 		env.Database = formatDatabase(info.config.Stack.DBType, info.config.Stack.DBVersion)
 		env.Services = deriveServices(info.config)
@@ -317,8 +317,15 @@ func buildEnvironment(info *projectInfo) Environment {
 	return env
 }
 
-func displayFramework(recipe string) string {
-	switch recipe {
+func titleCase(s string) string {
+	if s == "" {
+		return ""
+	}
+	return strings.ToUpper(s[:1]) + strings.ToLower(s[1:])
+}
+
+func displayFramework(framework string) string {
+	switch framework {
 	case "magento1":
 		return "Magento 1"
 	case "magento2":
@@ -328,7 +335,7 @@ func displayFramework(recipe string) string {
 	case "cakephp":
 		return "CakePHP"
 	default:
-		return strings.Title(recipe)
+		return titleCase(framework)
 	}
 }
 
@@ -336,7 +343,7 @@ func formatDatabase(dbType, dbVersion string) string {
 	if dbType == "" || dbType == "none" {
 		return "No database"
 	}
-	label := strings.Title(dbType)
+	label := titleCase(dbType)
 	if dbVersion == "" {
 		return label
 	}
@@ -346,10 +353,10 @@ func formatDatabase(dbType, dbVersion string) string {
 func deriveServices(config engine.Config) []string {
 	var services []string
 	if config.Stack.Services.WebServer != "" {
-		services = append(services, strings.Title(config.Stack.Services.WebServer))
+		services = append(services, titleCase(config.Stack.Services.WebServer))
 	}
 	if config.Stack.DBType != "" && config.Stack.DBType != "none" {
-		services = append(services, strings.Title(config.Stack.DBType))
+		services = append(services, titleCase(config.Stack.DBType))
 	}
 	switch config.Stack.Services.Cache {
 	case "redis":

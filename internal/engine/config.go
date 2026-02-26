@@ -36,7 +36,7 @@ type Stack struct {
 
 type Config struct {
 	ProjectName       string                  `yaml:"project_name"`
-	Recipe            string                  `yaml:"recipe"`
+	Framework         string                  `yaml:"framework"`
 	FrameworkVersion  string                  `yaml:"framework_version,omitempty"`
 	Domain            string                  `yaml:"domain"`
 	Lock              LockConfig              `yaml:"lock,omitempty"`

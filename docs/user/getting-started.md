@@ -43,7 +43,7 @@ This scans your project (via `composer.json` or `package.json`) and generates a 
 - Shopware
 - CakePHP
 - WordPress
-- Custom (interactive recipe)
+- Custom (interactive framework)
 
 ### 2. Start the Environment
 

@@ -286,7 +286,7 @@ func ApplyQuickstartProfile(config *engine.Config) {
 // AutoTuneMagentoRuntime applies the resolved Magento profile for the detected
 // framework version so service/runtime versions stay compatible per project.
 func AutoTuneMagentoRuntime(config *engine.Config, metadata engine.ProjectMetadata) []string {
-	if config == nil || config.Recipe != "magento2" {
+	if config == nil || config.Framework != "magento2" {
 		return nil
 	}
 

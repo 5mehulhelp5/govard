@@ -31,7 +31,7 @@ func TestCLIInitCommand(t *testing.T) {
 
 	projectDir := env.CreateTestProject(t, "init-cmd-test", files)
 
-	result := env.RunGovard(t, projectDir, "init", "--recipe", "magento2")
+	result := env.RunGovard(t, projectDir, "init", "--framework", "magento2")
 	result.AssertSuccess(t)
 
 	configPath := filepath.Join(projectDir, ".govard.yml")
@@ -51,7 +51,7 @@ func TestCLIStatusCommand(t *testing.T) {
 		}),
 		".govard.yml": MustMarshalYAML(t, map[string]interface{}{
 			"project_name": "status-test",
-			"recipe":       "magento2",
+			"framework":    "magento2",
 			"domain":       "status-test.test",
 			"stack": map[string]interface{}{
 				"php_version": "8.3",
@@ -106,7 +106,7 @@ func TestCLIDebugCommand(t *testing.T) {
 		}),
 		".govard.yml": MustMarshalYAML(t, map[string]interface{}{
 			"project_name": "debug-cmd-test",
-			"recipe":       "magento2",
+			"framework":    "magento2",
 			"domain":       "debug-cmd-test.test",
 			"stack": map[string]interface{}{
 				"php_version": "8.3",
@@ -138,7 +138,7 @@ func TestCLILogsCommand(t *testing.T) {
 		}),
 		".govard.yml": MustMarshalYAML(t, map[string]interface{}{
 			"project_name": "logs-cmd-test",
-			"recipe":       "magento2",
+			"framework":    "magento2",
 			"domain":       "logs-cmd-test.test",
 			"stack": map[string]interface{}{
 				"php_version": "8.3",
@@ -170,7 +170,7 @@ func TestCLIShellCommand(t *testing.T) {
 		}),
 		".govard.yml": MustMarshalYAML(t, map[string]interface{}{
 			"project_name": "shell-cmd-test",
-			"recipe":       "magento2",
+			"framework":    "magento2",
 			"domain":       "shell-cmd-test.test",
 			"stack": map[string]interface{}{
 				"php_version": "8.3",
@@ -202,7 +202,7 @@ func TestCLIDbCommand(t *testing.T) {
 		}),
 		".govard.yml": MustMarshalYAML(t, map[string]interface{}{
 			"project_name": "db-cmd-test",
-			"recipe":       "magento2",
+			"framework":    "magento2",
 			"domain":       "db-cmd-test.test",
 			"stack": map[string]interface{}{
 				"php_version": "8.3",
@@ -234,7 +234,7 @@ func TestCLIRedisCommand(t *testing.T) {
 		}),
 		".govard.yml": MustMarshalYAML(t, map[string]interface{}{
 			"project_name": "redis-cmd-test",
-			"recipe":       "magento2",
+			"framework":    "magento2",
 			"domain":       "redis-cmd-test.test",
 			"stack": map[string]interface{}{
 				"php_version": "8.3",
@@ -275,7 +275,7 @@ func TestCLIConfigureCommand(t *testing.T) {
 		}),
 		".govard.yml": MustMarshalYAML(t, map[string]interface{}{
 			"project_name": "configure-cmd-test",
-			"recipe":       "magento2",
+			"framework":    "magento2",
 			"domain":       "configure-cmd-test.test",
 			"stack": map[string]interface{}{
 				"php_version": "8.3",
@@ -307,7 +307,7 @@ func TestCLIStopCommand(t *testing.T) {
 		}),
 		".govard.yml": MustMarshalYAML(t, map[string]interface{}{
 			"project_name": "stop-cmd-test",
-			"recipe":       "magento2",
+			"framework":    "magento2",
 			"domain":       "stop-cmd-test.test",
 			"stack": map[string]interface{}{
 				"php_version": "8.3",
@@ -397,7 +397,7 @@ func TestCLIShortcutsHelp(t *testing.T) {
 		}),
 		".govard.yml": MustMarshalYAML(t, map[string]interface{}{
 			"project_name": "shortcuts-test",
-			"recipe":       "magento2",
+			"framework":    "magento2",
 			"domain":       "shortcuts-test.test",
 			"stack": map[string]interface{}{
 				"php_version": "8.3",

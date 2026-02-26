@@ -1,6 +1,6 @@
 project_name: m2-policy-protected
 domain: m2-policy-protected.test
-recipe: magento2
+framework: magento2
 remotes:
   staging:
     host: staging.example.com

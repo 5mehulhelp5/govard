@@ -21,7 +21,7 @@ func TestDesktopSmokeOnboardingRemotesShellActionsSettings(t *testing.T) {
 	projectRoot := t.TempDir()
 	baseConfig := strings.TrimSpace(`
 project_name: smoke
-recipe: laravel
+framework: laravel
 domain: smoke.test
 stack:
   php_version: "8.3"

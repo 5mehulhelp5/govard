@@ -27,7 +27,7 @@ func TestCreateSnapshot(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: "snapshot-test",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "snapshot-test.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -71,7 +71,7 @@ func TestCreateSnapshotDuplicateName(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: "snapshot-dup-test",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "snapshot-dup-test.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -111,7 +111,7 @@ func TestCreateSnapshotAutoName(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: "snapshot-auto-test",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "snapshot-auto-test.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -173,7 +173,7 @@ func TestListSnapshotsWithMetadata(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: "snapshot-list-test",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "snapshot-list-test.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -228,7 +228,7 @@ func TestRestoreSnapshotNotFound(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: "snapshot-restore-test",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "snapshot-restore-test.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -263,7 +263,7 @@ func TestSnapshotMetadataPersistence(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: "snapshot-meta-test",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "snapshot-meta-test.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -296,8 +296,8 @@ func TestSnapshotMetadataPersistence(t *testing.T) {
 	if meta.Name != snapshotName {
 		t.Errorf("Expected name %s, got %s", snapshotName, meta.Name)
 	}
-	if meta.Recipe != config.Recipe {
-		t.Errorf("Expected recipe %s, got %s", config.Recipe, meta.Recipe)
+	if meta.Framework != config.Framework {
+		t.Errorf("Expected framework %s, got %s", config.Framework, meta.Framework)
 	}
 	if meta.Domain != config.Domain {
 		t.Errorf("Expected domain %s, got %s", config.Domain, meta.Domain)

@@ -13,7 +13,7 @@ import (
 func TestBuildMagentoCommandsBasic(t *testing.T) {
 	config := engine.Config{
 		ProjectName: "magento-test",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "magento-test.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -49,7 +49,7 @@ func TestBuildMagentoCommandsBasic(t *testing.T) {
 func TestBuildMagentoCommandsWithRedis(t *testing.T) {
 	config := engine.Config{
 		ProjectName: "magento-redis",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "magento-redis.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -88,7 +88,7 @@ func TestBuildMagentoCommandsWithRedis(t *testing.T) {
 func TestBuildMagentoCommandsWithValkey(t *testing.T) {
 	config := engine.Config{
 		ProjectName: "magento-valkey",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "magento-valkey.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -120,7 +120,7 @@ func TestBuildMagentoCommandsWithValkey(t *testing.T) {
 func TestBuildMagentoCommandsWithVarnish(t *testing.T) {
 	config := engine.Config{
 		ProjectName: "magento-varnish",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "magento-varnish.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -155,7 +155,7 @@ func TestBuildMagentoCommandsWithVarnish(t *testing.T) {
 func TestBuildMagentoCommandsWithElasticsearch(t *testing.T) {
 	config := engine.Config{
 		ProjectName: "magento-es",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "magento-es.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -187,7 +187,7 @@ func TestBuildMagentoCommandsWithElasticsearch(t *testing.T) {
 func TestBuildMagentoCommandsWithOpenSearch(t *testing.T) {
 	config := engine.Config{
 		ProjectName:      "magento-os",
-		Recipe:           "magento2",
+		Framework:        "magento2",
 		Domain:           "magento-os.test",
 		FrameworkVersion: "2.4.8",
 		Stack: engine.Stack{
@@ -220,7 +220,7 @@ func TestBuildMagentoCommandsWithOpenSearch(t *testing.T) {
 func TestBuildMagentoCommandsAllFeatures(t *testing.T) {
 	config := engine.Config{
 		ProjectName:      "magento-full",
-		Recipe:           "magento2",
+		Framework:        "magento2",
 		Domain:           "magento-full.test",
 		FrameworkVersion: "2.4.8",
 		Stack: engine.Stack{
@@ -268,7 +268,7 @@ func TestBuildMagentoCommandsAllFeatures(t *testing.T) {
 func TestBuildMagentoCommandsBaseURL(t *testing.T) {
 	config := engine.Config{
 		ProjectName: "magento-url",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "magento-url.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -300,7 +300,7 @@ func TestBuildMagentoCommandsBaseURL(t *testing.T) {
 func TestBuildMagentoCommandsNoDomain(t *testing.T) {
 	config := engine.Config{
 		ProjectName: "magento-no-domain",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -324,7 +324,7 @@ func TestBuildMagentoCommandsNoDomain(t *testing.T) {
 func TestBuildMagentoCommandsContainerName(t *testing.T) {
 	config := engine.Config{
 		ProjectName: "test-project",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "test.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -358,7 +358,7 @@ func TestBuildMagentoCommandsContainerName(t *testing.T) {
 func TestBuildMagentoCommandsUser(t *testing.T) {
 	config := engine.Config{
 		ProjectName: "magento-user",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "magento-user.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",

@@ -116,7 +116,7 @@ func TestRenderBlueprintWithFeatures(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: "test-magento-full",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "magento.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -172,7 +172,7 @@ func TestRenderMagento2BlueprintHybridWebServer(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: "test-magento-hybrid",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "magento-hybrid.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.4",
@@ -212,7 +212,7 @@ func TestRenderMagento2BlueprintHybridWebServer(t *testing.T) {
 	}
 }
 
-func testBlueprintRender(t *testing.T, recipe string, expectedStrings []string) {
+func testBlueprintRender(t *testing.T, framework string, expectedStrings []string) {
 	t.Helper()
 
 	tempDir := t.TempDir()
@@ -227,9 +227,9 @@ func testBlueprintRender(t *testing.T, recipe string, expectedStrings []string) 
 	}
 
 	config := engine.Config{
-		ProjectName: "test-" + recipe,
-		Recipe:      recipe,
-		Domain:      recipe + ".test",
+		ProjectName: "test-" + framework,
+		Framework:   framework,
+		Domain:      framework + ".test",
 		Stack: engine.Stack{
 			PHPVersion:  "8.3",
 			NodeVersion: "24",
@@ -247,7 +247,7 @@ func testBlueprintRender(t *testing.T, recipe string, expectedStrings []string) 
 
 	err := engine.RenderBlueprint(tempDir, config)
 	if err != nil {
-		t.Fatalf("Failed to render %s blueprint: %v", recipe, err)
+		t.Fatalf("Failed to render %s blueprint: %v", framework, err)
 	}
 
 	outputPath := engine.ComposeFilePath(tempDir, config.ProjectName)
@@ -260,15 +260,15 @@ func testBlueprintRender(t *testing.T, recipe string, expectedStrings []string) 
 
 	for _, expected := range expectedStrings {
 		if !strings.Contains(contentStr, expected) {
-			t.Errorf("Expected '%s' to be in generated compose file for %s", expected, recipe)
+			t.Errorf("Expected '%s' to be in generated compose file for %s", expected, framework)
 		}
 	}
 
 	if !strings.Contains(contentStr, "govard-net:") {
-		t.Errorf("Expected govard-net network in %s compose file", recipe)
+		t.Errorf("Expected govard-net network in %s compose file", framework)
 	}
 	if !strings.Contains(contentStr, "govard-proxy:") {
-		t.Errorf("Expected govard-proxy network in %s compose file", recipe)
+		t.Errorf("Expected govard-proxy network in %s compose file", framework)
 	}
 }
 

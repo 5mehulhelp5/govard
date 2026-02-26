@@ -10,10 +10,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type RecipeCommand struct {
+type FrameworkCommand struct {
 	Name        string
 	Short       string
-	Recipe      string // empty means all
+	Framework   string // empty means all
 	Binary      string
 	PrependArgs []string
 	DefaultUser string
@@ -41,11 +41,11 @@ Case Studies:
   govard tool npm install`,
 }
 
-var frameworkCommands = []RecipeCommand{
+var frameworkCommands = []FrameworkCommand{
 	{
 		Name:        "magento",
 		Short:       "Run Magento CLI commands",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Binary:      "php",
 		PrependArgs: []string{"bin/magento"},
 		DefaultUser: "",
@@ -53,7 +53,7 @@ var frameworkCommands = []RecipeCommand{
 	{
 		Name:        "artisan",
 		Short:       "Run Laravel Artisan commands",
-		Recipe:      "laravel",
+		Framework:   "laravel",
 		Binary:      "php",
 		PrependArgs: []string{"artisan"},
 		DefaultUser: "",
@@ -61,21 +61,21 @@ var frameworkCommands = []RecipeCommand{
 	{
 		Name:        "magerun",
 		Short:       "Run n98-magerun commands",
-		Recipe:      "magento1",
+		Framework:   "magento1",
 		Binary:      "n98-magerun.phar",
 		DefaultUser: "",
 	},
 	{
 		Name:        "drush",
 		Short:       "Run Drupal Drush commands",
-		Recipe:      "drupal",
+		Framework:   "drupal",
 		Binary:      "drush",
 		DefaultUser: "",
 	},
 	{
 		Name:        "symfony",
 		Short:       "Run Symfony CLI commands",
-		Recipe:      "symfony",
+		Framework:   "symfony",
 		Binary:      "php",
 		PrependArgs: []string{"bin/console"},
 		DefaultUser: "",
@@ -83,14 +83,14 @@ var frameworkCommands = []RecipeCommand{
 	{
 		Name:        "shopware",
 		Short:       "Run Shopware CLI commands",
-		Recipe:      "shopware",
+		Framework:   "shopware",
 		Binary:      "bin/console",
 		DefaultUser: "",
 	},
 	{
 		Name:        "cake",
 		Short:       "Run CakePHP CLI commands",
-		Recipe:      "cakephp",
+		Framework:   "cakephp",
 		Binary:      "bin/cake",
 		DefaultUser: "",
 	},
@@ -103,7 +103,7 @@ var frameworkCommands = []RecipeCommand{
 	{
 		Name:        "wp",
 		Short:       "Run WordPress CLI commands",
-		Recipe:      "wordpress",
+		Framework:   "wordpress",
 		Binary:      "wp",
 		DefaultUser: "",
 	},
@@ -143,8 +143,8 @@ func initFrameworkCommands() {
 	for _, fc := range frameworkCommands {
 		usage := fmt.Sprintf("%s [args]", fc.Name)
 		longDesc := fc.Short
-		if fc.Recipe != "" {
-			longDesc = fmt.Sprintf("%s (Requires %s project)", fc.Short, fc.Recipe)
+		if fc.Framework != "" {
+			longDesc = fmt.Sprintf("%s (Requires %s project)", fc.Short, fc.Framework)
 		}
 		cmd := &cobra.Command{
 			Use:                usage,
@@ -154,7 +154,7 @@ func initFrameworkCommands() {
 			RunE: func(c *cobra.Command, args []string) error {
 				// Find which command we are running
 				name := c.Name()
-				var target RecipeCommand
+				var target FrameworkCommand
 				for _, tc := range frameworkCommands {
 					if tc.Name == name {
 						target = tc
@@ -164,23 +164,21 @@ func initFrameworkCommands() {
 
 				config := loadConfig()
 
-				// Validate recipe if required
-				if target.Recipe != "" && config.Recipe != target.Recipe {
-					return fmt.Errorf("the '%s' command is only available for %s projects (current: %s)", name, target.Recipe, config.Recipe)
+				// Validate framework if required
+				if target.Framework != "" && config.Framework != target.Framework {
+					return fmt.Errorf("the '%s' command is only available for %s projects (current: %s)", name, target.Framework, config.Framework)
 				}
 
 				// Determine container and user
 				// Most frameworks use 'php' container, node-based use 'app' or 'web'
 				containerName := fmt.Sprintf("%s-php-1", config.ProjectName)
-				if target.Binary == "npm" || target.Binary == "yarn" || target.Binary == "npx" || target.Binary == "pnpm" {
-					// For node commands, we check if we have a node container or use php one (many php images have node)
-					// In our blueprints, we usually have node in php or a separate app container
-					// For now, default to php container as it's the main workspace
-				}
+				// For node commands, we check if we have a node container or use php one (many php images have node)
+				// In our blueprints, we usually have node in php or a separate app container
+				// For now, default to php container as it's the main workspace
 
 				user := target.DefaultUser
 				// Override user if it's magento2
-				if config.Recipe == "magento2" && (target.Binary == "php" || target.Binary == "composer" ||
+				if config.Framework == "magento2" && (target.Binary == "php" || target.Binary == "composer" ||
 					target.Binary == "npm" || target.Binary == "yarn" || target.Binary == "npx" ||
 					target.Binary == "pnpm" || target.Binary == "grunt") {
 					user = resolveProjectExecUser(config, "www-data")

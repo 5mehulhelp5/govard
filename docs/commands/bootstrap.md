@@ -7,7 +7,7 @@ Bootstrap a local environment for fast onboarding from remote or fresh install.
 ```bash
 govard bootstrap
 govard bootstrap --clone --environment dev
-govard bootstrap --fresh --version 2.4.8
+govard bootstrap --fresh --framework-version 2.4.8
 ```
 
 ## Core Flow
@@ -34,12 +34,12 @@ govard bootstrap --fresh --version 2.4.8
 - `--db-dump` Import DB from local dump file
 - `--include-product` Include `pub/media/catalog/product` images during media sync (Magento only)
 - `-p, --meta-package` Magento package for fresh install (default: `magento/project-community-edition`)
-- `--version` Magento version for fresh install
+- `--framework-version` Magento version for fresh install
 - `--hyva-install` Install Hyva default theme in fresh flow
 - `--hyva-token` Hyva repo token
 - `--mage-username` Magento marketplace username for auth bootstrap
 - `--mage-password` Magento marketplace password for auth bootstrap
-- `--fix-deps` Run `govard custom fix-deps` before bootstrap (auto-detects remote Magento version when cloning and `--version` is omitted)
+- `--fix-deps` Run `govard custom fix-deps` before bootstrap (auto-detects remote Magento version when cloning and `--framework-version` is omitted)
 - `--skip-up` Skip `govard env up` stage
 
 ## Notes
@@ -79,5 +79,5 @@ govard bootstrap --environment staging --no-composer --no-admin
 govard bootstrap --include-product
 
 # Fresh install + sample data
-govard bootstrap --fresh --version 2.4.8 --include-sample
+govard bootstrap --fresh --framework-version 2.4.8 --include-sample
 ```

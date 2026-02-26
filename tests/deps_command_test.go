@@ -9,7 +9,7 @@ import (
 
 func TestRequiredRuntimeImagesMagento(t *testing.T) {
 	images := cmd.RequiredRuntimeImages(engine.Config{
-		Recipe: "magento2",
+		Framework: "magento2",
 		Stack: engine.Stack{
 			PHPVersion:    "8.3",
 			DBType:        "mariadb",
@@ -50,7 +50,7 @@ func TestRequiredRuntimeImagesMagento(t *testing.T) {
 
 func TestRequiredRuntimeImagesNextjs(t *testing.T) {
 	images := cmd.RequiredRuntimeImages(engine.Config{
-		Recipe: "nextjs",
+		Framework: "nextjs",
 		Stack: engine.Stack{
 			NodeVersion:  "24",
 			CacheVersion: "7.4",
@@ -82,7 +82,7 @@ func TestRequiredRuntimeImagesNextjs(t *testing.T) {
 
 func TestRequiredRuntimeImagesMagentoHybrid(t *testing.T) {
 	images := cmd.RequiredRuntimeImages(engine.Config{
-		Recipe: "magento2",
+		Framework: "magento2",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
 			DBType:     "mariadb",

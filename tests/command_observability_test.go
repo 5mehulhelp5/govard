@@ -15,7 +15,7 @@ func TestTrackProjectRegistryForTest(t *testing.T) {
 	cfg := engine.Config{
 		ProjectName: "demo",
 		Domain:      "demo.test",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 	}
 	if err := cmd.TrackProjectRegistryForTest(cfg, "/workspace/demo", "up"); err != nil {
 		t.Fatalf("track project registry: %v", err)

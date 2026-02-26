@@ -36,7 +36,7 @@ func TestRenderAllFrameworkBlueprints(t *testing.T) {
 
 			config := engine.Config{
 				ProjectName: "test-" + fw,
-				Recipe:      fw,
+				Framework:   fw,
 				Domain:      "test-" + fw + ".test",
 				Stack: engine.Stack{
 					PHPVersion: "8.3",
@@ -83,7 +83,7 @@ func TestRenderBlueprintWithFeatures(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: "test-features",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "test-features.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -139,7 +139,7 @@ func TestRenderBlueprintWithCustomWebRoot(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: "test-webroot",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "test-webroot.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -176,7 +176,7 @@ func TestRenderBlueprintWithVarnish(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: "test-varnish",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "test-varnish.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -220,7 +220,7 @@ func TestRenderBlueprintWithXdebug(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: "test-xdebug",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "test-xdebug.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -268,7 +268,7 @@ func TestRenderBlueprintWithRabbitMQ(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: "test-queue",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "test-queue.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -322,7 +322,7 @@ services:
 
 	config := engine.Config{
 		ProjectName: "test-override",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "test-override.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -365,7 +365,7 @@ func TestBlueprintNetworkConfiguration(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: "test-network",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "test-network.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",

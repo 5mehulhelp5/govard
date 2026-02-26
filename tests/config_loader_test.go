@@ -13,7 +13,7 @@ func TestLoadConfigFromDirLayeredMerge(t *testing.T) {
 
 	base := `project_name: demo
 domain: demo.test
-recipe: magento2
+framework: magento2
 stack:
   php_version: "8.3"
   services:
@@ -120,7 +120,7 @@ func TestLoadConfigFromDirPrefersProjectExtensionLocalOverride(t *testing.T) {
 
 	base := `project_name: demo
 domain: demo.test
-recipe: laravel
+framework: laravel
 stack:
   php_version: "8.2"
   services:
@@ -166,7 +166,7 @@ func TestLoadConfigFromDirPrefersProjectExtensionEnvOverride(t *testing.T) {
 
 	base := `project_name: demo
 domain: demo.test
-recipe: laravel
+framework: laravel
 `
 	legacyEnv := `domain: legacy-staging.test
 `
@@ -202,7 +202,7 @@ func TestLoadConfigFromDirParsesLockStrictFlag(t *testing.T) {
 
 	base := `project_name: demo
 domain: demo.test
-recipe: magento2
+framework: magento2
 lock:
   strict: true
 `
@@ -225,7 +225,7 @@ func TestLoadConfigFromDirParsesBlueprintRegistrySettings(t *testing.T) {
 
 	base := `project_name: demo
 domain: demo.test
-recipe: legacytest
+framework: legacytest
 blueprint_registry:
   provider: HTTP
   url: https://example.com/blueprints.tar.gz
@@ -257,7 +257,7 @@ func TestLoadConfigFromDirInfersHTTPProviderFromUppercaseScheme(t *testing.T) {
 
 	base := `project_name: demo
 domain: demo.test
-recipe: legacytest
+framework: legacytest
 blueprint_registry:
   url: HTTPS://example.com/blueprints.tar.gz
   checksum: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
@@ -282,7 +282,7 @@ func TestLoadConfigFromDirAllowsUppercaseHTTPSWithExplicitHTTPProvider(t *testin
 
 	base := `project_name: demo
 domain: demo.test
-recipe: legacytest
+framework: legacytest
 blueprint_registry:
   provider: http
   url: HTTPS://example.com/blueprints.tar.gz

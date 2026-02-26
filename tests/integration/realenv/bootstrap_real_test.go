@@ -92,7 +92,7 @@ func TestBootstrapCloneRequiresConfiguredRemote(t *testing.T) {
 	// Create a minimal .govard.yml with no remotes so ensureBootstrapInit skips
 	// running `govard init` (which would block waiting for interactive input).
 	localDir := t.TempDir()
-	minimalConfig := "project_name: test-no-remotes\ndomain: test-no-remotes.test\nrecipe: magento2\n"
+	minimalConfig := "project_name: test-no-remotes\ndomain: test-no-remotes.test\nframework: magento2\n"
 	if err := os.WriteFile(filepath.Join(localDir, ".govard.yml"), []byte(minimalConfig), 0644); err != nil {
 		t.Fatalf("Failed to write .govard.yml: %v", err)
 	}
@@ -186,8 +186,8 @@ func TestBootstrapFreshMagento(t *testing.T) {
 	// Run bootstrap --fresh (will also run init because no config exists)
 	// Note: This test requires Docker to be able to start containers
 	result := env.RunGovard(t, localDir, "bootstrap", "--fresh",
-		"--recipe", "magento2",
-		"--version", "2.4.6",
+		"--framework", "magento2",
+		"--framework-version", "2.4.6",
 		"--no-composer",
 		"--no-admin",
 		"--no-db",

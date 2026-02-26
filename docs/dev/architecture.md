@@ -219,7 +219,7 @@ redis:
 
 Available variables:
 - `{{ .Config.ProjectName }}`
-- `{{ .Config.Recipe }}`
+- `{{ .Config.Framework }}`
 - `{{ .Config.Domain }}`
 - `{{ .Config.Stack.PHPVersion }}`
 - `{{ .Config.Stack.Features.Xdebug }}`

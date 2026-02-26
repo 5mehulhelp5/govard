@@ -32,7 +32,7 @@ Later layers override earlier layers.
 
 ## Key Fields
 
-- `recipe`: selected framework profile.
+- `framework`: selected framework profile.
 - `framework_version`: detected or user-selected framework version for profile resolution.
 - `lock.strict`: opt-in lock enforcement for `govard env up` (hard-fail when lock is missing or non-compliant).
 - `blueprint_registry.*`: opt-in remote blueprint source.

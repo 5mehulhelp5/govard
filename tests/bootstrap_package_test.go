@@ -20,8 +20,8 @@ func TestBootstrapPkgMagento2FreshCommands(t *testing.T) {
 	}
 }
 
-func TestBootstrapPkgRunUnsupportedRecipe(t *testing.T) {
+func TestBootstrapPkgRunUnsupportedFramework(t *testing.T) {
 	if err := bootstrap.Run("unknown", bootstrap.Options{}); err == nil {
-		t.Fatal("expected unsupported recipe error")
+		t.Fatal("expected unsupported framework error")
 	}
 }

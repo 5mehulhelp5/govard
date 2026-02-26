@@ -12,7 +12,7 @@ import (
 
 type MigrationResult struct {
 	ProjectName    string
-	Recipe         string
+	Framework      string
 	PHPVersion     string
 	NodeVersion    string
 	DBType         string
@@ -52,7 +52,7 @@ func MigrateFromDDEV(root string) (MigrationResult, error) {
 
 	result := MigrationResult{
 		ProjectName: ddev.Name,
-		Recipe:      mapDDEVTypeToRecipe(ddev.Type),
+		Framework:   mapDDEVTypeToFramework(ddev.Type),
 		PHPVersion:  ddev.PHPVersion,
 		DBType:      ddev.Database.Type,
 		DBVersion:   ddev.Database.Version,
@@ -75,7 +75,7 @@ func MigrateFromWarden(root string) (MigrationResult, error) {
 
 	result := MigrationResult{
 		ProjectName:    env["WARDEN_ENV_NAME"],
-		Recipe:         mapWardenTypeToRecipe(env["WARDEN_ENV_TYPE"]),
+		Framework:      mapWardenTypeToFramework(env["WARDEN_ENV_TYPE"]),
 		PHPVersion:     env["PHP_VERSION"],
 		NodeVersion:    env["NODE_VERSION"],
 		DBVersion:      env["MYSQL_DISTRIBUTION_VERSION"],
@@ -87,8 +87,8 @@ func MigrateFromWarden(root string) (MigrationResult, error) {
 	if result.ProjectName == "" {
 		result.ProjectName = warden.WardenEnvName
 	}
-	if result.Recipe == "" {
-		result.Recipe = mapWardenTypeToRecipe(warden.WardenEnvType)
+	if result.Framework == "" {
+		result.Framework = mapWardenTypeToFramework(warden.WardenEnvType)
 	}
 
 	if env["MYSQL_DISTRIBUTION"] != "" {
@@ -189,7 +189,7 @@ func MigrateFromWarden(root string) (MigrationResult, error) {
 	return result, nil
 }
 
-func mapDDEVTypeToRecipe(ddevType string) string {
+func mapDDEVTypeToFramework(ddevType string) string {
 	switch ddevType {
 	case "magento2":
 		return "magento2"
@@ -210,7 +210,7 @@ func mapDDEVTypeToRecipe(ddevType string) string {
 	}
 }
 
-func mapWardenTypeToRecipe(wardenType string) string {
+func mapWardenTypeToFramework(wardenType string) string {
 	switch wardenType {
 	case "magento2":
 		return "magento2"

@@ -69,7 +69,7 @@ func TestMagentoThreeEnvironmentInitBootstrapAndSyncOptions(t *testing.T) {
 
 	projects := []string{localProject, devProject, stagingProject}
 	for _, projectDir := range projects {
-		initResult := env.RunGovard(t, projectDir, "init", "--recipe", "magento2")
+		initResult := env.RunGovard(t, projectDir, "init", "--framework", "magento2")
 		initResult.AssertSuccess(t)
 
 		configPath := filepath.Join(projectDir, ".govard.yml")
@@ -77,7 +77,7 @@ func TestMagentoThreeEnvironmentInitBootstrapAndSyncOptions(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected .govard.yml after init at %s: %v", configPath, err)
 		}
-		assertContains(t, string(configData), "recipe: magento2")
+		assertContains(t, string(configData), "framework: magento2")
 
 		addTestRemotesToGovardConfig(t, projectDir)
 

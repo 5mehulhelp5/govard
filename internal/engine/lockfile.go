@@ -49,7 +49,7 @@ type LockHostInfo struct {
 type LockProjectInfo struct {
 	Name             string `yaml:"name"`
 	Domain           string `yaml:"domain,omitempty"`
-	Recipe           string `yaml:"recipe,omitempty"`
+	Framework        string `yaml:"framework,omitempty"`
 	FrameworkVersion string `yaml:"framework_version,omitempty"`
 }
 
@@ -118,7 +118,7 @@ func BuildLockFileFromConfig(cwd string, config Config, govardVersion string, de
 		Project: LockProjectInfo{
 			Name:             normalizeLockProjectName(config, cwd),
 			Domain:           strings.TrimSpace(config.Domain),
-			Recipe:           strings.TrimSpace(config.Recipe),
+			Framework:        strings.TrimSpace(config.Framework),
 			FrameworkVersion: strings.TrimSpace(config.FrameworkVersion),
 		},
 		Stack: LockStackInfo{
@@ -196,7 +196,7 @@ func CompareLockFile(expected LockFile, current LockFile) LockCompliance {
 	appendMismatch("host.docker_compose_version", expected.Host.DockerComposeVersion, current.Host.DockerComposeVersion)
 	appendMismatch("project.name", expected.Project.Name, current.Project.Name)
 	appendMismatch("project.domain", expected.Project.Domain, current.Project.Domain)
-	appendMismatch("project.recipe", expected.Project.Recipe, current.Project.Recipe)
+	appendMismatch("project.framework", expected.Project.Framework, current.Project.Framework)
 	appendMismatch("project.framework_version", expected.Project.FrameworkVersion, current.Project.FrameworkVersion)
 	appendMismatch("stack.php_version", expected.Stack.PHPVersion, current.Stack.PHPVersion)
 	appendMismatch("stack.node_version", expected.Stack.NodeVersion, current.Stack.NodeVersion)

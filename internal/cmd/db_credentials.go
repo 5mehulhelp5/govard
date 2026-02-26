@@ -46,7 +46,7 @@ func (credentials dbCredentials) withDefaults() dbCredentials {
 
 func resolveRemoteDBCredentials(config engine.Config, remoteName string, remoteCfg engine.RemoteConfig) (dbCredentials, error) {
 	fallback := defaultDBCredentials()
-	switch strings.TrimSpace(config.Recipe) {
+	switch strings.TrimSpace(config.Framework) {
 	case "magento2":
 		metadata, err := remote.ProbeMagento2Environment(remoteName, remoteCfg)
 		if err != nil {

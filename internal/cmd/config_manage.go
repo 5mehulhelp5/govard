@@ -54,8 +54,8 @@ func getConfigValue(config engine.Config, key string) (string, bool) {
 	switch strings.ToLower(key) {
 	case "project_name":
 		return config.ProjectName, true
-	case "recipe":
-		return config.Recipe, true
+	case "framework":
+		return config.Framework, true
 	case "domain":
 		return config.Domain, true
 	case "framework_version":
@@ -84,8 +84,8 @@ func setConfigValue(config *engine.Config, key string, value string) bool {
 	switch strings.ToLower(key) {
 	case "project_name":
 		config.ProjectName = value
-	case "recipe":
-		config.Recipe = value
+	case "framework":
+		config.Framework = value
 	case "domain":
 		config.Domain = value
 	case "framework_version":

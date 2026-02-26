@@ -19,7 +19,7 @@ func TestBootstrapNoCloneDoesNotRequireRemote(t *testing.T) {
 	configPath := filepath.Join(tempDir, ".govard.yml")
 	config := `project_name: test
 domain: test.test
-recipe: magento2
+framework: magento2
 `
 	if err := os.WriteFile(configPath, []byte(config), 0644); err != nil {
 		t.Fatal(err)
@@ -51,7 +51,7 @@ func TestBootstrapCloneRequiresConfiguredRemote(t *testing.T) {
 	configPath := filepath.Join(tempDir, ".govard.yml")
 	config := `project_name: test
 domain: test.test
-recipe: magento2
+framework: magento2
 remotes: {}
 `
 	if err := os.WriteFile(configPath, []byte(config), 0644); err != nil {
@@ -87,7 +87,7 @@ func TestBootstrapRejectsFreshAndCloneTogether(t *testing.T) {
 	configPath := filepath.Join(tempDir, ".govard.yml")
 	config := `project_name: test
 domain: test.test
-recipe: magento2
+framework: magento2
 `
 	if err := os.WriteFile(configPath, []byte(config), 0644); err != nil {
 		t.Fatal(err)
@@ -119,22 +119,22 @@ recipe: magento2
 
 func TestBootstrapSupportsSymfony(t *testing.T) {
 	config := engine.Config{
-		Recipe:      "symfony",
+		Framework:   "symfony",
 		ProjectName: "symfony-test",
 		Domain:      "symfony.test",
 	}
 
-	supportedRecipes := []string{"magento2", "symfony", "laravel"}
+	supportedFrameworks := []string{"magento2", "symfony", "laravel"}
 	found := false
-	for _, r := range supportedRecipes {
-		if r == config.Recipe {
+	for _, r := range supportedFrameworks {
+		if r == config.Framework {
 			found = true
 			break
 		}
 	}
 
 	if !found {
-		t.Errorf("symfony should be in supported recipes list")
+		t.Errorf("symfony should be in supported frameworks list")
 	}
 
 	opts := bootstrap.DefaultOptions()
@@ -144,12 +144,12 @@ func TestBootstrapSupportsSymfony(t *testing.T) {
 	}
 }
 
-func TestBootstrapRejectsUnsupportedRecipe(t *testing.T) {
+func TestBootstrapRejectsUnsupportedFramework(t *testing.T) {
 	tempDir := t.TempDir()
 	configPath := filepath.Join(tempDir, ".govard.yml")
 	config := `project_name: test
 domain: test.test
-recipe: custom
+framework: custom
 `
 	if err := os.WriteFile(configPath, []byte(config), 0644); err != nil {
 		t.Fatal(err)
@@ -172,7 +172,7 @@ recipe: custom
 
 	err := root.Execute()
 	if err == nil {
-		t.Fatal("expected unsupported recipe error")
+		t.Fatal("expected unsupported framework error")
 	}
 	if !strings.Contains(err.Error(), "bootstrap currently supports") {
 		t.Fatalf("unexpected error: %v", err)

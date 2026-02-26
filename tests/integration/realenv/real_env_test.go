@@ -178,12 +178,12 @@ func (r *RealEnvTest) CopyConfig(t *testing.T, env string, projectDir string) {
 	config := struct {
 		ProjectName string            `yaml:"project_name"`
 		Domain      string            `yaml:"domain"`
-		Recipe      string            `yaml:"recipe"`
+		Framework   string            `yaml:"framework"`
 		Remotes     map[string]Remote `yaml:"remotes"`
 	}{
 		ProjectName: "m2-clone-basic",
 		Domain:      "m2-clone-basic.test",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Remotes: map[string]Remote{
 			"dev": {
 				Host: "localhost",

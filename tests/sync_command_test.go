@@ -16,7 +16,7 @@ func TestSyncCommandPlan(t *testing.T) {
 	configPath := filepath.Join(tempDir, ".govard.yml")
 	config := `project_name: test
 domain: test.test
-recipe: laravel
+framework: laravel
 remotes:
   staging:
     host: staging.example.com
@@ -65,7 +65,7 @@ func TestSyncCommandPlanIncludeExclude(t *testing.T) {
 	configPath := filepath.Join(tempDir, ".govard.yml")
 	config := `project_name: test
 domain: test.test
-recipe: laravel
+framework: laravel
 remotes:
   staging:
     host: staging.example.com
@@ -112,7 +112,7 @@ func TestSyncCommandPlanNoResume(t *testing.T) {
 	configPath := filepath.Join(tempDir, ".govard.yml")
 	config := `project_name: test
 domain: test.test
-recipe: laravel
+framework: laravel
 remotes:
   staging:
     host: staging.example.com
@@ -153,7 +153,7 @@ func TestSyncCommandPlanNoCompress(t *testing.T) {
 	configPath := filepath.Join(tempDir, ".govard.yml")
 	config := `project_name: test
 domain: test.test
-recipe: laravel
+framework: laravel
 remotes:
   staging:
     host: staging.example.com
@@ -194,7 +194,7 @@ func TestSyncCommandProtectedRemoteDestination(t *testing.T) {
 	configPath := filepath.Join(tempDir, ".govard.yml")
 	config := `project_name: test
 domain: test.test
-recipe: laravel
+framework: laravel
 remotes:
   prod:
     host: prod.example.com
@@ -231,7 +231,7 @@ func TestSyncCommandProductionEnvironmentDestinationBlocked(t *testing.T) {
 	configPath := filepath.Join(tempDir, ".govard.yml")
 	config := `project_name: test
 domain: test.test
-recipe: laravel
+framework: laravel
 remotes:
   production:
     host: prod.example.com
@@ -268,7 +268,7 @@ func TestSyncCommandRejectsCapabilityMismatch(t *testing.T) {
 	configPath := filepath.Join(tempDir, ".govard.yml")
 	config := `project_name: test
 domain: test.test
-recipe: laravel
+framework: laravel
 remotes:
   staging:
     host: staging.example.com
@@ -309,7 +309,7 @@ func TestSyncCommandRejectsRemoteToRemote(t *testing.T) {
 	configPath := filepath.Join(tempDir, ".govard.yml")
 	config := `project_name: test
 domain: test.test
-recipe: laravel
+framework: laravel
 remotes:
   staging:
     host: staging.example.com

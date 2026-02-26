@@ -37,7 +37,7 @@ func TestRenderBlueprintWithRemoteRegistryArchive(t *testing.T) {
 	projectDir := t.TempDir()
 	config := engine.Config{
 		ProjectName: "registry-demo",
-		Recipe:      "legacytest",
+		Framework:   "legacytest",
 		Domain:      "registry-demo.test",
 		BlueprintRegistry: engine.BlueprintRegistryConfig{
 			Provider: "http",

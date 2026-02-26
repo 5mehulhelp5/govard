@@ -53,7 +53,7 @@ const refs = {
   projectPath: byId("projectPath"),
   projectDomain: byId("projectDomain"),
   displayProjectPath: byId("displayProjectPath"),
-  projectRecipe: byId("projectRecipe"),
+  projectFramework: byId("projectFramework"),
   onboardVarnish: byId("onboardVarnish"),
   onboardRedis: byId("onboardRedis"),
   onboardRabbitMQ: byId("onboardRabbitMQ"),

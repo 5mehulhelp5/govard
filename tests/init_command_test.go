@@ -26,7 +26,7 @@ func TestInitCommandLogic(t *testing.T) {
 	// Create config (Simulating what internal/cmd/init.go does)
 	config := engine.Config{
 		ProjectName: filepath.Base(tempDir),
-		Recipe:      metadata.Framework,
+		Framework:   metadata.Framework,
 		Stack: engine.Stack{
 			PHPVersion: "8.1",
 			WebServer:  "nginx",
@@ -59,8 +59,8 @@ func TestInitCommandLogic(t *testing.T) {
 	savedData, _ := os.ReadFile(configFile)
 	yaml.Unmarshal(savedData, &savedConfig)
 
-	if savedConfig.Recipe != "magento2" {
-		t.Errorf("Expected recipe magento2, got %s", savedConfig.Recipe)
+	if savedConfig.Framework != "magento2" {
+		t.Errorf("Expected framework magento2, got %s", savedConfig.Framework)
 	}
 	if savedConfig.Stack.Features.Varnish != false {
 		t.Error("Varnish should be disabled by default")

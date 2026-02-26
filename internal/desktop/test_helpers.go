@@ -146,14 +146,14 @@ func SetRunGovardCommandForDesktopForTest(fn func(root string, args []string) (s
 }
 
 // OnboardProjectForPathForTest exposes onboarding flow for tests.
-func OnboardProjectForPathForTest(projectPath string, recipe string) (string, error) {
-	return onboardProject(projectPath, recipe)
+func OnboardProjectForPathForTest(projectPath string, framework string) (string, error) {
+	return onboardProject(projectPath, framework)
 }
 
 // OnboardProjectWithOptionsForPathForTest exposes onboarding flow with desktop overrides.
 func OnboardProjectWithOptionsForPathForTest(
 	projectPath string,
-	recipe string,
+	framework string,
 	domain string,
 	varnishEnabled bool,
 	redisEnabled bool,
@@ -162,7 +162,7 @@ func OnboardProjectWithOptionsForPathForTest(
 ) (string, error) {
 	return onboardProjectWithOptions(
 		projectPath,
-		recipe,
+		framework,
 		domain,
 		varnishEnabled,
 		redisEnabled,

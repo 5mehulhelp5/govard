@@ -110,7 +110,7 @@ projectDir := env.CreateTestProject(t, "test-name", files)
 projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "fixture-copy")
 
 // Run govard commands
-result := env.RunGovard(t, projectDir, "init", "--recipe", "magento2")
+result := env.RunGovard(t, projectDir, "init", "--framework", "magento2")
 result.AssertSuccess(t)
 result.AssertOutputContains(t, "expected text")
 

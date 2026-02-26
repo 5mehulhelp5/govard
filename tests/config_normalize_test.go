@@ -11,7 +11,7 @@ import (
 
 func TestNormalizeConfigDefaultsMagento2(t *testing.T) {
 	config := engine.Config{
-		Recipe: "magento2",
+		Framework: "magento2",
 	}
 
 	engine.NormalizeConfig(&config)
@@ -55,7 +55,7 @@ func TestNormalizeConfigDefaultsMagento2(t *testing.T) {
 
 func TestNormalizeConfigQueueDefaults(t *testing.T) {
 	config := engine.Config{
-		Recipe: "magento2",
+		Framework: "magento2",
 		Stack: engine.Stack{
 			Services: engine.Services{
 				Queue: "rabbitmq",
@@ -72,7 +72,7 @@ func TestNormalizeConfigQueueDefaults(t *testing.T) {
 
 func TestNormalizeConfigVersionAwareDefaultsMagento2(t *testing.T) {
 	config := engine.Config{
-		Recipe:           "magento2",
+		Framework:        "magento2",
 		FrameworkVersion: "2.4.7-p3",
 	}
 
@@ -112,7 +112,7 @@ func TestNormalizeConfigVersionAwareDefaultsMagento2(t *testing.T) {
 
 func TestNormalizeConfigCacheAndSearchVersions(t *testing.T) {
 	config := engine.Config{
-		Recipe: "magento2",
+		Framework: "magento2",
 		Stack: engine.Stack{
 			Services: engine.Services{
 				Cache:  "valkey",
@@ -204,7 +204,7 @@ func TestPrepareConfigForWriteKeepsRuntimeProfileDefaults(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName:      "demo",
-		Recipe:           "magento2",
+		Framework:        "magento2",
 		FrameworkVersion: "2.4.7-p3",
 		Domain:           "demo.test",
 		Stack: engine.Stack{
@@ -285,7 +285,7 @@ func TestPrepareConfigForWriteKeepsRuntimeProfileDefaults(t *testing.T) {
 
 func TestPrepareConfigForWriteKeepsNonDefaultRuntimeOverrides(t *testing.T) {
 	config := engine.Config{
-		Recipe:           "magento2",
+		Framework:        "magento2",
 		FrameworkVersion: "2.4.7-p3",
 		Stack: engine.Stack{
 			PHPVersion: "8.2",
@@ -306,7 +306,7 @@ func TestPrepareConfigForWriteKeepsNonDefaultRuntimeOverrides(t *testing.T) {
 
 func TestPrepareConfigForWriteKeepsNonDefaultXdebugSession(t *testing.T) {
 	config := engine.Config{
-		Recipe:           "magento2",
+		Framework:        "magento2",
 		FrameworkVersion: "2.4.7-p3",
 		Stack: engine.Stack{
 			XdebugSession: "VSCODE",
@@ -331,7 +331,7 @@ func TestPrepareConfigForWriteKeepsNonDefaultXdebugSession(t *testing.T) {
 func TestPrepareConfigForWritePrunesDefaultRemoteAuthAndPaths(t *testing.T) {
 	config := engine.Config{
 		ProjectName: "demo",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "demo.test",
 		Remotes: map[string]engine.RemoteConfig{
 			"dev": {
@@ -382,7 +382,7 @@ func TestPrepareConfigForWritePrunesDefaultRemoteAuthAndPaths(t *testing.T) {
 func TestPrepareConfigForWriteKeepsNonDefaultRemoteAuthAndPaths(t *testing.T) {
 	config := engine.Config{
 		ProjectName: "demo",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "demo.test",
 		Remotes: map[string]engine.RemoteConfig{
 			"staging": {
@@ -433,7 +433,7 @@ func TestPrepareConfigForWriteKeepsNonDefaultRemoteAuthAndPaths(t *testing.T) {
 func TestPrepareConfigForWriteOmitsEmptyFrameworkVersion(t *testing.T) {
 	config := engine.Config{
 		ProjectName:      "demo",
-		Recipe:           "magento2",
+		Framework:        "magento2",
 		FrameworkVersion: "",
 		Domain:           "demo.test",
 		Stack: engine.Stack{
@@ -471,7 +471,7 @@ func TestPrepareConfigForWriteOmitsEmptyFrameworkVersion(t *testing.T) {
 func TestPrepareConfigForWriteKeepsNonEmptyFrameworkVersion(t *testing.T) {
 	config := engine.Config{
 		ProjectName:      "demo",
-		Recipe:           "magento2",
+		Framework:        "magento2",
 		FrameworkVersion: "2.4.7-p3",
 		Domain:           "demo.test",
 		Stack: engine.Stack{

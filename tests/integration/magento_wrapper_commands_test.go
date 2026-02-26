@@ -10,21 +10,21 @@ import (
 	"govard/internal/engine"
 )
 
-func TestFrameworkWrapperRecipeGuardsForMagentoProject(t *testing.T) {
+func TestFrameworkWrapperFrameworkGuardsForMagentoProject(t *testing.T) {
 	env := NewTestEnvironment(t)
 	projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "wrapper-guards-m2")
 
 	tests := []struct {
-		command        string
-		recipeExpected string
+		command           string
+		frameworkExpected string
 	}{
-		{command: "artisan", recipeExpected: "laravel"},
-		{command: "cake", recipeExpected: "cakephp"},
-		{command: "drush", recipeExpected: "drupal"},
-		{command: "magerun", recipeExpected: "magento1"},
-		{command: "shopware", recipeExpected: "shopware"},
-		{command: "symfony", recipeExpected: "symfony"},
-		{command: "wp", recipeExpected: "wordpress"},
+		{command: "artisan", frameworkExpected: "laravel"},
+		{command: "cake", frameworkExpected: "cakephp"},
+		{command: "drush", frameworkExpected: "drupal"},
+		{command: "magerun", frameworkExpected: "magento1"},
+		{command: "shopware", frameworkExpected: "shopware"},
+		{command: "symfony", frameworkExpected: "symfony"},
+		{command: "wp", frameworkExpected: "wordpress"},
 	}
 
 	for _, tt := range tests {
@@ -34,7 +34,7 @@ func TestFrameworkWrapperRecipeGuardsForMagentoProject(t *testing.T) {
 				t.Fatalf("expected %s command to fail on magento2 project", tt.command)
 			}
 			output := result.Stdout + result.Stderr
-			assertContains(t, output, fmt.Sprintf("the '%s' command is only available for %s projects", tt.command, tt.recipeExpected))
+			assertContains(t, output, fmt.Sprintf("the '%s' command is only available for %s projects", tt.command, tt.frameworkExpected))
 		})
 	}
 }

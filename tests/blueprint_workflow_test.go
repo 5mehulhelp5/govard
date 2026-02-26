@@ -28,7 +28,7 @@ func TestFullSetupLogic(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: projectName,
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      projectName + ".test",
 		Stack: engine.Stack{
 			PHPVersion: "8.1",

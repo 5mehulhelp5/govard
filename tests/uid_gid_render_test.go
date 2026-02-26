@@ -10,7 +10,7 @@ import (
 func TestRenderIncludesUIDGID(t *testing.T) {
 	content := renderComposeWithConfig(t, engine.Config{
 		ProjectName: "uidgid-test",
-		Recipe:      "laravel",
+		Framework:   "laravel",
 		Domain:      "uidgid.test",
 	})
 

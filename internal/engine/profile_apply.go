@@ -6,7 +6,7 @@ func ApplyRuntimeProfileToConfig(config *Config, profile RuntimeProfile) {
 		return
 	}
 
-	config.Recipe = profile.Framework
+	config.Framework = profile.Framework
 	config.FrameworkVersion = profile.FrameworkVersion
 	config.Stack.PHPVersion = profile.PHPVersion
 	config.Stack.NodeVersion = profile.NodeVersion

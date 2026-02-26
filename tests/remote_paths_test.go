@@ -7,7 +7,7 @@ import (
 )
 
 func TestResolveRemoteMediaPath(t *testing.T) {
-	cfg := engine.Config{Recipe: "magento2", Remotes: map[string]engine.RemoteConfig{
+	cfg := engine.Config{Framework: "magento2", Remotes: map[string]engine.RemoteConfig{
 		"staging": {Path: "/var/www/html"},
 	}}
 	root, media := engine.ResolveRemotePaths(cfg, "staging")

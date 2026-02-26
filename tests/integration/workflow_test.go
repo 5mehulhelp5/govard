@@ -23,7 +23,7 @@ func TestEndToEndMagento2Workflow(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: "magento2-test",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "magento2-test.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.1",
@@ -70,7 +70,7 @@ func TestEndToEndLaravelWorkflow(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: "laravel-test",
-		Recipe:      "laravel",
+		Framework:   "laravel",
 		Domain:      "laravel-test.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
@@ -109,7 +109,7 @@ func TestEndToEndNextJSWorkflow(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: "nextjs-test",
-		Recipe:      "nextjs",
+		Framework:   "nextjs",
 		Domain:      "nextjs-test.test",
 		Stack: engine.Stack{
 			WebServer: "nginx",
@@ -142,7 +142,7 @@ func TestBlueprintRenderingWithAllFeatures(t *testing.T) {
 
 	config := engine.Config{
 		ProjectName: "magento2-full",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "magento2-full.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.1",

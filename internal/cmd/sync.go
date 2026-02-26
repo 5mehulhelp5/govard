@@ -323,7 +323,7 @@ func resolveSyncEndpoint(config engine.Config, name string, cwd string) (syncEnd
 		return syncEndpoint{}, err
 	}
 
-	root, media := engine.ResolveRemotePathsForConfig(config.Recipe, remoteCfg)
+	root, media := engine.ResolveRemotePathsForConfig(config.Framework, remoteCfg)
 	if strings.TrimSpace(root) == "" {
 		return syncEndpoint{}, fmt.Errorf("remote %s has empty project path", name)
 	}

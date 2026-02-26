@@ -75,7 +75,7 @@ var profileCmd = &cobra.Command{
 		fmt.Fprintf(out, "Profile source: %s\n", result.Source)
 		fmt.Fprintln(out, "")
 		fmt.Fprintln(out, "Recommended Govard profile:")
-		fmt.Fprintf(out, "  recipe: %s\n", result.Profile.Framework)
+		fmt.Fprintf(out, "  framework: %s\n", result.Profile.Framework)
 		if result.Profile.FrameworkVersion != "" {
 			fmt.Fprintf(out, "  framework_version: %s\n", result.Profile.FrameworkVersion)
 		}

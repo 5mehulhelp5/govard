@@ -34,8 +34,8 @@ database:
 	if result.ProjectName != "test-ddev" {
 		t.Errorf("expected ProjectName=test-ddev, got %q", result.ProjectName)
 	}
-	if result.Recipe != "magento2" {
-		t.Errorf("expected Recipe=magento2, got %q", result.Recipe)
+	if result.Framework != "magento2" {
+		t.Errorf("expected Framework=magento2, got %q", result.Framework)
 	}
 	if result.PHPVersion != "8.2" {
 		t.Errorf("expected PHPVersion=8.2, got %q", result.PHPVersion)
@@ -70,8 +70,8 @@ WARDEN_SSH_PATH=/var/www/laravel
 	if result.ProjectName != "test-warden" {
 		t.Errorf("expected ProjectName=test-warden, got %q", result.ProjectName)
 	}
-	if result.Recipe != "laravel" {
-		t.Errorf("expected Recipe=laravel, got %q", result.Recipe)
+	if result.Framework != "laravel" {
+		t.Errorf("expected Framework=laravel, got %q", result.Framework)
 	}
 	if result.WebRoot != "public" {
 		t.Errorf("expected WebRoot=public, got %q", result.WebRoot)

@@ -99,7 +99,7 @@ func TestApplyQuickstartProfileDisablesOptionalServices(t *testing.T) {
 
 func TestAutoTuneMagentoRuntimeAppliesVersionProfile(t *testing.T) {
 	config := engine.Config{
-		Recipe: "magento2",
+		Framework: "magento2",
 		Stack: engine.Stack{
 			PHPVersion: "8.4",
 			DBType:     "mariadb",
@@ -151,7 +151,7 @@ func TestAutoTuneMagentoRuntimeAppliesVersionProfile(t *testing.T) {
 
 func TestAutoTuneMagentoRuntimeAllowsDBUpgrade(t *testing.T) {
 	config := engine.Config{
-		Recipe: "magento2",
+		Framework: "magento2",
 		Stack: engine.Stack{
 			DBType:    "mariadb",
 			DBVersion: "10.4",
@@ -170,7 +170,7 @@ func TestAutoTuneMagentoRuntimeAllowsDBUpgrade(t *testing.T) {
 
 func TestAutoTuneMagentoRuntimePreservesConfiguredApacheWebServer(t *testing.T) {
 	config := engine.Config{
-		Recipe: "magento2",
+		Framework: "magento2",
 		Stack: engine.Stack{
 			Services: engine.Services{
 				WebServer: "apache",
@@ -201,7 +201,7 @@ func TestAutoTuneMagentoRuntimePreservesConfiguredApacheWebServer(t *testing.T) 
 
 func TestAutoTuneMagentoRuntimePreservesConfiguredHybridWebServer(t *testing.T) {
 	config := engine.Config{
-		Recipe: "magento2",
+		Framework: "magento2",
 		Stack: engine.Stack{
 			Services: engine.Services{
 				WebServer: "hybrid",

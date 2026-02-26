@@ -2,14 +2,14 @@ import test from "node:test"
 import assert from "node:assert/strict"
 import { readFile } from "node:fs/promises"
 
-import { normalizeOnboardingRecipe } from "../../desktop/frontend/modules/onboarding.js"
+import { normalizeOnboardingFramework } from "../../desktop/frontend/modules/onboarding.js"
 
-test("normalizeOnboardingRecipe canonicalizes empty and aliases", () => {
-  assert.equal(normalizeOnboardingRecipe(""), "")
-  assert.equal(normalizeOnboardingRecipe("auto"), "")
-  assert.equal(normalizeOnboardingRecipe("m2"), "magento2")
-  assert.equal(normalizeOnboardingRecipe("magento2"), "magento2")
-  assert.equal(normalizeOnboardingRecipe("custom"), "custom")
+test("normalizeOnboardingFramework canonicalizes empty and aliases", () => {
+  assert.equal(normalizeOnboardingFramework(""), "")
+  assert.equal(normalizeOnboardingFramework("auto"), "")
+  assert.equal(normalizeOnboardingFramework("m2"), "magento2")
+  assert.equal(normalizeOnboardingFramework("magento2"), "magento2")
+  assert.equal(normalizeOnboardingFramework("custom"), "custom")
 })
 
 test("desktop layout exposes onboarding section and actions", async () => {

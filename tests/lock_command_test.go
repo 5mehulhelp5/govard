@@ -44,7 +44,7 @@ func TestLockGenerateCommandWritesLockFile(t *testing.T) {
 	tempDir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(tempDir, ".govard.yml"), []byte(`project_name: demo
 domain: demo.test
-recipe: magento2
+framework: magento2
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +90,7 @@ func TestLockCheckCommandReturnsErrorOnMismatch(t *testing.T) {
 	tempDir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(tempDir, ".govard.yml"), []byte(`project_name: demo
 domain: demo.test
-recipe: magento2
+framework: magento2
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +106,7 @@ recipe: magento2
 			DockerVersion:        "27.2.1",
 			DockerComposeVersion: "2.29.7",
 		},
-		Project: engine.LockProjectInfo{Name: "demo", Recipe: "magento2"},
+		Project: engine.LockProjectInfo{Name: "demo", Framework: "magento2"},
 	}); err != nil {
 		t.Fatalf("write lock file fixture: %v", err)
 	}
@@ -144,8 +144,8 @@ func TestBuildUpLockWarningsForTest(t *testing.T) {
 		Govard: engine.LockGovardInfo{Version: "1.0.0"},
 		Host:   engine.LockHostInfo{DockerVersion: "27.2.1", DockerComposeVersion: "2.29.7"},
 		Project: engine.LockProjectInfo{
-			Name:   "demo",
-			Recipe: "magento2",
+			Name:      "demo",
+			Framework: "magento2",
 		},
 	}
 	current := expected

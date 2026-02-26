@@ -16,7 +16,7 @@ Unlike the existing integration tests that use runtime shims (mocked docker, ssh
 │ • MySQL :3306   │  │ • MySQL :3307   │  │ • MySQL :3308   │
 │ • SSH :9022     │  │ • SSH :9023     │  │ • SSH :9024     │
 │                 │  │                 │  │                 │
-│ Recipe:         │  │ Recipe:         │  │ Recipe:         │
+│ Framework:         │  │ Framework:         │  │ Framework:         │
 │ magento2        │  │ magento2        │  │ magento2        │
 └─────────────────┘  └─────────────────┘  └─────────────────┘
          │                    │                    │

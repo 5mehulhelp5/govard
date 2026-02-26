@@ -28,10 +28,10 @@ func pickProjectDirectory(ctx context.Context) (string, error) {
 	return filepath.Clean(path), nil
 }
 
-func onboardProject(projectPath string, recipe string) (string, error) {
+func onboardProject(projectPath string, framework string) (string, error) {
 	return onboardProjectWithOptions(
 		projectPath,
-		recipe,
+		framework,
 		"",
 		false,
 		false,
@@ -43,7 +43,7 @@ func onboardProject(projectPath string, recipe string) (string, error) {
 
 func onboardProjectWithOptions(
 	projectPath string,
-	recipe string,
+	framework string,
 	domain string,
 	varnishEnabled bool,
 	redisEnabled bool,
@@ -86,7 +86,7 @@ func onboardProjectWithOptions(
 
 	ranInit := false
 	if !hasConfig {
-		args := buildInitArgs(recipe)
+		args := buildInitArgs(framework)
 		if _, err := runGovardCommandForDesktop(root, args); err != nil {
 			message = err.Error()
 			return "", fmt.Errorf("project init failed: %w", err)
@@ -179,16 +179,16 @@ func loadProjectConfigForOnboarding(root string) (engine.Config, bool, error) {
 	return cfg, true, nil
 }
 
-func buildInitArgs(recipe string) []string {
+func buildInitArgs(framework string) []string {
 	args := []string{"init"}
-	if normalized := normalizeOnboardingRecipe(recipe); normalized != "" {
-		args = append(args, "--recipe", normalized)
+	if normalized := normalizeOnboardingFramework(framework); normalized != "" {
+		args = append(args, "--framework", normalized)
 	}
 	return args
 }
 
-func normalizeOnboardingRecipe(recipe string) string {
-	switch strings.ToLower(strings.TrimSpace(recipe)) {
+func normalizeOnboardingFramework(framework string) string {
+	switch strings.ToLower(strings.TrimSpace(framework)) {
 	case "", "auto", "detect":
 		return ""
 	case "m2":
@@ -198,7 +198,7 @@ func normalizeOnboardingRecipe(recipe string) string {
 	case "wp":
 		return "wordpress"
 	default:
-		return strings.ToLower(strings.TrimSpace(recipe))
+		return strings.ToLower(strings.TrimSpace(framework))
 	}
 }
 
@@ -284,7 +284,7 @@ func buildProjectRegistryEntry(root string, config engine.Config, command string
 		Path:        filepath.Clean(root),
 		ProjectName: projectName,
 		Domain:      domain,
-		Recipe:      strings.TrimSpace(strings.ToLower(config.Recipe)),
+		Framework:   strings.TrimSpace(strings.ToLower(config.Framework)),
 		LastSeenAt:  time.Now().UTC(),
 		LastCommand: strings.TrimSpace(strings.ToLower(command)),
 	}

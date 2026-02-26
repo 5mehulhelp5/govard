@@ -10,7 +10,7 @@ func PrepareConfigForWrite(config Config) Config {
 	writable := config
 
 	defaultXdebugSession := "PHPSTORM"
-	if profileResult, err := ResolveRuntimeProfile(writable.Recipe, writable.FrameworkVersion); err == nil {
+	if profileResult, err := ResolveRuntimeProfile(writable.Framework, writable.FrameworkVersion); err == nil {
 		candidate := strings.TrimSpace(profileResult.Profile.XdebugSession)
 		if candidate != "" {
 			defaultXdebugSession = candidate

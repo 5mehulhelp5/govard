@@ -13,7 +13,7 @@ import (
 func TestRenderBlueprintWithRabbitMQ(t *testing.T) {
 	content := renderComposeWithConfig(t, engine.Config{
 		ProjectName: "rabbitmq-test",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "rabbitmq.test",
 		Stack: engine.Stack{
 			Services: engine.Services{
@@ -33,7 +33,7 @@ func TestRenderBlueprintWithRabbitMQ(t *testing.T) {
 func TestRenderBlueprintWithValkey(t *testing.T) {
 	content := renderComposeWithConfig(t, engine.Config{
 		ProjectName: "valkey-test",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "valkey.test",
 		Stack: engine.Stack{
 			Services: engine.Services{
@@ -50,7 +50,7 @@ func TestRenderBlueprintWithValkey(t *testing.T) {
 func TestRenderBlueprintWithOpensearch(t *testing.T) {
 	content := renderComposeWithConfig(t, engine.Config{
 		ProjectName: "opensearch-test",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "opensearch.test",
 		Stack: engine.Stack{
 			Services: engine.Services{
@@ -67,7 +67,7 @@ func TestRenderBlueprintWithOpensearch(t *testing.T) {
 func TestRenderNextjsNodeVersionOverride(t *testing.T) {
 	content := renderComposeWithConfig(t, engine.Config{
 		ProjectName: "node-version-test",
-		Recipe:      "nextjs",
+		Framework:   "nextjs",
 		Domain:      "nextjs.test",
 		Stack: engine.Stack{
 			NodeVersion: "20",

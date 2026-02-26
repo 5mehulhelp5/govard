@@ -23,7 +23,7 @@ func TestEnginePkgLoadConfigFromDirLayeredMerge(t *testing.T) {
 	root := t.TempDir()
 
 	mustWriteTestFile(t, filepath.Join(root, ".govard.yml"), `project_name: demo
-recipe: laravel
+framework: laravel
 domain: demo.test
 stack:
   php_version: "8.3"
@@ -99,7 +99,7 @@ func TestEnginePkgValidateConfigAllowsHybridWebServer(t *testing.T) {
 }
 
 func TestEnginePkgNormalizeAndFrameworkDefaults(t *testing.T) {
-	cfg := engine.Config{Recipe: "magento2"}
+	cfg := engine.Config{Framework: "magento2"}
 	engine.NormalizeConfig(&cfg)
 	if cfg.Stack.Services.Cache != "valkey" || cfg.Stack.Services.Search != "opensearch" {
 		t.Fatalf("unexpected normalized services: %+v", cfg.Stack.Services)

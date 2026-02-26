@@ -190,7 +190,7 @@ func TestBootstrapOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 		assertMatrixContains(t, string(data), "\"password\": \"mage-pass\"")
 	})
 
-	t.Run("InitRecipeAndFrameworkVersionWhenConfigMissing", func(t *testing.T) {
+	t.Run("InitFrameworkAndFrameworkVersionWhenConfigMissing", func(t *testing.T) {
 		projectDir := env.CreateTestProject(t, "bootstrap-options-init", map[string]string{
 			"composer.json": `{"name":"test/bootstrap-options-init"}`,
 		})
@@ -202,7 +202,7 @@ func TestBootstrapOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 			"bootstrap",
 			"--clone=false",
 			"--skip-up",
-			"--recipe", "magento2",
+			"--framework", "magento2",
 			"--framework-version", "2.4.8",
 		)
 		result.AssertSuccess(t)
@@ -211,8 +211,8 @@ func TestBootstrapOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 		if err != nil {
 			t.Fatalf("load generated govard config: %v", err)
 		}
-		if cfg.Recipe != "magento2" {
-			t.Fatalf("expected recipe magento2, got %s", cfg.Recipe)
+		if cfg.Framework != "magento2" {
+			t.Fatalf("expected framework magento2, got %s", cfg.Framework)
 		}
 		if cfg.FrameworkVersion != "2.4.8" {
 			t.Fatalf("expected framework version 2.4.8, got %s", cfg.FrameworkVersion)

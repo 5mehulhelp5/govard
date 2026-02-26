@@ -40,7 +40,7 @@ func TestUpsertProjectRegistryEntryUpdatesExistingAndSortsByLastSeen(t *testing.
 		Path:        "/workspace/demo",
 		ProjectName: "demo",
 		Domain:      "demo.test",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		LastSeenAt:  older,
 		LastCommand: "init",
 	}); err != nil {
@@ -51,7 +51,7 @@ func TestUpsertProjectRegistryEntryUpdatesExistingAndSortsByLastSeen(t *testing.
 		Path:        "/workspace/shop",
 		ProjectName: "shop",
 		Domain:      "shop.test",
-		Recipe:      "laravel",
+		Framework:   "laravel",
 		LastSeenAt:  newer,
 		LastCommand: "up",
 	}); err != nil {
@@ -62,7 +62,7 @@ func TestUpsertProjectRegistryEntryUpdatesExistingAndSortsByLastSeen(t *testing.
 		Path:        "/workspace/demo",
 		ProjectName: "demo",
 		Domain:      "demo.test",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		LastSeenAt:  newest,
 		LastCommand: "bootstrap",
 	}); err != nil {

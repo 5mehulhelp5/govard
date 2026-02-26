@@ -130,7 +130,7 @@ func (app *App) PickProjectDirectory() string {
 
 func (app *App) OnboardProject(
 	projectPath string,
-	recipe string,
+	framework string,
 	domain string,
 	varnishEnabled bool,
 	redisEnabled bool,
@@ -139,7 +139,7 @@ func (app *App) OnboardProject(
 ) string {
 	message, err := onboardProjectWithOptions(
 		projectPath,
-		recipe,
+		framework,
 		domain,
 		varnishEnabled,
 		redisEnabled,

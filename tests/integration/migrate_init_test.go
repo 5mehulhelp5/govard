@@ -44,8 +44,8 @@ php_version: "8.3"
 	if !strings.Contains(content, "project_name: migrate-test") {
 		t.Errorf("expected project_name: migrate-test in config, got:\n%s", content)
 	}
-	if !strings.Contains(content, "recipe: laravel") {
-		t.Errorf("expected recipe: laravel in config, got:\n%s", content)
+	if !strings.Contains(content, "framework: laravel") {
+		t.Errorf("expected framework: laravel in config, got:\n%s", content)
 	}
 	if !strings.Contains(content, "php_version: \"8.3\"") {
 		t.Errorf("expected php_version: \"8.3\" in config, got:\n%s", content)

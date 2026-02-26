@@ -1,6 +1,6 @@
 project_name: m2-clone-basic
 domain: m2-clone-basic.test
-recipe: magento2
+framework: magento2
 remotes:
   dev:
     host: dev.example.com

@@ -194,7 +194,7 @@ Test projects located in `tests/`:
 ### Naming Conventions
 
 - **Files**: `snake_case.go` (e.g., `config_manage.go`, `self_update.go`)
-- **Structs**: PascalCase (e.g., `RecipeCommand`, `ProjectMetadata`)
+- **Structs**: PascalCase (e.g., `FrameworkCommand`, `ProjectMetadata`)
 - **Functions**: PascalCase for exported, camelCase for private
 - **Variables**: camelCase (e.g., `rootCmd`, `errorFilter`)
 - **Constants**: PascalCase (e.g., `Version = "1.0.0"`)
@@ -304,7 +304,7 @@ services:
     depends_on: [php]
 
   php:
-    image: {{ if eq .Config.Recipe "magento2" }}{{ $.ImageRepository }}/php-magento2:{{ .Config.Stack.PHPVersion }}{{ else }}{{ $.ImageRepository }}/php:{{ .Config.Stack.PHPVersion }}{{ end }}
+    image: {{ if eq .Config.Framework "magento2" }}{{ $.ImageRepository }}/php-magento2:{{ .Config.Stack.PHPVersion }}{{ else }}{{ $.ImageRepository }}/php:{{ .Config.Stack.PHPVersion }}{{ end }}
     volumes:
       - .:/var/www/html
     environment:

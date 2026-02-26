@@ -13,7 +13,7 @@ import (
 func testLockStrictConfig() engine.Config {
 	return engine.Config{
 		ProjectName: "demo",
-		Recipe:      "magento2",
+		Framework:   "magento2",
 		Domain:      "demo.test",
 		Stack: engine.Stack{
 			PHPVersion:    "8.4",
