@@ -114,6 +114,14 @@ func runBootstrapSampleData(cmd *cobra.Command) error {
 	return nil
 }
 
+func runBootstrapMagentoReindex(cmd *cobra.Command) error {
+	pterm.Info.Println("Reindexing data...")
+	if err := runGovardSubcommand(cmd, govardMagentoSubcommandArgs("indexer:reindex")...); err != nil {
+		return fmt.Errorf("reindex failed: %w", err)
+	}
+	return nil
+}
+
 func runBootstrapAdminCreate(cmd *cobra.Command, config engine.Config) {
 	emailDomain := config.Domain
 	if emailDomain == "" {

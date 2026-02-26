@@ -191,6 +191,12 @@ Case Studies:
 			}
 		}
 
+		pterm.DefaultSection.Println("Project Information")
+		pterm.Info.Printf("Project:   %s\n", config.ProjectName)
+		pterm.Info.Printf("Framework: %s\n", config.Framework)
+		pterm.Info.Printf("Domain:    %s\n", config.Domain)
+		pterm.Info.Printf("URL:       https://%s\n", config.Domain)
+
 		pterm.Success.Printf("Bootstrap completed in %s.\n", time.Since(startedAt).Round(time.Second))
 		return nil
 	},
@@ -379,18 +385,23 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrap
 		runBootstrapAdminCreate(cmd, config)
 	}
 
+	if config.Framework == "magento2" {
+		if err := runBootstrapMagentoReindex(cmd); err != nil {
+			return err
+		}
+	}
+
 	if opts.MediaSync {
 		if skip, reason := shouldSkipBootstrapMediaSync(config, opts); skip {
 			pterm.Warning.Printf("Skipping media sync: %s\n", reason)
-			pterm.Success.Printf("Bootstrap clone from '%s' completed.\n", opts.Source)
-			return nil
-		}
-		args := []string{"sync", "--source", opts.Source, "--media"}
-		if config.Framework == "magento2" {
-			args = append(args, bootstrapMagentoMediaSyncArgs(opts)...)
-		}
-		if err := runGovardSubcommand(cmd, args...); err != nil {
-			return fmt.Errorf("media sync failed: %w", err)
+		} else {
+			args := []string{"sync", "--source", opts.Source, "--media"}
+			if config.Framework == "magento2" {
+				args = append(args, bootstrapMagentoMediaSyncArgs(opts)...)
+			}
+			if err := runGovardSubcommand(cmd, args...); err != nil {
+				return fmt.Errorf("media sync failed: %w", err)
+			}
 		}
 	}
 
