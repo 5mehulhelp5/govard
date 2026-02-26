@@ -56,7 +56,7 @@ func CheckPortForGovardProxy(port string) bool {
 			if isPortBoundByGovardProxy(port) {
 				return true
 			}
-			// If not bound by our proxy, but we can't check further, 
+			// If not bound by our proxy, but we can't check further,
 			// we check if ANY other container is binding it.
 			if isPortBoundByOtherContainer(port) {
 				return false
