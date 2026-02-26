@@ -5,6 +5,7 @@ import (
 	"govard/internal/engine"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -18,7 +19,7 @@ var initCmd = &cobra.Command{
 	Short: "Initialize a new project configuration",
 	Long: `Initialize a Govard project configuration in the current directory.
 It automatically detects the framework (Magento, Laravel, Symfony, etc.) and generates a .govard.yml file.
-If detection fails, it falls back to a 'custom' recipe with interactive prompts.
+If detection fails, it prompts you to select a recipe (defaulting to 'custom').
 
 Common Framework Versions:
 - Magento: 2.4.4, 2.4.5, 2.4.6, 2.4.7
@@ -102,8 +103,15 @@ Case Studies:
 			metadata.Version = initFrameworkVersion
 		}
 		if metadata.Framework == "" || metadata.Framework == "generic" {
-			pterm.Warning.Println("Could not detect framework confidently. Falling back to custom recipe defaults.")
-			metadata.Framework = "custom"
+			pterm.Warning.Println("Could not detect framework confidently.")
+
+			recipeOptions := make([]string, 0, len(engine.FrameworkConfigs))
+			for k := range engine.FrameworkConfigs {
+				recipeOptions = append(recipeOptions, k)
+			}
+			sort.Strings(recipeOptions)
+
+			metadata.Framework = selectOption("Select project recipe", recipeOptions, "custom")
 			metadata.Version = ""
 		}
 
