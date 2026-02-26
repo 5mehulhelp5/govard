@@ -10,19 +10,13 @@ Govard provides automated local HTTPS for all `.test` domains using a built-in c
 
 ## 🛠️ Setup
 
-### 0. DNS Resolver for `.test` Domains
+### 1. DNS Resolver for `.test` Domains
 
-You need a local DNS resolver that maps `*.test` to `127.0.0.1`. If you already have one, skip this step.
+Govard now runs a built-in `dnsmasq` service on the local loopback interface (port 53) to automatically resolve `*.test` domains to your local environment.
 
-Linux (systemd-resolved + dnsmasq example):
+You need to configure your operating system to forward `.test` queries to this local service.
 
-```bash
-sudo apt-get install dnsmasq
-echo "address=/.test/127.0.0.1" | sudo tee /etc/dnsmasq.d/govard-test.conf
-sudo systemctl restart dnsmasq
-```
-
-Linux (systemd-resolved only):
+**Linux (Ubuntu/Debian with systemd-resolved - Recommended):**
 
 ```bash
 sudo mkdir -p /etc/systemd/resolved.conf.d
@@ -34,7 +28,7 @@ EOF
 sudo systemctl restart systemd-resolved
 ```
 
-Ubuntu (resolvconf):
+**Ubuntu (resolvconf - Legacy):**
 
 ```bash
 sudo apt-get install resolvconf
@@ -42,7 +36,7 @@ echo "nameserver 127.0.0.1" | sudo tee /etc/resolvconf/resolv.conf.d/tail
 sudo resolvconf -u
 ```
 
-Arch Linux (systemd-resolved):
+**Arch Linux (systemd-resolved):**
 
 ```bash
 sudo systemctl enable --now systemd-resolved
@@ -56,7 +50,7 @@ EOF
 sudo systemctl restart systemd-resolved
 ```
 
-Fedora (systemd-resolved):
+**Fedora (systemd-resolved):**
 
 ```bash
 sudo systemctl enable --now systemd-resolved
@@ -84,7 +78,7 @@ sudo mkdir -p /etc/resolver
 echo "nameserver 127.0.0.1" | sudo tee /etc/resolver/test
 ```
 
-### 1. Install the Root CA
+### 2. Install the Root CA
 
 Before trusting the CA, ensure the global proxy is running:
 
@@ -110,7 +104,7 @@ docker cp proxy-caddy-1:/data/caddy/pki/authorities/local/root.crt /tmp/govard-c
 govard doctor trust
 ```
 
-### 2. Browser Configuration (Chrome/Edge/Brave)
+### 3. Browser Configuration (Chrome/Edge/Brave)
 
 On Linux, Chromium-based browsers may require a manual import of the Root CA to remove the "Your connection is not private" warning:
 

@@ -29,22 +29,96 @@ func CheckDockerStatus() error {
 	return err
 }
 
-func CheckPort(port string) bool {
+func CheckPort(port string) error {
 	ln, err := net.Listen("tcp", ":"+port)
 	if err != nil {
-		return false
+		return err
 	}
 	ln.Close()
-	return true
+	return nil
 }
 
 // CheckPortForGovardProxy returns true when the port is available OR already
 // bound by the Govard proxy container (proxy-caddy), which is an expected state.
+// It includes a retry logic to handle race conditions during container restarts
+// and properly handles permission errors for privileged ports.
 func CheckPortForGovardProxy(port string) bool {
-	if CheckPort(port) {
-		return true
+	maxRetries := 10
+	for i := 0; i < maxRetries; i++ {
+		err := CheckPort(port)
+		if err == nil {
+			return true
+		}
+
+		// If it's a permission denied error, we can't listen on this port,
+		// but it doesn't necessarily mean it's in use. We rely on Docker check.
+		if strings.Contains(err.Error(), "permission denied") {
+			if isPortBoundByGovardProxy(port) {
+				return true
+			}
+			// If not bound by our proxy, but we can't check further, 
+			// we check if ANY other container is binding it.
+			if isPortBoundByOtherContainer(port) {
+				return false
+			}
+			// If no other container is binding it, we assume we might be good
+			// but we still wait a bit in case of transition.
+			time.Sleep(200 * time.Millisecond)
+			if i == maxRetries-1 {
+				return true // Best effort: assume it's free if Docker says so
+			}
+			continue
+		}
+
+		// If the error is "address already in use", check if it's our proxy
+		if isPortBoundByGovardProxy(port) {
+			return true
+		}
+
+		// If we are here, port is in use but not by Govard proxy (yet).
+		// Give it a moment to settle (e.g., during restart) before failing.
+		if i < maxRetries-1 {
+			time.Sleep(500 * time.Millisecond)
+		}
 	}
-	return isPortBoundByGovardProxy(port)
+	return false
+}
+
+func isPortBoundByOtherContainer(port string) bool {
+	targetPort, err := strconv.Atoi(strings.TrimSpace(port))
+	if err != nil {
+		return false
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return false
+	}
+	defer func() {
+		_ = cli.Close()
+	}()
+
+	containers, err := cli.ContainerList(ctx, container.ListOptions{})
+	if err != nil {
+		return false
+	}
+
+	for _, c := range containers {
+		// Skip our own proxy
+		if isGovardProxyContainer(c.Names) {
+			continue
+		}
+		for _, published := range c.Ports {
+			if published.Type == "tcp" && int(published.PublicPort) == targetPort {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 func isPortBoundByGovardProxy(port string) bool {

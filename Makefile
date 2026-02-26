@@ -161,6 +161,7 @@ images:
 	docker build -t $(DOCKER_ORG)varnish:7.0 --build-arg VARNISH_VERSION=7.0 docker/varnish
 	docker build -t $(DOCKER_ORG)varnish:6.0 --build-arg VARNISH_VERSION=6.0 --build-arg VARNISH_IMAGE_TAG=6.0 docker/varnish
 	docker build -t $(DOCKER_ORG)varnish:latest --build-arg VARNISH_VERSION=7.6 docker/varnish
+	docker build -t $(DOCKER_ORG)dnsmasq:latest docker/dnsmasq
 
 push:
 	@echo "Pushing Govard Docker Images..."
@@ -234,3 +235,4 @@ push:
 	docker push $(DOCKER_ORG)varnish:7.0
 	docker push $(DOCKER_ORG)varnish:6.0
 	docker push $(DOCKER_ORG)varnish:latest
+	docker push $(DOCKER_ORG)dnsmasq:latest

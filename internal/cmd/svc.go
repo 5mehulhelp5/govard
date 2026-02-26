@@ -244,10 +244,10 @@ func runGlobalProxyCompose(cmd *cobra.Command, args ...string) error {
 }
 
 func registerGlobalServiceRoutes() error {
-	if err := proxy.RegisterDomain("mail.govard.test", "proxy-mail-1:8025"); err != nil {
+	if err := proxy.RegisterDomain("mail.govard.test", "govard-proxy-mail:8025"); err != nil {
 		return fmt.Errorf("register mail route: %w", err)
 	}
-	if err := proxy.RegisterDomain("pma.govard.test", "proxy-pma-1:80"); err != nil {
+	if err := proxy.RegisterDomain("pma.govard.test", "govard-proxy-pma:80"); err != nil {
 		return fmt.Errorf("register pma route: %w", err)
 	}
 	return nil

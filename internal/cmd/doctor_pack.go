@@ -154,7 +154,6 @@ func writeRuntimeCommandSnapshots(path string) error {
 		{title: "docker version", args: []string{"docker", "version"}},
 		{title: "docker compose version", args: []string{"docker", "compose", "version"}},
 		{title: "docker ps (govard/proxy related)", args: []string{"docker", "ps", "--format", "{{.Names}}\t{{.Status}}"}},
-		{title: "docker logs proxy-caddy-1", args: []string{"docker", "logs", "--tail", "200", "proxy-caddy-1"}},
 		{title: "docker logs govard-proxy-caddy", args: []string{"docker", "logs", "--tail", "200", "govard-proxy-caddy"}},
 	}
 

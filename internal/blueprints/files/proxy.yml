@@ -3,7 +3,7 @@ version: '3.8'
 services:
   caddy:
     image: caddy:latest
-    container_name: proxy-caddy-1
+    container_name: govard-proxy-caddy
     restart: "no"
     ports:
       - "80:80"
@@ -17,7 +17,7 @@ services:
 
   mail:
     image: axllent/mailpit:latest
-    container_name: proxy-mail-1
+    container_name: govard-proxy-mail
     restart: always
     environment:
       - MP_MAX_MESSAGES=500
@@ -28,10 +28,23 @@ services:
 
   pma:
     image: phpmyadmin/phpmyadmin:latest
-    container_name: proxy-pma-1
+    container_name: govard-proxy-pma
     restart: always
     environment:
       - PMA_ARBITRARY=1
+    networks:
+      - govard-proxy
+
+  dnsmasq:
+    image: ddtcorex/govard-dnsmasq:latest
+    container_name: govard-proxy-dnsmasq
+    restart: always
+    cap_add:
+      - NET_ADMIN
+    command: -k -A /.test/127.0.0.1
+    ports:
+      - "127.0.0.1:53:53/udp"
+      - "127.0.0.1:53:53/tcp"
     networks:
       - govard-proxy
 

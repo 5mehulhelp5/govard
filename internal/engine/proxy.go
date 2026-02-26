@@ -53,25 +53,26 @@ func EnsureGlobalProxy() error {
 		}
 	}
 
+	tempDir := filepath.Join(os.Getenv("HOME"), ".govard", "proxy")
+	os.MkdirAll(tempDir, 0755)
+
+	blueprintsFS, err := findBlueprintsFS(".")
+	if err != nil {
+		return err
+	}
+	content, err := fs.ReadFile(blueprintsFS, "proxy.yml")
+	if err != nil {
+		return fmt.Errorf("could not find proxy blueprint")
+	}
+
+	proxyFile := filepath.Join(tempDir, "docker-compose.yml")
+	// Always write the file to ensure we're using the latest proxy configuration
+	if err := os.WriteFile(proxyFile, content, 0644); err != nil {
+		return err
+	}
+
 	if !caddyFound {
 		pterm.Info.Println("Starting global Govard proxy...")
-		tempDir := filepath.Join(os.Getenv("HOME"), ".govard", "proxy")
-		os.MkdirAll(tempDir, 0755)
-
-		blueprintsFS, err := findBlueprintsFS(".")
-		if err != nil {
-			return err
-		}
-		content, err := fs.ReadFile(blueprintsFS, "proxy.yml")
-		if err != nil {
-			return fmt.Errorf("could not find proxy blueprint")
-		}
-
-		proxyFile := filepath.Join(tempDir, "docker-compose.yml")
-		if err := os.WriteFile(proxyFile, content, 0644); err != nil {
-			return err
-		}
-
 		cmd := exec.Command("docker", "compose", "-p", "proxy", "up", "-d")
 		cmd.Dir = tempDir
 		if output, err := cmd.CombinedOutput(); err != nil {
@@ -95,8 +96,8 @@ func EnsureGlobalProxy() error {
 
 	// 3. Register global domains (ensure they are always set)
 	pterm.Debug.Println("Registering global service domains...")
-	proxy.RegisterDomain("mail.govard.test", "proxy-mail-1:8025")
-	proxy.RegisterDomain("pma.govard.test", "proxy-pma-1:80")
+	proxy.RegisterDomain("mail.govard.test", "govard-proxy-mail:8025")
+	proxy.RegisterDomain("pma.govard.test", "govard-proxy-pma:80")
 
 	return nil
 }

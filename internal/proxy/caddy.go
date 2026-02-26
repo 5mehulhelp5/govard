@@ -9,7 +9,7 @@ import (
 )
 
 func RegisterDomain(domain string, targetContainer string) error {
-	proxyContainer := "proxy-caddy-1"
+	proxyContainer := "govard-proxy-caddy"
 	config, err := fetchCaddyConfig(proxyContainer)
 	if err != nil || len(config) == 0 {
 		if err := initCaddy(proxyContainer); err != nil {
@@ -32,7 +32,7 @@ func RegisterDomain(domain string, targetContainer string) error {
 }
 
 func UnregisterDomain(domain string) error {
-	proxyContainer := "proxy-caddy-1"
+	proxyContainer := "govard-proxy-caddy"
 	config, err := fetchCaddyConfig(proxyContainer)
 	if err != nil {
 		return nil
@@ -45,7 +45,7 @@ func UnregisterDomain(domain string) error {
 }
 
 func EnsureTLS() error {
-	proxyContainer := "proxy-caddy-1"
+	proxyContainer := "govard-proxy-caddy"
 
 	config, err := fetchCaddyConfig(proxyContainer)
 	if err != nil || len(config) == 0 {

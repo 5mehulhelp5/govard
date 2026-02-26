@@ -31,7 +31,7 @@ func TrustCA() error {
 func trustLinux() error {
 	pterm.Info.Println("On Linux, this requires sudo privileges to update /usr/local/share/ca-certificates/")
 
-	proxyContainer := "proxy-caddy-1"
+	proxyContainer := "govard-proxy-caddy"
 
 	// Get the actual user's home directory even if running under sudo
 	homeDir := os.Getenv("HOME")
