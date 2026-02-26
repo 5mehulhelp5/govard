@@ -1,5 +1,7 @@
 package engine
 
+import "strings"
+
 type Features struct {
 	Xdebug        bool `yaml:"xdebug"`
 	Varnish       bool `yaml:"varnish"`
@@ -35,10 +37,13 @@ type Stack struct {
 }
 
 type Config struct {
-	ProjectName       string                  `yaml:"project_name"`
-	Framework         string                  `yaml:"framework"`
-	FrameworkVersion  string                  `yaml:"framework_version,omitempty"`
-	Domain            string                  `yaml:"domain"`
+	ProjectName      string            `yaml:"project_name"`
+	Framework        string            `yaml:"framework"`
+	FrameworkVersion string            `yaml:"framework_version,omitempty"`
+	Domain           string            `yaml:"domain"`
+	ExtraDomains     []string          `yaml:"extra_domains,omitempty"`
+	StoreDomains     map[string]string `yaml:"store_domains,omitempty"`
+
 	Lock              LockConfig              `yaml:"lock,omitempty"`
 	BlueprintRegistry BlueprintRegistryConfig `yaml:"blueprint_registry,omitempty"`
 	Stack             Stack                   `yaml:"stack"`
@@ -61,4 +66,28 @@ type BlueprintRegistryConfig struct {
 type HookStep struct {
 	Name string `yaml:"name"`
 	Run  string `yaml:"run"`
+}
+
+// AllDomains returns the primary Domain followed by any non-duplicate ExtraDomains.
+// It trims whitespace from each domain and skips empty strings.
+func (c Config) AllDomains() []string {
+	seen := make(map[string]bool)
+	domains := []string{}
+
+	primary := strings.TrimSpace(c.Domain)
+	if primary != "" {
+		domains = append(domains, primary)
+		seen[primary] = true
+	}
+
+	for _, domain := range c.ExtraDomains {
+		trimmed := strings.TrimSpace(domain)
+		if trimmed == "" || seen[trimmed] {
+			continue
+		}
+		domains = append(domains, trimmed)
+		seen[trimmed] = true
+	}
+
+	return domains
 }

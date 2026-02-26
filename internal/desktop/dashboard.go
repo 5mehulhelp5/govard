@@ -139,6 +139,7 @@ func buildDashboard() (Dashboard, error) {
 			if entry.Domain != "" {
 				env.Name = entry.Domain
 			}
+			env.ExtraDomains = entry.ExtraDomains
 			if framework := strings.TrimSpace(entry.Framework); framework != "" {
 				env.Framework = displayFramework(framework)
 			}
@@ -298,6 +299,7 @@ func buildEnvironment(info *projectInfo) Environment {
 
 	if info.configLoaded {
 		env.Domain = info.config.Domain
+		env.ExtraDomains = info.config.ExtraDomains
 		env.Framework = displayFramework(info.config.Framework)
 		env.PHP = info.config.Stack.PHPVersion
 		env.Database = formatDatabase(info.config.Stack.DBType, info.config.Stack.DBVersion)

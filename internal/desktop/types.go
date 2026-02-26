@@ -26,6 +26,7 @@ type UserInfo struct {
 type Environment struct {
 	Project        string   `json:"project"`
 	Domain         string   `json:"domain"`
+	ExtraDomains   []string `json:"extraDomains,omitempty"`
 	Name           string   `json:"name"`
 	Framework      string   `json:"framework"`
 	PHP            string   `json:"php"`

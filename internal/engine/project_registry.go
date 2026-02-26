@@ -16,12 +16,13 @@ const (
 )
 
 type ProjectRegistryEntry struct {
-	Path        string    `json:"path"`
-	ProjectName string    `json:"project_name"`
-	Domain      string    `json:"domain,omitempty"`
-	Framework   string    `json:"framework,omitempty"`
-	LastSeenAt  time.Time `json:"last_seen_at"`
-	LastCommand string    `json:"last_command,omitempty"`
+	Path         string    `json:"path"`
+	ProjectName  string    `json:"project_name"`
+	Domain       string    `json:"domain,omitempty"`
+	ExtraDomains []string  `json:"extra_domains,omitempty"`
+	Framework    string    `json:"framework,omitempty"`
+	LastSeenAt   time.Time `json:"last_seen_at"`
+	LastCommand  string    `json:"last_command,omitempty"`
 }
 
 type projectRegistryDocument struct {
@@ -110,6 +111,9 @@ func normalizeProjectRegistryEntry(entry ProjectRegistryEntry) (ProjectRegistryE
 	entry.Path = filepath.Clean(entry.Path)
 	entry.ProjectName = strings.TrimSpace(entry.ProjectName)
 	entry.Domain = strings.TrimSpace(entry.Domain)
+	for i, d := range entry.ExtraDomains {
+		entry.ExtraDomains[i] = strings.TrimSpace(d)
+	}
 	entry.Framework = strings.TrimSpace(strings.ToLower(entry.Framework))
 	entry.LastCommand = strings.TrimSpace(strings.ToLower(entry.LastCommand))
 	if entry.LastSeenAt.IsZero() {

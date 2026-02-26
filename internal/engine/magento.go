@@ -215,6 +215,22 @@ func buildMagentoCommands(projectName string, config Config) []magentoCommand {
 		})
 	}
 
+	// Per-store base URLs
+	for domain, storeCode := range config.StoreDomains {
+		baseURL := fmt.Sprintf("https://%s/", domain)
+		commands = append(commands, magentoCommand{
+			Desc: fmt.Sprintf("Setting Base URL for store %s", storeCode),
+			Args: magentoDockerExecArgs(containerName, config, "bin/magento", "config:set",
+				"--scope=stores", "--scope-code="+storeCode, "web/unsecure/base_url", baseURL, "--no-interaction"),
+			Optional: true,
+		}, magentoCommand{
+			Desc: fmt.Sprintf("Setting Secure Base URL for store %s", storeCode),
+			Args: magentoDockerExecArgs(containerName, config, "bin/magento", "config:set",
+				"--scope=stores", "--scope-code="+storeCode, "web/secure/base_url", baseURL, "--no-interaction"),
+			Optional: true,
+		})
+	}
+
 	commands = append(commands, magentoCommand{
 		Desc: "Enable Web Server Rewrites",
 		Args: magentoDockerExecArgs(containerName, config, "bin/magento", "config:set",

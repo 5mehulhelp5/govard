@@ -47,10 +47,11 @@ type LockHostInfo struct {
 }
 
 type LockProjectInfo struct {
-	Name             string `yaml:"name"`
-	Domain           string `yaml:"domain,omitempty"`
-	Framework        string `yaml:"framework,omitempty"`
-	FrameworkVersion string `yaml:"framework_version,omitempty"`
+	Name             string   `yaml:"name"`
+	Domain           string   `yaml:"domain,omitempty"`
+	ExtraDomains     []string `yaml:"extra_domains,omitempty"`
+	Framework        string   `yaml:"framework,omitempty"`
+	FrameworkVersion string   `yaml:"framework_version,omitempty"`
 }
 
 type LockStackInfo struct {
@@ -118,6 +119,7 @@ func BuildLockFileFromConfig(cwd string, config Config, govardVersion string, de
 		Project: LockProjectInfo{
 			Name:             normalizeLockProjectName(config, cwd),
 			Domain:           strings.TrimSpace(config.Domain),
+			ExtraDomains:     config.ExtraDomains,
 			Framework:        strings.TrimSpace(config.Framework),
 			FrameworkVersion: strings.TrimSpace(config.FrameworkVersion),
 		},

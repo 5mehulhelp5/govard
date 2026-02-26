@@ -152,9 +152,11 @@ func reviveRunningProjectRoutes() error {
 		}
 
 		target := ResolveUpProxyTarget(config)
-		pterm.Info.Printf("Reviving route for %s -> %s\n", config.Domain, target)
-		if err := proxy.RegisterDomain(config.Domain, target); err != nil {
-			pterm.Warning.Printf("Failed to revive route for %s: %v\n", config.Domain, err)
+		for _, domain := range config.AllDomains() {
+			pterm.Info.Printf("Reviving route for %s -> %s\n", domain, target)
+			if err := proxy.RegisterDomain(domain, target); err != nil {
+				pterm.Warning.Printf("Failed to revive route for %s: %v\n", domain, err)
+			}
 		}
 	}
 

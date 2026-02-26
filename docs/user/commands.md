@@ -115,6 +115,18 @@ govard env down --rmi local --timeout 20
 
 See `docs/commands/down.md`.
 
+### `govard domain`
+
+Manage additional domains for the project.
+
+```bash
+govard domain add <domain>
+govard domain remove <domain>
+govard domain list
+```
+
+See `docs/commands/domain.md`.
+
 ### `govard svc`
 
 Manage global services and workspace-wide sleep state.

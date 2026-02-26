@@ -211,18 +211,20 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 			Name:         "Verify",
 			OnFailureTip: "govard doctor",
 			Run: func() error {
-				if err := engine.AddHostsEntry(context.Config.Domain); err != nil {
-					pterm.Warning.Printf("Could not update hosts file: %v\n", err)
-					pterm.Info.Printf("Please manually add '127.0.0.1 %s' to your hosts file.\n", context.Config.Domain)
-				} else {
-					pterm.Success.Printf("Domain %s mapped to 127.0.0.1\n", context.Config.Domain)
-				}
-
 				target := ResolveUpProxyTarget(context.Config)
-				if err := proxy.RegisterDomain(context.Config.Domain, target); err != nil {
-					pterm.Warning.Printf("Could not register domain with Govard Proxy: %v\n", err)
-				} else {
-					pterm.Success.Printf("Domain %s registered with Govard Proxy -> %s\n", context.Config.Domain, target)
+				for _, domain := range context.Config.AllDomains() {
+					if err := engine.AddHostsEntry(domain); err != nil {
+						pterm.Warning.Printf("Could not update hosts file for %s: %v\n", domain, err)
+						pterm.Info.Printf("Please manually add '127.0.0.1 %s' to your hosts file.\n", domain)
+					} else {
+						pterm.Success.Printf("Domain %s mapped to 127.0.0.1\n", domain)
+					}
+
+					if err := proxy.RegisterDomain(domain, target); err != nil {
+						pterm.Warning.Printf("Could not register domain %s with Govard Proxy: %v\n", domain, err)
+					} else {
+						pterm.Success.Printf("Domain %s registered with Govard Proxy -> %s\n", domain, target)
+					}
 				}
 
 				if err := engine.RunHooks(context.Config, engine.HookPostUp, context.Out, context.Err); err != nil {

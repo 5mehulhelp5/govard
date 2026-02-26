@@ -61,6 +61,7 @@ func init() {
 	rootCmd.AddCommand(dbCmd)
 	rootCmd.AddCommand(debugCmd)
 	rootCmd.AddCommand(desktopCmd)
+	rootCmd.AddCommand(domainCmd)
 
 	// Framework & Tooling Shortcuts
 	initFrameworkCommands()

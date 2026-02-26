@@ -24,6 +24,7 @@ govard config auto
 ```
 
 **Requirements:**
+
 - Magento 2 must be installed
 - Containers must be running (`govard env up`)
 - `bin/magento` must be available
@@ -75,6 +76,7 @@ Sets `system/full_page_cache/caching_application` to `2` (Varnish).
 ### Web Server
 
 **Nginx** (default) - Optimed for serving from `pub/` folder:
+
 - Static file caching
 - PHP-FPM proxying
 - Security headers
@@ -82,6 +84,7 @@ Sets `system/full_page_cache/caching_application` to `2` (Varnish).
 ### PHP-FPM
 
 Pre-configured with:
+
 - PHP 7.4, 8.1, 8.2, 8.3, or 8.4 (default 8.4)
 - Required extensions: intl, gd, bcmath, soap, xsl, zip, sockets
 - Optimized `memory_limit` (4G)
@@ -92,6 +95,7 @@ Pre-configured with:
 ### Database
 
 **MariaDB 11.4** (default) with:
+
 - Database: `magento`
 - User: `magento` / `magento`
 - Root: `root` / `root`
@@ -99,6 +103,7 @@ Pre-configured with:
 ### Varnish 7.x
 
 Custom VCL with:
+
 - Cache bypass for Admin and Checkout routes
 - Support for `X-Magento-Tags` purging
 - Grace periods for stale-content delivery
@@ -121,6 +126,7 @@ You can provide multiple values separated by commas (e.g. `PHPSTORM,VSCODE`).
 ### Redis Architecture
 
 Single Redis service for cache and sessions:
+
 1. **redis**: Cache (default + FPC) and sessions (db 2)
 
 ## Magento CLI
@@ -226,3 +232,30 @@ govard tool magento config:set catalog/search/engine opensearch
 govard tool magento config:set catalog/search/opensearch_server_hostname elasticsearch
 govard tool magento config:set catalog/search/opensearch_server_port 9200
 ```
+
+## Multistore Support
+
+Govard supports mapping multiple domains to specific Magento store codes. This allows you to have different base URLs for different store views in your local environment.
+
+### Configuration
+
+Add `extra_domains` and `store_domains` to your `.govard.yml`:
+
+```yaml
+domain: main.test
+extra_domains:
+  - brand-b.test
+store_domains:
+  brand-b.test: brand_b_store
+```
+
+### How it works
+
+When `store_domains` is configured:
+
+1. **Routing**: Govard Proxy will route traffic for both `main.test` and `brand-b.test` to the same project containers.
+2. **Auto-Configuration**: When you run `govard config auto`, Govard automatically generates `config:set` commands for each mapped store code:
+   - Sets `web/unsecure/base_url` and `web/secure/base_url` for the specific store scope.
+   - The URLs will follow the format `https://<domain>/`.
+
+This ensures that clicking links or navigating between stores correctly uses the mapped local domains.

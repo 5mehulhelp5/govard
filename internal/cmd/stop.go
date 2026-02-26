@@ -40,12 +40,12 @@ Case Studies:
 			return fmt.Errorf("failed to stop containers: %w", err)
 		}
 
-		if config.Domain != "" {
-			if err := proxy.UnregisterDomain(config.Domain); err != nil {
-				pterm.Warning.Printf("Could not remove proxy route for %s: %v\n", config.Domain, err)
+		for _, domain := range config.AllDomains() {
+			if err := proxy.UnregisterDomain(domain); err != nil {
+				pterm.Warning.Printf("Could not remove proxy route for %s: %v\n", domain, err)
 			}
-			if err := engine.RemoveHostsEntry(config.Domain); err != nil {
-				pterm.Warning.Printf("Could not remove hosts entry for %s: %v\n", config.Domain, err)
+			if err := engine.RemoveHostsEntry(domain); err != nil {
+				pterm.Warning.Printf("Could not remove hosts entry for %s: %v\n", domain, err)
 			}
 		}
 

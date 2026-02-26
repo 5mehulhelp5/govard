@@ -265,31 +265,32 @@ _Note: Once trusted, all `*.test` domains managed by Govard will show a "Green L
 
 | Command             | Description                                                   |
 | :------------------ | :------------------------------------------------------------ |
-| `govard init`       | Initialize a new project configuration                        |
-| `govard bootstrap`  | Bootstrap local project setup and clone a remote environment |
-| `govard env`        | Project-scoped lifecycle and service wrapper                 |
-| `govard svc`        | Manage global services and workspace sleep state             |
-| `govard tool`       | Run framework/tooling CLIs inside project containers         |
-| `govard shell`      | Enter the application container                              |
-| `govard db`         | Database operations (`connect`, `dump`, `import`, `query`, `info`) |
-| `govard debug`      | Toggle Xdebug for the current environment                    |
-| `govard open`       | Open common service URLs                                     |
-| `govard remote`     | Manage remote environments                                   |
-| `govard sync`       | Synchronize files, media, and databases between environments |
-| `govard status`     | List running project environments across workspace           |
-| `govard doctor`     | Run system diagnostics and remediation helpers               |
-| `govard config`     | Manage `.govard.yml` configuration from CLI                   |
-| `govard deploy`     | Deploy the application                                       |
-| `govard snapshot`   | Manage local snapshots for database and media                |
-| `govard lock`       | Generate and validate `govard.lock` snapshots               |
-| `govard tunnel`     | Start a public tunnel to a local project URL                 |
-| `govard custom`     | Run project custom commands from `.govard/commands`          |
-| `govard projects`   | Query known projects from local registry                     |
-| `govard extensions` | Manage project extension contract in `.govard`               |
-| `govard desktop`    | Launch the Govard Desktop app (`--background` supported)     |
-| `govard self-update` | Upgrade the Govard binary                                    |
-| `govard upgrade`    | Upgrade the framework version                                |
-| `govard version`    | Print the version number of Govard                           |
+| `govard init`         | Initialize a new project configuration                        |
+| `govard bootstrap`    | Bootstrap local project setup and clone a remote environment |
+| `govard env`          | Project-scoped lifecycle and service wrapper                 |
+| `govard domain`       | Manage additional domains for the project                    |
+| `govard svc`          | Manage global services and workspace sleep state             |
+| `govard tool`         | Run framework/tooling CLIs inside project containers         |
+| `govard shell`        | Enter the application container                              |
+| `govard db`           | Database operations (`connect`, `dump`, `import`, `query`, `info`) |
+| `govard debug`        | Toggle Xdebug for the current environment                    |
+| `govard open`         | Open common service URLs                                     |
+| `govard remote`       | Manage remote environments                                   |
+| `govard sync`         | Synchronize files, media, and databases between environments |
+| `govard status`       | List running project environments across workspace           |
+| `govard doctor`       | Run system diagnostics and remediation helpers               |
+| `govard config`       | Manage `.govard.yml` configuration from CLI                   |
+| `govard deploy`       | Deploy the application                                       |
+| `govard snapshot`     | Manage local snapshots for database and media                |
+| `govard lock`         | Generate and validate `govard.lock` snapshots               |
+| `govard tunnel`       | Start a public tunnel to a local project URL                 |
+| `govard custom`       | Run project custom commands from `.govard/commands`          |
+| `govard projects`     | Query known projects from local registry                     |
+| `govard extensions`   | Manage project extension contract in `.govard`               |
+| `govard desktop`      | Launch the Govard Desktop app (`--background` supported)     |
+| `govard self-update`  | Upgrade the Govard binary                                    |
+| `govard upgrade`      | Upgrade the framework version                                |
+| `govard version`      | Print the version number of Govard                           |
 
 ---
 

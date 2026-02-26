@@ -72,26 +72,48 @@ stack:
 ### Configuration Options
 
 #### `project_name`
+
 - **Type**: string
 - **Description**: Name of your project
 - **Default**: Auto-detected from directory name
 
 #### `framework`
+
 - **Type**: string
 - **Description**: Framework blueprint to use
 - **Options**: `magento1`, `magento2`, `laravel`, `nextjs`, `drupal`, `symfony`, `shopware`, `cakephp`, `wordpress`, `custom`
 
 #### `framework_version`
+
 - **Type**: string
 - **Description**: Detected or user-selected framework version used for runtime profile selection
 - **Default**: Auto-detected when available
 
 #### `domain`
+
 - **Type**: string
 - **Description**: Local domain for your project
 - **Default**: `{project_name}.test`
 
+#### `extra_domains`
+
+- **Type**: list of strings
+- **Description**: Additional domains to map to this project
+- **Default**: `[]`
+
+#### `store_domains`
+
+- **Type**: map of string to string
+- **Description**: Map domains to Magento store codes (Magento 2 only)
+- **Example**:
+
+  ```yaml
+  store_domains:
+    brand-b.test: brand_b_store
+  ```
+
 #### `lock.strict`
+
 - **Type**: boolean
 - **Description**: Enforce lock-file compliance during `govard env up`
 - **Default**: `false`
@@ -101,6 +123,7 @@ stack:
   - Use `govard lock generate` to create/update the lock file.
 
 #### `blueprint_registry`
+
 - **Type**: object
 - **Description**: Opt-in remote blueprint registry source used by renderer.
 - **Default**: local `blueprints/` resolution (registry disabled)
@@ -114,11 +137,13 @@ stack:
 | `trusted` | boolean | yes (when registry enabled) | must be `true` to allow remote fetch |
 
 Registry behavior:
+
 - Remote fetches are cached under `~/.govard/blueprint-registry/`.
 - Govard fails fast when checksum does not match downloaded payload/content.
 - Registry config is intentionally strict and opt-in to reduce supply-chain risk.
 
 #### `stack.services.web_server`
+
 - **Type**: string
 - **Description**: Web server to use
 - **Options**: `nginx`, `apache`, `hybrid`
@@ -128,32 +153,36 @@ Registry behavior:
   - `apache`: single apache web container
   - `hybrid`: nginx edge container in front of an internal apache container
 
-
 #### `stack.services.search`
+
 - **Type**: string
 - **Description**: Search engine service
 - **Options**: `opensearch`, `elasticsearch`, `none`
 - **Default**: `opensearch` (framework-dependent)
 
 #### `stack.services.cache`
+
 - **Type**: string
 - **Description**: Cache/kv service
 - **Options**: `redis`, `valkey`, `none`
 - **Default**: `redis` (framework-dependent)
 
 #### `stack.services.queue`
+
 - **Type**: string
 - **Description**: Queue service
 - **Options**: `rabbitmq`, `none`
 - **Default**: `none`
 
 #### `stack.php_version`
+
 - **Type**: string
 - **Description**: PHP version for the container
 - **Options**: `7.4`, `8.1`, `8.2`, `8.3`, `8.4`
 - **Default**: `8.4` (framework-dependent; Magento 1 uses `8.1`, WordPress uses `8.3`)
 
 #### `stack.node_version`
+
 - **Type**: string
 - **Description**: Node.js version for Node-based services (e.g. Next.js)
 - **Options**: `20`, `22`, `24`
@@ -161,48 +190,57 @@ Registry behavior:
 - **Notes**: This value controls Node-based containers (e.g. Next.js). Magento 2 uses the `ddtcorex/govard-php-magento2` image, which bundles Node.js from the image build.
 
 #### `stack.db_type`
+
 - **Type**: string
 - **Description**: Database engine
 - **Options**: `mariadb`, `mysql`, `none`
 - **Default**: `mariadb`
 
 #### `stack.db_version`
+
 - **Type**: string
 - **Description**: Database version
 - **Default**: `11.4` (MariaDB) or `8.4` (MySQL)
 
 #### `stack.web_root`
+
 - **Type**: string
 - **Description**: Web root appended to `/var/www/html` (e.g. `/public`)
 - **Default**: Framework-dependent
 
 #### `stack.cache_version`
+
 - **Type**: string
 - **Description**: Cache image version (e.g. `7.4` for Redis, `8.0.0` for Valkey)
 - **Default**: Framework-dependent
 
 #### `stack.search_version`
+
 - **Type**: string
 - **Description**: Search image version (e.g. `3.4.0` for OpenSearch, `8.19.11` for Elasticsearch)
 - **Default**: Framework-dependent
 
 #### `stack.queue_version`
+
 - **Type**: string
 - **Description**: Queue image version (e.g. `3.13.7` for RabbitMQ)
 - **Default**: Framework-dependent
 
 #### `stack.varnish_version`
+
 - **Type**: string
 - **Description**: Varnish image version (e.g. `7.4`)
 - **Default**: Framework-dependent
 
 #### `stack.xdebug_session`
+
 - **Type**: string
 - **Description**: Cookie value used to route requests to the Xdebug container
 - **Default**: `PHPSTORM`
 - **Notes**: You can provide multiple values separated by commas (e.g. `PHPSTORM,VSCODE`)
 
 #### `stack.features`
+
 - **Type**: object
 - **Description**: Optional features (Redis/Search are deprecated here; use `stack.services`)
 
@@ -218,10 +256,12 @@ requests to it only when the `XDEBUG_SESSION` cookie is present (value used by m
 For CLI debugging, use `govard debug shell` to open a shell in `php-debug`.
 
 #### `hooks`
+
 - **Type**: map of hook event to list of steps
 - **Description**: Run shell commands at command lifecycle boundaries
 
 Supported events:
+
 - `pre_up`, `post_up`
 - `pre_stop`, `post_stop`
 - `pre_sync`, `post_sync`
@@ -242,6 +282,7 @@ hooks:
 ```
 
 Execution notes:
+
 - Hooks run in project root.
 - Empty `run` commands are invalid.
 - If any hook step fails, Govard stops that command and returns an error.
@@ -302,6 +343,7 @@ Rendered Docker Compose file (per-project, under home directory). Do not edit th
 ### `.govard/` (Project Directory)
 
 Project extension directory in repository root:
+
 - `.govard/commands/`
 - `.govard/hooks/`
 - `.govard/docker-compose.override.yml`
@@ -310,6 +352,7 @@ Project extension directory in repository root:
 ### `~/.govard/` (Home Directory)
 
 User-level runtime data:
+
 - `~/.govard/ssl/` - Generated SSL certificates
 - `~/.govard/proxy/` - Proxy configuration cache
 - `~/.govard/compose/` - Rendered per-project compose files

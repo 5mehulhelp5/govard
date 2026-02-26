@@ -15,12 +15,13 @@ import (
 )
 
 type SnapshotMetadata struct {
-	Name      string    `yaml:"name"`
-	CreatedAt time.Time `yaml:"created_at"`
-	Framework string    `yaml:"framework"`
-	Domain    string    `yaml:"domain"`
-	DB        bool      `yaml:"db"`
-	Media     bool      `yaml:"media"`
+	Name         string    `yaml:"name"`
+	CreatedAt    time.Time `yaml:"created_at"`
+	Framework    string    `yaml:"framework"`
+	Domain       string    `yaml:"domain"`
+	ExtraDomains []string  `yaml:"extra_domains,omitempty"`
+	DB           bool      `yaml:"db"`
+	Media        bool      `yaml:"media"`
 }
 
 type snapshotDBCredentials struct {
@@ -49,12 +50,13 @@ func CreateSnapshot(projectRoot string, config Config, name string) (string, err
 	}
 
 	meta := SnapshotMetadata{
-		Name:      name,
-		CreatedAt: time.Now(),
-		Framework: config.Framework,
-		Domain:    config.Domain,
-		DB:        false,
-		Media:     false,
+		Name:         name,
+		CreatedAt:    time.Now(),
+		Framework:    config.Framework,
+		Domain:       config.Domain,
+		ExtraDomains: config.ExtraDomains,
+		DB:           false,
+		Media:        false,
 	}
 
 	containerName := fmt.Sprintf("%s-db-1", config.ProjectName)
