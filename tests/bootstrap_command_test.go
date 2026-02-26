@@ -10,6 +10,8 @@ import (
 	"govard/internal/cmd"
 	"govard/internal/engine"
 	"govard/internal/engine/bootstrap"
+
+	"github.com/spf13/cobra"
 )
 
 func TestBootstrapNoCloneDoesNotRequireRemote(t *testing.T) {
@@ -33,6 +35,11 @@ recipe: magento2
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
 	root.SetArgs([]string{"bootstrap", "--clone=false", "--skip-up", "--no-db", "--no-media", "--no-composer"})
+
+	// IMPORTANT: Mock the subcommand runner to prevent recursion/fork-bomb during tests
+	defer cmd.SetGovardSubcommandRunnerForTest(func(subCmd *cobra.Command, args ...string) error {
+		return nil
+	})()
 
 	if err := root.Execute(); err != nil {
 		t.Fatalf("execute: %v", err)
@@ -61,6 +68,10 @@ remotes: {}
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
 	root.SetArgs([]string{"bootstrap", "--clone", "--environment", "dev", "--skip-up"})
+
+	defer cmd.SetGovardSubcommandRunnerForTest(func(subCmd *cobra.Command, args ...string) error {
+		return nil
+	})()
 
 	err := root.Execute()
 	if err == nil {
@@ -92,6 +103,10 @@ recipe: magento2
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
 	root.SetArgs([]string{"bootstrap", "--fresh", "--clone", "--skip-up"})
+
+	defer cmd.SetGovardSubcommandRunnerForTest(func(subCmd *cobra.Command, args ...string) error {
+		return nil
+	})()
 
 	err := root.Execute()
 	if err == nil {
@@ -150,6 +165,10 @@ recipe: custom
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
 	root.SetArgs([]string{"bootstrap", "--clone=false", "--skip-up"})
+
+	defer cmd.SetGovardSubcommandRunnerForTest(func(subCmd *cobra.Command, args ...string) error {
+		return nil
+	})()
 
 	err := root.Execute()
 	if err == nil {

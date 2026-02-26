@@ -274,14 +274,11 @@ func normalizeBootstrapSource(raw string) string {
 func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions) error {
 	requiresRemote := opts.Clone || (opts.DBImport && opts.DBDump == "") || opts.MediaSync
 
-	pterm.Info.Printf("runBootstrapRemote: requiresRemote=%v, opts.Clone=%v, opts.DBImport=%v, opts.MediaSync=%v, opts.Source=%v\n", requiresRemote, opts.Clone, opts.DBImport, opts.MediaSync, opts.Source)
-
 	if requiresRemote {
 		if _, ok := config.Remotes[opts.Source]; !ok {
 			return fmt.Errorf("remote '%s' is not configured. Add it to remotes in %s", opts.Source, engine.BaseConfigFile)
 		}
 
-		pterm.Info.Printf("Testing remote '%s'...\n", opts.Source)
 		if err := runGovardSubcommand(cmd, "remote", "test", opts.Source); err != nil {
 			return fmt.Errorf("remote test failed for '%s': %w", opts.Source, err)
 		}
@@ -384,7 +381,7 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrap
 		}
 	}
 
-	pterm.Success.Printf("Bootstrap clone from '%s' completed.\n", opts.Source)
+	pterm.Success.Printf("Bootstrap from remote '%s' completed.\n", opts.Source)
 	return nil
 }
 
@@ -601,7 +598,7 @@ func shouldUseGlobalAuthByDefault() bool {
 	return (stdinInfo.Mode() & os.ModeCharDevice) == 0
 }
 
-func runGovardSubcommand(cmd *cobra.Command, args ...string) error {
+var govardSubcommandRunner = func(cmd *cobra.Command, args ...string) error {
 	executablePath, err := os.Executable()
 	commandPath := "govard"
 	if err == nil && strings.TrimSpace(executablePath) != "" {
@@ -614,6 +611,10 @@ func runGovardSubcommand(cmd *cobra.Command, args ...string) error {
 	command.Stdout = cmd.OutOrStdout()
 	command.Stderr = cmd.ErrOrStderr()
 	return command.Run()
+}
+
+func runGovardSubcommand(cmd *cobra.Command, args ...string) error {
+	return govardSubcommandRunner(cmd, args...)
 }
 
 func govardComposerSubcommandArgs(args ...string) []string {
@@ -725,6 +726,14 @@ func ShouldSkipBootstrapMediaSyncForTest(config engine.Config, source string, me
 		Clone:     clone,
 		CodeOnly:  codeOnly,
 	})
+}
+
+func SetGovardSubcommandRunnerForTest(fn func(cmd *cobra.Command, args ...string) error) func() {
+	previous := govardSubcommandRunner
+	govardSubcommandRunner = fn
+	return func() {
+		govardSubcommandRunner = previous
+	}
 }
 
 func SetBootstrapRemoteDirExistsForTest(fn func(remoteName string, remoteCfg engine.RemoteConfig, remotePath string) bool) func() {
