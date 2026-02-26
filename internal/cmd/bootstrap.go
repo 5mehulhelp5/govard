@@ -174,13 +174,11 @@ Case Studies:
 			}
 		}
 
-		if opts.Clone {
+		if !opts.Fresh {
 			if err := runBootstrapRemote(cmd, config, opts); err != nil {
 				return err
 			}
-		}
-
-		if opts.Fresh {
+		} else {
 			if err := runBootstrapFrameworkFreshInstall(cmd, config, opts); err != nil {
 				return err
 			}
@@ -227,6 +225,16 @@ func resolveBootstrapOptions(cmd *cobra.Command) (bootstrapRuntimeOptions, error
 		cloneFlagExplicit = cmd.Flags().Changed("clone")
 	}
 
+	if !cloneFlagExplicit && !opts.Fresh {
+		cwd, _ := os.Getwd()
+		hasSource := fileExists(filepath.Join(cwd, "composer.json")) ||
+			fileExists(filepath.Join(cwd, "package.json")) ||
+			fileExists(filepath.Join(cwd, "wp-config.php"))
+		if !hasSource {
+			opts.Clone = true
+		}
+	}
+
 	if opts.MetaVersion != "" {
 		comparison, comparable := compareNumericDotVersions(opts.MetaVersion, "2.0.0")
 		if !comparable || comparison < 0 {
@@ -264,12 +272,19 @@ func normalizeBootstrapSource(raw string) string {
 }
 
 func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions) error {
-	if _, ok := config.Remotes[opts.Source]; !ok {
-		return fmt.Errorf("remote '%s' is not configured. Add it to remotes in %s", opts.Source, engine.BaseConfigFile)
-	}
+	requiresRemote := opts.Clone || (opts.DBImport && opts.DBDump == "") || opts.MediaSync
 
-	if err := runGovardSubcommand(cmd, "remote", "test", opts.Source); err != nil {
-		return fmt.Errorf("remote test failed for '%s': %w", opts.Source, err)
+	pterm.Info.Printf("runBootstrapRemote: requiresRemote=%v, opts.Clone=%v, opts.DBImport=%v, opts.MediaSync=%v, opts.Source=%v\n", requiresRemote, opts.Clone, opts.DBImport, opts.MediaSync, opts.Source)
+
+	if requiresRemote {
+		if _, ok := config.Remotes[opts.Source]; !ok {
+			return fmt.Errorf("remote '%s' is not configured. Add it to remotes in %s", opts.Source, engine.BaseConfigFile)
+		}
+
+		pterm.Info.Printf("Testing remote '%s'...\n", opts.Source)
+		if err := runGovardSubcommand(cmd, "remote", "test", opts.Source); err != nil {
+			return fmt.Errorf("remote test failed for '%s': %w", opts.Source, err)
+		}
 	}
 
 	if opts.Clone {

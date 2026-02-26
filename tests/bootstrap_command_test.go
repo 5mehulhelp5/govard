@@ -32,7 +32,7 @@ recipe: magento2
 	root := cmd.RootCommandForTest()
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
-	root.SetArgs([]string{"bootstrap", "--clone=false", "--skip-up"})
+	root.SetArgs([]string{"bootstrap", "--clone=false", "--skip-up", "--no-db", "--no-media", "--no-composer"})
 
 	if err := root.Execute(); err != nil {
 		t.Fatalf("execute: %v", err)
