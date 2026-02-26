@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"govard/internal/engine"
@@ -115,7 +116,19 @@ func runBootstrapSampleData(cmd *cobra.Command) error {
 }
 
 func runBootstrapMagentoReindex(cmd *cobra.Command) error {
-	pterm.Info.Println("Reindexing data...")
+	pterm.Info.Println("Reindexing Magento data...")
+	cwd, _ := os.Getwd()
+	projectName := filepath.Base(cwd)
+	if cfg, _, err := engine.LoadConfigFromDir(cwd, false); err == nil && strings.TrimSpace(cfg.ProjectName) != "" {
+		projectName = cfg.ProjectName
+	}
+
+	containerName := fmt.Sprintf("%s-php-1", projectName)
+	if !engine.IsContainerRunning(containerName) {
+		pterm.Warning.Printf("Skipping reindex: container %s is not running\n", containerName)
+		return nil
+	}
+
 	if err := runGovardSubcommand(cmd, govardMagentoSubcommandArgs("indexer:reindex")...); err != nil {
 		return fmt.Errorf("reindex failed: %w", err)
 	}
@@ -123,20 +136,33 @@ func runBootstrapMagentoReindex(cmd *cobra.Command) error {
 }
 
 func runBootstrapAdminCreate(cmd *cobra.Command, config engine.Config) {
+	cwd, _ := os.Getwd()
+	projectName := filepath.Base(cwd)
+	if strings.TrimSpace(config.ProjectName) != "" {
+		projectName = config.ProjectName
+	}
+
+	containerName := fmt.Sprintf("%s-php-1", projectName)
+	if !engine.IsContainerRunning(containerName) {
+		pterm.Warning.Printf("Skipping admin user creation: container %s is not running\n", containerName)
+		return
+	}
+
 	emailDomain := config.Domain
 	if emailDomain == "" {
 		emailDomain = "local.test"
 	}
 
+	pterm.Info.Println("Creating Magento admin user...")
 	err := runGovardSubcommand(
 		cmd,
 		govardMagentoSubcommandArgs(
 			"admin:user:create",
-			"--admin-user=admin",
-			"--admin-password=Admin123$",
-			"--admin-firstname=Admin",
-			"--admin-lastname=User",
-			"--admin-email=admin@"+emailDomain,
+			"--admin-user="+engine.DefaultMagentoAdminUser,
+			"--admin-password="+engine.DefaultMagentoAdminPassword,
+			"--admin-firstname=Govard",
+			"--admin-lastname=Admin",
+			"--admin-email="+engine.DefaultMagentoAdminEmail,
 		)...,
 	)
 	if err != nil {

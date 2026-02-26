@@ -16,6 +16,12 @@ type magentoCommand struct {
 	Optional bool
 }
 
+const (
+	DefaultMagentoAdminUser     = "admin"
+	DefaultMagentoAdminPassword = "Admin123$"
+	DefaultMagentoAdminEmail    = "admin@example.com"
+)
+
 // MagentoConfigCommandsForTest exposes command planning for tests.
 func MagentoConfigCommandsForTest(projectName string, config Config) []magentoCommand {
 	return buildMagentoCommands(projectName, config)
@@ -49,10 +55,16 @@ func ConfigureMagento(projectName string, config Config) error {
 				_ = ensureMagentoLocalWritableDirs(containerName, config)
 				if repairErr := runMagentoConfigImport(containerName, config); repairErr != nil {
 					// Fallback to setup:upgrade when import isn't enough.
-					pterm.Warning.Printf("app:config:import failed (%v). Trying setup:upgrade...\n", repairErr)
+					pterm.Warning.Printf("app:config:import failed (%v). Trying autoloader reset and setup:upgrade...\n", repairErr)
 					_ = ensureMagentoLocalWritableDirs(containerName, config)
+
+					// Reset autoloader to clear stale classmap entries that reference missing generated files
+					if dumpErr := runMagentoComposerDumpAutoload(containerName, config); dumpErr != nil {
+						pterm.Warning.Printf("composer dump-autoload failed (%v), continuing with setup:upgrade anyway...\n", dumpErr)
+					}
+
 					if upgradeErr := runMagentoSetupUpgrade(containerName, config); upgradeErr != nil {
-						return fmt.Errorf("command failed: %s %v\nOutput: %s", cmd.Desc, err, outText)
+						return fmt.Errorf("command failed: %s %v\nRepair attempt failed (setup:upgrade): %v\nOriginal Output: %s", cmd.Desc, err, upgradeErr, outText)
 					}
 				}
 
@@ -89,7 +101,26 @@ func ConfigureMagento(projectName string, config Config) error {
 
 func needsConfigImport(output string) bool {
 	output = strings.ToLower(output)
-	return strings.Contains(output, "app:config:import") && strings.Contains(output, "setup:upgrade")
+
+	// Traditional Magento message about config import/upgrade requirements
+	if strings.Contains(output, "app:config:import") && strings.Contains(output, "setup:upgrade") {
+		return true
+	}
+
+	// Class loading failures usually mean generated/code is missing or stale classmap exists.
+	// This often happens after rsync sync from remote or DB import without setup:upgrade.
+	if strings.Contains(output, "failed to open stream") &&
+		(strings.Contains(output, "generated/code") || strings.Contains(output, "generated/metadata")) {
+		return true
+	}
+
+	// Missing namespace errors (e.g. "There are no commands defined in the 'deploy:mode' namespace")
+	// often happen when Magento is in a restricted command state after DB import.
+	if strings.Contains(output, "no commands defined") {
+		return true
+	}
+
+	return false
 }
 
 func isMagentoConfigPathUnavailable(output string) bool {
@@ -98,13 +129,7 @@ func isMagentoConfigPathUnavailable(output string) bool {
 		return false
 	}
 
-	// English CLI message: The "..." path doesn't exist...
 	if strings.Contains(normalized, "path") && strings.Contains(normalized, "doesn't exist") {
-		return true
-	}
-
-	// French CLI message: Le chemin "..." n'existe pas...
-	if strings.Contains(normalized, "chemin") && strings.Contains(normalized, "n'existe pas") {
 		return true
 	}
 
@@ -129,12 +154,21 @@ func runMagentoSetupUpgrade(containerName string, config Config) error {
 	return nil
 }
 
+func runMagentoComposerDumpAutoload(containerName string, config Config) error {
+	args := magentoDockerExecArgs(containerName, config, "composer", "dump-autoload", "--no-dev", "--optimize")
+	output, err := exec.Command("docker", args...).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("composer dump-autoload failed: %w\nOutput: %s", err, string(output))
+	}
+	return nil
+}
+
 func ensureMagentoLocalWritableDirs(containerName string, config Config) error {
 	script := strings.Join([]string{
 		"set -e",
 		`fix_dir() { p="$1"; if [ -L "$p" ]; then rm -f "$p"; fi; mkdir -p "$p"; }`,
 		"mkdir -p generated pub/static pub/media var",
-		"rm -rf generated/code/*",
+		"rm -rf generated/*",
 		"fix_dir var/session",
 		"fix_dir var/tmp",
 		"fix_dir var/report",
@@ -169,6 +203,9 @@ func buildMagentoCommands(projectName string, config Config) []magentoCommand {
 	configSetArgs = append(configSetArgs, "--no-interaction")
 
 	commands := []magentoCommand{{
+		Desc: "Enable Developer Mode",
+		Args: magentoDockerExecArgs(containerName, config, "bin/magento", "deploy:mode:set", "developer", "--no-interaction"),
+	}, {
 		Desc: "Setting Database connection",
 		Args: magentoDockerExecArgs(containerName, config, configSetArgs...),
 	}}
@@ -250,11 +287,6 @@ func buildMagentoCommands(projectName string, config Config) []magentoCommand {
 			"twofactorauth/general/enable", "0", "--no-interaction"),
 		Optional: true,
 	})
-	commands = append(commands, magentoCommand{
-		Desc: "Enable Developer Mode",
-		Args: magentoDockerExecArgs(containerName, config, "bin/magento", "deploy:mode:set", "developer", "--no-interaction"),
-	})
-
 	return commands
 }
 

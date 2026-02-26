@@ -167,6 +167,34 @@ func isGovardProxyContainer(names []string) bool {
 	return false
 }
 
+func IsContainerRunning(name string) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return false
+	}
+	defer func() {
+		_ = cli.Close()
+	}()
+
+	containers, err := cli.ContainerList(ctx, container.ListOptions{})
+	if err != nil {
+		return false
+	}
+
+	for _, c := range containers {
+		for _, cname := range c.Names {
+			if strings.TrimPrefix(cname, "/") == name {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func CheckDockerComposePlugin() error {
 	command := exec.Command("docker", "compose", "version")
 	output, err := command.CombinedOutput()

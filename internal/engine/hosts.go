@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,6 +11,21 @@ import (
 const managedHostsMarker = "# govard-managed"
 
 var hostsFilePath = "/etc/hosts"
+
+// IsDomainResolvableLocally checks if the domain resolves to localhost (127.0.0.1 or ::1).
+func IsDomainResolvableLocally(domain string) bool {
+	ips, err := net.LookupIP(domain)
+	if err != nil {
+		return false
+	}
+
+	for _, ip := range ips {
+		if ip.IsLoopback() {
+			return true
+		}
+	}
+	return false
+}
 
 func AddHostsEntry(domain string) error {
 	domain = strings.TrimSpace(domain)

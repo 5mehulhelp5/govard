@@ -213,7 +213,9 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 			Run: func() error {
 				target := ResolveUpProxyTarget(context.Config)
 				for _, domain := range context.Config.AllDomains() {
-					if err := engine.AddHostsEntry(domain); err != nil {
+					if engine.IsDomainResolvableLocally(domain) {
+						pterm.Success.Printf("Domain %s already resolves locally\n", domain)
+					} else if err := engine.AddHostsEntry(domain); err != nil {
 						pterm.Warning.Printf("Could not update hosts file for %s: %v\n", domain, err)
 						pterm.Info.Printf("Please manually add '127.0.0.1 %s' to your hosts file.\n", domain)
 					} else {
