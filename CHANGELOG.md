@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-02-27
+
+### Added
+
+- **dnsmasq Service**: Built-in `dnsmasq` service for automatic `.test` domain resolution.
+- **Interactive Recipe Selection**: Prompt for recipe (framework) selection during `init` if detection fails.
+- **Restructured CLI**: Organized environment commands under a unified `env` subcommand (`govard env up`, `govard env stop`, etc.).
+- **Multi-domain Support**: Enhanced support for multiple domains per project.
+
+### Changed
+
+- **Standardized Terminology**: Consistent use of "recipe" and "framework" across CLI and documentation.
+- **Bootstrap Logic**: Refined to auto-clone if no source is present and improved remote connectivity tests.
+- **Flag Renames**:
+    - Renamed `--version` to `--framework-version` in `bootstrap`.
+    - Renamed `--framework` to `--recipe` in `profile`.
+
+### Fixed
+
+- **Bootstrap Remote Sync**: Fixed issues with remote synchronization when source already exists.
+- **CI Reliability**: Fixed potential CI recursion issues in bootstrap flows.
+
+### Improved
+
+- **Makefile**: Added `fmt-check` for better code quality control.
+- **Proxy Naming**: Standardized proxy container naming for better visibility.
+
 ## [1.6.0] - 2026-02-26
 
 ### Added
