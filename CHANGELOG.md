@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Composer Cache**: Share the host's Composer cache directory with PHP containers to vastly speed up dependency installation.
-- **Log Tailing**: Added `--tail` flag to `govard logs` and `govard svc logs` for better control over log output.
+- **Log Tailing**: Added `--tail` flag to `govard env logs` and `govard svc logs` for better control over log output.
 - **Snapshot Management**: New `snapshot export` and `snapshot delete` subcommands.
 - **CI Support**: Added `--no-tty` flag to `govard shell` for non-interactive environments.
 - **Docker Images**: Use a non-alpine base image for `varnish:6.0` to resolve libc compatibility issues.

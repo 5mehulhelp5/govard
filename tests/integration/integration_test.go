@@ -18,8 +18,9 @@ import (
 	"testing"
 	"time"
 
-	"gopkg.in/yaml.v3"
 	"govard/internal/engine"
+
+	"gopkg.in/yaml.v3"
 )
 
 // TestEnvironment holds the configuration for integration tests
@@ -495,7 +496,7 @@ func (env *TestEnvironment) CleanupProject(t *testing.T, name string) {
 	}
 
 	// Try to stop any running containers first
-	cmd := exec.Command(env.BinaryPath, "stop")
+	cmd := exec.Command(env.BinaryPath, "env", "stop")
 	cmd.Dir = projectDir
 	cmd.Run() // Ignore errors
 

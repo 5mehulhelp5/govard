@@ -230,11 +230,11 @@ govard doctor trust
 
 On Linux, Chromium-based browsers may require a manual import of the Root CA to remove the "Your connection is not private" warning:
 
-1.  **Locate the CA**: On Linux, the certificate is stored in `~/.govard/ssl/root.crt` (or `$HOME/.govard/ssl/root.crt`) after running `govard doctor trust`.
-2.  **Open Settings**: Go to `chrome://settings/certificates` in your browser.
-3.  **Import**: Navigate to the **Authorities** tab and click **Import**.
-4.  **Select File**: Select the `root.crt` file from the path above.
-5.  Restart your browser.
+1. **Locate the CA**: On Linux, the certificate is stored in `~/.govard/ssl/root.crt` (or `$HOME/.govard/ssl/root.crt`) after running `govard doctor trust`.
+2. **Open Settings**: Go to `chrome://settings/certificates` in your browser.
+3. **Import**: Navigate to the **Authorities** tab and click **Import**.
+4. **Select File**: Select the `root.crt` file from the path above.
+5. Restart your browser.
 
 _Note: Once trusted, all `*.test` domains managed by Govard will show a "Green Lock" without further configuration._
 
@@ -298,17 +298,20 @@ _Note: Once trusted, all `*.test` domains managed by Govard will show a "Green L
 Documentation is organized by audience:
 
 **For Users:**
+
 - [Getting Started](./docs/user/getting-started.md) - Installation and basic workflow
 - [Configuration](./docs/user/configuration.md) - `.govard.yml` and blueprints
 - [CLI Commands](./docs/user/commands.md) - Complete command reference
 - [SSL & HTTPS](./docs/user/ssl-https.md) - Local HTTPS setup
 
 **For Framework Users:**
+
 - [Magento 1 (OpenMage)](./docs/frameworks/magento1.md) - Magento 1/OpenMage support
 - [Magento 2](./docs/frameworks/magento2.md) - Magento-specific features
 - [Custom](./docs/frameworks/custom.md) - Build your own service mix
 
 **For Developers:**
+
 - [Architecture](./docs/dev/architecture.md) - System design and specs
 - [Contributing](./docs/dev/contributing.md) - Development workflow
 - [Desktop](./docs/desktop/README.md) - Desktop app roadmap and integration
