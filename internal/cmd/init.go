@@ -101,21 +101,37 @@ Case Studies:
 		}
 		if initFramework != "" {
 			metadata.Framework = strings.ToLower(initFramework)
+			if metadata.Framework == "magento" {
+				metadata.Framework = "magento2"
+			}
 		}
 		if initFrameworkVersion != "" {
 			metadata.Version = initFrameworkVersion
 		}
 		if metadata.Framework == "" || metadata.Framework == "generic" {
-			pterm.Warning.Println("Could not detect framework confidently.")
-
-			frameworkOptions := make([]string, 0, len(engine.FrameworkConfigs))
-			for k := range engine.FrameworkConfigs {
-				frameworkOptions = append(frameworkOptions, k)
+			frameworkMap := map[string]string{
+				"CakePHP":   "cakephp",
+				"Custom":    "custom",
+				"Drupal":    "drupal",
+				"Laravel":   "laravel",
+				"Magento 1": "magento1",
+				"Magento 2": "magento2",
+				"Next.js":   "nextjs",
+				"OpenMage":  "openmage",
+				"Shopware":  "shopware",
+				"Symfony":   "symfony",
+				"WordPress": "wordpress",
 			}
-			sort.Strings(frameworkOptions)
 
-			metadata.Framework = selectOption("Select project framework", frameworkOptions, "custom")
-			metadata.Version = ""
+			frameworkDisplayOptions := make([]string, 0, len(frameworkMap))
+			for k := range frameworkMap {
+				frameworkDisplayOptions = append(frameworkDisplayOptions, k)
+			}
+			sort.Strings(frameworkDisplayOptions)
+
+			selectedDisplay := selectOption("Select project framework", frameworkDisplayOptions, "Magento 2")
+			metadata.Framework = frameworkMap[selectedDisplay]
+
 		}
 
 		if metadata.Version != "" {
@@ -332,7 +348,7 @@ var (
 )
 
 func init() {
-	initCmd.Flags().StringVarP(&initFramework, "framework", "r", "", "Override detected framework (e.g., magento2)")
+	initCmd.Flags().StringVar(&initFramework, "framework", "", "Override detected framework (e.g., magento2)")
 	initCmd.Flags().StringVar(&initFrameworkVersion, "framework-version", "", "Override detected framework version (e.g., 11)")
 	initCmd.Flags().StringVar(&migrateFrom, "migrate-from", "", "Migrate configuration from another tool (ddev, warden)")
 }

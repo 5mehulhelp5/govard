@@ -164,6 +164,9 @@ func resolveProfileForCurrentProject() (engine.ProjectMetadata, engine.RuntimePr
 
 	if v := strings.TrimSpace(profileFrameworkOverride); v != "" {
 		metadata.Framework = strings.ToLower(v)
+		if metadata.Framework == "magento" {
+			metadata.Framework = "magento2"
+		}
 	}
 	if v := strings.TrimSpace(profileVersionOverride); v != "" {
 		metadata.Version = v

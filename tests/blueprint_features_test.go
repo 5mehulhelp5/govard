@@ -42,7 +42,8 @@ func TestRenderBlueprintWithValkey(t *testing.T) {
 		},
 	})
 
-	if !strings.Contains(content, "ddtcorex/govard-valkey:8.0.0") {
+	if !strings.Contains(content, "ddtcorex/govard-valkey:7.2") {
+
 		t.Fatalf("Expected valkey image with default version")
 	}
 }

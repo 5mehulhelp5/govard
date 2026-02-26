@@ -11,8 +11,8 @@ Scans for `composer.json` or `package.json`, detects framework, and generates `.
 ```bash
 govard init
 govard init --framework magento2
-govard init -r laravel
-govard init -r custom
+govard init --framework laravel
+govard init --framework custom
 ```
 
 **Detection Logic:**
@@ -29,7 +29,7 @@ govard init -r custom
 
 **Options:**
 
-- `-r, --framework` Override detected framework (useful for empty projects or when starting a new app)
+- `--framework` Override detected framework (useful for empty projects or when starting a new app)
 - `custom` framework opens an interactive prompt to choose web server, DB, cache, search, and varnish
 
 ### `govard bootstrap`

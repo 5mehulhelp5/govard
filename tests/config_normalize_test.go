@@ -5,8 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"gopkg.in/yaml.v3"
 	"govard/internal/engine"
+
+	"gopkg.in/yaml.v3"
 )
 
 func TestNormalizeConfigDefaultsMagento2(t *testing.T) {
@@ -32,9 +33,10 @@ func TestNormalizeConfigDefaultsMagento2(t *testing.T) {
 	if config.Stack.Services.WebServer != "nginx" {
 		t.Fatalf("Expected WebServer nginx, got %s", config.Stack.Services.WebServer)
 	}
-	if config.Stack.Services.Cache != "valkey" {
-		t.Fatalf("Expected Cache valkey, got %s", config.Stack.Services.Cache)
+	if config.Stack.Services.Cache != "redis" {
+		t.Fatalf("Expected Cache redis, got %s", config.Stack.Services.Cache)
 	}
+
 	if config.Stack.Services.Search != "opensearch" {
 		t.Fatalf("Expected Search opensearch, got %s", config.Stack.Services.Search)
 	}
@@ -42,9 +44,10 @@ func TestNormalizeConfigDefaultsMagento2(t *testing.T) {
 		t.Fatalf("Expected Queue none, got %s", config.Stack.Services.Queue)
 	}
 
-	if config.Stack.CacheVersion != "8.0.0" {
-		t.Fatalf("Expected CacheVersion 8.0.0, got %s", config.Stack.CacheVersion)
+	if config.Stack.CacheVersion != "7.4" {
+		t.Fatalf("Expected CacheVersion 7.4, got %s", config.Stack.CacheVersion)
 	}
+
 	if config.Stack.SearchVersion != "2.19.0" {
 		t.Fatalf("Expected SearchVersion 2.19.0, got %s", config.Stack.SearchVersion)
 	}
@@ -123,9 +126,10 @@ func TestNormalizeConfigCacheAndSearchVersions(t *testing.T) {
 
 	engine.NormalizeConfig(&config)
 
-	if config.Stack.CacheVersion != "8.0.0" {
-		t.Fatalf("Expected CacheVersion 8.0.0, got %s", config.Stack.CacheVersion)
+	if config.Stack.CacheVersion != "7.2" {
+		t.Fatalf("Expected CacheVersion 7.2, got %s", config.Stack.CacheVersion)
 	}
+
 	if config.Stack.SearchVersion != "2.19.0" {
 		t.Fatalf("Expected SearchVersion 2.19.0, got %s", config.Stack.SearchVersion)
 	}

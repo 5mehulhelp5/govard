@@ -64,7 +64,8 @@ func TestBootstrapCloneOrchestrationWithShims(t *testing.T) {
 		projectDir,
 		shim.Env(),
 		"bootstrap",
-		"--clone",
+		"--clone", "--yes",
+
 		"--environment", "dev",
 		"--skip-up",
 		"--no-composer",
@@ -95,8 +96,9 @@ func TestBootstrapFreshOrchestrationWithShims(t *testing.T) {
 		projectDir,
 		shim.Env(),
 		"bootstrap",
-		"--fresh",
+		"--fresh", "--yes",
 		"--skip-up",
+
 		"--no-admin",
 	)
 	result.AssertSuccess(t)
@@ -122,7 +124,8 @@ func TestBootstrapCloneMediaSyncExcludesProductByDefault(t *testing.T) {
 		projectDir,
 		shim.Env(),
 		"bootstrap",
-		"--clone",
+		"--clone", "--yes",
+
 		"--environment", "dev",
 		"--skip-up",
 		"--no-composer",
@@ -149,7 +152,8 @@ func TestBootstrapCloneMediaSyncIncludeProductFlag(t *testing.T) {
 		projectDir,
 		shim.Env(),
 		"bootstrap",
-		"--clone",
+		"--clone", "--yes",
+
 		"--environment", "dev",
 		"--skip-up",
 		"--no-composer",

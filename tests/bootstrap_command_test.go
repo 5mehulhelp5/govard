@@ -31,7 +31,9 @@ framework: magento2
 		t.Fatal(err)
 	}
 
+	cmd.ResetBootstrapFlags()
 	root := cmd.RootCommandForTest()
+
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
 	root.SetArgs([]string{"bootstrap", "--clone=false", "--skip-up", "--no-db", "--no-media", "--no-composer"})
@@ -64,7 +66,9 @@ remotes: {}
 		t.Fatal(err)
 	}
 
+	cmd.ResetBootstrapFlags()
 	root := cmd.RootCommandForTest()
+
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
 	root.SetArgs([]string{"bootstrap", "--clone", "--environment", "dev", "--skip-up"})
@@ -99,7 +103,9 @@ framework: magento2
 		t.Fatal(err)
 	}
 
+	cmd.ResetBootstrapFlags()
 	root := cmd.RootCommandForTest()
+
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
 	root.SetArgs([]string{"bootstrap", "--fresh", "--clone", "--skip-up"})
@@ -161,7 +167,9 @@ framework: custom
 		t.Fatal(err)
 	}
 
+	cmd.ResetBootstrapFlags()
 	root := cmd.RootCommandForTest()
+
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
 	root.SetArgs([]string{"bootstrap", "--clone=false", "--skip-up"})

@@ -97,8 +97,9 @@ Framework Specifics:
 Case Studies:
 - Day-to-day refresh: 'govard bootstrap -e staging' — syncs DB and media, keeps your local git tree.
 - First-time onboarding (no git clone): 'govard bootstrap --clone -e staging' — pulls all source files.
-- Fresh Start: 'govard bootstrap --fresh --framework-version 2.4.7' — clean Magento install from Composer.
-- Code only: 'govard bootstrap --clone --code-only -e dev' — files only, skip DB and media.`,
+- Fresh Start: 'govard bootstrap --framework magento2 --fresh --framework-version 2.4.7' — clean Magento install from Composer.
+- Code only: 'govard bootstrap --clone --code-only -e dev' — files only, skip DB and media.
+- Specify Framework: 'govard bootstrap --framework magento2' — Ensures Magento 2 environment if initialization is required.`,
 	Example: `  # Refresh DB + media from dev (default — does NOT overwrite source files)
   govard bootstrap --environment dev
 
@@ -106,13 +107,16 @@ Case Studies:
   govard bootstrap --clone --environment staging
 
   # Fresh Magento 2.4.7 install with sample data
-  govard bootstrap --fresh --framework-version 2.4.7 --include-sample
+  govard bootstrap --framework magento2 --fresh --framework-version 2.4.7 --include-sample
 
   # Clone from dev but skip media sync
   govard bootstrap --clone --environment dev --no-media
 
   # Clone source code only (skip DB and media)
-  govard bootstrap --clone --code-only --environment dev`,
+  govard bootstrap --clone --code-only --environment dev
+
+  # Bootstrap and ensure Magento 2 if init runs
+  govard bootstrap --framework magento2`,
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		pterm.DefaultHeader.Println("Govard Bootstrap")
 		startedAt := time.Now()
@@ -155,9 +159,13 @@ Case Studies:
 
 		config := loadFullConfig()
 		configForObservability = config
-		supportedFrameworks := []string{"magento2", "magento1", "openmage", "symfony", "laravel", "drupal", "wordpress", "nextjs", "shopware", "cakephp"}
+		supportedFrameworks := []string{"magento2", "laravel", "symfony"}
+		if opts.Fresh {
+			supportedFrameworks = []string{"magento2", "laravel", "symfony", "openmage", "drupal", "wordpress", "nextjs", "shopware", "cakephp"}
+		}
+
 		if !stringSliceContains(supportedFrameworks, config.Framework) {
-			return fmt.Errorf("bootstrap currently supports %s projects only (detected: %s)",
+			return fmt.Errorf("bootstrap currently supports these project types: %s (detected: %s)",
 				strings.Join(supportedFrameworks, ", "), config.Framework)
 		}
 
@@ -550,7 +558,14 @@ func ensureBootstrapAuthJSON(config engine.Config, opts bootstrapRuntimeOptions)
 
 	globalAuthPath := filepath.Join(os.Getenv("HOME"), ".composer", "auth.json")
 	if _, err := os.Stat(globalAuthPath); err == nil {
-		if opts.AssumeYes || shouldUseGlobalAuthByDefault() {
+		useGlobal := opts.AssumeYes || shouldUseGlobalAuthByDefault()
+		if !useGlobal {
+			useGlobal, _ = pterm.DefaultInteractiveConfirm.
+				WithDefaultValue(true).
+				Show(fmt.Sprintf("Found global auth.json at %s. Use it for this project?", globalAuthPath))
+		}
+
+		if useGlobal {
 			data, readErr := os.ReadFile(globalAuthPath)
 			if readErr != nil {
 				return fmt.Errorf("failed reading global auth.json: %w", readErr)
@@ -565,15 +580,32 @@ func ensureBootstrapAuthJSON(config engine.Config, opts bootstrapRuntimeOptions)
 	}
 
 	if opts.MageUsername != "" && opts.MagePassword != "" {
-		payload := fmt.Sprintf("{\n    \"http-basic\": {\n        \"repo.magento.com\": {\n            \"username\": %q,\n            \"password\": %q\n        }\n    }\n}\n", opts.MageUsername, opts.MagePassword)
-		if err := os.WriteFile(authPath, []byte(payload), 0600); err != nil {
-			return fmt.Errorf("failed writing auth.json from CLI credentials: %w", err)
+		return createAuthJSONFromCredentials(authPath, opts.MageUsername, opts.MagePassword, cwd)
+	}
+
+	if config.Framework == "magento2" && !shouldUseGlobalAuthByDefault() && !opts.AssumeYes {
+		pterm.Info.Println("Magento 2 requires authentication for repo.magento.com.")
+		pterm.Info.Println("You can find your keys at: https://marketplace.magento.com/customer/accessKeys/")
+
+		username, _ := pterm.DefaultInteractiveTextInput.Show("Magento Public Key")
+		password, _ := pterm.DefaultInteractiveTextInput.WithMask("*").Show("Magento Private Key")
+
+		if username != "" && password != "" {
+			return createAuthJSONFromCredentials(authPath, username, password, cwd)
 		}
-		ensureAuthInGitignore(cwd)
-		return nil
 	}
 
 	pterm.Warning.Println("auth.json not found. Provide --mage-username/--mage-password or create auth.json before composer-related steps.")
+	return nil
+}
+
+func createAuthJSONFromCredentials(path, username, password, cwd string) error {
+	payload := fmt.Sprintf("{\n    \"http-basic\": {\n        \"repo.magento.com\": {\n            \"username\": %q,\n            \"password\": %q\n        }\n    }\n}\n", username, password)
+	if err := os.WriteFile(path, []byte(payload), 0600); err != nil {
+		return fmt.Errorf("failed writing auth.json: %w", err)
+	}
+	ensureAuthInGitignore(cwd)
+	pterm.Success.Println("✅ Created auth.json with provided credentials.")
 	return nil
 }
 
@@ -644,6 +676,13 @@ func runPHPContainerShellCommand(config engine.Config, commandLine string) error
 	if stdinIsTerminal() {
 		dockerArgs = append(dockerArgs, "-it")
 	}
+
+	cwd, _ := os.Getwd()
+	authPath := filepath.Join(cwd, "auth.json")
+	if data, err := os.ReadFile(authPath); err == nil {
+		dockerArgs = append(dockerArgs, "-e", "COMPOSER_AUTH="+string(data))
+	}
+
 	if user := resolveProjectExecUser(config, "www-data"); strings.TrimSpace(user) != "" {
 		dockerArgs = append(dockerArgs, "-u", user)
 	}
@@ -818,7 +857,7 @@ func init() {
 	bootstrapCmd.Flags().BoolVar(&bootstrapNoStreamDB, "no-stream-db", false, "Disable stream-db import mode")
 	bootstrapCmd.Flags().StringVarP(&bootstrapEnv, "environment", "e", "dev", "Source environment")
 	bootstrapCmd.Flags().StringVar(&bootstrapEnv, "remote", "dev", "Alias for --environment")
-	bootstrapCmd.Flags().StringVarP(&bootstrapFramework, "framework", "r", "", "Framework to use when init is required")
+	bootstrapCmd.Flags().StringVar(&bootstrapFramework, "framework", "", "Framework to use when init is required")
 	bootstrapCmd.Flags().StringVar(&bootstrapFrameworkVersion, "framework-version", "", "Framework version (e.g. 2.4.7 for Magento, 11 for Laravel)")
 	bootstrapCmd.Flags().BoolVar(&bootstrapSkipUp, "skip-up", false, "Skip starting local containers before bootstrap steps")
 	bootstrapCmd.Flags().StringVarP(&bootstrapMetaPackage, "meta-package", "p", defaultBootstrapMetaPackage, "Composer meta-package for fresh install (Magento only)")
@@ -830,4 +869,31 @@ func init() {
 	bootstrapCmd.Flags().StringVar(&bootstrapMagePassword, "mage-password", "", "Magento repo password for auth.json bootstrap (Magento only)")
 	bootstrapCmd.Flags().BoolVarP(&bootstrapAssumeYes, "yes", "y", false, "Assume yes for non-critical bootstrap prompts")
 	bootstrapCmd.Flags().BoolVar(&bootstrapIncludeProduct, "include-product", false, "Include catalog product images during media sync (Magento only)")
+}
+
+// ResetBootstrapFlags resets all package-level bootstrap flag variables.
+// Used primarily for testing to ensure a clean state between runs.
+func ResetBootstrapFlags() {
+	bootstrapClone = false
+	bootstrapCodeOnly = false
+	bootstrapFresh = false
+	bootstrapIncludeSample = false
+	bootstrapSkipDB = false
+	bootstrapSkipMedia = false
+	bootstrapSkipComposer = false
+	bootstrapSkipAdmin = false
+	bootstrapNoStreamDB = false
+	bootstrapEnv = "dev"
+	bootstrapFramework = ""
+	bootstrapFrameworkVersion = ""
+	bootstrapSkipUp = false
+	bootstrapMetaPackage = defaultBootstrapMetaPackage
+	bootstrapDBDump = ""
+	bootstrapFixDeps = false
+	bootstrapHyvaInstall = false
+	bootstrapHyvaToken = defaultBootstrapHyvaToken
+	bootstrapMageUsername = ""
+	bootstrapMagePassword = ""
+	bootstrapAssumeYes = false
+	bootstrapIncludeProduct = false
 }

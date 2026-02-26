@@ -185,7 +185,7 @@ func TestServiceWrapperCommandsWithShims(t *testing.T) {
 
 		logs := shim.ReadLog(t)
 		assertContains(t, logs, "docker|inspect -f {{.State.Running}} m2-clone-basic-redis-1")
-		assertContains(t, logs, "docker|exec -it m2-clone-basic-redis-1 valkey-cli PING")
+		assertContains(t, logs, "docker|exec -it m2-clone-basic-redis-1 redis-cli PING")
 	})
 
 	t.Run("RedisSwitchesToValkeyCLI", func(t *testing.T) {

@@ -12,6 +12,11 @@ func NormalizeConfig(config *Config) {
 
 	normalizeBlueprintRegistryConfig(&config.BlueprintRegistry)
 
+	config.Framework = strings.ToLower(strings.TrimSpace(config.Framework))
+	if config.Framework == "magento" {
+		config.Framework = "magento2"
+	}
+
 	fwConfig, ok := GetFrameworkConfig(config.Framework)
 	profileResult, profileErr := ResolveRuntimeProfile(config.Framework, config.FrameworkVersion)
 	profileAvailable := profileErr == nil
@@ -165,11 +170,11 @@ func NormalizeConfig(config *Config) {
 		strings.EqualFold(config.Stack.Services.Cache, profile.Cache) &&
 		profile.CacheVersion != "" {
 		config.Stack.CacheVersion = profile.CacheVersion
-	} else if config.Stack.CacheVersion == "" && ok && fwConfig.DefaultCacheVer != "" {
-		config.Stack.CacheVersion = fwConfig.DefaultCacheVer
 	} else if config.Stack.CacheVersion == "" {
 		if config.Stack.Services.Cache == "valkey" {
-			config.Stack.CacheVersion = "8.0.0"
+			config.Stack.CacheVersion = "7.2"
+		} else if ok && fwConfig.DefaultCacheVer != "" && strings.EqualFold(config.Stack.Services.Cache, fwConfig.DefaultCache) {
+			config.Stack.CacheVersion = fwConfig.DefaultCacheVer
 		} else {
 			config.Stack.CacheVersion = "7.4"
 		}

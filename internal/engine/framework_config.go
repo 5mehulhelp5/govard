@@ -1,5 +1,7 @@
 package engine
 
+import "strings"
+
 // FrameworkConfig defines the configuration for a specific framework
 type FrameworkConfig struct {
 	Name              string
@@ -38,14 +40,15 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 		DefaultMySQLVer:   "8.4",
 		DefaultNginxVer:   "1.28",
 		DefaultApacheVer:  "2.4",
-		DefaultCacheVer:   "8.0.0",
+		DefaultCacheVer:   "7.4",
 		DefaultSearchVer:  "2.19.0",
 		DefaultVarnishVer: "7.6",
 		DefaultQueueVer:   "3.13.7",
 		DefaultWebServer:  "nginx",
 		DefaultSearch:     "opensearch",
-		DefaultCache:      "valkey",
-		DefaultQueue:      "none",
+		DefaultCache:      "redis",
+
+		DefaultQueue: "none",
 		Includes: []string{
 			"includes/base.yml",
 			"includes/redis.yml",
@@ -307,8 +310,11 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 	},
 }
 
-// GetFrameworkConfig returns the configuration for a given framework
 func GetFrameworkConfig(name string) (FrameworkConfig, bool) {
+	name = strings.ToLower(strings.TrimSpace(name))
+	if name == "magento" {
+		name = "magento2"
+	}
 	config, ok := FrameworkConfigs[name]
 	return config, ok
 }

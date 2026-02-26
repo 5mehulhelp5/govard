@@ -12,9 +12,10 @@ func TestFrameworkDefaultsMagento2(t *testing.T) {
 		t.Fatal("Expected magento2 framework config")
 	}
 
-	if config.DefaultCache != "valkey" {
-		t.Fatalf("Expected DefaultCache valkey, got %s", config.DefaultCache)
+	if config.DefaultCache != "redis" {
+		t.Fatalf("Expected DefaultCache redis, got %s", config.DefaultCache)
 	}
+
 	if config.DefaultSearch != "opensearch" {
 		t.Fatalf("Expected DefaultSearch opensearch, got %s", config.DefaultSearch)
 	}
@@ -30,9 +31,10 @@ func TestFrameworkDefaultsMagento2(t *testing.T) {
 	if config.DefaultMySQLVer != "8.4" {
 		t.Fatalf("Expected DefaultMySQLVer 8.4, got %s", config.DefaultMySQLVer)
 	}
-	if config.DefaultCacheVer != "8.0.0" {
-		t.Fatalf("Expected DefaultCacheVer 8.0.0, got %s", config.DefaultCacheVer)
+	if config.DefaultCacheVer != "7.4" {
+		t.Fatalf("Expected DefaultCacheVer 7.4, got %s", config.DefaultCacheVer)
 	}
+
 	if config.DefaultSearchVer != "2.19.0" {
 		t.Fatalf("Expected DefaultSearchVer 2.19.0, got %s", config.DefaultSearchVer)
 	}

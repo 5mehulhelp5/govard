@@ -5,10 +5,11 @@ The `custom` framework lets you build a stack by selecting the services you want
 ## Quick Start
 
 ```bash
-govard init -r custom
+govard init --framework custom
 ```
 
 You'll be prompted for:
+
 - Web server (`nginx`, `apache`, or `hybrid`)
 - Database (`mariadb`, `mysql`, or `none`)
 - Cache (`redis`, `valkey`, or `none`)

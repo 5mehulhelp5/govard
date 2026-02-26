@@ -78,6 +78,9 @@ var frameworkMajorOverrides = map[string]map[int]runtimeProfileOverride{
 
 func ResolveRuntimeProfile(framework string, version string) (RuntimeProfileResult, error) {
 	framework = strings.TrimSpace(strings.ToLower(framework))
+	if framework == "magento" {
+		framework = "magento2"
+	}
 	version = strings.TrimSpace(version)
 	if framework == "" {
 		return RuntimeProfileResult{}, fmt.Errorf("framework is required")

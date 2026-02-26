@@ -7,7 +7,7 @@ Bootstrap a local environment for fast onboarding from remote or fresh install.
 ```bash
 govard bootstrap
 govard bootstrap --clone --environment dev
-govard bootstrap --fresh --framework-version 2.4.8
+govard bootstrap --framework magento2 --fresh --framework-version 2.4.8
 ```
 
 ## Core Flow
@@ -21,7 +21,8 @@ govard bootstrap --fresh --framework-version 2.4.8
 
 ## Key Options
 
-- `-c, --clone` Clone project from remote (default: true)
+- `-c, --clone` Clone project from remote (default: false)
+- `--framework` Framework to use (e.g. `magento2`) when initialization is required
 - `--code-only` Clone source only (skip DB/media)
 - `--fresh` Fresh Magento install (auto-disables default clone; explicit `--clone` is rejected)
 - `--include-sample` Install Magento sample data (fresh install)
@@ -56,8 +57,10 @@ govard bootstrap --fresh --framework-version 2.4.8
   - Media sync is skipped gracefully when remote media path does not exist.
 - `auth.json` handling:
   - Reuses project `auth.json` if present.
-  - Can copy from `~/.composer/auth.json`.
-  - Can generate from `--mage-username` / `--mage-password`.
+  - Can copy from `~/.composer/auth.json` (auto-asks in interactive mode).
+  - Prompts for Magento Public/Private keys if missing (Magento projects only).
+  - Can generate from `--mage-username` / `--mage-password` flags.
+
 - Media sync defaults:
   - Excludes `pub/media/catalog/product` by default for faster clones.
   - Use `--include-product` to include product images (still excludes `catalog/product/cache`).
@@ -79,5 +82,5 @@ govard bootstrap --environment staging --no-composer --no-admin
 govard bootstrap --include-product
 
 # Fresh install + sample data
-govard bootstrap --fresh --framework-version 2.4.8 --include-sample
+govard bootstrap --framework magento2 --fresh --framework-version 2.4.8 --include-sample
 ```

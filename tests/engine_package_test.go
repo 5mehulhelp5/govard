@@ -101,7 +101,8 @@ func TestEnginePkgValidateConfigAllowsHybridWebServer(t *testing.T) {
 func TestEnginePkgNormalizeAndFrameworkDefaults(t *testing.T) {
 	cfg := engine.Config{Framework: "magento2"}
 	engine.NormalizeConfig(&cfg)
-	if cfg.Stack.Services.Cache != "valkey" || cfg.Stack.Services.Search != "opensearch" {
+	if cfg.Stack.Services.Cache != "redis" || cfg.Stack.Services.Search != "opensearch" {
+
 		t.Fatalf("unexpected normalized services: %+v", cfg.Stack.Services)
 	}
 
