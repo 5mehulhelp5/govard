@@ -317,8 +317,10 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrap
 
 	// Always try to re-generate autoload if a PHP project is present. This avoids runtime issues when vendor came from
 	// a remote sync or when a lock file references a missing VCS commit but the dependency already exists locally.
-	if err := bootstrapComposerDumpAutoload(cmd, cwd); err != nil {
-		return err
+	if opts.ComposerInstall {
+		if err := bootstrapComposerDumpAutoload(cmd, cwd); err != nil {
+			return err
+		}
 	}
 
 	if opts.DBImport {
@@ -333,14 +335,18 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrap
 		}
 	}
 
-	if err := runGovardSubcommand(cmd, govardConfigureSubcommandArgs()...); err != nil {
-		return fmt.Errorf("configure failed: %w", err)
+	if !opts.SkipUp {
+		if err := runGovardSubcommand(cmd, govardConfigureSubcommandArgs()...); err != nil {
+			return fmt.Errorf("configure failed: %w", err)
+		}
 	}
 
 	// Some Magento commands can invalidate generated classes that were previously indexed in classmaps.
 	// Rebuild autoload once more so subsequent steps (admin user, smoke checks) do not fail on stale references.
-	if err := bootstrapComposerDumpAutoload(cmd, cwd); err != nil {
-		return err
+	if opts.ComposerInstall {
+		if err := bootstrapComposerDumpAutoload(cmd, cwd); err != nil {
+			return err
+		}
 	}
 
 	if shouldRunSymfonyPostClone(config, opts) {

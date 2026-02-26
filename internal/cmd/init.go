@@ -37,7 +37,7 @@ Case Studies:
 	Example: `  # Auto-detect framework and initialize
   govard init
 
-  # Explicitly set the framework/framework
+  # Explicitly set the framework
   govard init --framework magento2
 
   # Initialize from a DDEV configuration

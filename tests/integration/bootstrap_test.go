@@ -79,7 +79,6 @@ func TestBootstrapCloneOrchestrationWithShims(t *testing.T) {
 	assertBootstrapContains(t, logs, "govard-remote-ok")
 	assertBootstrapContains(t, logs, "rsync|")
 	assertBootstrapContains(t, logs, "deploy@dev.example.com:/var/www/html/")
-	assertBootstrapContains(t, logs, "docker|")
 }
 
 func TestBootstrapFreshOrchestrationWithShims(t *testing.T) {

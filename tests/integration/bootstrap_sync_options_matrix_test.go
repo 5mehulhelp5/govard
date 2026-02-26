@@ -202,6 +202,10 @@ func TestBootstrapOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 			"bootstrap",
 			"--clone=false",
 			"--skip-up",
+			"--no-db",
+			"--no-media",
+			"--no-composer",
+			"--no-admin",
 			"--framework", "magento2",
 			"--framework-version", "2.4.8",
 		)
