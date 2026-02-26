@@ -2,14 +2,15 @@ package cmd
 
 import (
 	"fmt"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 	"govard/internal/engine"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
@@ -302,7 +303,7 @@ Case Studies:
 
 		if err := engine.RenderBlueprint(cwd, config); err != nil {
 			pterm.Warning.Printf("Failed to render compose file: %v\n", err)
-			pterm.Info.Println("You can retry compose rendering later via `govard up`.")
+			pterm.Info.Println("You can retry compose rendering later via `govard env up`.")
 			return nil
 		}
 		composePath := engine.ComposeFilePath(cwd, config.ProjectName)

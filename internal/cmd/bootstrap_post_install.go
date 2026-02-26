@@ -139,7 +139,7 @@ func runBootstrapAdminCreate(cmd *cobra.Command, config engine.Config) {
 func runBootstrapFixDeps(cmd *cobra.Command, opts bootstrapRuntimeOptions) {
 	args := []string{"custom", "fix-deps"}
 	if opts.MetaVersion != "" {
-		args = append(args, "--", "--version="+opts.MetaVersion)
+		args = append(args, "--", "--framework-version="+opts.MetaVersion)
 	}
 	if err := runGovardSubcommand(cmd, args...); err != nil {
 		pterm.Warning.Printf("fix-deps step skipped: %v\n", err)

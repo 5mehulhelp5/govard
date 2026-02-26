@@ -26,13 +26,13 @@ Case Studies:
 - Post-Mortem: Check the last 100 lines (default) to see why a container crashed.
 - Error Hunting: Use --errors to filter out noise and only show critical failure messages.`,
 	Example: `  # Follow all project logs
-  govard logs
+  govard env logs
 
   # Show last 200 lines and follow
-  govard logs --tail 200
+  govard env logs --tail 200
 
   # Show only error messages
-  govard logs --errors`,
+  govard env logs --errors`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		pterm.DefaultHeader.Println("Govard Log Stream")
 		config := loadConfig()

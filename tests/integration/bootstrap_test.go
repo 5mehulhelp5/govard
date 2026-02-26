@@ -31,11 +31,11 @@ func TestBootstrapValidationMatrix(t *testing.T) {
 
 	t.Run("InvalidVersionRejected", func(t *testing.T) {
 		projectDir := env.CreateProjectFromFixture(t, "magento2/options-dev", "bootstrap-validate-version")
-		result := env.RunGovard(t, projectDir, "bootstrap", "--fresh", "--version", "1.0.0", "--skip-up")
+		result := env.RunGovard(t, projectDir, "bootstrap", "--fresh", "--framework-version", "1.0.0", "--skip-up")
 		if result.Success() {
-			t.Fatal("expected failure for invalid --version")
+			t.Fatal("expected failure for invalid --framework-version")
 		}
-		assertBootstrapContains(t, result.Stderr, "invalid --version value")
+		assertBootstrapContains(t, result.Stderr, "invalid --framework-version value")
 	})
 }
 

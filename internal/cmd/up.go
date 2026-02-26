@@ -29,14 +29,14 @@ The startup process follows these stages:
 5. Verify: Maps the .test domain to 127.0.0.1 and registers it with the Govard Proxy.
 
 Case Studies:
-- Standard Startup: Simply run 'govard up' to get your full stack running.
+- Standard Startup: Simply run 'govard env up' to get your full stack running.
 - Low Resource Mode: Use --quickstart if you have limited RAM or only need PHP/Web server.
-- Fresh Install Recovery: If containers are broken, 'govard up' re-renders and restarts them.`,
+- Fresh Install Recovery: If containers are broken, 'govard env up' re-renders and restarts them.`,
 	Example: `  # Start the environment normally
-  govard up
+  govard env up
 
   # Fast startup: skip heavy services like Elasticsearch, Varnish, Redis
-  govard up --quickstart`,
+  govard env up --quickstart`,
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		updater.CheckForUpdates(Version)
 		pterm.DefaultHeader.Println("Govard Environment Liftoff")

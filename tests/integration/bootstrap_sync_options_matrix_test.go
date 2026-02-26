@@ -130,7 +130,7 @@ func TestBootstrapOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 			"--no-admin",
 			"--include-product",
 			"--fix-deps",
-			"--version", "2.4.8",
+			"--framework-version", "2.4.8",
 		)
 		result.AssertSuccess(t)
 
@@ -143,7 +143,7 @@ func TestBootstrapOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected fix-deps invocation log at %s: %v", fixDepsLog, err)
 		}
-		assertMatrixContains(t, string(data), "--version=2.4.8")
+		assertMatrixContains(t, string(data), "--framework-version=2.4.8")
 	})
 
 	t.Run("FreshInstallCanonicalOptions", func(t *testing.T) {
@@ -162,7 +162,7 @@ func TestBootstrapOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 			"--fresh",
 			"--skip-up",
 			"--meta-package", "magento/project-enterprise-edition",
-			"--version", "2.4.8",
+			"--framework-version", "2.4.8",
 			"--include-sample",
 			"--hyva-install",
 			"--hyva-token", "test-hyva-token",

@@ -39,7 +39,7 @@ body:
       label: Steps to reproduce
       placeholder: |
         1. Run `govard init`
-        2. Run `govard up`
+        2. Run `govard env up`
         3. ...
     validations:
       required: true

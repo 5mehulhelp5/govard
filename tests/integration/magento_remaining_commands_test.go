@@ -38,7 +38,7 @@ func TestTrustCommandWithShims(t *testing.T) {
 	assertContains(t, string(certBytes), "mock-cert")
 
 	logs := shim.ReadLog(t)
-	assertContains(t, logs, "docker|cp proxy-caddy-1:/data/caddy/pki/authorities/local/root.crt "+certPath)
+	assertContains(t, logs, "docker|cp govard-proxy-caddy:/data/caddy/pki/authorities/local/root.crt "+certPath)
 	assertContains(t, logs, "sudo|cp "+certPath+" /usr/local/share/ca-certificates/govard.crt")
 	assertContains(t, logs, "sudo|update-ca-certificates")
 }

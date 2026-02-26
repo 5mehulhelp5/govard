@@ -19,11 +19,11 @@ It also unregisters the project domain from the Govard Proxy and removes host en
 Use this to pause work and free up CPU/RAM while preserving your local data (volumes).
 
 Case Studies:
-- End of Day: Run 'govard stop' to shut down the project before turning off your computer.
+- End of Day: Run 'govard env stop' to shut down the project before turning off your computer.
 - Switching Projects: Stop the current project to avoid port conflicts or resource contention when starting another.
 - Battery Saving: Stop the environment when working on non-code tasks to extend laptop battery life.`,
 	Example: `  # Stop the environment
-  govard stop`,
+  govard env stop`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		pterm.DefaultHeader.Println("Stopping Govard Environment")
 

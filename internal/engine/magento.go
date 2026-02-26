@@ -73,7 +73,7 @@ func ConfigureMagento(projectName string, config Config) error {
 			}
 
 			if strings.Contains(string(output), "not found") || strings.Contains(string(output), "No such container") {
-				return fmt.Errorf("container %s is not running. Run 'govard up' first", fmt.Sprintf("%s-php-1", projectName))
+				return fmt.Errorf("container %s is not running. Run 'govard env up' first", fmt.Sprintf("%s-php-1", projectName))
 			}
 			if cmd.Optional {
 				pterm.Warning.Printf("Non-fatal Magento configure step failed (%s): %v\n", cmd.Desc, err)

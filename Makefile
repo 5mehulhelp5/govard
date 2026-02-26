@@ -8,7 +8,7 @@ VERSION_RAW ?= $(shell git describe --tags --dirty --always 2>/dev/null || echo 
 VERSION ?= $(patsubst v%,%,$(VERSION_RAW))
 LDFLAGS ?= -s -w -X govard/internal/cmd.Version=$(VERSION)
 
-.PHONY: build clean test test-fast test-unit test-coverage test-integration test-integration-ci test-frontend build-test-binary install lint fmt vet push test-realenv-setup test-realenv test-realenv-clean
+.PHONY: build clean test test-fast test-unit test-coverage test-integration test-integration-ci test-frontend build-test-binary install lint fmt fmt-check vet push test-realenv-setup test-realenv test-realenv-clean
 
 build:
 	@echo "Building Govard..."
@@ -16,9 +16,18 @@ build:
 	GOOS=darwin GOARCH=arm64 go build -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/govard-darwin-arm64 cmd/govard/main.go
 	GOOS=linux GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/govard-linux-amd64 cmd/govard/main.go
 
-test: test-frontend test-unit test-integration
+test: fmt-check vet test-frontend test-unit test-integration
 
-test-fast: test-frontend test-unit
+test-fast: fmt-check vet test-frontend test-unit
+
+fmt-check:
+	@echo "Checking code formatting..."
+	@unformatted="$$(find . -type f -name '*.go' -not -path './vendor/*' -print0 | xargs -0 gofmt -s -l)"; \
+	if [ -n "$$unformatted" ]; then \
+		echo "The following files need formatting:"; \
+		echo "$$unformatted"; \
+		exit 1; \
+	fi
 
 test-unit:
 	@echo "Running unit tests..."

@@ -62,11 +62,6 @@ func init() {
 	rootCmd.AddCommand(debugCmd)
 	rootCmd.AddCommand(desktopCmd)
 
-	rootCmd.AddCommand(upCmd)
-	rootCmd.AddCommand(stopCmd)
-	rootCmd.AddCommand(downCmd)
-	rootCmd.AddCommand(logsCmd)
-
 	// Framework & Tooling Shortcuts
 	initFrameworkCommands()
 
