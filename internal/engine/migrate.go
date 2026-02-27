@@ -62,7 +62,7 @@ func MigrateFromDDEV(root string) (MigrationResult, error) {
 }
 
 func MigrateFromWarden(root string) (MigrationResult, error) {
-	env := parseDotEnv(filepath.Join(root, ".env"))
+	env := ParseDotEnv(filepath.Join(root, ".env"))
 
 	wardenConfigPath := filepath.Join(root, ".warden", "warden-env.yml")
 	var warden struct {
@@ -229,7 +229,7 @@ func mapWardenTypeToFramework(wardenType string) string {
 	}
 }
 
-func parseDotEnv(path string) map[string]string {
+func ParseDotEnv(path string) map[string]string {
 	env := make(map[string]string)
 	file, err := os.Open(path)
 	if err != nil {

@@ -305,7 +305,7 @@ export const renderEnvVars = (container, env) => {
     .map((key) => {
       const value = envVars[key];
       return `
-      <div class="flex justify-between items-center group cursor-pointer hover:bg-[#22492f]/50 p-1.5 -mx-1.5 rounded transition-colors" title="Click to copy">
+      <div data-action="copy-text" data-text="${escapeHTML(value)}" class="flex justify-between items-center group cursor-pointer hover:bg-[#22492f]/50 p-1.5 -mx-1.5 rounded transition-colors" title="Click to copy">
         <span class="text-xs text-[#90cba4] font-mono">${escapeHTML(key)}</span>
         <span class="text-xs text-white font-mono bg-[#102316] px-2 py-0.5 rounded border border-[#2e573a] break-all max-w-[60%]">${escapeHTML(value)}</span>
       </div>`;

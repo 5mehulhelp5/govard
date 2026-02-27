@@ -398,6 +398,14 @@ func (app *App) StopEnvironment(project string) string {
 	return message
 }
 
+func (app *App) RestartEnvironment(project string) string {
+	message, err := restartEnvironment(project)
+	if err != nil {
+		return "Failed to restart " + project + ": " + err.Error()
+	}
+	return message
+}
+
 func (app *App) StartLogStream(project string) string {
 	app.streamMu.Lock()
 	defer app.streamMu.Unlock()

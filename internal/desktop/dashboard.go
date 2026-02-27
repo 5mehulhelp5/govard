@@ -305,6 +305,9 @@ func buildEnvironment(info *projectInfo) Environment {
 		env.Database = formatDatabase(info.config.Stack.DBType, info.config.Stack.DBVersion)
 		env.Services = deriveServices(info.config)
 		env.ServiceTargets = collectServiceTargets(info)
+		if info.workingDir != "" {
+			env.EnvVars = engine.ParseDotEnv(filepath.Join(info.workingDir, ".env"))
+		}
 		if env.Domain != "" {
 			env.Name = env.Domain
 		}

@@ -25,6 +25,7 @@ import { createOnboardingController } from "./modules/onboarding.js";
 import { createRemotesController } from "./modules/remotes.js";
 import { createSettingsController } from "./modules/settings.js";
 import { createShellController } from "./modules/shell.js";
+import { createTerminalController } from "./modules/terminal.js";
 import { desktopBridge } from "./services/bridge.js";
 import { getState, setState } from "./state/store.js";
 import { createToast } from "./ui/toast.js";
@@ -259,7 +260,10 @@ const loadDashboard = async () => {
 const syncProjectState = () => {
   const state = getState();
   const selectedProject =
-    refs.envSelector?.value || refs.logSelector?.value || state.selectedProject || "";
+    refs.envSelector?.value ||
+    refs.logSelector?.value ||
+    state.selectedProject ||
+    "";
   setState({ selectedProject });
 };
 
@@ -327,6 +331,15 @@ const remotesController = createRemotesController({
   onToast: showToast,
 });
 
+const embeddedTerminalController = createTerminalController({
+  bridge: desktopBridge,
+  runtime: desktopBridge.runtime,
+  container: refs.terminalContainer,
+  onStatus: setStatus,
+  onToast: showToast,
+  readSelection,
+});
+
 const renderAllSkeletons = () => {
   renderDashboardSkeletons(refs);
   renderEnvironmentSkeletons(refs.envList);
@@ -354,7 +367,8 @@ const refreshDashboard = async (options = {}) => {
     previousProject,
   );
 
-  const selectedProject = refs.envSelector?.value || getState().selectedProject || "";
+  const selectedProject =
+    refs.envSelector?.value || getState().selectedProject || "";
   setState({ environments: dashboard.environments, selectedProject });
   if (!selectedProject && dashboard.environments.length > 0) {
     setState({ selectedProject: projectKey(dashboard.environments[0]) });
@@ -437,6 +451,19 @@ document.addEventListener("click", async (event) => {
     return;
   }
 
+  if (action === "copy-text") {
+    const text = targetElement.dataset.text || "";
+    if (text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        onToast("Copied to clipboard!", "success");
+      } catch (err) {
+        onToast(`Failed to copy: ${err}`, "error");
+      }
+    }
+    return;
+  }
+
   if (action === "refresh-logs") {
     await logsController.refresh();
     return;
@@ -498,6 +525,10 @@ document.addEventListener("click", async (event) => {
   }
   if (action === "clear-logs") {
     await logsController.clearLogs();
+    return;
+  }
+  if (action === "start-embedded-terminal") {
+    await embeddedTerminalController.startSession();
     return;
   }
   if (action === "download-logs") {

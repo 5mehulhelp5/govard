@@ -188,6 +188,16 @@ func stopEnvironment(project string) (string, error) {
 	return "Stopped environment " + info.name, nil
 }
 
+func restartEnvironment(project string) (string, error) {
+	if _, err := stopEnvironment(project); err != nil {
+		return "", fmt.Errorf("stop phase: %w", err)
+	}
+	if _, err := startEnvironment(project); err != nil {
+		return "", fmt.Errorf("start phase: %w", err)
+	}
+	return "Restarted environment " + project, nil
+}
+
 func checkHealth() (string, error) {
 	dashboard, err := buildDashboard()
 	if err != nil {
