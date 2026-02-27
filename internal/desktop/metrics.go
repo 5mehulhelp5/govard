@@ -73,6 +73,8 @@ func buildResourceMetrics() (ResourceMetricsSnapshot, error) {
 	}
 
 	aggregates := map[string]*projectMetricAggregate{}
+	serviceAggregates := map[string]*projectMetricAggregate{}
+
 	for projectName, info := range projectMap {
 		_ = loadProjectConfig(info)
 		if !looksLikeGovard(info) {
@@ -90,7 +92,7 @@ func buildResourceMetrics() (ResourceMetricsSnapshot, error) {
 
 	warnings := []string{}
 	for _, c := range containers {
-		projectName, _ := extractProjectAndService(c)
+		projectName, serviceName := extractProjectAndService(c)
 		agg := aggregates[projectName]
 		if agg == nil || c.State != "running" {
 			continue
@@ -102,19 +104,40 @@ func buildResourceMetrics() (ResourceMetricsSnapshot, error) {
 			continue
 		}
 
-		agg.cpuPercent += calculateCPUPercent(stats)
-		agg.memoryBytes += stats.MemoryStats.Usage
+		cpuP := calculateCPUPercent(stats)
+		memB := stats.MemoryStats.Usage
+		var memL uint64 = 0
 		if stats.MemoryStats.Limit > 0 {
-			agg.memoryLimit += stats.MemoryStats.Limit
+			memL = stats.MemoryStats.Limit
 		}
-		rxBytes, txBytes := sumNetworkBytes(stats.Networks)
-		agg.netRxBytes += rxBytes
-		agg.netTxBytes += txBytes
+		rxB, txB := sumNetworkBytes(stats.Networks)
+
+		agg.cpuPercent += cpuP
+		agg.memoryBytes += memB
+		agg.memoryLimit += memL
+		agg.netRxBytes += rxB
+		agg.netTxBytes += txB
 		agg.runningSamples++
 
 		oomKilled, inspectErr := readContainerOOMKilled(ctx, cli, c.ID)
 		if inspectErr == nil && oomKilled {
 			agg.oomKilled = true
+		}
+
+		if serviceName != "" {
+			serviceKey := projectName + "-" + serviceName
+			svcAgg := &projectMetricAggregate{
+				project:        serviceKey,
+				status:         "running",
+				cpuPercent:     cpuP,
+				memoryBytes:    memB,
+				memoryLimit:    memL,
+				netRxBytes:     rxB,
+				netTxBytes:     txB,
+				oomKilled:      oomKilled,
+				runningSamples: 1,
+			}
+			serviceAggregates[serviceKey] = svcAgg
 		}
 	}
 
@@ -124,8 +147,9 @@ func buildResourceMetrics() (ResourceMetricsSnapshot, error) {
 	}
 	sort.Strings(projectNames)
 
-	projects := make([]ProjectResourceMetric, 0, len(projectNames))
+	projects := make([]ProjectResourceMetric, 0, len(projectNames)+len(serviceAggregates))
 	summary := ResourceMetricsSummary{}
+
 	for _, projectName := range projectNames {
 		agg := aggregates[projectName]
 		memoryPercent := 0.0
@@ -155,6 +179,30 @@ func buildResourceMetrics() (ResourceMetricsSnapshot, error) {
 		if agg.oomKilled {
 			summary.OOMProjects++
 		}
+	}
+
+	serviceKeys := make([]string, 0, len(serviceAggregates))
+	for k := range serviceAggregates {
+		serviceKeys = append(serviceKeys, k)
+	}
+	sort.Strings(serviceKeys)
+
+	for _, k := range serviceKeys {
+		agg := serviceAggregates[k]
+		memoryPercent := 0.0
+		if agg.memoryLimit > 0 {
+			memoryPercent = (float64(agg.memoryBytes) / float64(agg.memoryLimit)) * 100
+		}
+		projects = append(projects, ProjectResourceMetric{
+			Project:       agg.project,
+			Status:        agg.status,
+			CPUPercent:    roundMetric(agg.cpuPercent),
+			MemoryMB:      roundMetric(bytesToMB(agg.memoryBytes)),
+			MemoryPercent: roundMetric(memoryPercent),
+			NetRxMB:       roundMetric(bytesToMB(agg.netRxBytes)),
+			NetTxMB:       roundMetric(bytesToMB(agg.netTxBytes)),
+			OOMKilled:     agg.oomKilled,
+		})
 	}
 
 	summary.CPUPercent = roundMetric(summary.CPUPercent)

@@ -54,13 +54,18 @@ export const normalizeMetricsPayload = (payload = {}) => {
   };
 };
 
-const renderMetricSummary = (refs, summary = {}, systemCPU = 0, systemMemory = 0) => {
+const renderMetricSummary = (
+  refs,
+  summary = {},
+  systemCPU = 0,
+  systemMemory = 0,
+) => {
   setText(refs.metricActiveProjects, String(summary.activeProjects ?? 0));
-  
+
   if (refs.metricCPU) {
     refs.metricCPU.innerHTML = `${systemCPU.toFixed(1)}<span class="text-lg text-slate-400 font-normal">%</span>`;
   }
-  
+
   if (refs.metricMemory) {
     let mem = systemMemory;
     let unit = "MB";
@@ -108,7 +113,11 @@ export const renderMetricSkeletons = (container) => {
     .join("");
 };
 
-const renderMetricProjects = (container, projects = [], selectedProject = "") => {
+const renderMetricProjects = (
+  container,
+  projects = [],
+  selectedProject = "",
+) => {
   if (!container) {
     return;
   }
@@ -124,25 +133,67 @@ const renderMetricProjects = (container, projects = [], selectedProject = "") =>
 
   container.innerHTML = filtered
     .map((project) => {
-      const name = project.project || "unknown";
+      let name = project.project || "unknown";
+      if (selectedProject && name.startsWith(selectedProject + "-")) {
+        name = name.substring(selectedProject.length + 1);
+      }
       const healthy = project.status === "running";
 
-      let icon = "php";
-      let iconColor = "text-blue-400";
-      let iconBg = "bg-blue-500/10 border-blue-500/20";
+      let icon = "dns";
+      let iconColor = "text-slate-400";
+      let iconBg = "bg-slate-500/10 border-slate-500/20";
 
-      if (name.includes("mysql") || name.includes("db")) {
+      if (name.includes("php")) {
+        icon = "php";
+        iconColor = "text-blue-400";
+        iconBg = "bg-blue-500/10 border-blue-500/20";
+      } else if (
+        name.includes("mysql") ||
+        name.includes("db") ||
+        name.includes("mariadb") ||
+        name.includes("postgres")
+      ) {
         icon = "database";
         iconColor = "text-yellow-400";
         iconBg = "bg-yellow-500/10 border-yellow-500/20";
-      } else if (name.includes("redis") || name.includes("cache")) {
+      } else if (
+        name.includes("redis") ||
+        name.includes("cache") ||
+        name.includes("valkey")
+      ) {
         icon = "bolt";
         iconColor = "text-red-400";
         iconBg = "bg-red-500/10 border-red-500/20";
-      } else if (name.includes("nginx") || name.includes("web")) {
+      } else if (
+        name.includes("nginx") ||
+        name.includes("web") ||
+        name.includes("varnish") ||
+        name.includes("proxy")
+      ) {
         icon = "language";
         iconColor = "text-emerald-400";
         iconBg = "bg-emerald-500/10 border-emerald-500/20";
+      } else if (name.includes("rabbit") || name.includes("queue")) {
+        icon = "dynamic_feed";
+        iconColor = "text-orange-400";
+        iconBg = "bg-orange-500/10 border-orange-500/20";
+      } else if (
+        name.includes("elastic") ||
+        name.includes("opensearch") ||
+        name.includes("search")
+      ) {
+        icon = "search";
+        iconColor = "text-purple-400";
+        iconBg = "bg-purple-500/10 border-purple-500/20";
+      } else if (
+        name.includes("node") ||
+        name.includes("npm") ||
+        name.includes("yarn") ||
+        name.includes("mail")
+      ) {
+        icon = "apps";
+        iconColor = "text-teal-400";
+        iconBg = "bg-teal-500/10 border-teal-500/20";
       }
 
       return `

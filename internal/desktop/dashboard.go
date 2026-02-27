@@ -319,6 +319,22 @@ func buildEnvironment(info *projectInfo) Environment {
 		env.ServiceTargets = collectServiceTargets(info)
 	}
 
+	var techs []string
+	if env.PHP != "" && env.PHP != "-" {
+		techs = append(techs, "PHP "+env.PHP)
+	}
+	if env.Database != "" && env.Database != "-" && env.Database != "No database" && env.Database != "None" {
+		techs = append(techs, env.Database)
+	}
+	for _, svc := range env.Services {
+		// Avoid duplicating the database since it's already in the list with version
+		svcLower := strings.ToLower(svc)
+		if svcLower != "mysql" && svcLower != "mariadb" && svcLower != "postgres" && svcLower != "postgresql" {
+			techs = append(techs, svc)
+		}
+	}
+	env.Technologies = uniqueStrings(techs)
+
 	return env
 }
 
@@ -349,6 +365,15 @@ func formatDatabase(dbType, dbVersion string) string {
 		return "No database"
 	}
 	label := titleCase(dbType)
+	lower := strings.ToLower(label)
+	if lower == "mariadb" {
+		label = "MariaDB"
+	} else if lower == "mysql" {
+		label = "MySQL"
+	} else if lower == "postgres" || lower == "postgresql" {
+		label = "PostgreSQL"
+	}
+
 	if dbVersion == "" {
 		return label
 	}
@@ -361,7 +386,16 @@ func deriveServices(config engine.Config) []string {
 		services = append(services, titleCase(config.Stack.Services.WebServer))
 	}
 	if config.Stack.DBType != "" && config.Stack.DBType != "none" {
-		services = append(services, titleCase(config.Stack.DBType))
+		label := titleCase(config.Stack.DBType)
+		lower := strings.ToLower(label)
+		if lower == "mariadb" {
+			label = "MariaDB"
+		} else if lower == "mysql" {
+			label = "MySQL"
+		} else if lower == "postgres" || lower == "postgresql" {
+			label = "PostgreSQL"
+		}
+		services = append(services, label)
 	}
 	switch config.Stack.Services.Cache {
 	case "redis":

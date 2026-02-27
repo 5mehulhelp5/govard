@@ -29,6 +29,7 @@ type Environment struct {
 	ExtraDomains   []string          `json:"extraDomains,omitempty"`
 	Name           string            `json:"name"`
 	Framework      string            `json:"framework"`
+	Technologies   []string          `json:"technologies"`
 	PHP            string            `json:"php"`
 	Database       string            `json:"database"`
 	Services       []string          `json:"services"`
