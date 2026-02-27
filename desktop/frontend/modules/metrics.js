@@ -54,10 +54,23 @@ export const normalizeMetricsPayload = (payload = {}) => {
   };
 };
 
-const renderMetricSummary = (refs, summary = {}) => {
+const renderMetricSummary = (refs, summary = {}, systemCPU = 0, systemMemory = 0) => {
   setText(refs.metricActiveProjects, String(summary.activeProjects ?? 0));
-  setText(refs.metricCPU, formatMetricPercent(summary.cpuPercent));
-  setText(refs.metricMemory, formatMetricMB(summary.memoryMB));
+  
+  if (refs.metricCPU) {
+    refs.metricCPU.innerHTML = `${systemCPU.toFixed(1)}<span class="text-lg text-slate-400 font-normal">%</span>`;
+  }
+  
+  if (refs.metricMemory) {
+    let mem = systemMemory;
+    let unit = "MB";
+    if (mem >= 1024) {
+      mem = mem / 1024;
+      unit = "GB";
+    }
+    refs.metricMemory.innerHTML = `${mem.toFixed(1)}<span class="text-lg text-slate-400 font-normal ml-1">${unit}</span>`;
+  }
+
   setText(refs.metricNetRx, formatMetricMB(summary.netRxMB));
   setText(refs.metricNetTx, formatMetricMB(summary.netTxMB));
   setText(refs.metricOOM, String(summary.oomProjects ?? 0));
@@ -189,7 +202,7 @@ export const createMetricsController = ({
       }
     }
 
-    renderMetricSummary(refs, summary);
+    renderMetricSummary(refs, summary, metrics.systemCPU, metrics.systemMemory);
     renderMetricWarnings(refs.metricsWarnings, metrics.warnings);
     renderMetricProjects(refs.metricsList, metrics.projects, selectedProject);
 

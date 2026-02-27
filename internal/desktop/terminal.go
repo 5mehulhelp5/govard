@@ -102,6 +102,71 @@ func (app *App) WriteTerminal(sessionID string, data string) {
 	}
 }
 
+func (app *App) StartGovardTerminal(project string, args []string) string {
+	info, err := loadProjectInfo(project)
+	if err != nil {
+		return "error: " + err.Error()
+	}
+
+	binary, err := os.Executable()
+	if err != nil {
+		binary, err = exec.LookPath("govard")
+		if err != nil {
+			return "error: govard CLI not found in PATH"
+		}
+	}
+
+	cmd := exec.Command(binary, args...)
+	cmd.Dir = filepath.Clean(info.workingDir)
+
+	f, err := pty.Start(cmd)
+	if err != nil {
+		return "error: " + err.Error()
+	}
+
+	sessionID := fmt.Sprintf("cmd-%s-sync", project)
+	ctx, cancel := context.WithCancel(app.ctx)
+
+	sessionsMu.Lock()
+	if old, ok := sessions[sessionID]; ok {
+		old.cancel()
+		old.pty.Close()
+	}
+	sessions[sessionID] = &terminalSession{
+		id:     sessionID,
+		pty:    f,
+		cmd:    cmd,
+		ctx:    ctx,
+		cancel: cancel,
+	}
+	sessionsMu.Unlock()
+
+	// Read from PTY and emit to frontend
+	go func() {
+		buf := make([]byte, 1024)
+		for {
+			n, err := f.Read(buf)
+			if n > 0 {
+				emitEvent(app.ctx, "terminal:output", map[string]interface{}{
+					"id":   sessionID,
+					"data": string(buf[:n]),
+				})
+			}
+			if err != nil {
+				break
+			}
+		}
+		sessionsMu.Lock()
+		delete(sessions, sessionID)
+		sessionsMu.Unlock()
+		emitEvent(app.ctx, "terminal:exit", map[string]interface{}{
+			"id": sessionID,
+		})
+	}()
+
+	return sessionID
+}
+
 func (app *App) ResizeTerminal(sessionID string, cols int, rows int) {
 	sessionsMu.Lock()
 	session, ok := sessions[sessionID]

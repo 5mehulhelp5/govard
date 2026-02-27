@@ -81,8 +81,15 @@ export const createOnboardingController = ({
       elasticsearch: Boolean(refs.onboardElasticsearch?.checked),
     };
     const message = String(
-      (await bridge.onboardProject(projectPath, framework, domain, serviceOptions)) ||
-        "",
+      (await bridge.onboardProject(
+        projectPath,
+        framework,
+        domain,
+        serviceOptions.varnish,
+        serviceOptions.redis,
+        serviceOptions.rabbitmq,
+        serviceOptions.elasticsearch
+      )) || "",
     );
     const isError = message.toLowerCase().includes("failed");
     onStatus(message || "Status: project onboarding finished");
@@ -92,6 +99,7 @@ export const createOnboardingController = ({
     );
     if (!isError && typeof onProjectAdded === "function") {
       await onProjectAdded();
+      toggleModal(false);
     }
   };
 

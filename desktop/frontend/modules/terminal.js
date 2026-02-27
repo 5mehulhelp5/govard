@@ -137,8 +137,43 @@ export const createTerminalController = ({
     }
   };
 
+  const startGovardSession = async (project, commandName, argsList) => {
+    try {
+      if (!activeTerminal) {
+        initTerminal();
+      }
+
+      if (!activeTerminal) return;
+
+      activeTerminal.clear();
+      activeTerminal.write(`Running govard ${commandName}...\r\n`);
+
+      const sessionOrError = await bridge.startGovardTerminal(project, argsList);
+      if (sessionOrError.startsWith("error:")) {
+        activeTerminal.write(`\r\n${sessionOrError}\r\n`);
+        throw new Error(sessionOrError.substring(6));
+      }
+
+      activeSessionId = sessionOrError;
+
+      if (fitAddon) {
+        fitAddon.fit();
+        await bridge.resizeTerminal(
+          activeSessionId,
+          activeTerminal.cols,
+          activeTerminal.rows,
+        );
+      }
+
+      if (onStatus) onStatus(`Status: Running govard ${commandName}`);
+    } catch (err) {
+      if (onToast) onToast(err.message || `Failed to run govard ${commandName}`, "error");
+    }
+  };
+
   return {
     startSession,
+    startGovardSession,
     resize,
   };
 };

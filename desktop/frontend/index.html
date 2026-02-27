@@ -343,9 +343,10 @@
             <button id="refresh" class="hidden"></button>
           </header>
 
-          <section id="projectHero" class="px-6 lg:px-10 pt-6">
+          <div class="flex-1 overflow-y-auto bg-background-dark scroll-smooth w-full h-full flex flex-col relative" id="unifiedScrollContainer">
+          <section id="projectHero" class="px-6 lg:px-10 pt-6 max-w-[1248px] w-full mx-auto">
             <div
-              class="relative rounded-2xl overflow-hidden min-h-[280px] flex flex-col justify-end group border border-[#2e573a] bg-[#1a3322]/20 shadow-2xl"
+              class="relative rounded-2xl overflow-hidden min-h-[280px] flex flex-col justify-end group border border-[#22492f] w-full"
             >
               <div class="absolute inset-0 z-0">
                 <div
@@ -461,8 +462,9 @@
             </div>
           </section>
 
-          <div class="border-b border-[#2e573a] px-6 lg:px-10 mt-2">
-            <nav aria-label="Tabs" class="-mb-px flex space-x-6">
+          <div id="tabsHeader" class="border-b border-[#22492f] shrink-0 bg-background-dark sticky top-0 z-10">
+            <div id="tabsHeaderInner">
+              <nav aria-label="Tabs" class="-mb-px flex space-x-6 px-6 lg:px-10">
               <a
                 aria-current="page"
                 class="border-primary text-primary whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2"
@@ -498,23 +500,25 @@
                 Logs &amp; Shell
               </a>
             </nav>
+            </div>
           </div>
           <div
-            class="flex-1 overflow-y-auto bg-background-dark p-6 lg:p-10 scroll-smooth tab-content active"
+            class="flex-1 tab-content hidden"
             id="tab-dashboard"
           >
-            <div class="max-w-[1200px] mx-auto space-y-8">
-              <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-4">
-                <div class="lg:col-span-2 space-y-6">
-                  <h3
-                    class="text-white text-lg font-semibold flex items-center gap-2"
-                  >
-                    <span class="material-symbols-outlined text-primary"
-                      >monitoring</span
+            <div class="px-6 lg:px-10 py-6 max-w-[1248px] w-full mx-auto">
+              <div class="space-y-8">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-4">
+                  <div class="lg:col-span-2 space-y-6">
+                    <h3
+                      class="text-white text-lg font-semibold flex items-center gap-2"
                     >
-                    System Resources
-                  </h3>
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <span class="material-symbols-outlined text-primary"
+                        >monitoring</span
+                      >
+                      System Resources
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div
                       class="glass-panel p-6 rounded-xl border border-[#2e573a] relative overflow-hidden group"
                     >
@@ -550,8 +554,8 @@
                       <div
                         class="mt-4 flex justify-between text-xs text-slate-500"
                       >
-                        <span>2 Cores</span>
-                        <span>Intel Core i9</span>
+                        <span>&nbsp;</span>
+                        <span>&nbsp;</span>
                       </div>
                     </div>
                     <div
@@ -586,8 +590,8 @@
                       <div
                         class="mt-4 flex justify-between text-xs text-slate-500"
                       >
-                        <span>Running 5 Containers</span>
-                        <span class="text-blue-400">Normal Load</span>
+                        <span id="metricContainerCount">&nbsp;</span>
+                        <span class="text-blue-400">&nbsp;</span>
                       </div>
                     </div>
                   </div>
@@ -600,137 +604,7 @@
                     Active Services
                   </h3>
                   <div class="space-y-4" id="metricsList">
-                    <div
-                      class="glass-panel p-4 rounded-xl border border-[#2e573a] hover:border-primary/30 transition-all flex items-center justify-between group"
-                    >
-                      <div class="flex items-center gap-4">
-                        <div
-                          class="p-2 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                        >
-                          <span class="material-symbols-outlined">php</span>
-                        </div>
-                        <div>
-                          <h4 class="text-white font-medium text-sm">
-                            app-service
-                          </h4>
-                          <div class="flex items-center gap-2 text-xs mt-1">
-                            <span class="text-slate-400">Port: 8000</span>
-                            <span
-                              class="w-1 h-1 rounded-full bg-slate-600"
-                            ></span>
-                            <span class="text-green-400">Healthy</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div
-                        class="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <button
-                          class="p-1.5 rounded hover:bg-[#22492f] text-slate-400 hover:text-white transition-colors"
-                          title="View Logs"
-                        >
-                          <span class="material-symbols-outlined text-lg"
-                            >list_alt</span
-                          >
-                        </button>
-                        <button
-                          class="p-1.5 rounded hover:bg-[#22492f] text-slate-400 hover:text-white transition-colors"
-                          title="Terminal"
-                        >
-                          <span class="material-symbols-outlined text-lg"
-                            >terminal</span
-                          >
-                        </button>
-                      </div>
-                    </div>
-                    <div
-                      class="glass-panel p-4 rounded-xl border border-[#2e573a] hover:border-primary/30 transition-all flex items-center justify-between group"
-                    >
-                      <div class="flex items-center gap-4">
-                        <div
-                          class="p-2 rounded bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
-                        >
-                          <span class="material-symbols-outlined"
-                            >database</span
-                          >
-                        </div>
-                        <div>
-                          <h4 class="text-white font-medium text-sm">
-                            db-service
-                          </h4>
-                          <div class="flex items-center gap-2 text-xs mt-1">
-                            <span class="text-slate-400">Port: 3306</span>
-                            <span
-                              class="w-1 h-1 rounded-full bg-slate-600"
-                            ></span>
-                            <span class="text-green-400">Healthy</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div
-                        class="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <button
-                          class="p-1.5 rounded hover:bg-[#22492f] text-slate-400 hover:text-white transition-colors"
-                          title="View Logs"
-                        >
-                          <span class="material-symbols-outlined text-lg"
-                            >list_alt</span
-                          >
-                        </button>
-                        <button
-                          class="p-1.5 rounded hover:bg-[#22492f] text-slate-400 hover:text-white transition-colors"
-                          title="Terminal"
-                        >
-                          <span class="material-symbols-outlined text-lg"
-                            >terminal</span
-                          >
-                        </button>
-                      </div>
-                    </div>
-                    <div
-                      class="glass-panel p-4 rounded-xl border border-[#2e573a] hover:border-primary/30 transition-all flex items-center justify-between group"
-                    >
-                      <div class="flex items-center gap-4">
-                        <div
-                          class="p-2 rounded bg-red-500/10 text-red-400 border border-red-500/20"
-                        >
-                          <span class="material-symbols-outlined">bolt</span>
-                        </div>
-                        <div>
-                          <h4 class="text-white font-medium text-sm">
-                            redis-cache
-                          </h4>
-                          <div class="flex items-center gap-2 text-xs mt-1">
-                            <span class="text-slate-400">Port: 6379</span>
-                            <span
-                              class="w-1 h-1 rounded-full bg-slate-600"
-                            ></span>
-                            <span class="text-green-400">Healthy</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div
-                        class="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <button
-                          class="p-1.5 rounded hover:bg-[#22492f] text-slate-400 hover:text-white transition-colors"
-                          title="View Logs"
-                        >
-                          <span class="material-symbols-outlined text-lg"
-                            >list_alt</span
-                          >
-                        </button>
-                        <button
-                          class="p-1.5 rounded hover:bg-[#22492f] text-slate-400 hover:text-white transition-colors"
-                          title="Terminal"
-                        >
-                          <span class="material-symbols-outlined text-lg"
-                            >terminal</span
-                          >
-                        </button>
-                      </div>
-                    </div>
+                    <!-- Services will be injected via JS -->
                   </div>
                 </div>
                 <div class="lg:col-span-1 space-y-6">
@@ -862,10 +736,11 @@
           </div>
           <div
             id="tab-remotes"
-            class="flex-1 overflow-y-auto bg-background-dark p-6 lg:p-10 scroll-smooth tab-content hidden"
+            class="flex-1 tab-content hidden"
           >
-            <div id="remotes" class="max-w-[1200px] mx-auto space-y-8">
-              <div class="flex items-center justify-between">
+            <div class="px-6 lg:px-10 py-6 max-w-[1248px] w-full mx-auto" id="remotes">
+              <div class="space-y-8">
+                <div class="flex items-center justify-between">
                 <h2
                   class="text-white text-xl font-semibold flex items-center gap-2"
                 >
@@ -1103,13 +978,12 @@
                 </div>
               </div>
             </div>
-          </div>
           <div
-            class="flex-1 overflow-hidden flex flex-col bg-background-dark tab-content hidden"
             id="tab-logs"
+            class="flex-1 flex flex-col overflow-hidden tab-content hidden"
           >
-            <div class="flex-1 flex flex-col overflow-hidden p-6 lg:p-6 gap-6">
-              <div class="flex-1 flex flex-col gap-4 overflow-hidden">
+            <div class="px-6 lg:px-10 py-6 max-w-[1248px] w-full mx-auto flex-1 flex flex-col gap-6 overflow-hidden h-full">
+              <div class="flex-1 flex flex-col gap-4 overflow-hidden h-full min-h-[500px]">
                 <div
                   class="flex-1 flex flex-col rounded-xl border border-[#2e573a] bg-[#0c1810] overflow-hidden shadow-lg relative"
                 >
@@ -1156,13 +1030,8 @@
                     </div>
                     <div class="flex items-center gap-3">
                       <div class="relative">
-                        <span
-                          class="absolute inset-y-0 left-2 flex items-center"
-                        >
-                          <span
-                            class="material-symbols-outlined text-[#5d856b] text-base"
-                            >search</span
-                          >
+                        <span class="absolute inset-y-0 left-2 flex items-center">
+                          <span class="material-symbols-outlined text-[#5d856b] text-base">search</span>
                         </span>
                         <input
                           class="bg-[#102316] text-xs text-white pl-8 pr-3 py-1.5 rounded border border-[#2e573a] focus:border-primary/50 focus:outline-none placeholder-[#5d856b] w-48"
@@ -1190,32 +1059,6 @@
                         >
                       </button>
                     </div>
-                    <div
-                      id="logSeverity"
-                      class="flex rounded-lg overflow-hidden border border-[#2e573a] ml-3"
-                    >
-                      <button
-                        data-action="filter-severity"
-                        data-severity="all"
-                        class="px-3 py-1 bg-[#2e573a] text-primary text-[10px] font-bold uppercase transition-colors hover:bg-[#2e573a]/80"
-                      >
-                        All
-                      </button>
-                      <button
-                        data-action="filter-severity"
-                        data-severity="error"
-                        class="px-3 py-1 bg-[#102316] text-[#90cba4] text-[10px] font-bold uppercase hover:bg-[#1a3322] border-l border-[#2e573a] transition-colors"
-                      >
-                        Error
-                      </button>
-                      <button
-                        data-action="filter-severity"
-                        data-severity="warn"
-                        class="px-3 py-1 bg-[#102316] text-[#90cba4] text-[10px] font-bold uppercase hover:bg-[#1a3322] border-l border-[#2e573a] transition-colors"
-                      >
-                        Warn
-                      </button>
-                    </div>
                   </div>
                   <div
                     class="flex-1 overflow-y-auto p-4 terminal-text text-xs space-y-1 bg-[#0c1810] custom-scrollbar"
@@ -1235,48 +1078,52 @@ Select an environment to view logs.</pre
                 <div
                   class="h-1/3 flex flex-col rounded-xl border border-[#2e573a] bg-[#0c1810] overflow-hidden shadow-lg"
                 >
-                  <div
-                    class="flex flex-wrap items-center justify-between gap-3 p-2 pl-3 border-b border-[#2e573a] bg-[#1a3322]"
-                  >
+                  <div class="flex items-center justify-between p-2 pl-3 border-b border-[#2e573a] bg-[#1a3322]">
                     <div class="flex items-center gap-2">
-                      <span
-                        class="material-symbols-outlined text-slate-400 text-sm"
-                        >terminal</span
-                      >
-                      <span class="text-xs font-semibold text-slate-300"
-                        >Terminal</span
-                      >
+                      <span class="material-symbols-outlined text-slate-400 text-sm">terminal</span>
+                      <span class="text-xs font-semibold text-slate-300">Terminal — bash</span>
                     </div>
-                    <div class="flex flex-wrap items-center gap-2">
-                      <select
-                        id="shellUser"
-                        class="rounded border border-[#2e573a] bg-[#102316] text-slate-200 text-xs px-2 py-1 focus:outline-none focus:border-primary/50"
-                      >
-                        <option value="">Auto User</option>
-                        <option value="root">root</option>
-                        <option value="www-data">www-data</option>
-                        <option value="node">node</option>
-                      </select>
-                      <select
-                        id="shellCommand"
-                        class="rounded border border-[#2e573a] bg-[#102316] text-slate-200 text-xs px-2 py-1 focus:outline-none focus:border-primary/50"
-                      >
-                        <option value="bash">bash</option>
-                        <option value="sh">sh</option>
-                        <option value="zsh">zsh</option>
-                      </select>
-                      <button
-                        data-action="start-embedded-terminal"
-                        class="px-3 py-1 rounded text-xs font-medium bg-[#22492f] border border-[#366b47] text-white hover:bg-[#2e573a]"
-                      >
-                        Open
-                      </button>
-                      <button
-                        data-action="reset-shell-users"
-                        class="px-3 py-1 rounded text-xs font-medium text-slate-300 border border-[#2e573a] hover:bg-[#22492f]"
-                      >
-                        Reset User
-                      </button>
+                    <div class="flex items-center gap-3">
+                      <div class="flex gap-2">
+                        <button
+                          data-action="start-embedded-terminal"
+                          class="p-1 hover:bg-white/10 rounded text-slate-400 hover:text-white transition-colors"
+                          title="Open Shell"
+                        >
+                          <span class="material-symbols-outlined text-sm">add</span>
+                        </button>
+                        <button
+                          data-action="reset-shell-users"
+                          class="p-1 hover:bg-white/10 rounded text-slate-400 hover:text-white transition-colors flex items-center"
+                          title="Terminal Settings"
+                        >
+                          <span class="material-symbols-outlined text-sm">settings</span>
+                        </button>
+                        <select
+                          id="shellUser"
+                          class="hidden"
+                        >
+                          <option value="">Auto</option>
+                        </select>
+                        <select
+                          id="shellCommand"
+                          class="hidden"
+                        >
+                           <option value="bash">bash</option>
+                        </select>
+                        <button
+                          class="p-1 hover:bg-white/10 rounded text-slate-400 hover:text-white transition-colors"
+                          title="Expand"
+                        >
+                          <span class="material-symbols-outlined text-sm">open_in_full</span>
+                        </button>
+                        <button
+                          class="p-1 hover:bg-white/10 rounded text-slate-400 hover:text-white transition-colors"
+                          title="Close"
+                        >
+                          <span class="material-symbols-outlined text-sm">close</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <div
@@ -1284,8 +1131,10 @@ Select an environment to view logs.</pre
                     class="flex-1 overflow-hidden bg-[#0c1810]"
                   ></div>
                 </div>
+                </div>
               </div>
             </div>
+          </div>
         </main>
       </div>
 
@@ -1385,52 +1234,19 @@ Select an environment to view logs.</pre
 
                 <!-- Detection Card -->
                 <div
-                  class="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 p-6 flex flex-col gap-4"
+                  id="detectionState"
+                  class="relative overflow-hidden rounded-xl bg-slate-100 dark:bg-black/20 border border-slate-200 dark:border-white/5 p-6 flex flex-col gap-4 text-center justify-center items-center h-48"
                 >
-                  <div
-                    class="absolute -right-4 -top-4 w-24 h-24 bg-primary/20 rounded-full blur-2xl"
-                  ></div>
-                  <div class="flex items-start justify-between">
-                    <div class="rounded-full bg-primary/20 p-2 text-primary">
-                      <span class="material-symbols-outlined text-2xl"
-                        >check_circle</span
-                      >
-                    </div>
-                    <span
-                      class="px-2 py-1 rounded text-[10px] font-bold bg-primary text-primary-content uppercase"
-                      >Auto-detected</span
-                    >
+                  <div class="rounded-full bg-slate-200 dark:bg-white/5 p-3 text-slate-400">
+                    <span class="material-symbols-outlined text-3xl">search</span>
                   </div>
                   <div>
-                    <h3
-                      class="text-xl font-bold text-slate-900 dark:text-white mb-1"
-                    >
-                      Found Project
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-slate-300 mb-1">
+                      No Directory Selected
                     </h3>
-                    <p class="text-sm text-primary/80 font-medium">
-                      Framework recognized successfully
+                    <p class="text-xs text-slate-500 dark:text-slate-500">
+                      Click the Edit button above to choose your project folder.
                     </p>
-                  </div>
-                  <div class="h-px w-full bg-primary/10"></div>
-                  <div class="flex flex-col gap-2">
-                    <div
-                      class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300"
-                    >
-                      <span
-                        class="material-symbols-outlined text-[14px] text-primary"
-                        >code</span
-                      >
-                      <span>Optimization: Enabled</span>
-                    </div>
-                    <div
-                      class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300"
-                    >
-                      <span
-                        class="material-symbols-outlined text-[14px] text-primary"
-                        >folder_zip</span
-                      >
-                      <span>Manifest found</span>
-                    </div>
                   </div>
                 </div>
 
@@ -1762,6 +1578,100 @@ Select an environment to view logs.</pre
               >
             </button>
           </footer>
+        </div>
+      </div>
+
+      <div
+        id="syncOptionsModal"
+        class="hidden fixed inset-0 z-[150] bg-[#0c1810]/60 backdrop-blur-sm flex items-center justify-center p-4 opacity-0 transition-opacity duration-300"
+      >
+        <div
+          class="bg-[#1a3322] border border-[#2e573a] rounded-xl w-full max-w-md shadow-2xl flex flex-col overflow-hidden scale-95 transition-transform duration-300"
+        >
+          <div class="px-6 py-4 border-b border-[#2e573a] flex justify-between items-center bg-[#102316]/50">
+            <h3 class="text-white text-lg font-bold flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary">sync</span>
+              Sync Options
+            </h3>
+            <button
+              class="text-slate-400 hover:text-white transition-colors"
+              data-action="close-sync-modal"
+            >
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+          
+          <div class="p-6 space-y-6">
+            <p class="text-slate-300 text-sm">
+              You are about to sync data from the <strong id="syncModalRemoteName" class="text-white"></strong> environment. Choose your sync options:
+            </p>
+            
+            <div class="space-y-4">
+              <label class="flex items-center justify-between cursor-pointer group">
+                <div>
+                  <div class="text-sm font-medium text-white mb-0.5">Sanitize Personal Data</div>
+                  <div class="text-xs text-slate-400">Excludes sensitive files like .env and private keys</div>
+                </div>
+                <div class="relative inline-block w-10 h-6 align-middle select-none transition duration-200 ease-in">
+                  <input
+                    id="syncModalSanitize"
+                    type="checkbox"
+                    class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-4 border-slate-600 appearance-none cursor-pointer transition-all duration-300 top-1 left-1 checked:left-5 checked:bg-white checked:border-white/0"
+                    checked
+                  />
+                  <span class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-700 cursor-pointer transition-colors duration-300 group-hover:bg-slate-600"></span>
+                </div>
+              </label>
+              
+              <label class="flex items-center justify-between cursor-pointer group">
+                <div>
+                  <div class="text-sm font-medium text-white mb-0.5">Exclude Log Tables</div>
+                  <div class="text-xs text-slate-400">Skips var/log and storage/logs directories</div>
+                </div>
+                <div class="relative inline-block w-10 h-6 align-middle select-none transition duration-200 ease-in">
+                  <input
+                    id="syncModalExcludeLogs"
+                    type="checkbox"
+                    class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-4 border-slate-600 appearance-none cursor-pointer transition-all duration-300 top-1 left-1 checked:left-5 checked:bg-white checked:border-white/0"
+                    checked
+                  />
+                  <span class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-700 cursor-pointer transition-colors duration-300 group-hover:bg-slate-600"></span>
+                </div>
+              </label>
+              
+              <label class="flex items-center justify-between cursor-pointer group">
+                <div>
+                  <div class="text-sm font-medium text-white mb-0.5">Use Compression</div>
+                  <div class="text-xs text-slate-400">Compress data during transfer to save bandwidth</div>
+                </div>
+                <div class="relative inline-block w-10 h-6 align-middle select-none transition duration-200 ease-in">
+                  <input
+                    id="syncModalCompress"
+                    type="checkbox"
+                    class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-4 border-slate-600 appearance-none cursor-pointer transition-all duration-300 top-1 left-1 checked:left-5 checked:bg-white checked:border-white/0"
+                    checked
+                  />
+                  <span class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-700 cursor-pointer transition-colors duration-300 group-hover:bg-slate-600"></span>
+                </div>
+              </label>
+            </div>
+          </div>
+          
+          <div class="px-6 py-4 bg-[#102316]/50 border-t border-[#2e573a] flex gap-3 justify-end items-center">
+            <button
+              class="px-4 py-2 rounded-lg text-sm text-slate-300 font-medium hover:bg-white/5 transition-colors"
+              data-action="close-sync-modal"
+            >
+              Cancel
+            </button>
+            <button
+              id="syncModalConfirmBtn"
+              class="px-5 py-2 bg-[#22492f] hover:bg-[#2e573a] border border-[#366b47] rounded-lg text-sm text-white font-medium transition-all group flex items-center gap-2"
+            >
+              <span>Confirm Sync</span>
+              <span class="material-symbols-outlined text-[16px] group-hover:text-primary transition-colors">play_arrow</span>
+            </button>
+          </div>
         </div>
       </div>
 

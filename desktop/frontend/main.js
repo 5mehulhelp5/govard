@@ -62,6 +62,12 @@ const refs = {
   syncToggleSanitize: byId("syncToggleSanitize"),
   syncToggleExcludeLogs: byId("syncToggleExcludeLogs"),
   syncToggleCompress: byId("syncToggleCompress"),
+  syncOptionsModal: byId("syncOptionsModal"),
+  syncModalRemoteName: byId("syncModalRemoteName"),
+  syncModalSanitize: byId("syncModalSanitize"),
+  syncModalExcludeLogs: byId("syncModalExcludeLogs"),
+  syncModalCompress: byId("syncModalCompress"),
+  syncModalConfirmBtn: byId("syncModalConfirmBtn"),
   remoteName: byId("remoteName"),
   remoteHost: byId("remoteHost"),
   remoteUser: byId("remoteUser"),
@@ -148,7 +154,7 @@ const switchTab = (tabId) => {
   });
 
   tabContents.forEach((c) => {
-    c.classList.remove("active", "flex", "block");
+    c.classList.remove("active");
     c.classList.add("hidden");
   });
 
@@ -156,8 +162,36 @@ const switchTab = (tabId) => {
   if (content) {
     content.classList.remove("hidden");
     content.classList.add("active");
-    if (tabId === "logs") content.classList.add("flex");
-    else content.classList.add("block");
+  }
+
+  const scrollContainer = byId("unifiedScrollContainer");
+  const hero = byId("projectHero");
+  const tabs = byId("tabsHeader");
+
+  const tabsInner = byId("tabsHeaderInner");
+
+  if (scrollContainer && hero && tabs && tabsInner) {
+    if (tabId === "dashboard") {
+      hero.classList.remove("hidden");
+      scrollContainer.classList.add("overflow-y-auto");
+      scrollContainer.classList.remove("overflow-hidden");
+      tabs.className =
+        "border-b border-[#22492f] shrink-0 bg-background-dark w-full";
+      tabsInner.className = "w-full";
+    } else if (tabId === "remotes") {
+      hero.classList.add("hidden");
+      scrollContainer.classList.add("overflow-y-auto");
+      scrollContainer.classList.remove("overflow-hidden");
+      tabs.className =
+        "border-b border-[#22492f] bg-[#102316] sticky top-0 z-10 w-full";
+      tabsInner.className = "w-full";
+    } else if (tabId === "logs") {
+      hero.classList.add("hidden");
+      scrollContainer.classList.remove("overflow-y-auto");
+      scrollContainer.classList.add("overflow-hidden");
+      tabs.className = "border-b border-[#22492f] shrink-0 bg-[#152e1e] w-full";
+      tabsInner.className = "";
+    }
   }
 };
 
@@ -500,11 +534,42 @@ document.addEventListener("click", async (event) => {
     await remotesController.testRemote(String(target.dataset.remote || ""));
     return;
   }
-  if (action === "remote-sync") {
-    await remotesController.runSyncPreset(
-      String(target.dataset.remote || ""),
-      String(target.dataset.preset || ""),
-    );
+  if (action === "open-sync-modal") {
+    const remote = String(target.dataset.remote || "");
+    const preset = String(target.dataset.preset || "");
+    if (!remote || !preset) return;
+
+    setState({ currentSyncRemote: remote, currentSyncPreset: preset });
+
+    if (refs.syncModalRemoteName) {
+      refs.syncModalRemoteName.textContent = remote;
+    }
+
+    const config = getState().syncConfig;
+    if (refs.syncModalSanitize)
+      refs.syncModalSanitize.checked = config.sanitize;
+    if (refs.syncModalExcludeLogs)
+      refs.syncModalExcludeLogs.checked = config.excludeLogs;
+    if (refs.syncModalCompress)
+      refs.syncModalCompress.checked = config.compress;
+
+    if (refs.syncOptionsModal) {
+      refs.syncOptionsModal.classList.remove("hidden");
+      setTimeout(() => {
+        refs.syncOptionsModal.classList.remove("opacity-0");
+        refs.syncOptionsModal.firstElementChild.classList.remove("scale-95");
+      }, 10);
+    }
+    return;
+  }
+  if (action === "close-sync-modal") {
+    if (refs.syncOptionsModal) {
+      refs.syncOptionsModal.classList.add("opacity-0");
+      refs.syncOptionsModal.firstElementChild.classList.add("scale-95");
+      setTimeout(() => {
+        refs.syncOptionsModal.classList.add("hidden");
+      }, 300);
+    }
     return;
   }
   if (action === "toggle-sync-config") {
@@ -570,6 +635,72 @@ document.addEventListener("click", async (event) => {
 
   await actionsController.handle(action, targetElement.dataset.env || "");
 });
+
+if (refs.syncModalConfirmBtn) {
+  refs.syncModalConfirmBtn.addEventListener("click", () => {
+    const { currentSyncRemote, currentSyncPreset } = getState();
+    if (!currentSyncRemote || !currentSyncPreset) return;
+
+    const sanitize = refs.syncModalSanitize?.checked || false;
+    const excludeLogs = refs.syncModalExcludeLogs?.checked || false;
+    const compress = refs.syncModalCompress?.checked || false;
+
+    // Switch to logs tab and start the terminal process
+    switchTab("logs");
+
+    // Close the modal
+    if (refs.syncOptionsModal) {
+      refs.syncOptionsModal.classList.add("opacity-0");
+      refs.syncOptionsModal.firstElementChild.classList.add("scale-95");
+      setTimeout(() => {
+        refs.syncOptionsModal.classList.add("hidden");
+      }, 300);
+    }
+
+    // Build arguments
+    let cmd,
+      args = [];
+    if (currentSyncPreset === "full" || currentSyncPreset === "bootstrap") {
+      cmd = "bootstrap";
+      args = ["--environment", currentSyncRemote];
+    } else {
+      cmd = "sync";
+      args = ["--source", currentSyncRemote, "--destination", "local"];
+      if (currentSyncPreset === "db") args.push("--db");
+      if (currentSyncPreset === "media") args.push("--media");
+      if (currentSyncPreset === "files") args.push("--file");
+    }
+
+    // Add additional sync flags based on configuration
+    if (cmd === "sync") {
+      if (sanitize) {
+        args.push(
+          "--exclude",
+          ".env",
+          "--exclude",
+          "*.pem",
+          "--exclude",
+          "*.key",
+        );
+      }
+      if (excludeLogs) {
+        args.push("--exclude", "var/log/**", "--exclude", "storage/logs/**");
+      }
+      if (!compress) {
+        args.push("--no-compress");
+      }
+    }
+
+    // Execute command with embedded terminal
+    const currentProject = getState().selectedProject;
+    if (currentProject) {
+      embeddedTerminalController.startGovardSession(currentProject, cmd, [
+        cmd,
+        ...args,
+      ]);
+    }
+  });
+}
 
 if (refs.refresh) {
   refs.refresh.addEventListener("click", () => {

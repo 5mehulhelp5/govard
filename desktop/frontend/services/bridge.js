@@ -127,6 +127,9 @@ export const desktopBridge = {
       shell,
     );
   },
+  async startGovardTerminal(project, argsList) {
+    return call(bridge?.StartGovardTerminal?.bind(bridge), project, argsList);
+  },
   async writeTerminal(id, data) {
     return call(bridge?.WriteTerminal?.bind(bridge), id, data);
   },

@@ -173,13 +173,17 @@ const renderRemotes = (container, remotes = []) => {
             </div>
           </div>
           <div class="flex flex-wrap gap-3">
-              <button data-action="remote-sync" data-remote="${escapeHTML(remote.name)}" data-preset="db" class="flex-1 px-4 py-2.5 bg-[#22492f] hover:bg-[#2e573a] border border-[#366b47] rounded-lg text-sm text-white font-medium transition-all flex items-center justify-center gap-2 group/btn">
+              <button data-action="open-sync-modal" data-remote="${escapeHTML(remote.name)}" data-preset="db" class="flex-1 px-4 py-2.5 bg-[#22492f] hover:bg-[#2e573a] border border-[#366b47] rounded-lg text-sm text-white font-medium transition-all flex items-center justify-center gap-2 group/btn">
                   <span class="material-symbols-outlined text-[18px] group-hover/btn:text-primary transition-colors">database</span>
                   Pull Database
               </button>
-              <button data-action="remote-sync" data-remote="${escapeHTML(remote.name)}" data-preset="media" class="flex-1 px-4 py-2.5 bg-[#22492f] hover:bg-[#2e573a] border border-[#366b47] rounded-lg text-sm text-white font-medium transition-all flex items-center justify-center gap-2 group/btn">
+              <button data-action="open-sync-modal" data-remote="${escapeHTML(remote.name)}" data-preset="media" class="flex-1 px-4 py-2.5 bg-[#22492f] hover:bg-[#2e573a] border border-[#366b47] rounded-lg text-sm text-white font-medium transition-all flex items-center justify-center gap-2 group/btn">
                   <span class="material-symbols-outlined text-[18px] group-hover/btn:text-blue-400 transition-colors">perm_media</span>
                   Pull Media
+              </button>
+              <button data-action="open-sync-modal" data-remote="${escapeHTML(remote.name)}" data-preset="full" class="flex-1 px-4 py-2.5 bg-[#22492f] hover:bg-[#2e573a] border border-[#366b47] rounded-lg text-sm text-white font-medium transition-all flex items-center justify-center gap-2 group/btn">
+                  <span class="material-symbols-outlined text-[18px] group-hover/btn:text-purple-400 transition-colors">all_inclusive</span>
+                  Pull Everything
               </button>
               <button data-action="remote-test" data-remote="${escapeHTML(remote.name)}" class="px-3 py-2.5 bg-[#102316] hover:bg-[#1a3322] border border-[#2e573a] rounded-lg text-slate-400 hover:text-white transition-all" title="Test Connection">
                   <span class="material-symbols-outlined text-[18px]">wifi_tethering</span>

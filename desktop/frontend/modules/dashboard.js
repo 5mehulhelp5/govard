@@ -197,7 +197,8 @@ export const renderProjectHero = (
 
   const title = domainLabel(env);
   const status = String(env.Status || env.status || "stopped").toLowerCase();
-  const url = env.Url || env.url || `http://${title}.test`;
+  const baseUrl = title.endsWith(".test") ? title : `${title}.test`;
+  const url = env.Url || env.url || `http://${baseUrl}`;
 
   if (refs.projectTitle) refs.projectTitle.textContent = title;
   if (refs.projectStatusText) {

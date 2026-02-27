@@ -11,19 +11,21 @@ This document is the project-specific operating manual for AI coding agents work
 - Blueprint/template rendering
 - Remote environment tooling
 - SSL/proxy utilities
-- Optional desktop app scaffolding
+- Wails-based Desktop GUI Application (`govard desktop`)
 
 Primary goals for contributions:
 
 1. Preserve CLI stability and predictable behavior.
 2. Keep workflows fast for local developers.
-3. Avoid regressions in bootstrap/proxy/db/sync/remote command families.
-4. Maintain release quality (GoReleaser, checksums, install paths).
+3. Avoid regressions in core command families (bootstrap/proxy/db/sync/remote/lock/domain/desktop).
+4. Maintain UI reliability and backend bridge logic for the Desktop App.
+5. Maintain release quality (GoReleaser, checksums, install paths).
 
 ## 2. Runtime and Toolchain Requirements
 
 - Go: `1.24+` (module uses `go 1.24.0`)
-- Node.js: `20` (for frontend tests in CI)
+- Node.js: `20` (for frontend UI and frontend tests)
+- Wails: `v2.11+` (for desktop app development)
 - Docker: required for integration tests and runtime orchestration
 - GitHub CLI (`gh`): useful for release inspection (optional)
 
@@ -32,12 +34,16 @@ Local sanity checks:
 ```bash
 go version
 node --version
+wails version
 docker --version
 ```
 
 ## 3. Repository Map
 
 - `cmd/govard/main.go`: CLI entrypoint
+- `cmd/govard-desktop/`: Desktop app entrypoint (built by Wails)
+- `desktop/`: Wails desktop app codebase (Go backend bridge + React/HTML frontend in `desktop/frontend/`)
+- `docs/`: Project documentation, architectural decisions, and AI agent test reports
 - `internal/cmd/`: Cobra command implementations
 - `internal/engine/`: orchestration, config, blueprint logic
 - `internal/engine/bootstrap/`: framework bootstrap workflows
@@ -222,3 +228,46 @@ Before declaring done:
 - Integration tests rely on built binary (`bin/govard-test`) and Docker.
 
 When uncertain, prefer compatibility and least-surprise behavior over broad refactors.
+
+## 16. Desktop App Development & Testing
+
+### Dev Mode (Live Backend)
+
+To launch the desktop app with the real Go backend connecting to local Docker projects, run Wails dev mode. **Critically, in AI headless environments, provide a display server to prevent Wails from crashing:**
+
+```bash
+DISPLAY=:1 govard desktop --dev
+```
+
+This uses `wails dev -tags desktop` under the hood, compiling the backend and serving the frontend.
+
+### Browser Access for UI Testing (Real Data)
+
+When the dev server is successfully running (it may take 10-20 seconds to compile), it exposes the frontend at:
+
+```
+http://localhost:34115
+```
+
+This is the **mandatory approach for agents to test the real desktop UI**. 
+- Navigate to `http://localhost:34115` in the browser tool.
+- You will see live, actual projects from the user's Docker environment, not dummy templates.
+
+| Path                                     | Purpose                                |
+| :--------------------------------------- | :------------------------------------- |
+| `desktop/frontend/index.html`            | Main HTML entry                        |
+| `desktop/frontend/main.js`               | Bootstrap, event wiring, tab/state mgmt|
+| `desktop/frontend/services/bridge.js`    | Wails Go backend RPC bridge            |
+| `desktop/frontend/state/store.js`        | UI state (selected project, filters)   |
+| `desktop/frontend/modules/`              | Feature modules (dashboard, logs, etc) |
+| `desktop/frontend/ui/toast.js`           | Toast notification system              |
+| `desktop/frontend/utils/dom.js`          | Shared DOM helpers                     |
+
+### Test Mode Behavior
+
+- When accessed **via Wails dev** (`localhost:34115`): full backend bridge is active, real project data is loaded.
+- When opened **directly as a file** (no backend): the bridge is unavailable and fallback mock data (`safeDashboard` in `main.js`) is used. A warning toast appears.
+
+### Test Reports
+
+Desktop UI test plans and results are saved to `docs/desktop-test-plan.md` and `docs/desktop-test-results.md`.
