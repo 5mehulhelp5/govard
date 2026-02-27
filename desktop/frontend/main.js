@@ -171,27 +171,23 @@ const switchTab = (tabId) => {
   const tabsInner = byId("tabsHeaderInner");
 
   if (scrollContainer && hero && tabs && tabsInner) {
+    hero.classList.remove("hidden");
+
     if (tabId === "dashboard") {
-      hero.classList.remove("hidden");
       scrollContainer.classList.add("overflow-y-auto");
       scrollContainer.classList.remove("overflow-hidden");
-      tabs.className =
-        "border-b border-[#22492f] shrink-0 bg-background-dark w-full";
-      tabsInner.className = "w-full";
     } else if (tabId === "remotes") {
-      hero.classList.add("hidden");
       scrollContainer.classList.add("overflow-y-auto");
       scrollContainer.classList.remove("overflow-hidden");
-      tabs.className =
-        "border-b border-[#22492f] bg-[#102316] sticky top-0 z-10 w-full";
-      tabsInner.className = "w-full";
     } else if (tabId === "logs") {
-      hero.classList.add("hidden");
       scrollContainer.classList.remove("overflow-y-auto");
       scrollContainer.classList.add("overflow-hidden");
-      tabs.className = "border-b border-[#22492f] shrink-0 bg-[#152e1e] w-full";
-      tabsInner.className = "";
     }
+
+    // Standardize header styling across all tabs
+    tabs.className =
+      "border-b border-[#22492f] shrink-0 bg-background-dark sticky top-0 z-10 w-full";
+    tabsInner.className = "w-full";
   }
 };
 

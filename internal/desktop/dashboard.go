@@ -585,17 +585,29 @@ func loadProjectInfo(project string) (*projectInfo, error) {
 		return nil, err
 	}
 
-	args := filters.NewArgs(filters.Arg("label", "com.docker.compose.project="+project))
+	projectName := project
+	args := filters.NewArgs(filters.Arg("label", "com.docker.compose.project="+projectName))
 	containers, err := cli.ContainerList(ctx, container.ListOptions{All: true, Filters: args})
 	if err != nil {
 		return nil, err
 	}
+
+	// If no containers found, try stripping .test suffix if present
+	if len(containers) == 0 && strings.HasSuffix(projectName, ".test") {
+		projectName = strings.TrimSuffix(projectName, ".test")
+		args = filters.NewArgs(filters.Arg("label", "com.docker.compose.project="+projectName))
+		containers, err = cli.ContainerList(ctx, container.ListOptions{All: true, Filters: args})
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if len(containers) == 0 {
-		return nil, fmt.Errorf("no containers found")
+		return nil, fmt.Errorf("no containers found for project '%s'", project)
 	}
 
 	info := &projectInfo{
-		name:     project,
+		name:     projectName,
 		services: map[string]bool{},
 	}
 

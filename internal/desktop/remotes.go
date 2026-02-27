@@ -337,6 +337,9 @@ func projectRegistryMatches(entry engine.ProjectRegistryEntry, project string) b
 	if strings.TrimSpace(entry.ProjectName) == project {
 		return true
 	}
+	if strings.TrimSpace(entry.Domain) == project {
+		return true
+	}
 	return filepath.Base(strings.TrimSpace(entry.Path)) == project
 }
 
