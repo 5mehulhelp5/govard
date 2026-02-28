@@ -19,6 +19,28 @@ func TestUpCommandQuickstartFlagExists(t *testing.T) {
 	}
 }
 
+func TestUpCommandPullFlagExists(t *testing.T) {
+	root := cmd.RootCommandForTest()
+	command, _, err := root.Find([]string{"env", "up"})
+	if err != nil {
+		t.Fatalf("find env up: %v", err)
+	}
+	if command.Flags().Lookup("pull") == nil {
+		t.Fatal("expected --pull flag on env up command")
+	}
+}
+
+func TestUpCommandRemoveOrphansFlagExists(t *testing.T) {
+	root := cmd.RootCommandForTest()
+	command, _, err := root.Find([]string{"env", "up"})
+	if err != nil {
+		t.Fatalf("find env up: %v", err)
+	}
+	if command.Flags().Lookup("remove-orphans") == nil {
+		t.Fatal("expected --remove-orphans flag on env up command")
+	}
+}
+
 func TestUpCommandUsesRunE(t *testing.T) {
 	root := cmd.RootCommandForTest()
 	command, _, err := root.Find([]string{"env", "up"})

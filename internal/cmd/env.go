@@ -57,6 +57,13 @@ var envPsCmd = &cobra.Command{
 	RunE:  runEnvPs,
 }
 
+var envPullCmd = &cobra.Command{
+	Use:   "pull",
+	Short: "Pull latest project images",
+	Args:  cobra.NoArgs,
+	RunE:  runEnvPull,
+}
+
 func runEnvStart(cmd *cobra.Command, args []string) error {
 	config := loadConfig()
 	cwd, _ := os.Getwd()
@@ -113,6 +120,31 @@ func runEnvPs(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func runEnvPull(cmd *cobra.Command, args []string) error {
+	config := loadConfig()
+	cwd, _ := os.Getwd()
+	composePath := engine.ComposeFilePath(cwd, config.ProjectName)
+
+	command := exec.Command(
+		"docker",
+		"compose",
+		"--project-directory",
+		cwd,
+		"-p",
+		config.ProjectName,
+		"-f",
+		composePath,
+		"pull",
+	)
+	command.Stdout = cmd.OutOrStdout()
+	command.Stderr = cmd.ErrOrStderr()
+	if err := command.Run(); err != nil {
+		return fmt.Errorf("pull project images: %w", err)
+	}
+	pterm.Success.Println("✅ Images pulled.")
+	return nil
+}
+
 func init() {
 	envCmd.AddCommand(upCmd)
 	envCmd.AddCommand(envStartCmd)
@@ -120,6 +152,7 @@ func init() {
 	envCmd.AddCommand(downCmd)
 	envCmd.AddCommand(envRestartCmd)
 	envCmd.AddCommand(envPsCmd)
+	envCmd.AddCommand(envPullCmd)
 	envCmd.AddCommand(logsCmd)
 	envCmd.AddCommand(redisCmd)
 	envCmd.AddCommand(valkeyCmd)

@@ -44,13 +44,17 @@ Case Studies:
 
 		quickstart, _ := cmd.Flags().GetBool("quickstart")
 		profile, _ := cmd.Flags().GetString("profile")
+		pull, _ := cmd.Flags().GetBool("pull")
+		removeOrphans, _ := cmd.Flags().GetBool("remove-orphans")
 		cwd, _ := os.Getwd()
 		context := upRuntimeContext{
-			Cwd:        cwd,
-			Profile:    profile,
-			Quickstart: quickstart,
-			Out:        cmd.OutOrStdout(),
-			Err:        cmd.ErrOrStderr(),
+			Cwd:           cwd,
+			Profile:       profile,
+			Quickstart:    quickstart,
+			Pull:          pull,
+			RemoveOrphans: removeOrphans,
+			Out:           cmd.OutOrStdout(),
+			Err:           cmd.ErrOrStderr(),
 		}
 		defer func() {
 			status := engine.OperationStatusSuccess
@@ -89,15 +93,17 @@ type upPipelineStage struct {
 }
 
 type upRuntimeContext struct {
-	Cwd        string
-	Config     engine.Config
-	Compose    string
-	Loaded     []string
-	Metadata   engine.ProjectMetadata
-	Profile    string
-	Quickstart bool
-	Out        interface{ Write([]byte) (int, error) }
-	Err        interface{ Write([]byte) (int, error) }
+	Cwd           string
+	Config        engine.Config
+	Compose       string
+	Loaded        []string
+	Metadata      engine.ProjectMetadata
+	Profile       string
+	Quickstart    bool
+	Pull          bool
+	RemoveOrphans bool
+	Out           interface{ Write([]byte) (int, error) }
+	Err           interface{ Write([]byte) (int, error) }
 }
 
 func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPipelineStage {
@@ -188,6 +194,31 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 			},
 		},
 		{
+			Name:         "Pull",
+			OnFailureTip: "govard doctor --fix",
+			Run: func() error {
+				if !context.Pull {
+					return nil
+				}
+				command := exec.Command(
+					"docker",
+					"compose",
+					"--project-directory",
+					context.Cwd,
+					"-p",
+					context.Config.ProjectName,
+					"-f",
+					context.Compose,
+					"pull",
+				)
+				command.Stdout, command.Stderr = context.Out, context.Err
+				if err := command.Run(); err != nil {
+					return fmt.Errorf("docker compose pull failed: %w", err)
+				}
+				return nil
+			},
+		},
+		{
 			Name:         "Start",
 			OnFailureTip: "govard doctor fix-deps",
 			Run: func() error {
@@ -203,6 +234,9 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 					"up",
 					"-d",
 				)
+				if context.RemoveOrphans {
+					command.Args = append(command.Args, "--remove-orphans")
+				}
 				command.Stdout, command.Stderr = context.Out, context.Err
 				if err := command.Run(); err != nil {
 					return fmt.Errorf("docker compose up failed: %w", err)
@@ -378,4 +412,6 @@ func compareNumericDotVersions(left, right string) (int, bool) {
 func init() {
 	upCmd.Flags().Bool("quickstart", false, "Use a minimal runtime profile for faster first run")
 	upCmd.Flags().String("profile", "", "Environment scope (profile) to use")
+	upCmd.Flags().Bool("pull", false, "Pull latest images before starting")
+	upCmd.Flags().Bool("remove-orphans", false, "Remove containers for services not defined in the compose file")
 }
