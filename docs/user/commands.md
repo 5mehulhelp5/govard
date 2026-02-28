@@ -161,6 +161,8 @@ govard svc sleep
 govard svc wake
 ```
 
+`svc up`, `svc down`, and `svc restart` manage the global services suite (proxy, mailpit, phpmyadmin, and portainer).
+
 `svc sleep` stops all running Govard projects detected from Docker and persists wake state to
 `~/.govard/sleep-state.json` (override with `GOVARD_SLEEP_STATE_PATH`).
 `svc wake` restores the recorded projects and clears the state file when all wake operations succeed.

@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const openSupportedTargets = "admin, db, mail, mftf, pma, shell, sftp, elasticsearch, opensearch"
+const openSupportedTargets = "admin, db, mail, mftf, pma, portainer, shell, sftp, elasticsearch, opensearch"
 
 var openEnvironment string
 var openPma bool
@@ -17,7 +17,7 @@ var openCmd = &cobra.Command{
 	Use:   "open [target]",
 	Short: "Open common service URLs",
 	Long: `Quickly open web interfaces for various services in your default browser.
-Supported targets: admin, db (PMA/TablePlus), mail (Mailpit), sftp, elasticsearch, opensearch.
+Supported targets: admin, db (PMA/TablePlus), mail (Mailpit), portainer, sftp, elasticsearch, opensearch.
 
 Targets:
 - admin: The web application's admin panel.
@@ -67,6 +67,8 @@ Case Studies:
 			return runOpenMFTFTarget(config, openEnvironment)
 		case "pma":
 			return runOpenPMATarget(config, openEnvironment)
+		case "portainer":
+			return runOpenPortainerTarget(config, openEnvironment)
 		case "shell":
 			return runOpenShellTarget(config, openEnvironment)
 		case "sftp":

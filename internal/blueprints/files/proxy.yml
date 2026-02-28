@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   caddy:
     image: caddy:latest
@@ -51,6 +49,16 @@ services:
     networks:
       - govard-proxy
 
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: govard-proxy-portainer
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      - govard-proxy
+
 networks:
   govard-proxy:
     external: true
@@ -58,3 +66,4 @@ networks:
 volumes:
   caddy_data:
   caddy_config:
+  portainer_data:

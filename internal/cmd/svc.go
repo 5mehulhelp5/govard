@@ -26,21 +26,21 @@ var svcCmd = &cobra.Command{
 
 var svcUpCmd = &cobra.Command{
 	Use:   "up",
-	Short: "Start global services (proxy, mailpit, pma)",
+	Short: "Start global services (proxy, mailpit, pma, portainer)",
 	Args:  cobra.NoArgs,
 	RunE:  runSvcUp,
 }
 
 var svcDownCmd = &cobra.Command{
 	Use:   "down",
-	Short: "Stop global services (proxy, mailpit, pma)",
+	Short: "Stop global services (proxy, mailpit, pma, portainer)",
 	Args:  cobra.NoArgs,
 	RunE:  runSvcDown,
 }
 
 var svcRestartCmd = &cobra.Command{
 	Use:   "restart",
-	Short: "Restart global services (proxy, mailpit, pma)",
+	Short: "Restart global services (proxy, mailpit, pma, portainer)",
 	Args:  cobra.NoArgs,
 	RunE:  runSvcRestart,
 }
@@ -294,6 +294,9 @@ func registerGlobalServiceRoutes() error {
 	}
 	if err := proxy.RegisterDomain("pma.govard.test", "govard-proxy-pma:80"); err != nil {
 		return fmt.Errorf("register pma route: %w", err)
+	}
+	if err := proxy.RegisterDomain("portainer.govard.test", "govard-proxy-portainer:9000"); err != nil {
+		return fmt.Errorf("register portainer route: %w", err)
 	}
 	return nil
 }

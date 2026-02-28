@@ -21,6 +21,7 @@
 - **SSL Management**: Professional CA management for "Green Lock" HTTPS on local `.test` domains.
 - **Zero-Config Debugging**: Seamless Xdebug 3 integration with one-click toggling.
 - **Rich CLI UX**: Powered by `pterm` for beautiful terminal output, progress bars, and interactive prompts. Use `--verbose` for deeper diagnostic trace logging via `log/slog`.
+- **Global Services**: Built-in Proxy (Caddy), Mailpit, PHPMyAdmin, and Portainer.
 - **Desktop Dashboard**: Wails-based UI with live logs, quick actions, and settings.
 
 ---
@@ -280,6 +281,7 @@ _Note: Once trusted, all `*.test` domains managed by Govard will show a "Green L
 | `govard status`      | List running project environments across workspace                 |
 | `govard doctor`      | Run system diagnostics and remediation helpers                     |
 | `govard config`      | Manage `.govard.yml` configuration from CLI                        |
+| `govard open`        | Open common service URLs (Admin, DB, Mail, Portainer)              |
 | `govard deploy`      | Deploy the application                                             |
 | `govard snapshot`    | Manage local snapshots for database and media                      |
 | `govard lock`        | Generate and validate `govard.lock` snapshots                      |

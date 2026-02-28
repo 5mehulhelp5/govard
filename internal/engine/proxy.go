@@ -137,6 +137,7 @@ if ($projectsJson) {
 	pterm.Debug.Println("Registering global service domains...")
 	_ = proxy.RegisterDomain("mail.govard.test", "govard-proxy-mail:8025")
 	_ = proxy.RegisterDomain("pma.govard.test", "govard-proxy-pma:80")
+	_ = proxy.RegisterDomain("portainer.govard.test", "govard-proxy-portainer:9000")
 
 	return nil
 }

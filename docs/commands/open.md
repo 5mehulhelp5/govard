@@ -10,6 +10,7 @@ govard open db
 govard open mail
 govard open mftf
 govard open pma
+govard open portainer
 govard open db -e local
 govard open db -e staging
 govard open shell -e dev
@@ -25,6 +26,7 @@ govard open opensearch
 - `mail` Local Mailpit UI (`https://mail.govard.test`)
 - `mftf` Local Selenium VNC viewer (`https://selenium.govard.test`). Requires `mftf: true` in features.
 - `pma` Local PHPMyAdmin target (`https://pma.govard.test`)
+- `portainer` Local Portainer target (`https://portainer.govard.test`)
 - `shell` Open local container shell or remote shell
 - `sftp` Open remote SFTP URL in local app
 - `elasticsearch` Elasticsearch endpoint
@@ -49,6 +51,11 @@ For `pma`:
 
 - Local only (`-e` omitted or `-e local`): opens `https://pma.govard.test`.
 - Remote (`-e <remote>`): not supported. Use `govard open db -e <remote>`.
+
+For `portainer`:
+
+- Local only (`-e` omitted or `-e local`): opens `https://portainer.govard.test`.
+- Remote (`-e <remote>`): not supported.
 
 For `admin`:
 

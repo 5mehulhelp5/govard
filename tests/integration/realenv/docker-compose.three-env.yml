@@ -1,6 +1,4 @@
-version: "3.8"
-
-# Three-Environment Setup for Real Environment Tests
+# Three-Environment Setup
 # Uses existing fixtures from tests/integration/projects/magento2/
 #
 # Usage:
