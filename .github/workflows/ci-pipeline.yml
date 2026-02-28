@@ -37,6 +37,11 @@ jobs:
       - name: Run go vet
         run: make vet
 
+      - name: Run golangci-lint
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.64.5
+          $(go env GOPATH)/bin/golangci-lint run
+
       - name: Check gofmt formatting
         run: |
           unformatted="$(find . -type f -name '*.go' -not -path './vendor/*' -print0 | xargs -0 gofmt -s -l)"
@@ -68,7 +73,7 @@ jobs:
         run: go mod download
 
       - name: Run fast test suite
-        run: make test-fast
+        run: make test-unit test-frontend
 
   integration_tests:
     name: Integration Tests
