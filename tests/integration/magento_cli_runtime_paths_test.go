@@ -50,7 +50,7 @@ hooks:
 	if config.Remotes["dev"].Host != "dev.example.com" {
 		t.Fatalf("expected remotes.dev to be preserved, got: %#v", config.Remotes["dev"])
 	}
-	if !config.Remotes["production"].Protected {
+	if config.Remotes["production"].Protected == nil || !*config.Remotes["production"].Protected {
 		t.Fatalf("expected remotes.production.protected=true, got: %#v", config.Remotes["production"])
 	}
 	if len(config.Hooks["pre_up"]) != 1 || config.Hooks["pre_up"][0].Name != "fixture-pre-up" {
