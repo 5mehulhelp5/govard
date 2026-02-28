@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-03-01
+
+### Added
+
+- **Portainer Integration**: Portainer is now available as a new global service, integrated with the `svc` and `open` commands.
+- **Streaming Toasts**: Introduced streaming toasts and enhanced desktop UI messages for improved clarity and user feedback.
+
+### Changed
+
+- **Remote Environments**: Removed direct remote connection management from the UI and backend, adding a plan-only bootstrap option instead.
+- **System Improvements**: Various system improvements and technical debt reduction.
+
 ## [1.8.0] - 2026-02-28
 
 ### Added

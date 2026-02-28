@@ -50,7 +50,7 @@ Options:
   --source       Build from source instead of downloading binary
   --local        Install to ~/.local/bin (no sudo)
   --dir <path>   Custom installation directory
-  --version <v>  Install specific version (e.g. v1.8.0)
+  --version <v>  Install specific version (e.g. v1.9.0)
   -y, --yes      Assume yes to all prompts
   -h, --help     Show this help
 EOF
