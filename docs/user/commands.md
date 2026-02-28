@@ -56,6 +56,8 @@ Renders the compose file at `~/.govard/compose/<project>-<hash>.yml` and starts 
 
 ```bash
 govard env up
+govard env up --pull
+govard env up --remove-orphans
 govard env up --quickstart
 ```
 
@@ -69,7 +71,11 @@ govard env up --quickstart
 
 On failure, `govard env up` prints a suggested next command such as `govard doctor` or `govard doctor fix-deps`.
 
-`--quickstart` applies a minimal runtime profile for the current startup (disables optional cache/search/queue/varnish/xdebug services) to reduce first-run time.
+**Options:**
+
+- `--pull` Pull latest images from the registry before starting containers.
+- `--remove-orphans` Remove containers for services not defined in the compose file.
+- `--quickstart` applies a minimal runtime profile for the current startup (disables optional cache/search/queue/varnish/xdebug services) to reduce first-run time.
 
 ### `govard env`
 
@@ -79,6 +85,7 @@ Project-scoped lifecycle and service wrapper command.
 govard env up
 govard env start
 govard env stop
+govard env pull
 govard env down
 govard env restart
 govard env ps
@@ -101,6 +108,14 @@ Stops all project containers without removing them.
 
 ```bash
 govard env stop
+```
+
+### `govard env pull`
+
+Pull latest project images from the registry.
+
+```bash
+govard env pull
 ```
 
 ### `govard env down`
