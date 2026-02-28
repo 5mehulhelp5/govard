@@ -44,6 +44,13 @@ var svcRestartCmd = &cobra.Command{
 	RunE:  runSvcRestart,
 }
 
+var svcPullCmd = &cobra.Command{
+	Use:   "pull",
+	Short: "Pull latest images for global services",
+	Args:  cobra.NoArgs,
+	RunE:  runSvcPull,
+}
+
 var svcPsCmd = &cobra.Command{
 	Use:   "ps",
 	Short: "List running global service containers",
@@ -91,7 +98,21 @@ func runSvcUp(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("ensure global proxy: %w", err)
 	}
 
-	if err := runGlobalProxyCompose(cmd, "up", "-d"); err != nil {
+	pull, _ := cmd.Flags().GetBool("pull")
+	if pull {
+		pterm.Info.Println("Pulling latest images...")
+		if err := runGlobalProxyCompose(cmd, "pull"); err != nil {
+			return fmt.Errorf("pull global services: %w", err)
+		}
+	}
+
+	removeOrphans, _ := cmd.Flags().GetBool("remove-orphans")
+	upArgs := []string{"up", "-d"}
+	if removeOrphans {
+		upArgs = append(upArgs, "--remove-orphans")
+	}
+
+	if err := runGlobalProxyCompose(cmd, upArgs...); err != nil {
 		return fmt.Errorf("start global services: %w", err)
 	}
 
@@ -166,7 +187,13 @@ func reviveRunningProjectRoutes() error {
 func runSvcDown(cmd *cobra.Command, args []string) error {
 	pterm.DefaultHeader.Println("Stopping Govard Global Services")
 
-	if err := runGlobalProxyCompose(cmd, "down"); err != nil {
+	removeOrphans, _ := cmd.Flags().GetBool("remove-orphans")
+	downArgs := []string{"down"}
+	if removeOrphans {
+		downArgs = append(downArgs, "--remove-orphans")
+	}
+
+	if err := runGlobalProxyCompose(cmd, downArgs...); err != nil {
 		if errors.Is(err, errGlobalServicesNotInitialized) {
 			pterm.Warning.Println("Global services are not initialized yet. Run `govard svc up` first.")
 			return nil
@@ -186,6 +213,21 @@ func runSvcRestart(cmd *cobra.Command, args []string) error {
 	}
 
 	return runSvcUp(cmd, args)
+}
+
+func runSvcPull(cmd *cobra.Command, args []string) error {
+	pterm.DefaultHeader.Println("Pulling Govard Global Services Images")
+
+	if err := runGlobalProxyCompose(cmd, "pull"); err != nil {
+		if errors.Is(err, errGlobalServicesNotInitialized) {
+			pterm.Warning.Println("Global services are not initialized yet. Run `govard svc up` first.")
+			return nil
+		}
+		return fmt.Errorf("pull global services: %w", err)
+	}
+
+	pterm.Success.Println("✅ Global services images pulled.")
+	return nil
 }
 
 func runSvcPs(cmd *cobra.Command, args []string) error {
@@ -264,11 +306,17 @@ func globalProxyComposeFilePath() string {
 }
 
 func init() {
+	svcUpCmd.Flags().Bool("pull", false, "Pull latest images before starting")
+	svcUpCmd.Flags().Bool("remove-orphans", false, "Remove containers for services not defined in the compose file")
+
+	svcDownCmd.Flags().Bool("remove-orphans", false, "Remove containers for services not defined in the compose file")
+
 	svcLogsCmd.Flags().IntVar(&svcLogsTailCount, "tail", 100, "Number of lines to show from the end of the logs")
 
 	svcCmd.AddCommand(svcUpCmd)
 	svcCmd.AddCommand(svcDownCmd)
 	svcCmd.AddCommand(svcRestartCmd)
+	svcCmd.AddCommand(svcPullCmd)
 	svcCmd.AddCommand(svcPsCmd)
 	svcCmd.AddCommand(svcLogsCmd)
 	svcCmd.AddCommand(svcSleepCmd)

@@ -9,12 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Interactive SSH Sessions**: `govard open shell` now supports fully interactive terminal handoff for remote environments using `syscall.Exec`.
+- **Image Pulling Support**: New `govard env pull` command and added `--pull` / `--remove-orphans` flags to `govard env up`.
+- **Search Engine Health**: Automatic detection and resolution for Elasticsearch/OpenSearch "read-only" index blocks caused by low disk space.
 - **Environment Scopes (Profiles)**: Run isolated environment variants with `--profile <name>`. Config layers merge as Base → Profile (`.govard.<profile>.yml`) → Local (`.govard.local.yml`). Each profile gets its own Docker Compose file and database volumes for full isolation.
-- **Network Isolation Mode**: Set `isolated: true` in `features` to prevent containers from reaching the internet. Uses Docker's `internal: true` on the project network while keeping browser access via the Govard Proxy.
-- **MFTF & Selenium Support**: Set `mftf: true` in `features` to auto-start a Selenium Standalone Chrome container with VNC access for Magento Functional Testing Framework (MFTF). Use `govard open mftf` to open the VNC viewer.
-- **Frontend LiveReload / Watcher**: Set `livereload: true` in `features` to start a dedicated Node.js watcher container for frontend asset compilation. Auto-detects Vite, Grunt, or Webpack.
+- **Network Isolation Mode**: Set `isolated: true` in `features` to prevent containers from reaching the internet.
+- **MFTF & Selenium Support**: Set `mftf: true` in `features` to auto-start a Selenium Standalone Chrome container.
+- **Frontend LiveReload / Watcher**: Set `livereload: true` in `features` to start a dedicated Node.js watcher container.
 - **`govard open mftf`**: New target to open the Selenium VNC viewer in-browser.
-- **`--profile` flag**: Available on `govard env up` and `govard db` commands for environment scope selection.
+
+### Improved
+
+- **Remote Environments**: Added support for deriving environment configurations from name and making protected status optional.
+- **Embedded Terminal**: Consistently handle sync operations and interactive commands within the UI.
 
 ## [1.7.0] - 2026-02-27
 

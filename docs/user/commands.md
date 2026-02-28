@@ -148,8 +148,12 @@ Manage global services and workspace-wide sleep state.
 
 ```bash
 govard svc up
+govard svc up --pull
+govard svc up --remove-orphans
 govard svc down
+govard svc down --remove-orphans
 govard svc restart
+govard svc pull
 govard svc ps
 govard svc logs
 govard svc logs --tail 50
