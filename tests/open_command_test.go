@@ -19,12 +19,8 @@ func TestOpenAdminURL(t *testing.T) {
 func TestResolveOpenEnvironmentForTest(t *testing.T) {
 	cfg := engine.Config{
 		Remotes: map[string]engine.RemoteConfig{
-			"dev": {
-				Environment: "dev",
-			},
-			"stg": {
-				Environment: "staging",
-			},
+			"dev": {},
+			"stg": {},
 		},
 	}
 
@@ -151,12 +147,8 @@ func TestResolveMagentoAdminURLForTest(t *testing.T) {
 func TestResolveOpenDBEnvironmentForTest(t *testing.T) {
 	cfg := engine.Config{
 		Remotes: map[string]engine.RemoteConfig{
-			"dev": {
-				Environment: "dev",
-			},
-			"stg": {
-				Environment: "staging",
-			},
+			"dev": {},
+			"stg": {},
 		},
 	}
 

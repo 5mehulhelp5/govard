@@ -9,8 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"gopkg.in/yaml.v3"
 	"govard/internal/cmd"
+
+	"gopkg.in/yaml.v3"
 )
 
 func TestRemoteAddWritesConfig(t *testing.T) {
@@ -50,8 +51,8 @@ func TestRemoteAddWritesConfig(t *testing.T) {
 	if !ok {
 		t.Fatal("expected remotes.staging object")
 	}
-	if staging["environment"] != "staging" {
-		t.Fatalf("expected staging environment, got %v", staging["environment"])
+	if ok && staging["environment"] != nil {
+		t.Fatalf("expected environment field to be omitted from YAML, got %v", staging["environment"])
 	}
 	capabilities, ok := staging["capabilities"].(map[string]interface{})
 	if !ok {

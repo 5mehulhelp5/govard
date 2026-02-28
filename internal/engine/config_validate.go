@@ -58,6 +58,9 @@ func ValidateConfig(cfg Config) error {
 		if strings.TrimSpace(name) == "" {
 			return fmt.Errorf("remote name cannot be empty")
 		}
+		if !IsValidRemoteEnvironment(name) {
+			return fmt.Errorf("remote name '%s' does not map to a known environment (must normalize to dev, staging, or prod)", name)
+		}
 		if strings.TrimSpace(remote.Host) == "" {
 			return fmt.Errorf("remote '%s' is missing host", name)
 		}
@@ -69,9 +72,6 @@ func ValidateConfig(cfg Config) error {
 		}
 		if remote.Port < 1 || remote.Port > 65535 {
 			return fmt.Errorf("remote '%s' has invalid port %d", name, remote.Port)
-		}
-		if !IsValidRemoteEnvironment(remote.Environment) {
-			return fmt.Errorf("remote '%s' has unsupported environment '%s' (allowed: dev, staging, prod)", name, remote.Environment)
 		}
 		if !IsSupportedRemoteAuthMethod(remote.Auth.Method) {
 			return fmt.Errorf("remote '%s' has unsupported auth method '%s' (allowed: ssh-agent, keychain, keyfile)", name, remote.Auth.Method)

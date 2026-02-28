@@ -63,24 +63,26 @@ func TestParseRemoteCapabilitiesRejectsEmptySet(t *testing.T) {
 
 func TestRemoteWriteBlocked(t *testing.T) {
 	explicit := engine.RemoteConfig{
-		Environment: "staging",
-		Protected:   true,
+		Protected: engine.BoolPtr(true),
 	}
-	if blocked, _ := engine.RemoteWriteBlocked(explicit); !blocked {
+	if blocked, _ := engine.RemoteWriteBlocked("staging", explicit); !blocked {
 		t.Fatal("expected explicit protected remote to block writes")
 	}
 
-	prod := engine.RemoteConfig{
-		Environment: "prod",
+	override := engine.RemoteConfig{
+		Protected: engine.BoolPtr(false),
 	}
-	if blocked, _ := engine.RemoteWriteBlocked(prod); !blocked {
-		t.Fatal("expected production remote to block writes")
+	if blocked, _ := engine.RemoteWriteBlocked("prod", override); blocked {
+		t.Fatal("expected explicit unprotected prod remote to allow writes")
 	}
 
-	dev := engine.RemoteConfig{
-		Environment: "dev",
+	prod := engine.RemoteConfig{}
+	if blocked, _ := engine.RemoteWriteBlocked("prod", prod); !blocked {
+		t.Fatal("expected production remote to block writes (auto-default)")
 	}
-	if blocked, _ := engine.RemoteWriteBlocked(dev); blocked {
+
+	dev := engine.RemoteConfig{}
+	if blocked, _ := engine.RemoteWriteBlocked("dev", dev); blocked {
 		t.Fatal("expected dev remote writes to be allowed")
 	}
 }
@@ -90,12 +92,11 @@ func TestValidateConfigRejectsInvalidRemoteEnvironment(t *testing.T) {
 		ProjectName: "demo",
 		Domain:      "demo.test",
 		Remotes: map[string]engine.RemoteConfig{
-			"bad": {
-				Host:        "example.com",
-				User:        "deploy",
-				Path:        "/srv/www/app",
-				Port:        22,
-				Environment: "moon",
+			"!!!bad!!!": {
+				Host: "example.com",
+				User: "deploy",
+				Path: "/srv/www/app",
+				Port: 22,
 			},
 		},
 	}

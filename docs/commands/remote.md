@@ -19,13 +19,12 @@ govard remote audit tail --since 2026-02-12T00:00:00Z --until 2026-02-12T23:59:5
 - `--user` Remote user (required)
 - `--path` Remote project root (required)
 - `--port` Remote SSH port (default: 22)
-- `--environment` Remote classification (`dev`, `staging`, `prod`)
 - `--capabilities` Allowed remote scopes (`files,media,db,deploy` or `all`)
 - `--auth-method` Remote auth method (`keychain`, `ssh-agent`, `keyfile`)
 - `--key-path` SSH private key path (stored in auth store when using `--auth-method keychain`)
 - `--strict-host-key` Enable strict SSH host key verification (`StrictHostKeyChecking=yes`)
 - `--known-hosts-file` Custom SSH `known_hosts` file (implies `--strict-host-key`)
-- `--protected` Prevents destructive writes to this remote
+- `--protected` Prevents destructive writes to this remote (defaults to true for 'prod' remotes)
 
 ## Examples
 
@@ -34,7 +33,7 @@ govard remote add staging --host staging.example.com --user deploy --path /var/w
 govard remote add staging --host staging.example.com --user deploy --path /var/www/html --strict-host-key --known-hosts-file ~/.ssh/known_hosts
 govard remote add staging --host staging.example.com --user deploy --path /var/www/html --auth-method keychain --key-path ~/.ssh/id_ed25519
 govard remote add ci --host ci.example.com --user deploy --path /srv/www/app --auth-method keyfile
-govard remote add prod --host prod.example.com --user deploy --path /srv/www/app --environment prod --capabilities files,media --protected
+govard remote add prod --host prod.example.com --user deploy --path /srv/www/app --capabilities files,media --protected=false
 govard remote test staging
 govard remote exec staging -- ls -la
 govard remote audit tail --status failure --lines 50
@@ -49,7 +48,7 @@ govard remote audit tail --since 2026-02-12 --until 2026-02-12
 - `remote exec` forwards your local SSH agent.
 - SSH key path resolution priority is: `remotes.<name>.auth.key_path` -> `GOVARD_REMOTE_KEY_PATH_<REMOTE_NAME>` -> `GOVARD_REMOTE_KEY_PATH` -> keychain/file auth store (for `keychain`) -> default keyfile probe (`~/.ssh/id_ed25519`, `~/.ssh/id_ecdsa`, `~/.ssh/id_rsa`) for `keyfile`.
 - Remote fields `host`, `user`, `path`, `auth.key_path`, `auth.known_hosts_file`, and `paths.media` support `op://...` references resolved via the 1Password CLI (`op read`).
-- Production remotes (`environment: prod`) are write-protected by default.
+- Production remotes (normalizing to `prod` via name) are write-protected by default. This can be overridden via `protected: false`.
 - Remote operations are appended to `~/.govard/remote.log` (override with `GOVARD_REMOTE_AUDIT_LOG_PATH`).
 - Remote commands also emit structured operation events to `~/.govard/operations.log`, which the desktop app uses for native success/failure notifications.
 - `remote audit tail` supports filtering by `--status` and `--operation`, and `--json` output.

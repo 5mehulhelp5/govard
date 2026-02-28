@@ -202,7 +202,6 @@ func (app *App) AddRemote(
 		User:         user,
 		Path:         path,
 		Port:         port,
-		Environment:  environment,
 		Capabilities: capabilities,
 		AuthMethod:   authMethod,
 		Protected:    protected,

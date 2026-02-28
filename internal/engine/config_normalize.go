@@ -246,7 +246,6 @@ func NormalizeConfig(config *Config) {
 			if remote.Port == 0 {
 				remote.Port = 22
 			}
-			remote.Environment = NormalizeRemoteEnvironment(remote.Environment)
 			remote.Capabilities = normalizeRemoteCapabilities(remote.Capabilities)
 			remote.Auth.Method = NormalizeRemoteAuthMethod(remote.Auth.Method)
 			remote.Auth.KeyPath = strings.TrimSpace(remote.Auth.KeyPath)

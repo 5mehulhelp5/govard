@@ -97,7 +97,6 @@ type RemoteUpsertInput struct {
 	User         string `json:"user"`
 	Path         string `json:"path"`
 	Port         int    `json:"port"`
-	Environment  string `json:"environment"`
 	Capabilities string `json:"capabilities"`
 	AuthMethod   string `json:"authMethod"`
 	Protected    bool   `json:"protected"`
@@ -108,7 +107,6 @@ type RemoteConfigSnapshot struct {
 	User         string
 	Path         string
 	Port         int
-	Environment  string
 	Protected    bool
 	AuthMethod   string
 	Capabilities []string

@@ -73,12 +73,11 @@ func BuildRemoteEntriesForTest(remotes map[string]RemoteConfigSnapshot) []Remote
 	engineRemotes := map[string]engine.RemoteConfig{}
 	for name, snapshot := range remotes {
 		engineRemotes[name] = engine.RemoteConfig{
-			Host:        strings.TrimSpace(snapshot.Host),
-			User:        strings.TrimSpace(snapshot.User),
-			Path:        strings.TrimSpace(snapshot.Path),
-			Port:        snapshot.Port,
-			Environment: strings.TrimSpace(snapshot.Environment),
-			Protected:   snapshot.Protected,
+			Host:      strings.TrimSpace(snapshot.Host),
+			User:      strings.TrimSpace(snapshot.User),
+			Path:      strings.TrimSpace(snapshot.Path),
+			Port:      snapshot.Port,
+			Protected: engine.BoolPtr(snapshot.Protected),
 			Capabilities: engine.RemoteCapabilities{
 				Files:  containsCapability(snapshot.Capabilities, engine.RemoteCapabilityFiles),
 				Media:  containsCapability(snapshot.Capabilities, engine.RemoteCapabilityMedia),

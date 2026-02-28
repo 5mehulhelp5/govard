@@ -53,8 +53,8 @@ var remoteAddCmd = &cobra.Command{
 		user, _ := cmd.Flags().GetString("user")
 		path, _ := cmd.Flags().GetString("path")
 		port, _ := cmd.Flags().GetInt("port")
+		protectedSet := cmd.Flags().Changed("protected")
 		protected, _ := cmd.Flags().GetBool("protected")
-		environment, _ := cmd.Flags().GetString("environment")
 		capabilitiesRaw, _ := cmd.Flags().GetString("capabilities")
 		authMethodRaw, _ := cmd.Flags().GetString("auth-method")
 		keyPathRaw, _ := cmd.Flags().GetString("key-path")
@@ -77,22 +77,7 @@ var remoteAddCmd = &cobra.Command{
 			return err
 		}
 
-		environment = engine.NormalizeRemoteEnvironment(environment)
-		if !engine.IsValidRemoteEnvironment(environment) {
-			err := fmt.Errorf("unsupported remote environment '%s' (allowed: dev, staging, prod)", environment)
-			pterm.Error.Println(err.Error())
-			operationCategory = "validation"
-			operationMessage = "unsupported remote environment"
-			writeRemoteAuditEvent(remote.AuditEvent{
-				Operation:  "remote.add",
-				Status:     remote.RemoteAuditStatusFailure,
-				Category:   "validation",
-				Remote:     name,
-				DurationMS: time.Since(startedAt).Milliseconds(),
-				Message:    "unsupported remote environment",
-			})
-			return err
-		}
+		// environment is now derived from name
 		capabilities, err := engine.ParseRemoteCapabilitiesCSV(capabilitiesRaw)
 		if err != nil {
 			pterm.Error.Println(err.Error())
@@ -144,13 +129,17 @@ var remoteAddCmd = &cobra.Command{
 			config.Remotes = map[string]engine.RemoteConfig{}
 		}
 
+		var protectedPtr *bool
+		if protectedSet {
+			protectedPtr = engine.BoolPtr(protected)
+		}
+
 		config.Remotes[name] = engine.RemoteConfig{
 			Host:         host,
 			User:         user,
 			Path:         path,
 			Port:         port,
-			Environment:  environment,
-			Protected:    protected,
+			Protected:    protectedPtr,
 			Capabilities: capabilities,
 			Auth: engine.RemoteAuth{
 				Method:         authMethod,
@@ -162,13 +151,14 @@ var remoteAddCmd = &cobra.Command{
 
 		saveConfig(config)
 		configForObservability = config
+		effectiveProtected, _ := engine.RemoteWriteBlocked(name, config.Remotes[name])
 		pterm.Success.Printf(
 			"Remote '%s' saved (environment=%s, capabilities=%s, auth=%s, protected=%t, strict_host_key=%t).\n",
 			name,
-			environment,
+			engine.NormalizeRemoteEnvironment(name),
 			strings.Join(engine.RemoteCapabilityList(config.Remotes[name]), ","),
 			authMethod,
-			protected,
+			effectiveProtected,
 			strictHostKey,
 		)
 		writeRemoteAuditEvent(remote.AuditEvent{
@@ -325,12 +315,13 @@ var remoteTestCmd = &cobra.Command{
 			})
 			return err
 		}
+		effectiveProtected, _ := engine.RemoteWriteBlocked(remoteName, remoteCfg)
 		pterm.Info.Printf(
 			"Remote profile: environment=%s, capabilities=%s, auth=%s, protected=%t, strict_host_key=%t\n",
-			remoteCfg.Environment,
+			engine.NormalizeRemoteEnvironment(remoteName),
 			strings.Join(engine.RemoteCapabilityList(remoteCfg), ","),
 			remote.NormalizeAuthMethod(remoteCfg.Auth.Method),
-			remoteCfg.Protected,
+			effectiveProtected,
 			remoteCfg.Auth.StrictHostKey,
 		)
 
@@ -444,7 +435,6 @@ func init() {
 	remoteAddCmd.Flags().String("user", "", "Remote user")
 	remoteAddCmd.Flags().String("path", "", "Remote path")
 	remoteAddCmd.Flags().Int("port", 22, "Remote port")
-	remoteAddCmd.Flags().String("environment", "staging", "Remote environment (dev, staging, prod)")
 	remoteAddCmd.Flags().String("capabilities", "files,media,db,deploy", "Remote capabilities (files,media,db,deploy or all)")
 	remoteAddCmd.Flags().String("auth-method", remote.AuthMethodKeychain, "Remote auth method (keychain, ssh-agent, keyfile)")
 	remoteAddCmd.Flags().String("key-path", "", "SSH private key path (stored in auth store when --auth-method=keychain)")

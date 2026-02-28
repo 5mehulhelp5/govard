@@ -744,9 +744,9 @@ func resolveDBRemote(config engine.Config, name string, forWrite bool) (engine.R
 			strings.Join(engine.RemoteCapabilityList(remoteCfg), ","),
 		)
 	}
-	if forWrite {
-		if blocked, reason := engine.RemoteWriteBlocked(remoteCfg); blocked {
-			return engine.RemoteConfig{}, fmt.Errorf("remote '%s' blocks db write operations: %s", name, reason)
+	if !forWrite {
+		if blocked, reason := engine.RemoteWriteBlocked(name, remoteCfg); blocked {
+			return engine.RemoteConfig{}, fmt.Errorf("remote environment '%s' is write-protected: %s", name, reason)
 		}
 	}
 	return remoteCfg, nil

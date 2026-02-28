@@ -157,8 +157,7 @@ func findRemoteByNameOrEnvironment(config engine.Config, requested string) (stri
 	}
 	sort.Strings(names)
 	for _, name := range names {
-		candidate := config.Remotes[name]
-		if strings.EqualFold(strings.TrimSpace(candidate.Environment), requested) {
+		if strings.EqualFold(engine.NormalizeRemoteEnvironment(name), requested) {
 			return name, true
 		}
 	}

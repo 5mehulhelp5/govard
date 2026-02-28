@@ -3,8 +3,9 @@ package tests
 import (
 	"testing"
 
-	"gopkg.in/yaml.v3"
 	"govard/internal/engine"
+
+	"gopkg.in/yaml.v3"
 )
 
 func TestRemoteConfigDefaults(t *testing.T) {
@@ -27,8 +28,8 @@ remotes:
 	if remote.Port != 22 {
 		t.Fatalf("expected port 22, got %d", remote.Port)
 	}
-	if remote.Environment != "staging" {
-		t.Fatalf("expected default environment staging, got %s", remote.Environment)
+	if engine.NormalizeRemoteEnvironment("staging") != "staging" {
+		t.Fatalf("expected environment staging, got %s", engine.NormalizeRemoteEnvironment("staging"))
 	}
 	if remote.Auth.Method != "keychain" {
 		t.Fatalf("expected keychain, got %s", remote.Auth.Method)
@@ -130,11 +131,10 @@ func TestRemoteConfigRejectsUnsupportedAuthMethod(t *testing.T) {
 		},
 		Remotes: map[string]engine.RemoteConfig{
 			"staging": {
-				Host:        "example.com",
-				User:        "deploy",
-				Port:        22,
-				Path:        "/var/www/html",
-				Environment: "staging",
+				Host: "example.com",
+				User: "deploy",
+				Port: 22,
+				Path: "/var/www/html",
 				Auth: engine.RemoteAuth{
 					Method: "password",
 				},

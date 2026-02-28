@@ -13,12 +13,11 @@ import (
 func TestDesktopPkgBuildRemoteEntriesForTest(t *testing.T) {
 	entries := desktop.BuildRemoteEntriesForTest(map[string]desktop.RemoteConfigSnapshot{
 		"staging": {
-			Host:        "staging.example.com",
-			User:        "deploy",
-			Path:        "/var/www/staging",
-			Port:        22,
-			Environment: "staging",
-			AuthMethod:  "keychain",
+			Host:       "staging.example.com",
+			User:       "deploy",
+			Path:       "/var/www/staging",
+			Port:       2222,
+			AuthMethod: "ssh-agent",
 			Capabilities: []string{
 				"files",
 				"media",
@@ -26,13 +25,12 @@ func TestDesktopPkgBuildRemoteEntriesForTest(t *testing.T) {
 			},
 		},
 		"prod": {
-			Host:        "prod.example.com",
-			User:        "root",
-			Path:        "/srv/www/prod",
-			Port:        2222,
-			Environment: "prod",
-			AuthMethod:  "ssh-agent",
-			Protected:   true,
+			Host:       "prod.example.com",
+			User:       "root",
+			Path:       "/srv/www/prod",
+			Port:       2222,
+			AuthMethod: "ssh-agent",
+			Protected:  true,
 			Capabilities: []string{
 				"files",
 				"db",
@@ -152,7 +150,6 @@ remotes:
 		User:         "root",
 		Path:         "/srv/www/prod",
 		Port:         2200,
-		Environment:  "production",
 		Capabilities: "files,db",
 		AuthMethod:   "ssh_agent",
 		Protected:    true,

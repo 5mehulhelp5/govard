@@ -25,7 +25,7 @@ var validRemoteEnvironments = map[string]struct{}{
 func NormalizeRemoteEnvironment(value string) string {
 	cleaned := strings.ToLower(strings.TrimSpace(value))
 	switch cleaned {
-	case "", "staging", "stage", "qa", "uat", "test":
+	case "", "staging", "stage", "stg", "qa", "uat", "test":
 		return RemoteEnvStaging
 	case "dev", "development", "local":
 		return RemoteEnvDev
@@ -125,14 +125,20 @@ func ParseRemoteCapabilitiesCSV(raw string) (RemoteCapabilities, error) {
 	return parsed, nil
 }
 
-func RemoteWriteBlocked(remoteCfg RemoteConfig) (bool, string) {
-	environment := NormalizeRemoteEnvironment(remoteCfg.Environment)
-	switch {
-	case remoteCfg.Protected:
-		return true, "explicit protected flag"
-	case environment == RemoteEnvProd:
-		return true, "production environment protection"
-	default:
+// RemoteWriteBlocked checks whether writes to a remote should be blocked.
+// The remoteName is the map key from the config (e.g., "production", "dev").
+// If remoteCfg.Protected is explicitly set, it takes precedence.
+// Otherwise, remotes whose name normalizes to "prod" are auto-protected.
+func RemoteWriteBlocked(remoteName string, remoteCfg RemoteConfig) (bool, string) {
+	if remoteCfg.Protected != nil {
+		if *remoteCfg.Protected {
+			return true, "explicit protected flag"
+		}
 		return false, ""
 	}
+	environment := NormalizeRemoteEnvironment(remoteName)
+	if environment == RemoteEnvProd {
+		return true, "production environment protection (auto)"
+	}
+	return false, ""
 }

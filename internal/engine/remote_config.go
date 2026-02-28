@@ -32,11 +32,15 @@ type RemoteConfig struct {
 	Port         int                `yaml:"port"`
 	Path         string             `yaml:"path"`
 	URL          string             `yaml:"url,omitempty"`
-	Environment  string             `yaml:"environment"`
-	Protected    bool               `yaml:"protected"`
+	Protected    *bool              `yaml:"protected,omitempty"`
 	Capabilities RemoteCapabilities `yaml:"capabilities"`
 	Auth         RemoteAuth         `yaml:"auth,omitempty"`
 	Paths        RemotePaths        `yaml:"paths,omitempty"`
+}
+
+// BoolPtr returns a pointer to a bool value, for use with RemoteConfig.Protected.
+func BoolPtr(v bool) *bool {
+	return &v
 }
 
 func NormalizeRemoteAuthMethod(method string) string {

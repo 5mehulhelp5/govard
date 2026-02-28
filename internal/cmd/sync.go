@@ -411,7 +411,7 @@ func evaluateSyncPolicy(endpoints resolvedSyncEndpoints, opts syncExecutionOptio
 		return nil, fmt.Errorf("sync currently supports local<->remote only")
 	}
 	if !endpoints.Destination.IsLocal {
-		if blocked, reason := engine.RemoteWriteBlocked(endpoints.Destination.RemoteCfg); blocked {
+		if blocked, reason := engine.RemoteWriteBlocked(endpoints.Destination.Name, endpoints.Destination.RemoteCfg); blocked {
 			return nil, fmt.Errorf("destination remote '%s' is write-protected: %s", endpoints.Destination.Name, reason)
 		}
 	}
@@ -520,14 +520,14 @@ func describeSyncEndpoint(endpoint syncEndpoint) string {
 		return fmt.Sprintf("%s (local path: %s)", endpoint.Name, endpoint.RootPath)
 	}
 	writePolicy := "write-allowed"
-	if blocked, reason := engine.RemoteWriteBlocked(endpoint.RemoteCfg); blocked {
+	if blocked, reason := engine.RemoteWriteBlocked(endpoint.Name, endpoint.RemoteCfg); blocked {
 		writePolicy = "write-blocked (" + reason + ")"
 	}
 	return fmt.Sprintf(
 		"%s (remote: %s, env: %s, capabilities: %s, policy: %s, root: %s)",
 		endpoint.Name,
 		remote.RemoteTarget(endpoint.RemoteCfg),
-		endpoint.RemoteCfg.Environment,
+		engine.NormalizeRemoteEnvironment(endpoint.Name),
 		strings.Join(engine.RemoteCapabilityList(endpoint.RemoteCfg), ","),
 		writePolicy,
 		endpoint.RootPath,

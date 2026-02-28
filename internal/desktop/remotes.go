@@ -121,10 +121,7 @@ func upsertProjectRemoteByPath(root string, input RemoteUpsertInput) error {
 		return fmt.Errorf("remote port must be between 1 and 65535")
 	}
 
-	environment := engine.NormalizeRemoteEnvironment(input.Environment)
-	if !engine.IsValidRemoteEnvironment(environment) {
-		return fmt.Errorf("unsupported remote environment '%s'", input.Environment)
-	}
+	// environment is now derived from name
 
 	capabilities, err := engine.ParseRemoteCapabilitiesCSV(input.Capabilities)
 	if err != nil {
@@ -145,8 +142,7 @@ func upsertProjectRemoteByPath(root string, input RemoteUpsertInput) error {
 		User:         user,
 		Path:         path,
 		Port:         port,
-		Environment:  environment,
-		Protected:    input.Protected,
+		Protected:    engine.BoolPtr(input.Protected),
 		Capabilities: capabilities,
 		Auth: engine.RemoteAuth{
 			Method: authMethod,
@@ -376,10 +372,7 @@ func buildRemoteEntries(remotes map[string]engine.RemoteConfig) []RemoteEntry {
 			capabilities = []string{}
 		}
 
-		environment := engine.NormalizeRemoteEnvironment(cfg.Environment)
-		if environment == "" {
-			environment = engine.RemoteEnvStaging
-		}
+		effectiveProtected, _ := engine.RemoteWriteBlocked(name, cfg)
 
 		entry := RemoteEntry{
 			Name:         strings.TrimSpace(name),
@@ -387,8 +380,8 @@ func buildRemoteEntries(remotes map[string]engine.RemoteConfig) []RemoteEntry {
 			User:         strings.TrimSpace(cfg.User),
 			Path:         strings.TrimSpace(cfg.Path),
 			Port:         port,
-			Environment:  environment,
-			Protected:    cfg.Protected,
+			Environment:  engine.NormalizeRemoteEnvironment(name),
+			Protected:    effectiveProtected,
 			AuthMethod:   engineremote.NormalizeAuthMethod(cfg.Auth.Method),
 			Capabilities: append([]string{}, capabilities...),
 		}

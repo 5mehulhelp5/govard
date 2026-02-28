@@ -339,11 +339,10 @@ func TestPrepareConfigForWritePrunesDefaultRemoteAuthAndPaths(t *testing.T) {
 		Domain:      "demo.test",
 		Remotes: map[string]engine.RemoteConfig{
 			"dev": {
-				Host:        "example.com",
-				User:        "deploy",
-				Port:        22,
-				Path:        "/var/www/html",
-				Environment: "dev",
+				Host: "example.com",
+				User: "deploy",
+				Port: 22,
+				Path: "/var/www/html",
 				Capabilities: engine.RemoteCapabilities{
 					Files:  true,
 					Media:  true,
@@ -390,11 +389,10 @@ func TestPrepareConfigForWriteKeepsNonDefaultRemoteAuthAndPaths(t *testing.T) {
 		Domain:      "demo.test",
 		Remotes: map[string]engine.RemoteConfig{
 			"staging": {
-				Host:        "staging.example.com",
-				User:        "deploy",
-				Port:        22,
-				Path:        "/srv/www/staging",
-				Environment: "staging",
+				Host: "staging.example.com",
+				User: "deploy",
+				Port: 22,
+				Path: "/srv/www/staging",
 				Capabilities: engine.RemoteCapabilities{
 					Files:  true,
 					Media:  true,

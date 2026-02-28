@@ -43,9 +43,9 @@ Later layers override earlier layers.
   - `blueprint_registry.trusted`: must be `true` to allow remote registry fetch.
 - `stack.*`: runtime service settings.
 - `remotes.*`: remote definitions.
-  - `remotes.<name>.environment`: `dev`, `staging`, or `prod`.
+  - `remotes.<name>`: remote definition (environment derived from `<name>`).
   - `remotes.<name>.capabilities`: operation scopes (`files`, `media`, `db`, `deploy`).
-  - `remotes.<name>.protected`: explicit write-protection toggle.
+  - `remotes.<name>.protected`: explicit write-protection toggle (overrides auto-default).
   - `remotes.<name>.auth.method`: `keychain`, `ssh-agent`, or `keyfile`.
   - `remotes.<name>.auth.key_path`: explicit SSH key path override for command execution.
   - `remotes.<name>.auth.strict_host_key`: enables strict SSH host key validation.
