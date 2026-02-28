@@ -48,6 +48,22 @@ func ConfigureMagento(projectName string, config Config) error {
 		output, err := exec.Command("docker", cmd.Args...).CombinedOutput()
 		if err != nil {
 			outText := string(output)
+			if IsElasticsearchIndexBlockError(outText) {
+				pterm.Warning.Println("Elasticsearch/OpenSearch index is blocked (read-only); attempting to unblock...")
+				if repairErr := FixElasticsearchIndexBlock(projectName, config); repairErr != nil {
+					pterm.Warning.Printf("Could not unblock search index: %v\n", repairErr)
+				} else {
+					pterm.Success.Println("Elasticsearch/OpenSearch index unblocked.")
+					// Retry once after repair.
+					output, retryErr := exec.Command("docker", cmd.Args...).CombinedOutput()
+					if retryErr == nil {
+						continue
+					}
+					err = retryErr // Update err for final reporting
+					outText = string(output)
+				}
+			}
+
 			// After importing a database snapshot, Magento may require config import/upgrade before
 			// certain CLI commands (config:set, cache, etc) are allowed.
 			if needsConfigImport(outText) {
@@ -64,15 +80,30 @@ func ConfigureMagento(projectName string, config Config) error {
 					}
 
 					if upgradeErr := runMagentoSetupUpgrade(containerName, config); upgradeErr != nil {
+						// Check if setup:upgrade failed due to search index block too
+						repairOut := upgradeErr.Error()
+						if IsElasticsearchIndexBlockError(repairOut) {
+							pterm.Warning.Println("setup:upgrade failed due to search index block; attempting to unblock and retry...")
+							if fixErr := FixElasticsearchIndexBlock(projectName, config); fixErr == nil {
+								pterm.Success.Println("Elasticsearch/OpenSearch index unblocked. Retrying setup:upgrade...")
+								if retryErr := runMagentoSetupUpgrade(containerName, config); retryErr == nil {
+									goto retryInitialCommand
+								} else {
+									upgradeErr = retryErr // Update for final reporting if still fails
+								}
+							}
+						}
 						return fmt.Errorf("command failed: %s %v\nRepair attempt failed (setup:upgrade): %v\nOriginal Output: %s", cmd.Desc, err, upgradeErr, outText)
 					}
 				}
 
+			retryInitialCommand:
 				// Retry once after repair.
-				output, err = exec.Command("docker", cmd.Args...).CombinedOutput()
-				if err == nil {
+				output, retryErr := exec.Command("docker", cmd.Args...).CombinedOutput()
+				if retryErr == nil {
 					continue
 				}
+				err = retryErr
 				outText = string(output)
 			}
 
@@ -121,6 +152,35 @@ func needsConfigImport(output string) bool {
 	}
 
 	return false
+}
+
+func IsElasticsearchIndexBlockError(output string) bool {
+	output = strings.ToLower(output)
+	return strings.Contains(output, "index_create_block_exception") ||
+		strings.Contains(output, "cluster_block_exception") ||
+		strings.Contains(output, "read_only_allow_delete") ||
+		strings.Contains(output, "create-index blocked") ||
+		(strings.Contains(output, "forbidden") && strings.Contains(output, "10")) ||
+		(strings.Contains(output, "403") && (strings.Contains(output, "blocked") || strings.Contains(output, "forbidden")))
+}
+
+func FixElasticsearchIndexBlock(projectName string, config Config) error {
+	containerName := fmt.Sprintf("%s-elasticsearch-1", projectName)
+	// We use curl inside the elasticsearch container to reset the read-only setting.
+	// This approach works for both Elasticsearch and OpenSearch.
+	unblockCommand := []string{
+		"exec", "-i", containerName,
+		"curl", "-s", "-X", "PUT", "http://localhost:9200/_all/_settings",
+		"-H", "Content-Type: application/json",
+		"-d", `{"index.blocks.read_only_allow_delete": null}`,
+	}
+
+	output, err := exec.Command("docker", unblockCommand...).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to unblock search index: %w\nOutput: %s", err, string(output))
+	}
+
+	return nil
 }
 
 func isMagentoConfigPathUnavailable(output string) bool {

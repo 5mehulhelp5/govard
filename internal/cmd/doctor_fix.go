@@ -33,7 +33,8 @@ var doctorRunDiagnostics = engine.RunDoctorDiagnostics
 type doctorFixHandler func(check engine.DoctorCheck) DoctorFixResult
 
 var doctorFixHandlers = map[string]doctorFixHandler{
-	"host.govard.home": fixGovardHomeDirectory,
+	"host.govard.home":        fixGovardHomeDirectory,
+	"host.search.index_block": unblockSearchIndex,
 }
 
 func runDoctorDiagnostics() engine.DoctorReport {
@@ -105,6 +106,26 @@ func fixGovardHomeDirectory(check engine.DoctorCheck) DoctorFixResult {
 
 	result.Actions = append(result.Actions, fmt.Sprintf("write probe file in %s", homeDir))
 	if err := engine.CheckGovardHomeWritable(); err != nil {
+		result.Status = DoctorFixStatusFailed
+		result.Message = err.Error()
+		return result
+	}
+
+	return result
+}
+
+func unblockSearchIndex(check engine.DoctorCheck) DoctorFixResult {
+	result := DoctorFixResult{
+		CheckID: strings.TrimSpace(check.ID),
+		Title:   strings.TrimSpace(check.Title),
+		Status:  DoctorFixStatusApplied,
+		Message: "Elasticsearch/OpenSearch index unblocked.",
+		Actions: []string{},
+	}
+
+	config := loadConfig()
+	result.Actions = append(result.Actions, "unblock search index via docker exec curl")
+	if err := engine.FixElasticsearchIndexBlock(config.ProjectName, config); err != nil {
 		result.Status = DoctorFixStatusFailed
 		result.Message = err.Error()
 		return result

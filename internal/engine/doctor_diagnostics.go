@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
+	"strings"
 	"time"
 )
 
@@ -54,6 +56,7 @@ type DoctorDependencies struct {
 	CheckDiskScratch         func() error
 	CheckGovardHomeWritable  func() error
 	CheckNetworkConnectivity func() error
+	CheckSearchIndexBlock    func() error
 }
 
 func RunDoctorDiagnostics(dependencies DoctorDependencies) DoctorReport {
@@ -75,9 +78,12 @@ func RunDoctorDiagnostics(dependencies DoctorDependencies) DoctorReport {
 	if dependencies.CheckNetworkConnectivity == nil {
 		dependencies.CheckNetworkConnectivity = CheckNetworkConnectivity
 	}
+	if dependencies.CheckSearchIndexBlock == nil {
+		dependencies.CheckSearchIndexBlock = CheckSearchIndexBlock
+	}
 
 	report := DoctorReport{
-		Checks: make([]DoctorCheck, 0, 6),
+		Checks: make([]DoctorCheck, 0, 7),
 	}
 
 	if err := dependencies.CheckDockerStatus(); err != nil {
@@ -206,6 +212,24 @@ func RunDoctorDiagnostics(dependencies DoctorDependencies) DoctorReport {
 		})
 	}
 
+	if err := dependencies.CheckSearchIndexBlock(); err != nil {
+		report.Checks = append(report.Checks, DoctorCheck{
+			ID:               "host.search.index_block",
+			Title:            "Search index block",
+			Status:           DoctorStatusFail,
+			Message:          fmt.Sprintf("Search index is blocked (read-only): %v", err),
+			Hint:             "Run doctor --fix to unblock the search index.",
+			SuggestedCommand: "govard doctor --fix",
+		})
+	} else {
+		report.Checks = append(report.Checks, DoctorCheck{
+			ID:      "host.search.index_block",
+			Title:   "Search index block",
+			Status:  DoctorStatusPass,
+			Message: "Search index is not blocked.",
+		})
+	}
+
 	for _, check := range report.Checks {
 		switch check.Status {
 		case DoctorStatusPass:
@@ -296,4 +320,44 @@ func CheckNetworkConnectivity() error {
 		return err
 	}
 	return conn.Close()
+}
+
+func CheckSearchIndexBlock() error {
+	config := loadConfig()
+	if config.Stack.Services.Search == "" || config.Stack.Services.Search == "none" {
+		return nil
+	}
+
+	containerName := fmt.Sprintf("%s-elasticsearch-1", config.ProjectName)
+	// Check if container is running first
+	inspect := exec.Command("docker", "inspect", "-f", "{{.State.Running}}", containerName)
+	if output, err := inspect.Output(); err != nil || strings.TrimSpace(string(output)) != "true" {
+		return nil // skip if not running
+	}
+
+	// Query settings and look for read_only_allow_delete
+	cmdArgs := []string{
+		"exec", "-i", containerName,
+		"curl", "-s", "-X", "GET", "http://localhost:9200/_all/_settings",
+	}
+
+	output, err := exec.Command("docker", cmdArgs...).CombinedOutput()
+	if err != nil {
+		return nil // skip if we can't query
+	}
+
+	if strings.Contains(string(output), `"read_only_allow_delete":"true"`) {
+		return fmt.Errorf("index is in read-only mode")
+	}
+
+	return nil
+}
+
+func loadConfig() Config {
+	wd, _ := os.Getwd()
+	config, _, err := LoadConfigFromDir(wd, false)
+	if err != nil {
+		return Config{}
+	}
+	return config
 }
