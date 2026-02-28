@@ -14,15 +14,18 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
+	"github.com/pkg/browser"
 	"gopkg.in/yaml.v3"
 )
 
 func quickAction(ctx context.Context, action string, project string) (string, error) {
 	switch action {
-	case "open-mail", "open-mail-client":
+	case "open-mail-client":
 		return openDestination(ctx, buildProxyURL("mail"), "Opening Mailpit...")
-	case "open-pma", "open-db-client":
+	case "open-pma":
 		return openDestination(ctx, buildProxyURL("pma"), "Opening PHPMyAdmin...")
+	case "open-db-client":
+		return openDBClient(ctx, project)
 	case "toggle-xdebug":
 		return toggleXdebug(project)
 	case "check-health":
@@ -34,6 +37,92 @@ func quickAction(ctx context.Context, action string, project string) (string, er
 	default:
 		return "", fmt.Errorf("unknown action")
 	}
+}
+
+func openDBClient(ctx context.Context, project string) (string, error) {
+	info, _ := loadProjectInfo(project)
+	if info == nil {
+		info = &projectInfo{}
+	}
+
+	containerName := project + "-db-1"
+
+	user := "magento"
+	pass := "magento"
+	db := "magento"
+
+	envCmd := exec.Command("docker", "inspect", "-f", "{{range .Config.Env}}{{println .}}{{end}}", containerName)
+	if envOut, err := envCmd.Output(); err == nil {
+		lines := strings.Split(string(envOut), "\n")
+		for _, line := range lines {
+			parts := strings.SplitN(strings.TrimSpace(line), "=", 2)
+			if len(parts) == 2 {
+				switch parts[0] {
+				case "MYSQL_USER":
+					if parts[1] != "" {
+						user = parts[1]
+					}
+				case "POSTGRES_USER":
+					if parts[1] != "" {
+						user = parts[1]
+					}
+				case "MYSQL_PASSWORD":
+					if parts[1] != "" {
+						pass = parts[1]
+					}
+				case "POSTGRES_PASSWORD":
+					if parts[1] != "" {
+						pass = parts[1]
+					}
+				case "MYSQL_DATABASE":
+					if parts[1] != "" {
+						db = parts[1]
+					}
+				case "POSTGRES_DB":
+					if parts[1] != "" {
+						db = parts[1]
+					}
+				}
+			}
+		}
+	}
+
+	scheme := "mysql"
+	internalPort := "3306"
+	if info.configLoaded {
+		dbType := strings.ToLower(info.config.Stack.DBType)
+		if strings.Contains(dbType, "postgres") {
+			scheme = "postgresql"
+			internalPort = "5432"
+		}
+	}
+
+	port := internalPort
+	portCmd := exec.Command("docker", "port", containerName, internalPort)
+	if portOut, err := portCmd.Output(); err == nil {
+		res := strings.TrimSpace(string(portOut))
+		parts := strings.Split(res, "\n")
+		if len(parts) > 0 {
+			idx := strings.LastIndex(parts[0], ":")
+			if idx != -1 {
+				port = parts[0][idx+1:]
+			}
+		}
+	}
+
+	host := "127.0.0.1"
+	ipCmd := exec.Command("docker", "inspect", "-f", "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}", containerName)
+	if ipOut, err := ipCmd.Output(); err == nil {
+		ip := strings.TrimSpace(string(ipOut))
+		if ip != "" {
+			host = ip
+		}
+	}
+
+	urlStr := fmt.Sprintf("%s://%s:%s@%s:%s/%s", scheme, user, pass, host, port, db)
+	browser.OpenURL(urlStr)
+
+	return "Opening DB Client...", nil
 }
 
 func openFolder(project string) (string, error) {

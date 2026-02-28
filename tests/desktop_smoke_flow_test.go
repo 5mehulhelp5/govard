@@ -129,8 +129,8 @@ remotes:
 	if !strings.Contains(strings.ToLower(mailAction), "mailpit") {
 		t.Fatalf("expected mail quick action message, got %q", mailAction)
 	}
-	dbAction := app.QuickAction("open-db-client")
-	if !strings.Contains(strings.ToLower(dbAction), "phpmyadmin") {
+	dbAction := app.QuickActionForProject("open-db-client", "smoke")
+	if !strings.Contains(strings.ToLower(dbAction), "opening db client") {
 		t.Fatalf("expected db quick action message, got %q", dbAction)
 	}
 	unsupportedAction := app.QuickActionForProject("open-folder", "smoke")

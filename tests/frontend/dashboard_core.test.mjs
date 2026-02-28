@@ -55,12 +55,7 @@ test("quick actions exposes desktop action contracts", async () => {
     new URL("../../desktop/frontend/index.html", import.meta.url),
     "utf8",
   );
-  for (const action of [
-    "open-folder",
-    "open-ide",
-    "open-db-client",
-    "open-mail-client",
-  ]) {
+  for (const action of ["open-folder", "open-ide", "open-db-client"]) {
     assert.equal(
       html.includes(`data-action="${action}"`),
       true,
@@ -68,7 +63,7 @@ test("quick actions exposes desktop action contracts", async () => {
     );
   }
   assert.equal(
-    html.includes('data-action="open-mail"'),
+    html.includes('data-action="open-mail-client"'),
     false,
     "legacy quick action should stay removed",
   );
