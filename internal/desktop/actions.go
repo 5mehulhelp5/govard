@@ -20,7 +20,7 @@ import (
 
 func quickAction(ctx context.Context, action string, project string) (string, error) {
 	switch action {
-	case "open-mail-client":
+	case "open-mail", "open-mail-client":
 		return openDestination(ctx, buildProxyURL("mail"), "Opening Mailpit...")
 	case "open-pma":
 		return openDestination(ctx, buildProxyURL("pma"), "Opening PHPMyAdmin...")
@@ -40,6 +40,14 @@ func quickAction(ctx context.Context, action string, project string) (string, er
 }
 
 func openDBClient(ctx context.Context, project string) (string, error) {
+	settings, err := getSettings()
+	if err == nil && settings.DBClientPreference == "pma" {
+		if err := browser.OpenURL("https://pma.govard.test/?db=" + project); err != nil {
+			return "", fmt.Errorf("failed to open PHPMyAdmin URL: %w", err)
+		}
+		return "PMA Opened", nil
+	}
+
 	info, _ := loadProjectInfo(project)
 	if info == nil {
 		info = &projectInfo{}

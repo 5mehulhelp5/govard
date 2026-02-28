@@ -73,6 +73,7 @@ Case Studies:
 func init() {
 	dbCmd.Flags().StringP("environment", "e", "local", "Target environment (local, staging, prod, etc.)")
 	dbCmd.Flags().StringP("file", "f", "", "Database dump file (import or dump output)")
+	dbCmd.Flags().String("profile", "", "Environment scope (profile) to use")
 	dbCmd.Flags().Bool("stream-db", false, "For import: stream dump from remote environment into local database")
 	dbCmd.Flags().Bool("full", false, "For dump: include routines, events, and triggers")
 	dbCmd.Flags().Bool("exclude-sensitive-data", false, "Apply SQL sanitization pipeline (DEFINER/GTID cleanup)")
@@ -81,6 +82,7 @@ func init() {
 type DBCommandOptions struct {
 	Environment          string
 	File                 string
+	Profile              string
 	StreamDB             bool
 	Full                 bool
 	ExcludeSensitiveData bool
@@ -192,7 +194,7 @@ func runDBSubcommand(cmd *cobra.Command, subcommand string, extraArgs []string) 
 		}()
 	}
 
-	config := loadFullConfig()
+	config := loadFullConfigWithProfile(options.Profile)
 	operationConfig = config
 	switch subcommand {
 	case "connect":
@@ -271,10 +273,11 @@ func readDBCommandOptions(cmd *cobra.Command) (dbCommandOptions, error) {
 	if err != nil {
 		return dbCommandOptions{}, err
 	}
-
+	profile, _ := cmd.Flags().GetString("profile")
 	return dbCommandOptions{
 		Environment:          strings.ToLower(strings.TrimSpace(environment)),
 		File:                 strings.TrimSpace(file),
+		Profile:              profile,
 		StreamDB:             streamDB,
 		Full:                 full,
 		ExcludeSensitiveData: excludeSensitiveData,

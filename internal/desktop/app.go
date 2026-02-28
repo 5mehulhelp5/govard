@@ -352,12 +352,13 @@ func (app *App) GetSettings() DesktopSettings {
 	return settings
 }
 
-func (app *App) UpdateSettings(theme string, proxyTarget string, preferredBrowser string, codeEditor string) string {
+func (app *App) UpdateSettings(theme string, proxyTarget string, preferredBrowser string, codeEditor string, dbClientPreference string) string {
 	settings := DesktopSettings{
-		Theme:            theme,
-		ProxyTarget:      proxyTarget,
-		PreferredBrowser: preferredBrowser,
-		CodeEditor:       codeEditor,
+		Theme:              theme,
+		ProxyTarget:        proxyTarget,
+		PreferredBrowser:   preferredBrowser,
+		CodeEditor:         codeEditor,
+		DBClientPreference: dbClientPreference,
 	}
 	if err := setSettings(settings); err != nil {
 		return "Failed to save settings: " + err.Error()

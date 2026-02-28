@@ -64,8 +64,8 @@ test("quick actions exposes desktop action contracts", async () => {
   }
   assert.equal(
     html.includes('data-action="open-mail-client"'),
-    false,
-    "legacy quick action should stay removed",
+    true,
+    "quick action open-mail-client should be present",
   );
 });
 

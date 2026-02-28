@@ -129,6 +129,49 @@ Single Redis service for cache and sessions:
 
 1. **redis**: Cache (default + FPC) and sessions (db 2)
 
+### MFTF & Selenium (Testing)
+
+Enable automated browser testing for Magento with a dedicated Selenium container:
+
+```yaml
+stack:
+  features:
+    mftf: true
+```
+
+When enabled:
+
+- A `selenium/standalone-chrome` container starts with 2GB shared memory.
+- VNC access is available at `https://selenium.govard.test` (no password required).
+- Use `govard open mftf` to open the VNC viewer in your browser.
+- The Selenium container is connected to both `govard-net` and `govard-proxy` networks.
+
+MFTF configuration in `dev/tests/acceptance/.env`:
+
+```env
+MAGENTO_BASE_URL=https://<domain>/
+MAGENTO_BACKEND_NAME=admin
+SELENIUM_HOST=selenium
+BROWSER=chrome
+```
+
+### Frontend LiveReload / Watcher
+
+Enable a dedicated Node.js container for frontend asset compilation:
+
+```yaml
+stack:
+  features:
+    livereload: true
+```
+
+When enabled:
+
+- A `node:<node_version>-alpine` container starts with your project mounted.
+- Auto-detects build tools: runs `npx vite build --watch` if `vite.config.*` exists, otherwise `npx grunt watch`.
+- Useful for Magento 2 frontend development with Grunt or custom Vite setups.
+- The watcher container shares the same network as the PHP container.
+
 ## Magento CLI
 
 Run Magento CLI commands directly:

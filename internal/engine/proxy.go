@@ -71,6 +71,46 @@ func EnsureGlobalProxy() error {
 		return err
 	}
 
+	pmaConfigContent := `<?php
+$projectsJson = @file_get_contents('/tmp/projects.json');
+$dbMap = [
+    'magento1' => 'magento',
+    'magento2' => 'magento',
+    'laravel' => 'laravel',
+    'symfony' => 'symfony',
+    'shopware' => 'shopware',
+    'wordpress' => 'wordpress',
+    'drupal' => 'drupal',
+    'cakephp' => 'cakephp',
+    'openmage' => 'openmage'
+];
+
+if ($projectsJson) {
+    $projects = json_decode($projectsJson, true);
+    if (isset($projects['projects']) && is_array($projects['projects'])) {
+        $i = 1;
+        foreach ($projects['projects'] as $p) {
+            $name = isset($p['project_name']) ? $p['project_name'] : '';
+            $framework = isset($p['framework']) ? $p['framework'] : '';
+            if ($name) {
+                $dbHost = $name . '-db-1';
+                $dbName = isset($dbMap[$framework]) ? $dbMap[$framework] : 'app';
+                
+                $cfg['Servers'][$i]['host'] = $dbHost;
+                $cfg['Servers'][$i]['verbose'] = $name;
+                $cfg['Servers'][$i]['auth_type'] = 'config';
+                $cfg['Servers'][$i]['user'] = $dbName;
+                $cfg['Servers'][$i]['password'] = $dbName;
+                $i++;
+            }
+        }
+    }
+}
+`
+	if err := os.WriteFile(filepath.Join(tempDir, "config.user.inc.php"), []byte(pmaConfigContent), 0644); err != nil {
+		return err
+	}
+
 	if !caddyFound {
 		pterm.Info.Println("Starting global Govard proxy...")
 		cmd := exec.Command("docker", "compose", "-p", "proxy", "up", "-d")

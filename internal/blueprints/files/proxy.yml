@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   caddy:
@@ -32,6 +32,9 @@ services:
     restart: always
     environment:
       - PMA_ARBITRARY=1
+    volumes:
+      - ./config.user.inc.php:/etc/phpmyadmin/config.user.inc.php:ro
+      - ../projects.json:/tmp/projects.json:ro
     networks:
       - govard-proxy
 

@@ -7,9 +7,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const openSupportedTargets = "admin, db, mail, pma, shell, sftp, elasticsearch, opensearch"
+const openSupportedTargets = "admin, db, mail, mftf, pma, shell, sftp, elasticsearch, opensearch"
 
 var openEnvironment string
+var openPma bool
+var openClient bool
 
 var openCmd = &cobra.Command{
 	Use:   "open [target]",
@@ -38,7 +40,13 @@ Case Studies:
   govard open admin --environment staging
 
   # View local PHPMyAdmin
-  govard open pma`,
+  govard open pma
+  
+  # Open local database in Desktop Client
+  govard open db --client
+  
+  # Open local database in PHPMyAdmin explicitly
+  govard open db --pma`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		config := loadFullConfig()
@@ -48,9 +56,11 @@ Case Studies:
 		case "admin":
 			return runOpenAdminTarget(config, openEnvironment)
 		case "db":
-			return runOpenDBTarget(config, openEnvironment)
+			return runOpenDBTarget(config, openEnvironment, openPma, openClient)
 		case "mail":
 			return runOpenMailTarget(config, openEnvironment)
+		case "mftf":
+			return runOpenMFTFTarget(config, openEnvironment)
 		case "pma":
 			return runOpenPMATarget(config, openEnvironment)
 		case "shell":
@@ -73,4 +83,6 @@ func init() {
 		"",
 		"Environment for open targets (local or configured remote name/env)",
 	)
+	openCmd.Flags().BoolVar(&openPma, "pma", false, "Open PHPMyAdmin (for db target)")
+	openCmd.Flags().BoolVar(&openClient, "client", false, "Open local DB client like TablePlus (for db target)")
 }

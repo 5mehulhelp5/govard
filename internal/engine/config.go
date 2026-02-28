@@ -7,6 +7,9 @@ type Features struct {
 	Varnish       bool `yaml:"varnish"`
 	Redis         bool `yaml:"redis,omitempty"`
 	Elasticsearch bool `yaml:"elasticsearch,omitempty"`
+	Isolated      bool `yaml:"isolated,omitempty"`
+	MFTF          bool `yaml:"mftf,omitempty"`
+	LiveReload    bool `yaml:"livereload,omitempty"`
 }
 
 type Services struct {
@@ -38,6 +41,7 @@ type Stack struct {
 
 type Config struct {
 	ProjectName      string            `yaml:"project_name"`
+	Profile          string            `yaml:"profile,omitempty"`
 	Framework        string            `yaml:"framework"`
 	FrameworkVersion string            `yaml:"framework_version,omitempty"`
 	Domain           string            `yaml:"domain"`

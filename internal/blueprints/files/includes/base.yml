@@ -110,17 +110,21 @@ services:
       MYSQL_PASSWORD: {{ .DatabaseName }}
     networks:
       - govard-net
+      - govard-proxy
     volumes:
-      - db-data:/var/lib/mysql
+      - db-data{{ if .Config.Profile }}-{{ .Config.Profile }}{{ end }}:/var/lib/mysql
   {{ end }}
 
 networks:
   govard-net:
     driver: bridge
+    {{ if .Config.Stack.Features.Isolated }}
+    internal: true
+    {{ end }}
   govard-proxy:
     external: true
 
 volumes:
   {{ if ne .Config.Stack.DBType "none" }}
-  db-data:
+  db-data{{ if .Config.Profile }}-{{ .Config.Profile }}{{ end }}:
   {{ end }}

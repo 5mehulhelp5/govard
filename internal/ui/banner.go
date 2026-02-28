@@ -2,18 +2,25 @@ package ui
 
 import (
 	"fmt"
+
 	"github.com/pterm/pterm"
 )
 
 const banner = `
-   ______                         __
-  / ____/___  _   ______ ________/ /
- / / __/ __ \| | / / __  / ___/ _  /
-/ /_/ / /_/ /| |/ / /_/ / /  / /_/ /
-\____/\____/ |___/\__,_/_/   \__,_/
+  ____  ______     ___    ____  ____  
+ / ___|/ _ \ \   / / \  |  _ \|  _ \ 
+| |  _| | | \ \ / / _ \ | |_) | | | |
+| |_| | |_| |\ V / ___ \|  _ <| |_| |
+ \____|\___/  \_/_/   \_\_| \_\____/ 
 `
 
 func PrintBrand(version string) {
-	fmt.Println(pterm.LightCyan(banner))
-	fmt.Printf("                        v%s\n\n", version)
+	header := pterm.DefaultHeader.WithFullWidth().
+		WithBackgroundStyle(pterm.NewStyle(pterm.BgBlue)).
+		WithTextStyle(pterm.NewStyle(pterm.FgWhite))
+	header.Println("Go-based Versatile Runtime & Development")
+
+	fmt.Println(pterm.Blue(banner))
+	pterm.Info.Printf("Govard Version: v%s\n", version)
+	fmt.Println("========================================")
 }

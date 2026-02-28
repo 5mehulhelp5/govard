@@ -55,6 +55,8 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 			"includes/elasticsearch.yml",
 			"includes/varnish.yml",
 			"includes/rabbitmq.yml",
+			"includes/selenium.yml",
+			"includes/livereload.yml",
 		},
 	},
 	"laravel": {
@@ -306,6 +308,7 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 			"includes/elasticsearch.yml",
 			"includes/varnish.yml",
 			"includes/rabbitmq.yml",
+			"includes/livereload.yml",
 		},
 	},
 }

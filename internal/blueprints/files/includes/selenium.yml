@@ -1,0 +1,11 @@
+{{ if .Config.Stack.Features.MFTF }}
+services:
+  selenium:
+    image: selenium/standalone-chrome:latest
+    networks:
+      - govard-net
+      - govard-proxy
+    shm_size: "2g"
+    environment:
+      SE_VNC_NO_PASSWORD: 1
+{{ end }}

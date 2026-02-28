@@ -26,6 +26,11 @@ func GovardHomeDir() string {
 
 // ComposeFilePath resolves the compose file location for a project.
 func ComposeFilePath(projectRoot string, projectName string) string {
+	return ComposeFilePathWithProfile(projectRoot, projectName, "")
+}
+
+// ComposeFilePathWithProfile resolves the compose file location for a project and profile.
+func ComposeFilePathWithProfile(projectRoot string, projectName string, profile string) string {
 	root := strings.TrimSpace(projectRoot)
 	if root == "" {
 		if cwd, err := os.Getwd(); err == nil {
@@ -45,7 +50,14 @@ func ComposeFilePath(projectRoot string, projectName string) string {
 		name = "project"
 	}
 
-	sum := sha1.Sum([]byte(root))
+	hashSource := root
+	profile = strings.TrimSpace(profile)
+	if profile != "" {
+		name = name + "-" + profile
+		hashSource = root + "|" + profile
+	}
+
+	sum := sha1.Sum([]byte(hashSource))
 	fileName := name + "-" + strings.ToLower(strings.TrimSpace(hexPrefix(sum[:]))) + ".yml"
 	return filepath.Join(GovardHomeDir(), "compose", fileName)
 }

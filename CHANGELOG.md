@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-02-28
+
+### Added
+
+- **Environment Scopes (Profiles)**: Run isolated environment variants with `--profile <name>`. Config layers merge as Base → Profile (`.govard.<profile>.yml`) → Local (`.govard.local.yml`). Each profile gets its own Docker Compose file and database volumes for full isolation.
+- **Network Isolation Mode**: Set `isolated: true` in `features` to prevent containers from reaching the internet. Uses Docker's `internal: true` on the project network while keeping browser access via the Govard Proxy.
+- **MFTF & Selenium Support**: Set `mftf: true` in `features` to auto-start a Selenium Standalone Chrome container with VNC access for Magento Functional Testing Framework (MFTF). Use `govard open mftf` to open the VNC viewer.
+- **Frontend LiveReload / Watcher**: Set `livereload: true` in `features` to start a dedicated Node.js watcher container for frontend asset compilation. Auto-detects Vite, Grunt, or Webpack.
+- **`govard open mftf`**: New target to open the Selenium VNC viewer in-browser.
+- **`--profile` flag**: Available on `govard env up` and `govard db` commands for environment scope selection.
+
 ## [1.7.0] - 2026-02-27
 
 ### Added
@@ -19,8 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Standardized Terminology**: Consistent use of "recipe" and "framework" across CLI and documentation.
 - **Bootstrap Logic**: Refined to auto-clone if no source is present and improved remote connectivity tests.
 - **Flag Renames**:
-    - Renamed `--version` to `--framework-version` in `bootstrap`.
-    - Renamed `--framework` to `--recipe` in `profile`.
+  - Renamed `--version` to `--framework-version` in `bootstrap`.
+  - Renamed `--framework` to `--recipe` in `profile`.
 
 ### Fixed
 

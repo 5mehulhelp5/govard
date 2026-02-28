@@ -67,6 +67,10 @@ func getSettings() (DesktopSettings, error) {
 	return normalizeSettings(prefs.Settings), nil
 }
 
+func ReadDesktopSettings() (DesktopSettings, error) {
+	return getSettings()
+}
+
 func setSettings(settings DesktopSettings) error {
 	prefs, err := loadPreferences()
 	if err != nil {
@@ -167,8 +171,12 @@ func normalizeSettings(settings DesktopSettings) DesktopSettings {
 	settings.ProxyTarget = sanitizeProxyTarget(settings.ProxyTarget)
 	settings.PreferredBrowser = strings.TrimSpace(settings.PreferredBrowser)
 	settings.CodeEditor = strings.TrimSpace(settings.CodeEditor)
+	settings.DBClientPreference = strings.TrimSpace(strings.ToLower(settings.DBClientPreference))
 	if settings.ProxyTarget == "" {
 		settings.ProxyTarget = "govard.test"
+	}
+	if settings.DBClientPreference != "pma" && settings.DBClientPreference != "desktop" {
+		settings.DBClientPreference = "desktop"
 	}
 	return settings
 }

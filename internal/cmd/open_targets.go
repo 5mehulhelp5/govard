@@ -122,6 +122,20 @@ func runOpenMailTarget(config engine.Config, requestedEnvironment string) error 
 	return openURL(url)
 }
 
+func runOpenMFTFTarget(config engine.Config, requestedEnvironment string) error {
+	_, isRemote, err := resolveOpenEnvironment(config, requestedEnvironment)
+	if err != nil {
+		return err
+	}
+	if isRemote {
+		return fmt.Errorf("open mftf with remote environment is not supported yet")
+	}
+
+	url := "https://selenium.govard.test"
+	pterm.Info.Printf("Opening Selenium VNC Viewer: %s\n", url)
+	return openURL(url)
+}
+
 func runOpenPMATarget(config engine.Config, requestedEnvironment string) error {
 	_, isRemote, err := resolveOpenDBEnvironment(config, requestedEnvironment)
 	if err != nil {

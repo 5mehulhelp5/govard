@@ -4,21 +4,38 @@ This guide will walk you through installing Govard and setting up your first pro
 
 ## Installation
 
-### Install from Source (Linux/macOS)
+### 1. One-Line Installation
 
-Ensure you have Go 1.24+ installed:
+The easiest way to install Govard is using the unified installer script:
 
 ```bash
-go version
-git clone https://github.com/ddtcorex/govard.git
-cd govard
-make install
+curl -fsSL https://raw.githubusercontent.com/ddtcorex/govard/master/install.sh | bash
 ```
 
-If `go` is installed but not found, add your Go bin directory to `PATH` and reload your shell:
+This will automatically:
+
+1. Detect your OS and architecture.
+2. Check for Docker and Git dependencies.
+3. Download and install the latest binary to `/usr/local/bin`.
+
+### 2. Source Installation (with Go Bootstrap)
+
+If you prefer to build from source or need to install Go 1.24+ automatically:
 
 ```bash
-export PATH="$HOME/go/bin:$PATH"
+curl -fsSL https://raw.githubusercontent.com/ddtcorex/govard/master/install.sh | bash -s -- --source
+```
+
+The script will offer to install Go 1.24 if your system Go version is missing or outdated (< 1.24).
+
+### 3. Manual Build
+
+You can also build from a local clone:
+
+```bash
+git clone https://github.com/ddtcorex/govard.git
+cd govard
+./install.sh --source
 ```
 
 ## Basic Workflow
@@ -34,6 +51,7 @@ govard init
 This scans your project (via `composer.json` or `package.json`) and generates a `.govard.yml` configuration.
 
 **Supported Frameworks:**
+
 - Magento 1 (OpenMage)
 - Magento 2
 - Laravel

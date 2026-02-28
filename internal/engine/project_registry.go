@@ -109,6 +109,13 @@ func normalizeProjectRegistryEntry(entry ProjectRegistryEntry) (ProjectRegistryE
 		return ProjectRegistryEntry{}, false
 	}
 	entry.Path = filepath.Clean(entry.Path)
+
+	if os.Getenv(ProjectRegistryPathEnvVar) == "" {
+		if strings.HasPrefix(entry.Path, "/tmp/") || strings.HasPrefix(entry.Path, filepath.Clean(os.TempDir())) || strings.Contains(entry.Path, "govard/tests") {
+			return ProjectRegistryEntry{}, false
+		}
+	}
+
 	entry.ProjectName = strings.TrimSpace(entry.ProjectName)
 	entry.Domain = strings.TrimSpace(entry.Domain)
 	for i, d := range entry.ExtraDomains {

@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"govard/internal/desktop"
 	"govard/internal/engine"
 	engineremote "govard/internal/engine/remote"
 
@@ -23,16 +24,46 @@ const (
 	openDBLocalTarget = "local"
 )
 
-func runOpenDBTarget(config engine.Config, requestedEnvironment string) error {
+func runOpenDBTarget(config engine.Config, requestedEnvironment string, pmaFlag bool, clientFlag bool) error {
 	environment, isRemote, err := resolveOpenDBEnvironment(config, requestedEnvironment)
 	if err != nil {
 		return err
 	}
 
+	usePma := true // Local fallback default
 	if !isRemote {
-		url := "https://pma.govard.test"
-		pterm.Info.Printf("Opening %s\n", url)
-		return openURL(url)
+		if pref, err := desktop.ReadDesktopSettings(); err == nil {
+			if pref.DBClientPreference == "desktop" {
+				usePma = false
+			}
+		}
+	} else {
+		usePma = false // Remote is generally Desktop client SSH tunnel
+	}
+
+	if pmaFlag {
+		usePma = true
+	} else if clientFlag {
+		usePma = false
+	}
+
+	if !isRemote {
+		if usePma {
+			url := "https://pma.govard.test/?db=" + config.ProjectName
+			pterm.Info.Printf("Opening %s\n", url)
+			return openURL(url)
+		} else {
+			containerName := dbContainerName(config)
+			if err := ensureLocalDBRunning(containerName); err != nil {
+				return err
+			}
+			credentials := resolveLocalDBCredentials(containerName)
+			// Assuming Ward doesn't bind 3306 locally by default, we build a connect string to point to 127.0.0.1:3306
+			// A local developer might have overriden their proxy map or bound it to the host.
+			connectionURL := buildOpenDBConnectionURL(credentials, 3306)
+			pterm.Info.Printf("Opening DB URL %s\n", connectionURL)
+			return openURL(connectionURL)
+		}
 	}
 
 	remoteCfg, err := resolveDBRemote(config, environment, false)

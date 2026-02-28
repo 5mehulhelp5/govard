@@ -103,6 +103,10 @@ func findBlueprintsFS(startDir string) (fs.FS, error) {
 
 // RenderBlueprint renders layered blueprints into a single docker-compose file
 func RenderBlueprint(root string, config Config) error {
+	return RenderBlueprintWithProfile(root, config, "")
+}
+
+func RenderBlueprintWithProfile(root string, config Config, profile string) error {
 	blueprintsFS, err := resolveBlueprintsDirForConfig(root, config)
 	if err != nil {
 		return fmt.Errorf("resolve blueprints directory: %w", err)
@@ -209,7 +213,8 @@ func RenderBlueprint(root string, config Config) error {
 	}
 
 	// Merge all parts into final output
-	outputPath := ComposeFilePath(root, config.ProjectName)
+	config.Profile = profile
+	outputPath := ComposeFilePathWithProfile(root, config.ProjectName, profile)
 	if err := EnsureComposePathReady(outputPath); err != nil {
 		return fmt.Errorf("failed to prepare compose output path: %w", err)
 	}

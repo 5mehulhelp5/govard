@@ -43,9 +43,11 @@ Case Studies:
 		startedAt := time.Now()
 
 		quickstart, _ := cmd.Flags().GetBool("quickstart")
+		profile, _ := cmd.Flags().GetString("profile")
 		cwd, _ := os.Getwd()
 		context := upRuntimeContext{
 			Cwd:        cwd,
+			Profile:    profile,
 			Quickstart: quickstart,
 			Out:        cmd.OutOrStdout(),
 			Err:        cmd.ErrOrStderr(),
@@ -92,6 +94,7 @@ type upRuntimeContext struct {
 	Compose    string
 	Loaded     []string
 	Metadata   engine.ProjectMetadata
+	Profile    string
 	Quickstart bool
 	Out        interface{ Write([]byte) (int, error) }
 	Err        interface{ Write([]byte) (int, error) }
@@ -117,7 +120,7 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 			OnFailureTip: "govard doctor",
 			Run: func() error {
 				var err error
-				context.Config, context.Loaded, err = engine.LoadConfigFromDir(context.Cwd, true)
+				context.Config, context.Loaded, err = engine.LoadConfigFromDirWithProfile(context.Cwd, true, context.Profile)
 				if err != nil {
 					return fmt.Errorf("load layered config: %w", err)
 				}
@@ -130,7 +133,7 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 					ApplyQuickstartProfile(&context.Config)
 					pterm.Info.Println("Quickstart profile enabled: optional services reduced for faster first run.")
 				}
-				context.Compose = engine.ComposeFilePath(context.Cwd, context.Config.ProjectName)
+				context.Compose = engine.ComposeFilePathWithProfile(context.Cwd, context.Config.ProjectName, context.Profile)
 				pterm.Info.Printf("Loaded config layers: %d\n", len(context.Loaded))
 				lockWarnings, lockErr := evaluateUpLockPolicy(context.Cwd, context.Config)
 				for _, warning := range lockWarnings {
@@ -177,7 +180,7 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 					pterm.Warning.Printf("Govard Proxy not ready: %v\n", err)
 				}
 
-				if err := engine.RenderBlueprint(context.Cwd, context.Config); err != nil {
+				if err := engine.RenderBlueprintWithProfile(context.Cwd, context.Config, context.Profile); err != nil {
 					return fmt.Errorf("render blueprint: %w", err)
 				}
 				pterm.Success.Printf("Rendered compose file: %s\n", context.Compose)
@@ -374,4 +377,5 @@ func compareNumericDotVersions(left, right string) (int, bool) {
 
 func init() {
 	upCmd.Flags().Bool("quickstart", false, "Use a minimal runtime profile for faster first run")
+	upCmd.Flags().String("profile", "", "Environment scope (profile) to use")
 }

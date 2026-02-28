@@ -12,10 +12,11 @@ type Dashboard struct {
 }
 
 type DesktopSettings struct {
-	Theme            string `json:"theme"`
-	ProxyTarget      string `json:"proxyTarget"`
-	PreferredBrowser string `json:"preferredBrowser"`
-	CodeEditor       string `json:"codeEditor"`
+	Theme              string `json:"theme"`
+	ProxyTarget        string `json:"proxyTarget"`
+	PreferredBrowser   string `json:"preferredBrowser"`
+	CodeEditor         string `json:"codeEditor"`
+	DBClientPreference string `json:"dbClientPreference"`
 }
 
 type UserInfo struct {

@@ -8,15 +8,25 @@ VERSION_RAW ?= $(shell git describe --tags --dirty --always 2>/dev/null || echo 
 VERSION ?= $(patsubst v%,%,$(VERSION_RAW))
 LDFLAGS ?= -s -w -X govard/internal/cmd.Version=$(VERSION)
 
-.PHONY: build clean test test-fast test-unit test-coverage test-integration test-integration-ci test-frontend build-test-binary install lint fmt fmt-check vet push test-realenv-setup test-realenv test-realenv-clean
+.PHONY: help install build-test-binary build clean test test-fast test-unit test-coverage test-integration test-integration-ci test-frontend lint fmt fmt-check vet push test-realenv-setup test-realenv test-realenv-clean
 
-build:
+help: ## Show this help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+install: ## Build and install Govard binary to system (via install.sh)
+	./install.sh --source -y
+
+build: ## Build Govard binary for the current platform
 	@echo "Building Govard..."
 	mkdir -p $(BUILD_DIR)
-	GOOS=darwin GOARCH=arm64 go build -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/govard-darwin-arm64 cmd/govard/main.go
-	GOOS=linux GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/govard-linux-amd64 cmd/govard/main.go
+	go build -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY_NAME) cmd/govard/main.go
 
-test: fmt-check vet test-frontend test-unit test-integration
+build-test-binary:
+	@echo "Building test binary..."
+	mkdir -p $(BUILD_DIR)
+	go build -mod=mod -ldflags "$(LDFLAGS)" -tags integration -o $(TEST_BINARY) cmd/govard/main.go
+
+test: fmt-check vet test-frontend test-unit test-integration ## Run all tests
 
 test-fast: fmt-check vet test-frontend test-unit
 
@@ -51,11 +61,6 @@ test-frontend:
 	@echo "Running frontend unit tests..."
 	node --test tests/frontend/*.test.mjs
 
-build-test-binary:
-	@echo "Building test binary..."
-	mkdir -p $(BUILD_DIR)
-	go build -mod=mod -ldflags "$(LDFLAGS)" -tags integration -o $(TEST_BINARY) cmd/govard/main.go
-
 lint:
 	@echo "Running linter..."
 	golangci-lint run ./...
@@ -81,19 +86,15 @@ test-realenv:
 	@echo "Running real environment tests..."
 	@go test -mod=mod -tags realenv ./tests/integration/realenv/... -v -timeout 30m
 
-test-realenv-clean:
+test-realenv-clean: ## Cleanup real environment test infrastructure
 	@echo "Cleaning up real environment..."
 	@cd $(REALENV_DIR) && ./setup-three-env.sh cleanup 2>/dev/null || true
-	@docker-compose -f $(REALENV_DIR)/docker-compose.three-env.yml down -v 2>/dev/null || true
+	@docker compose -f $(REALENV_DIR)/docker-compose.three-env.yml down -v 2>/dev/null || true
 
 # Full realenv test cycle
 test-realenv-full: test-realenv-clean test-realenv-setup test-realenv test-realenv-clean
 
-install:
-	go build -ldflags "$(LDFLAGS)" -o $(BINARY_NAME) cmd/govard/main.go
-	sudo mv $(BINARY_NAME) /usr/local/bin/
-
-clean:
+clean: ## Remove build artifacts and clean test cache
 	@echo "Cleaning build artifacts..."
 	rm -rf $(BUILD_DIR)
 	go clean -testcache

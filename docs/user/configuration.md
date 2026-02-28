@@ -4,15 +4,30 @@ Govard uses layered project configuration plus Blueprints.
 
 ## Layered Config Files
 
-Govard can merge up to five config files in this order:
+Govard can merge up to six config files in this order:
 
 1. `.govard.yml` (base config, required for most commands)
-2. `.govard.local.yml` (legacy local overrides, optional)
-3. `.govard/.govard.local.yml` (project extension local overrides, optional, preferred)
-4. `.govard.<env>.yml` (legacy environment override, optional, enabled by `GOVARD_ENV`)
-5. `.govard/.govard.<env>.yml` (project extension environment override, optional, preferred)
+2. `.govard.<profile>.yml` (profile override, optional, enabled by `--profile` flag)
+3. `.govard.local.yml` (legacy local overrides, optional)
+4. `.govard/.govard.local.yml` (project extension local overrides, optional, preferred)
+5. `.govard.<env>.yml` (legacy environment override, optional, enabled by `GOVARD_ENV`)
+6. `.govard/.govard.<env>.yml` (project extension environment override, optional, preferred)
 
 Later layers override earlier layers.
+
+### Profile Layer
+
+Use `--profile <name>` on `govard env up` or `govard db` to activate a profile:
+
+```bash
+govard env up --profile upgrade
+```
+
+This loads `.govard.upgrade.yml` between base and local configs. Profiles are team-shared (committed to VCS) while `.govard.local.yml` remains personal.
+
+Each profile gets its own Docker Compose file (`~/.govard/compose/<project>-<profile>.yml`) and isolated database volumes (`db-data-<profile>`), so switching profiles does not contaminate data.
+
+### Environment Override (GOVARD_ENV)
 
 Example:
 
@@ -67,6 +82,9 @@ stack:
   features:
     xdebug: true
     varnish: false
+    isolated: false
+    mftf: false
+    livereload: false
 ```
 
 ### Configuration Options
@@ -128,13 +146,13 @@ stack:
 - **Description**: Opt-in remote blueprint registry source used by renderer.
 - **Default**: local `blueprints/` resolution (registry disabled)
 
-| Field | Type | Required | Notes |
-|-------|------|----------|-------|
-| `provider` | string | yes (when registry enabled) | `git` or `http` |
-| `url` | string | yes (when registry enabled) | remote source URL |
-| `ref` | string | optional | git branch/tag/commit when provider is `git` |
-| `checksum` | string | yes (when registry enabled) | SHA-256 (`64` hex chars) |
-| `trusted` | boolean | yes (when registry enabled) | must be `true` to allow remote fetch |
+| Field      | Type    | Required                    | Notes                                        |
+| ---------- | ------- | --------------------------- | -------------------------------------------- |
+| `provider` | string  | yes (when registry enabled) | `git` or `http`                              |
+| `url`      | string  | yes (when registry enabled) | remote source URL                            |
+| `ref`      | string  | optional                    | git branch/tag/commit when provider is `git` |
+| `checksum` | string  | yes (when registry enabled) | SHA-256 (`64` hex chars)                     |
+| `trusted`  | boolean | yes (when registry enabled) | must be `true` to allow remote fetch         |
 
 Registry behavior:
 
@@ -244,16 +262,30 @@ Registry behavior:
 - **Type**: object
 - **Description**: Optional features (Redis/Search are deprecated here; use `stack.services`)
 
-| Feature | Type | Description |
-|---------|------|-------------|
-| `xdebug` | boolean | Enable Xdebug 3 for debugging |
-| `varnish` | boolean | Enable Varnish 7.x caching |
-| `redis` | boolean | Deprecated; use `stack.services.cache` |
-| `elasticsearch` | boolean | Deprecated; use `stack.services.search` |
+| Feature         | Type    | Default | Description                                                           |
+| --------------- | ------- | ------- | --------------------------------------------------------------------- |
+| `xdebug`        | boolean | `false` | Enable Xdebug 3 for debugging                                         |
+| `varnish`       | boolean | `false` | Enable Varnish 7.x caching                                            |
+| `isolated`      | boolean | `false` | Enable Network Isolation Mode (block internet access from containers) |
+| `mftf`          | boolean | `false` | Enable Selenium container for MFTF testing (Magento 2)                |
+| `livereload`    | boolean | `false` | Enable Node.js watcher container for frontend LiveReload              |
+| `redis`         | boolean | —       | Deprecated; use `stack.services.cache`                                |
+| `elasticsearch` | boolean | —       | Deprecated; use `stack.services.search`                               |
 
 When `xdebug` is enabled, Govard starts a dedicated `php-debug` container and routes
 requests to it only when the `XDEBUG_SESSION` cookie is present (value used by most IDE helpers).
 For CLI debugging, use `govard debug shell` to open a shell in `php-debug`.
+
+When `isolated` is enabled, the primary Docker network (`govard-net`) is set to `internal: true`,
+which prevents containers from making outgoing internet connections. The `web` container remains
+accessible via the `govard-proxy` network for browser access. This is useful for testing
+offline behavior or preventing accidental external API calls.
+
+When `mftf` is enabled, a `selenium/standalone-chrome` container is added with VNC access.
+Use `govard open mftf` to view the browser in real time.
+
+When `livereload` is enabled, a `node-alpine` watcher container is added that auto-detects
+and runs `vite build --watch` or `grunt watch` for frontend asset compilation.
 
 #### `hooks`
 
@@ -309,18 +341,18 @@ Templates located in `blueprints/` that define the Docker Compose structure.
 
 ### Available Blueprints
 
-| Blueprint | File/Dir | Services |
-|-----------|----------|----------|
-| Magento 1 | `blueprints/magento1/` | Web, PHP, DB, Cache (opt) |
-| Magento 2 | `blueprints/magento2/` + includes | Web, PHP, DB, Varnish (opt), Cache (opt), Search (opt), Queue (opt) |
-| Laravel | `blueprints/laravel/` + includes | Web, PHP, DB, Cache (opt), Search (opt), Queue (opt) |
-| Next.js | `blueprints/nextjs/` | Node.js |
-| Drupal | `blueprints/includes/*` | Web, PHP, DB, Cache (opt), Search (opt), Queue (opt) |
-| Symfony | `blueprints/includes/*` | Web, PHP, DB, Cache (opt), Search (opt), Queue (opt) |
-| Shopware | `blueprints/includes/*` | Web, PHP, DB, Cache (opt), Search (opt), Queue (opt) |
-| CakePHP | `blueprints/includes/*` | Web, PHP, DB, Cache (opt), Queue (opt) |
-| WordPress | `blueprints/includes/*` | Web, PHP, DB, Cache (opt), Queue (opt) |
-| Custom | `blueprints/includes/*` | Web, PHP, DB (opt), Cache (opt), Search (opt), Varnish (opt), Queue (opt) |
+| Blueprint | File/Dir                          | Services                                                                  |
+| --------- | --------------------------------- | ------------------------------------------------------------------------- |
+| Magento 1 | `blueprints/magento1/`            | Web, PHP, DB, Cache (opt)                                                 |
+| Magento 2 | `blueprints/magento2/` + includes | Web, PHP, DB, Varnish (opt), Cache (opt), Search (opt), Queue (opt)       |
+| Laravel   | `blueprints/laravel/` + includes  | Web, PHP, DB, Cache (opt), Search (opt), Queue (opt)                      |
+| Next.js   | `blueprints/nextjs/`              | Node.js                                                                   |
+| Drupal    | `blueprints/includes/*`           | Web, PHP, DB, Cache (opt), Search (opt), Queue (opt)                      |
+| Symfony   | `blueprints/includes/*`           | Web, PHP, DB, Cache (opt), Search (opt), Queue (opt)                      |
+| Shopware  | `blueprints/includes/*`           | Web, PHP, DB, Cache (opt), Search (opt), Queue (opt)                      |
+| CakePHP   | `blueprints/includes/*`           | Web, PHP, DB, Cache (opt), Queue (opt)                                    |
+| WordPress | `blueprints/includes/*`           | Web, PHP, DB, Cache (opt), Queue (opt)                                    |
+| Custom    | `blueprints/includes/*`           | Web, PHP, DB (opt), Cache (opt), Search (opt), Varnish (opt), Queue (opt) |
 
 ### Blueprint Assets
 

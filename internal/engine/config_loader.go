@@ -19,28 +19,44 @@ const (
 var validEnvNamePattern = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
 
 func ResolveConfigLayerPaths(root string) []string {
+	return ResolveConfigLayerPathsWithProfile(root, "")
+}
+
+// ResolveConfigLayerPathsWithProfile builds the ordered list of config files.
+// Load order: Base → Profile → GOVARD_ENV → Local → ProjectLocal.
+// Profile is inserted after base so local overrides always win.
+func ResolveConfigLayerPathsWithProfile(root, profile string) []string {
 	paths := []string{
 		filepath.Join(root, BaseConfigFile),
-		filepath.Join(root, LocalConfigFile),
-		filepath.Join(root, ProjectLocalConfigPath),
 	}
+
+	// Profile layer (team-committed scope file)
+	profile = strings.TrimSpace(profile)
+	if profile != "" && validEnvNamePattern.MatchString(profile) {
+		paths = append(paths, filepath.Join(root, fmt.Sprintf(".govard.%s.yml", profile)))
+	}
+
+	// Local overrides (personal, never committed)
+	paths = append(paths, filepath.Join(root, LocalConfigFile))
+	paths = append(paths, filepath.Join(root, ProjectLocalConfigPath))
 
 	envName := strings.TrimSpace(os.Getenv("GOVARD_ENV"))
-	if envName == "" {
-		return paths
+	if envName != "" && validEnvNamePattern.MatchString(envName) {
+		paths = append(paths, filepath.Join(root, fmt.Sprintf(".govard.%s.yml", envName)))
+		paths = append(paths, filepath.Join(root, ProjectExtensionsDir, fmt.Sprintf(".govard.%s.yml", envName)))
 	}
 
-	if !validEnvNamePattern.MatchString(envName) {
-		return paths
-	}
-
-	paths = append(paths, filepath.Join(root, fmt.Sprintf(".govard.%s.yml", envName)))
-	paths = append(paths, filepath.Join(root, ProjectExtensionsDir, fmt.Sprintf(".govard.%s.yml", envName)))
 	return paths
 }
 
 func LoadConfigFromDir(root string, requireBase bool) (Config, []string, error) {
-	paths := ResolveConfigLayerPaths(root)
+	return LoadConfigFromDirWithProfile(root, requireBase, "")
+}
+
+// LoadConfigFromDirWithProfile loads config with an optional profile layer.
+// Profile files (.govard.[profile].yml) are merged after base but before local.
+func LoadConfigFromDirWithProfile(root string, requireBase bool, profile string) (Config, []string, error) {
+	paths := ResolveConfigLayerPathsWithProfile(root, profile)
 	merged := map[string]interface{}{}
 	loaded := make([]string, 0, len(paths))
 

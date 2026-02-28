@@ -4,6 +4,8 @@ export const normalizeSettingsPayload = (settings = {}) => ({
   preferredBrowser:
     settings.preferredBrowser || settings.PreferredBrowser || "",
   codeEditor: settings.codeEditor || settings.CodeEditor || "",
+  dbClientPreference:
+    settings.dbClientPreference || settings.DBClientPreference || "desktop",
 });
 
 export const applyTheme = (theme) => {
@@ -56,6 +58,8 @@ export const createSettingsController = ({
       if (refs.preferredBrowser)
         refs.preferredBrowser.value = settings.preferredBrowser;
       if (refs.codeEditor) refs.codeEditor.value = settings.codeEditor;
+      if (refs.dbClientPreference)
+        refs.dbClientPreference.value = settings.dbClientPreference;
       applyTheme(settings.theme);
     } catch (_err) {
       applyTheme("system");
@@ -67,12 +71,14 @@ export const createSettingsController = ({
     const proxyTarget = refs.proxyTarget?.value || "";
     const preferredBrowser = refs.preferredBrowser?.value || "";
     const codeEditor = refs.codeEditor?.value || "";
+    const dbClientPreference = refs.dbClientPreference?.value || "desktop";
     try {
       const message = await bridge.updateSettings(
         theme,
         proxyTarget,
         preferredBrowser,
         codeEditor,
+        dbClientPreference,
       );
       applyTheme(theme);
       onStatus(message);

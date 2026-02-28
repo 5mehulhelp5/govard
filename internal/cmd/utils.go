@@ -19,8 +19,12 @@ func loadConfig() engine.Config {
 }
 
 func loadFullConfig() engine.Config {
+	return loadFullConfigWithProfile("")
+}
+
+func loadFullConfigWithProfile(profile string) engine.Config {
 	wd, _ := os.Getwd()
-	config, _, err := engine.LoadConfigFromDir(wd, true)
+	config, _, err := engine.LoadConfigFromDirWithProfile(wd, true, profile)
 	if err != nil {
 		pterm.Error.Printf("Could not load config: %v\n", err)
 		os.Exit(1)

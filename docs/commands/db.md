@@ -18,6 +18,7 @@ govard db import --stream-db --environment staging --file staging.sql
 
 - `-e, --environment` Target environment (default: local)
 - `-f, --file` Database dump file (import or dump output)
+- `--profile` Environment scope (profile) to use. Loads `.govard.<profile>.yml` config layer and targets profile-specific containers/volumes.
 - `--stream-db` For `db import`: stream dump from remote environment into local database
 - `--full` For `db dump`: include routines, events, and triggers
 - `--exclude-sensitive-data` Apply SQL sanitization pipeline (DEFINER/GTID cleanup)
@@ -25,6 +26,7 @@ govard db import --stream-db --environment staging --file staging.sql
 ## Subcommands
 
 ### `connect`
+
 Open an interactive MySQL/MariaDB shell to the database container (local or remote).
 
 ```bash
@@ -33,6 +35,7 @@ govard db connect -e staging
 ```
 
 ### `dump`
+
 Create a database dump. Supports `--full` for including routines/events/triggers and `--file` for output to a file.
 
 ```bash
@@ -41,6 +44,7 @@ govard db dump --file backup.sql --full
 ```
 
 ### `import`
+
 Import SQL from stdin or a file. Use `--stream-db` to stream from a remote environment directly into local database.
 
 ```bash
@@ -50,6 +54,7 @@ govard db import --stream-db -e staging
 ```
 
 ### `query`
+
 Execute a single SQL query and display results. Useful for quick data checks without opening an interactive shell.
 
 ```bash
@@ -58,6 +63,7 @@ govard db query "SELECT * FROM core_config_data WHERE path LIKE 'web/%'" -e stag
 ```
 
 ### `info`
+
 Display database connection information (host, port, username, database) for local or remote environments.
 
 ```bash

@@ -421,7 +421,9 @@ govard open mail             # Mailpit target
 
 ```bash
 govard open pma              # PHPMyAdmin target
-govard open db               # Generic DB target
+govard open db               # Generic DB target (opens PMA or Client according to Settings)
+govard open db --pma         # Force open local PHPMyAdmin
+govard open db --client      # Force open local Desktop Client (tableplus/beekeeper)
 govard open db -e staging    # Remote DB via SSH tunnel
 ```
 
