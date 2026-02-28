@@ -138,5 +138,108 @@ export const createShellController = ({
     }
   };
 
-  return { loadShellUser, saveShellUser, openShell, resetShellUsers };
+  const openRemoteShell = async (remoteName) => {
+    console.log("[Shell] openRemoteShell", remoteName);
+    const project = readSelection().project;
+    console.log("[Shell] project:", project);
+    if (!project) return;
+    if (!term) initTerminal();
+
+    try {
+      term.reset();
+      term.write(`Opening shell for remote: ${remoteName}...\r\n`);
+      const sessionID = await bridge.startGovardTerminal(project, [
+        "remote",
+        "exec",
+        remoteName,
+        "--",
+        "bash",
+      ]);
+      if (sessionID.startsWith("error:"))
+        throw new Error(sessionID.replace("error: ", ""));
+      currentSessionID = sessionID;
+      setTimeout(() => {
+        fitAddon?.fit();
+        bridge.resizeTerminal(currentSessionID, term.cols, term.rows);
+      }, 100);
+      onStatus(`Connected to remote: ${remoteName}`);
+    } catch (err) {
+      onStatus(`Failed to connect to ${remoteName}.`);
+      onToast(`Error connecting: ${err}`, "error");
+      term?.write(`\r\nError: ${err.message || err}\r\n`);
+    }
+  };
+
+  const openRemoteDB = async (remoteName) => {
+    console.log("[Shell] openRemoteDB", remoteName);
+    const project = readSelection().project;
+    console.log("[Shell] project:", project);
+    if (!project) return;
+    if (!term) initTerminal();
+
+    try {
+      term.reset();
+      term.write(`Connecting to remote database: ${remoteName}...\r\n`);
+      const sessionID = await bridge.startGovardTerminal(project, [
+        "open",
+        "db",
+        "-e",
+        remoteName,
+        "--client",
+      ]);
+      if (sessionID.startsWith("error:"))
+        throw new Error(sessionID.replace("error: ", ""));
+      currentSessionID = sessionID;
+      setTimeout(() => {
+        fitAddon?.fit();
+        bridge.resizeTerminal(currentSessionID, term.cols, term.rows);
+      }, 100);
+      onStatus(`Opened DB client for remote: ${remoteName}`);
+    } catch (err) {
+      onStatus(`Failed to open remote db for ${remoteName}.`);
+      onToast(`Error opening DB: ${err}`, "error");
+      term?.write(`\r\nError: ${err.message || err}\r\n`);
+    }
+  };
+
+  const openRemoteSFTP = async (remoteName) => {
+    console.log("[Shell] openRemoteSFTP", remoteName);
+    const project = readSelection().project;
+    console.log("[Shell] project:", project);
+    if (!project) return;
+    if (!term) initTerminal();
+
+    try {
+      term.reset();
+      term.write(`Connecting to remote SFTP: ${remoteName}...\r\n`);
+      const sessionID = await bridge.startGovardTerminal(project, [
+        "open",
+        "sftp",
+        "-e",
+        remoteName,
+      ]);
+      if (sessionID.startsWith("error:"))
+        throw new Error(sessionID.replace("error: ", ""));
+      currentSessionID = sessionID;
+      setTimeout(() => {
+        fitAddon?.fit();
+        bridge.resizeTerminal(currentSessionID, term.cols, term.rows);
+      }, 100);
+      onStatus(`Opened SFTP for remote: ${remoteName}`);
+    } catch (err) {
+      onStatus(`Failed to open remote SFTP for ${remoteName}.`);
+      onToast(`Error opening SFTP: ${err}`, "error");
+      term?.write(`\r\nError: ${err.message || err}\r\n`);
+    }
+  };
+
+  return {
+    loadShellUser,
+    saveShellUser,
+    openShell,
+    resetShellUsers,
+    openRemoteShell,
+    openRemoteDB,
+    openRemoteSFTP,
+  };
 };

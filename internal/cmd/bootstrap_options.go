@@ -31,6 +31,7 @@ type bootstrapRuntimeOptions struct {
 	MagePassword    string
 	AssumeYes       bool
 	IncludeProduct  bool
+	Plan            bool
 }
 
 func resolveBootstrapOptions(cmd *cobra.Command) (bootstrapRuntimeOptions, error) {
@@ -56,6 +57,7 @@ func resolveBootstrapOptions(cmd *cobra.Command) (bootstrapRuntimeOptions, error
 		MagePassword:    strings.TrimSpace(bootstrapMagePassword),
 		AssumeYes:       bootstrapAssumeYes,
 		IncludeProduct:  bootstrapIncludeProduct,
+		Plan:            bootstrapPlan,
 	}
 
 	if opts.MetaPackage == "" {
@@ -140,4 +142,5 @@ func ResetBootstrapFlags() {
 	bootstrapMagePassword = ""
 	bootstrapAssumeYes = false
 	bootstrapIncludeProduct = false
+	bootstrapPlan = false
 }

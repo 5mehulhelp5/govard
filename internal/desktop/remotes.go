@@ -70,84 +70,6 @@ func listProjectRemotesByPath(root string) (RemoteSnapshot, error) {
 	}, nil
 }
 
-func upsertProjectRemote(project string, input RemoteUpsertInput) error {
-	root, err := resolveProjectRootForRemotes(project)
-	if err != nil {
-		return err
-	}
-	return upsertProjectRemoteByPath(root, input)
-}
-
-func upsertProjectRemoteByPath(root string, input RemoteUpsertInput) error {
-	cleanRoot := filepath.Clean(strings.TrimSpace(root))
-	cfg, err := engine.LoadBaseConfigFromDir(cleanRoot, true)
-	if err != nil {
-		return fmt.Errorf("load writable config: %w", err)
-	}
-
-	name := strings.TrimSpace(input.Name)
-	if name == "" {
-		return fmt.Errorf("remote name is required")
-	}
-	host := strings.TrimSpace(input.Host)
-	if host == "" {
-		return fmt.Errorf("remote host is required")
-	}
-	user := strings.TrimSpace(input.User)
-	if user == "" {
-		return fmt.Errorf("remote user is required")
-	}
-	path := strings.TrimSpace(input.Path)
-	if path == "" {
-		return fmt.Errorf("remote path is required")
-	}
-
-	port := input.Port
-	if port <= 0 {
-		port = 22
-	}
-	if port > 65535 {
-		return fmt.Errorf("remote port must be between 1 and 65535")
-	}
-
-	// environment is now derived from name
-
-	capabilities, err := engine.ParseRemoteCapabilitiesCSV(input.Capabilities)
-	if err != nil {
-		return err
-	}
-
-	authMethod := engineremote.NormalizeAuthMethod(input.AuthMethod)
-	if !engineremote.IsSupportedAuthMethod(authMethod) {
-		return fmt.Errorf("unsupported auth method '%s'", input.AuthMethod)
-	}
-
-	if cfg.Remotes == nil {
-		cfg.Remotes = map[string]engine.RemoteConfig{}
-	}
-
-	cfg.Remotes[name] = engine.RemoteConfig{
-		Host:         host,
-		User:         user,
-		Path:         path,
-		Port:         port,
-		Protected:    engine.BoolPtr(input.Protected),
-		Capabilities: capabilities,
-		Auth: engine.RemoteAuth{
-			Method: authMethod,
-		},
-	}
-
-	engine.NormalizeConfig(&cfg)
-	if err := engine.ValidateConfig(cfg); err != nil {
-		return err
-	}
-	if err := writeBaseConfig(cleanRoot, cfg); err != nil {
-		return err
-	}
-	return nil
-}
-
 func testRemote(project string, remoteName string) (string, error) {
 	startedAt := time.Now()
 	status := engine.OperationStatusFailure
@@ -263,7 +185,7 @@ func runRemoteSyncPresetWithOptions(
 
 	var args []string
 	if normalizedPreset == "full" {
-		args, err = buildBootstrapArgsWithOptions(remoteName, options)
+		args, err = buildBootstrapArgsWithOptions(remoteName, options, true)
 	} else {
 		args, err = buildRemoteSyncArgsWithOptions(remoteName, preset, options, true)
 	}
@@ -313,7 +235,7 @@ func runRemoteSyncBackgroundWithOptions(
 
 	var args []string
 	if normalizedPreset == "full" {
-		args, err = buildBootstrapArgsWithOptions(remoteName, options)
+		args, err = buildBootstrapArgsWithOptions(remoteName, options, false)
 	} else {
 		args, err = buildRemoteSyncArgsWithOptions(remoteName, preset, options, false)
 	}
@@ -594,8 +516,12 @@ func buildPresetSyncOptionDefs(preset string) presetSyncOptions {
 	}
 }
 
-func buildBootstrapArgsWithOptions(remoteName string, options map[string]bool) ([]string, error) {
+func buildBootstrapArgsWithOptions(remoteName string, options map[string]bool, planOnly bool) ([]string, error) {
 	args := []string{"bootstrap", "--environment", strings.TrimSpace(remoteName)}
+
+	if planOnly {
+		args = append(args, "--plan")
+	}
 
 	if options["noDb"] {
 		args = append(args, "--no-db")

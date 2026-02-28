@@ -106,6 +106,7 @@ const refs = {
   terminalContainer: byId("terminalContainer"),
   toastContainer: byId("toastContainer"),
   onboardingModal: byId("onboardingModal"),
+  newRemoteModal: byId("newRemoteModal"),
   projectTitle: byId("projectTitle"),
   projectStatusBadge: byId("projectStatusBadge"),
   projectStatusText: byId("projectStatusText"),
@@ -520,8 +521,8 @@ document.addEventListener("click", async (event) => {
     await remotesController.refresh();
     return;
   }
-  if (action === "save-remote") {
-    await remotesController.saveRemote();
+  if (action === "refresh-remotes") {
+    await remotesController.refresh();
     return;
   }
   if (action === "open-onboarding") {
@@ -533,7 +534,33 @@ document.addEventListener("click", async (event) => {
     return;
   }
   if (action === "remote-test") {
-    await remotesController.testRemote(String(target.dataset.remote || ""));
+    await remotesController.testRemote(
+      String(targetElement.dataset.remote || ""),
+    );
+    return;
+  }
+  if (action === "open-remote-shell") {
+    console.log("[Main] open-remote-shell", targetElement.dataset.remote);
+    switchTab("logs");
+    await shellController.openRemoteShell(
+      String(targetElement.dataset.remote || ""),
+    );
+    return;
+  }
+  if (action === "open-remote-db") {
+    console.log("[Main] open-remote-db", targetElement.dataset.remote);
+    switchTab("logs");
+    await shellController.openRemoteDB(
+      String(targetElement.dataset.remote || ""),
+    );
+    return;
+  }
+  if (action === "open-remote-sftp") {
+    console.log("[Main] open-remote-sftp", targetElement.dataset.remote);
+    switchTab("logs");
+    await shellController.openRemoteSFTP(
+      String(targetElement.dataset.remote || ""),
+    );
     return;
   }
   if (action === "open-sync-modal") {

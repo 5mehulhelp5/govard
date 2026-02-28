@@ -43,6 +43,7 @@ var (
 	bootstrapMagePassword     string
 	bootstrapAssumeYes        bool
 	bootstrapIncludeProduct   bool
+	bootstrapPlan             bool
 )
 
 var bootstrapCmd = &cobra.Command{
@@ -155,6 +156,36 @@ Case Studies:
 		}
 
 		if !opts.Fresh {
+			if opts.Plan {
+				pterm.DefaultSection.Println("Bootstrap Plan")
+				pterm.Info.Printf("Source:    %s\n", opts.Source)
+				pterm.Info.Printf("Actions:\n")
+				if opts.Clone {
+					var items []pterm.BulletListItem
+					for _, item := range []string{
+						"Full rsync from remote (may take a while)",
+						"Start local containers",
+						"Run composer install",
+						"Import database",
+						"Sync media files",
+					} {
+						items = append(items, pterm.BulletListItem{Text: item})
+					}
+					_ = pterm.DefaultBulletList.WithItems(items).Render()
+				} else {
+					var items []pterm.BulletListItem
+					for _, item := range []string{
+						"Start local containers",
+						"Run composer install",
+						"Import database",
+						"Sync media files",
+					} {
+						items = append(items, pterm.BulletListItem{Text: item})
+					}
+					_ = pterm.DefaultBulletList.WithItems(items).Render()
+				}
+				return nil
+			}
 			if err := runBootstrapRemote(cmd, config, opts); err != nil {
 				return err
 			}
@@ -363,4 +394,5 @@ func init() {
 	bootstrapCmd.Flags().StringVar(&bootstrapMagePassword, "mage-password", "", "Magento repo password for auth.json bootstrap (Magento only)")
 	bootstrapCmd.Flags().BoolVarP(&bootstrapAssumeYes, "yes", "y", false, "Assume yes for non-critical bootstrap prompts")
 	bootstrapCmd.Flags().BoolVar(&bootstrapIncludeProduct, "include-product", false, "Include catalog product images during media sync (Magento only)")
+	bootstrapCmd.Flags().BoolVar(&bootstrapPlan, "plan", false, "Print the bootstrap plan and exit")
 }

@@ -46,32 +46,6 @@ export const desktopBridge = {
   async getRemotes(project) {
     return call(bridge?.GetRemotes?.bind(bridge), project);
   },
-  async addRemote(
-    project,
-    name,
-    host,
-    user,
-    path,
-    port,
-    environment,
-    capabilities,
-    authMethod,
-    protectedMode,
-  ) {
-    return call(
-      bridge?.AddRemote?.bind(bridge),
-      project,
-      name,
-      host,
-      user,
-      path,
-      port,
-      environment,
-      capabilities,
-      authMethod,
-      Boolean(protectedMode),
-    );
-  },
   async testRemote(project, remoteName) {
     return call(bridge?.TestRemote?.bind(bridge), project, remoteName);
   },

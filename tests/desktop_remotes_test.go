@@ -1,10 +1,7 @@
 package tests
 
 import (
-	"os"
-	"path/filepath"
 	"reflect"
-	"strings"
 	"testing"
 
 	"govard/internal/desktop"
@@ -118,75 +115,6 @@ func TestDesktopPkgBuildRemoteSyncPlanArgsWithOptionsForTest(t *testing.T) {
 	}
 }
 
-func TestDesktopPkgListAndUpsertProjectRemotesForPathForTest(t *testing.T) {
-	root := t.TempDir()
-	baseConfig := strings.TrimSpace(`
-project_name: demo
-
-domain: demo.test
-
-remotes:
-  staging:
-    host: stage.example.com
-    user: deploy
-    path: /var/www/stage
-    environment: staging
-`) + "\n"
-	if err := os.WriteFile(filepath.Join(root, ".govard.yml"), []byte(baseConfig), 0o644); err != nil {
-		t.Fatalf("write .govard.yml: %v", err)
-	}
-
-	before, err := desktop.ListProjectRemotesForPathForTest(root)
-	if err != nil {
-		t.Fatalf("list remotes before upsert: %v", err)
-	}
-	if len(before.Remotes) != 1 {
-		t.Fatalf("expected one remote before upsert, got %d", len(before.Remotes))
-	}
-
-	err = desktop.UpsertProjectRemoteForPathForTest(root, desktop.RemoteUpsertInput{
-		Name:         "prod",
-		Host:         "prod.example.com",
-		User:         "root",
-		Path:         "/srv/www/prod",
-		Port:         2200,
-		Capabilities: "files,db",
-		AuthMethod:   "ssh_agent",
-		Protected:    true,
-	})
-	if err != nil {
-		t.Fatalf("upsert remote: %v", err)
-	}
-
-	after, err := desktop.ListProjectRemotesForPathForTest(root)
-	if err != nil {
-		t.Fatalf("list remotes after upsert: %v", err)
-	}
-	if len(after.Remotes) != 2 {
-		t.Fatalf("expected two remotes after upsert, got %d", len(after.Remotes))
-	}
-
-	foundProd := false
-	for _, remote := range after.Remotes {
-		if remote.Name != "prod" {
-			continue
-		}
-		foundProd = true
-		if remote.Environment != "prod" {
-			t.Fatalf("expected normalized environment prod, got %s", remote.Environment)
-		}
-		if remote.AuthMethod != "ssh-agent" {
-			t.Fatalf("expected normalized auth method ssh-agent, got %s", remote.AuthMethod)
-		}
-		if !reflect.DeepEqual(remote.Capabilities, []string{"files", "db"}) {
-			t.Fatalf("unexpected prod capabilities: %#v", remote.Capabilities)
-		}
-	}
-	if !foundProd {
-		t.Fatal("expected prod remote after upsert")
-	}
-}
-
 func containsString(items []string, expected string) bool {
 	for _, item := range items {
 		if item == expected {
@@ -233,17 +161,30 @@ func TestBuildPresetSyncOptionDefs_Full(t *testing.T) {
 }
 
 func TestBuildBootstrapArgsWithOptions(t *testing.T) {
-	args, err := desktop.BuildBootstrapArgsWithOptionsForTest("staging", map[string]bool{
-		"noDb":           true,
-		"assumeYes":      true,
-		"includeProduct": true,
-	})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	t.Run("Execution Mode", func(t *testing.T) {
+		args, err := desktop.BuildBootstrapArgsWithOptionsForTest("staging", map[string]bool{
+			"noDb":           true,
+			"assumeYes":      true,
+			"includeProduct": true,
+		}, false)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 
-	expected := []string{"bootstrap", "--environment", "staging", "--no-db", "--include-product", "--yes"}
-	if !reflect.DeepEqual(args, expected) {
-		t.Fatalf("expected args %v, got %v", expected, args)
-	}
+		expected := []string{"bootstrap", "--environment", "staging", "--no-db", "--include-product", "--yes"}
+		if !reflect.DeepEqual(args, expected) {
+			t.Fatalf("expected args %v, got %v", expected, args)
+		}
+	})
+
+	t.Run("Plan Mode", func(t *testing.T) {
+		args, err := desktop.BuildBootstrapArgsWithOptionsForTest("staging", map[string]bool{}, true)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if !containsString(args, "--plan") {
+			t.Fatalf("expected --plan in args: %v", args)
+		}
+	})
 }

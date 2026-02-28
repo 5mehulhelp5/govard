@@ -108,12 +108,9 @@ func (app *App) StartGovardTerminal(project string, args []string) string {
 		return "error: " + err.Error()
 	}
 
-	binary, err := os.Executable()
+	binary, err := exec.LookPath("govard")
 	if err != nil {
-		binary, err = exec.LookPath("govard")
-		if err != nil {
-			return "error: govard CLI not found in PATH"
-		}
+		binary, _ = os.Executable()
 	}
 
 	cmd := exec.Command(binary, args...)
@@ -124,7 +121,17 @@ func (app *App) StartGovardTerminal(project string, args []string) string {
 		return "error: " + err.Error()
 	}
 
-	sessionID := fmt.Sprintf("cmd-%s-sync", project)
+	// Use a unique session ID for remote commands to allow multiple sessions
+	remoteName := "exec"
+	for i, arg := range args {
+		if arg == "-e" || arg == "--environment" {
+			if i+1 < len(args) {
+				remoteName = args[i+1]
+			}
+			break
+		}
+	}
+	sessionID := fmt.Sprintf("remote-%s-%s", project, remoteName)
 	ctx, cancel := context.WithCancel(app.ctx)
 
 	sessionsMu.Lock()

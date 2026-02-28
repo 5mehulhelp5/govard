@@ -127,18 +127,13 @@ func BuildPresetSyncOptionDefsForTest(preset string) presetSyncOptions {
 }
 
 // BuildBootstrapArgsWithOptionsForTest exposes bootstrap arguments builder for tests.
-func BuildBootstrapArgsWithOptionsForTest(remoteName string, options map[string]bool) ([]string, error) {
-	return buildBootstrapArgsWithOptions(remoteName, options)
+func BuildBootstrapArgsWithOptionsForTest(remoteName string, options map[string]bool, planOnly bool) ([]string, error) {
+	return buildBootstrapArgsWithOptions(remoteName, options, planOnly)
 }
 
 // ListProjectRemotesForPathForTest exposes path-based remotes loading for tests.
 func ListProjectRemotesForPathForTest(root string) (RemoteSnapshot, error) {
 	return listProjectRemotesByPath(root)
-}
-
-// UpsertProjectRemoteForPathForTest exposes path-based remote upsert for tests.
-func UpsertProjectRemoteForPathForTest(root string, input RemoteUpsertInput) error {
-	return upsertProjectRemoteByPath(root, input)
 }
 
 // SetRunGovardCommandForDesktopForTest overrides the desktop govard command runner.

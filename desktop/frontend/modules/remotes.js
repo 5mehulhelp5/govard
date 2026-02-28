@@ -96,41 +96,22 @@ const renderRemotes = (container, remotes = []) => {
 
   if (!remotes.length) {
     container.innerHTML = `
-      <div class="flex items-center justify-between pb-2">
-        <h3 class="text-white text-lg font-semibold flex items-center gap-2">Connected Remotes</h3>
-        <button data-action="open-onboarding" class="px-4 py-2 bg-[#22492f] text-white rounded-lg text-sm font-medium hover:bg-[#2e573a] transition-colors border border-[#366b47] flex items-center gap-2">
-          <span class="material-symbols-outlined text-lg">add_link</span>
-          Connect New Remote
-        </button>
-      </div>
       <div class="p-8 text-center text-slate-500 border border-dashed border-[#22492f] rounded-xl">
         No remotes configured for this environment.
       </div>`;
     return;
   }
 
-  const header = `
-    <div class="flex items-center justify-between pb-2">
-      <h3 class="text-white text-lg font-semibold flex items-center gap-2">Connected Remotes</h3>
-      <button data-action="open-onboarding" class="px-4 py-2 bg-[#22492f] text-white rounded-lg text-sm font-medium hover:bg-[#2e573a] transition-colors border border-[#366b47] flex items-center gap-2 shadow-sm shadow-[#102316]">
-        <span class="material-symbols-outlined text-lg">add_link</span>
-        Connect New Remote
-      </button>
-    </div>
-  `;
+  container.innerHTML = remotes
+    .map((remote) => {
+      const isProd =
+        remote.environment === "prod" || remote.environment === "production";
+      const themeColor = isProd ? "amber" : "blue";
+      const themeIcon = isProd ? "rocket_launch" : "science";
+      const borderColor = isProd ? "border-amber-500/20" : "border-[#22492f]";
+      const statusText = isProd ? "Protected" : "Connected";
 
-  container.innerHTML =
-    header +
-    remotes
-      .map((remote) => {
-        const isProd =
-          remote.environment === "prod" || remote.environment === "production";
-        const themeColor = isProd ? "amber" : "blue";
-        const themeIcon = isProd ? "rocket_launch" : "science";
-        const borderColor = isProd ? "border-amber-500/20" : "border-[#22492f]";
-        const statusText = isProd ? "Protected" : "Connected";
-
-        return `
+      return `
       <div class="glass-card rounded-xl p-0 overflow-hidden group mb-6 border ${borderColor}">
         <div class="p-6 border-b border-[#22492f] flex justify-between items-start bg-gradient-to-r from-[#1a3322] to-[#1a3322]/50 relative overflow-hidden">
           ${isProd ? `<div class="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-amber-500/10 to-transparent pointer-events-none"></div>` : ""}
@@ -155,13 +136,14 @@ const renderRemotes = (container, remotes = []) => {
               </div>
             </div>
           </div>
-          <div class="relative">
-            <button class="text-slate-400 hover:text-white transition-colors">
-              <span class="material-symbols-outlined">more_vert</span>
+          <div class="flex items-center gap-1 group/dropdown">
+            <button data-action="remote-test" data-remote="${escapeHTML(remote.name)}" class="p-1.5 text-slate-500 hover:text-white hover:bg-white/5 rounded-lg transition-all" title="Test Connection">
+                <span class="material-symbols-outlined text-[20px]">wifi_tethering</span>
             </button>
           </div>
         </div>
-        <div class="p-6">
+      </div>
+      <div class="p-6">
           <div class="grid grid-cols-2 gap-4 mb-6">
             <div class="bg-[#102316]/50 rounded-lg p-3 border border-[#2e573a]">
               <div class="text-xs text-slate-500 mb-1">Database Size</div>
@@ -172,60 +154,42 @@ const renderRemotes = (container, remotes = []) => {
               <div class="text-white font-mono font-medium">${remote.mediaSize || "0 MB"}</div>
             </div>
           </div>
-          <div class="flex flex-wrap gap-3">
-              <button data-action="open-sync-modal" data-remote="${escapeHTML(remote.name)}" data-preset="db" class="flex-1 px-4 py-2.5 bg-[#22492f] hover:bg-[#2e573a] border border-[#366b47] rounded-lg text-sm text-white font-medium transition-all flex items-center justify-center gap-2 group/btn">
-                  <span class="material-symbols-outlined text-[18px] group-hover/btn:text-primary transition-colors">database</span>
-                  Pull Database
-              </button>
-              <button data-action="open-sync-modal" data-remote="${escapeHTML(remote.name)}" data-preset="media" class="flex-1 px-4 py-2.5 bg-[#22492f] hover:bg-[#2e573a] border border-[#366b47] rounded-lg text-sm text-white font-medium transition-all flex items-center justify-center gap-2 group/btn">
-                  <span class="material-symbols-outlined text-[18px] group-hover/btn:text-blue-400 transition-colors">perm_media</span>
-                  Pull Media
-              </button>
-              <button data-action="open-sync-modal" data-remote="${escapeHTML(remote.name)}" data-preset="full" class="flex-1 px-4 py-2.5 bg-[#22492f] hover:bg-[#2e573a] border border-[#366b47] rounded-lg text-sm text-white font-medium transition-all flex items-center justify-center gap-2 group/btn">
-                  <span class="material-symbols-outlined text-[18px] group-hover/btn:text-purple-400 transition-colors">all_inclusive</span>
-                  Pull Everything
-              </button>
-              <button data-action="remote-test" data-remote="${escapeHTML(remote.name)}" class="px-3 py-2.5 bg-[#102316] hover:bg-[#1a3322] border border-[#2e573a] rounded-lg text-slate-400 hover:text-white transition-all" title="Test Connection">
-                  <span class="material-symbols-outlined text-[18px]">wifi_tethering</span>
-              </button>
+          <div class="flex flex-col gap-3">
+            <div class="flex flex-wrap gap-3">
+                <button data-action="open-sync-modal" data-remote="${escapeHTML(remote.name)}" data-preset="full" class="flex-1 px-4 py-2.5 bg-[#22492f] hover:bg-[#2e573a] border border-[#366b47] rounded-lg text-sm text-white font-medium transition-all flex items-center justify-center gap-2 group/btn">
+                    <span class="material-symbols-outlined text-[18px] group-hover/btn:text-purple-400 transition-colors">all_inclusive</span>
+                    Pull Everything
+                </button>
+                <button data-action="open-sync-modal" data-remote="${escapeHTML(remote.name)}" data-preset="db" class="flex-1 px-4 py-2.5 bg-[#22492f] hover:bg-[#2e573a] border border-[#366b47] rounded-lg text-sm text-white font-medium transition-all flex items-center justify-center gap-2 group/btn">
+                    <span class="material-symbols-outlined text-[18px] group-hover/btn:text-primary transition-colors">database</span>
+                    Pull Database
+                </button>
+                <button data-action="open-sync-modal" data-remote="${escapeHTML(remote.name)}" data-preset="media" class="flex-1 px-4 py-2.5 bg-[#22492f] hover:bg-[#2e573a] border border-[#366b47] rounded-lg text-sm text-white font-medium transition-all flex items-center justify-center gap-2 group/btn">
+                    <span class="material-symbols-outlined text-[18px] group-hover/btn:text-blue-400 transition-colors">perm_media</span>
+                    Pull Media
+                </button>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <button data-action="open-remote-shell" data-remote="${escapeHTML(remote.name)}" class="flex-1 px-4 py-2.5 bg-[#102316] hover:bg-[#1a3322] border border-[#2e573a] rounded-lg text-sm text-slate-300 hover:text-white font-medium transition-all flex items-center justify-center gap-2 group/btn">
+                    <span class="material-symbols-outlined text-[18px] opacity-70 group-hover/btn:opacity-100">terminal</span>
+                    Open SSH
+                </button>
+                <button data-action="open-remote-db" data-remote="${escapeHTML(remote.name)}" class="flex-1 px-4 py-2.5 bg-[#102316] hover:bg-[#1a3322] border border-[#2e573a] rounded-lg text-sm text-slate-300 hover:text-white font-medium transition-all flex items-center justify-center gap-2 group/btn">
+                    <span class="material-symbols-outlined text-[18px] opacity-70 group-hover/btn:opacity-100">database</span>
+                    Open Database
+                </button>
+                <button data-action="open-remote-sftp" data-remote="${escapeHTML(remote.name)}" class="flex-1 px-4 py-2.5 bg-[#102316] hover:bg-[#1a3322] border border-[#2e573a] rounded-lg text-sm text-slate-300 hover:text-white font-medium transition-all flex items-center justify-center gap-2 group/btn">
+                    <span class="material-symbols-outlined text-[18px] opacity-70 group-hover/btn:opacity-100">folder_open</span>
+                    Open SFTP
+                </button>
+            </div>
           </div>
           ${remote.protected ? `<div class="mt-4 flex items-center gap-2 p-2 bg-amber-900/10 border border-amber-900/30 rounded text-amber-500/80 text-xs"><span class="material-symbols-outlined text-[16px]">info</span>Syncing from Production creates a local backup automatically.</div>` : ""}
         </div>
       </div>
     `;
-      })
-      .join("");
-};
-
-const readRemoteInput = (refs) => ({
-  name: refs.remoteName?.value || "",
-  host: refs.remoteHost?.value || "",
-  user: refs.remoteUser?.value || "",
-  path: refs.remotePath?.value || "",
-  port: asNumber(refs.remotePort?.value, 22),
-  environment: refs.remoteEnvironment?.value || "staging",
-  capabilities: refs.remoteCapabilities?.value || "files,media,db,deploy",
-  authMethod: refs.remoteAuthMethod?.value || "keychain",
-  protected: Boolean(refs.remoteProtected?.checked),
-});
-
-const validateRemoteInput = (input) => {
-  if (!input.name.trim()) {
-    return "Remote name is required";
-  }
-  if (!input.host.trim()) {
-    return "Remote host is required";
-  }
-  if (!input.user.trim()) {
-    return "Remote user is required";
-  }
-  if (!input.path.trim()) {
-    return "Remote path is required";
-  }
-  if (input.port <= 0 || input.port > 65535) {
-    return "Remote port must be between 1 and 65535";
-  }
-  return "";
+    })
+    .join("");
 };
 
 const safeRemotes = {
@@ -287,67 +251,51 @@ export const createRemotesController = ({
     }
   };
 
-  const saveRemote = async () => {
-    const project = String(getProject?.() || "").trim();
-    if (!project) {
-      onStatus("Please select an environment before saving remotes.");
-      onToast("Please select an environment first.", "warning");
-      return;
-    }
-
-    const input = readRemoteInput(refs);
-    const validationError = validateRemoteInput(input);
-    if (validationError) {
-      onStatus(validationError);
-      onToast(validationError, "warning");
-      return;
-    }
-
-    const message = await bridge.addRemote(
-      project,
-      input.name,
-      input.host,
-      input.user,
-      input.path,
-      input.port,
-      input.environment,
-      input.capabilities,
-      input.authMethod,
-      input.protected,
-    );
-
-    const response = String(message || "");
-    const isError = response.toLowerCase().includes("failed");
-    onStatus(
-      isError ? "Failed to save remote." : "Remote configuration saved.",
-    );
-    onToast(
-      isError ? "Failed to save remote." : "Remote configuration saved.",
-      isError ? "error" : "success",
-    );
-    await refresh({ silent: true });
-  };
-
   const testRemote = async (remoteName) => {
     const project = String(getProject?.() || "").trim();
     if (!project || !remoteName) {
       return;
     }
 
-    const message = await bridge.testRemote(project, remoteName);
-    const response = String(message || "");
-    const isError = response.toLowerCase().includes("failed");
-    onStatus(
-      isError
-        ? `Remote ${remoteName} connection failed`
-        : `Remote ${remoteName} connection successful`,
+    const btn = document.querySelector(
+      `[data-action="remote-test"][data-remote="${remoteName}"]`,
     );
-    onToast(
-      isError
-        ? `Connection to ${remoteName} failed.`
-        : `Connection to ${remoteName} successful!`,
-      isError ? "error" : "success",
-    );
+    const icon = btn?.querySelector(".material-symbols-outlined");
+
+    if (icon) {
+      icon.classList.add("animate-spin");
+      icon.textContent = "sync";
+    }
+    if (btn) btn.disabled = true;
+
+    onToast(`Checking connection to ${remoteName}...`, "info");
+    onStatus(`Testing connection to ${remoteName}...`);
+
+    try {
+      const message = await bridge.testRemote(project, remoteName);
+      const response = String(message || "");
+      const isError = response.toLowerCase().includes("failed");
+      onStatus(
+        isError
+          ? `Remote ${remoteName} connection failed`
+          : `Remote ${remoteName} connection successful`,
+      );
+      onToast(
+        isError
+          ? `Connection to ${remoteName} failed.`
+          : `Connection to ${remoteName} successful!`,
+        isError ? "error" : "success",
+      );
+    } catch (err) {
+      onStatus(`Error testing connection to ${remoteName}`);
+      onToast(`Error: ${err}`, "error");
+    } finally {
+      if (icon) {
+        icon.classList.remove("animate-spin");
+        icon.textContent = "wifi_tethering";
+      }
+      if (btn) btn.disabled = false;
+    }
   };
 
   const runSyncPreset = async (remoteName, preset) => {
@@ -428,7 +376,6 @@ export const createRemotesController = ({
 
   return {
     refresh,
-    saveRemote,
     testRemote,
     runSyncPreset,
     renderSyncOptions,

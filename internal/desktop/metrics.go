@@ -88,6 +88,14 @@ func buildResourceMetrics() (ResourceMetricsSnapshot, error) {
 			project: projectName,
 			status:  status,
 		}
+
+		for svc := range info.services {
+			serviceKey := projectName + "-" + svc
+			serviceAggregates[serviceKey] = &projectMetricAggregate{
+				project: serviceKey,
+				status:  "stopped",
+			}
+		}
 	}
 
 	warnings := []string{}
@@ -98,19 +106,26 @@ func buildResourceMetrics() (ResourceMetricsSnapshot, error) {
 			continue
 		}
 
+		cpuP := 0.0
+		var memB, memL, rxB, txB uint64
+		oomKilled := false
+
 		stats, statsErr := readContainerStatsOneShot(ctx, cli, c.ID)
 		if statsErr != nil {
 			warnings = append(warnings, fmt.Sprintf("metrics unavailable for %s: %v", projectName, statsErr))
-			continue
+		} else {
+			cpuP = calculateCPUPercent(stats)
+			memB = stats.MemoryStats.Usage
+			if stats.MemoryStats.Limit > 0 {
+				memL = stats.MemoryStats.Limit
+			}
+			rxB, txB = sumNetworkBytes(stats.Networks)
 		}
 
-		cpuP := calculateCPUPercent(stats)
-		memB := stats.MemoryStats.Usage
-		var memL uint64 = 0
-		if stats.MemoryStats.Limit > 0 {
-			memL = stats.MemoryStats.Limit
+		if ok, inspectErr := readContainerOOMKilled(ctx, cli, c.ID); inspectErr == nil && ok {
+			oomKilled = true
+			agg.oomKilled = true
 		}
-		rxB, txB := sumNetworkBytes(stats.Networks)
 
 		agg.cpuPercent += cpuP
 		agg.memoryBytes += memB
@@ -119,25 +134,25 @@ func buildResourceMetrics() (ResourceMetricsSnapshot, error) {
 		agg.netTxBytes += txB
 		agg.runningSamples++
 
-		oomKilled, inspectErr := readContainerOOMKilled(ctx, cli, c.ID)
-		if inspectErr == nil && oomKilled {
-			agg.oomKilled = true
-		}
-
 		if serviceName != "" {
 			serviceKey := projectName + "-" + serviceName
-			svcAgg := &projectMetricAggregate{
-				project:        serviceKey,
-				status:         "running",
-				cpuPercent:     cpuP,
-				memoryBytes:    memB,
-				memoryLimit:    memL,
-				netRxBytes:     rxB,
-				netTxBytes:     txB,
-				oomKilled:      oomKilled,
-				runningSamples: 1,
+			svcAgg := serviceAggregates[serviceKey]
+			if svcAgg == nil {
+				svcAgg = &projectMetricAggregate{
+					project: serviceKey,
+				}
+				serviceAggregates[serviceKey] = svcAgg
 			}
-			serviceAggregates[serviceKey] = svcAgg
+			svcAgg.status = "running"
+			svcAgg.cpuPercent += cpuP
+			svcAgg.memoryBytes += memB
+			svcAgg.memoryLimit += memL
+			svcAgg.netRxBytes += rxB
+			svcAgg.netTxBytes += txB
+			svcAgg.runningSamples++
+			if oomKilled {
+				svcAgg.oomKilled = true
+			}
 		}
 	}
 
