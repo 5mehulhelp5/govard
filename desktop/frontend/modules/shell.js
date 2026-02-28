@@ -59,29 +59,29 @@ export const createShellController = ({
   };
 
   const loadShellUser = async () => {
-    const project = readSelection().project
+    const project = readSelection().project;
     if (!project || !refs.shellUser) {
-      return
+      return;
     }
     try {
-      const user = await bridge.getShellUser(project)
-      refs.shellUser.value = user || ""
+      const user = await bridge.getShellUser(project);
+      refs.shellUser.value = user || "";
     } catch (_err) {
-      refs.shellUser.value = ""
+      refs.shellUser.value = "";
     }
-  }
+  };
 
   const saveShellUser = async () => {
-    const project = readSelection().project
+    const project = readSelection().project;
     if (!project || !refs.shellUser) {
-      return
+      return;
     }
     try {
-      await bridge.setShellUser(project, refs.shellUser.value || "")
+      await bridge.setShellUser(project, refs.shellUser.value || "");
     } catch (_err) {
       // Keep UI non-blocking for preference persistence.
     }
-  }
+  };
 
   const openShell = async () => {
     const { project, service } = readSelection();
@@ -116,9 +116,9 @@ export const createShellController = ({
         bridge.resizeTerminal(currentSessionID, term.cols, term.rows);
       }, 100);
 
-      onStatus(`Terminal opened: ${sessionID}`);
+      onStatus("Connected to environment.");
     } catch (err) {
-      const message = `Failed to open terminal: ${err}`;
+      const message = "Failed to connect to environment.";
       onStatus(message);
       onToast(message, "error");
       term?.write(`\r\nError: ${err.message || err}\r\n`);
@@ -127,17 +127,16 @@ export const createShellController = ({
 
   const resetShellUsers = async () => {
     try {
-      const message = await bridge.resetShellUsers()
-      onStatus(message)
-      onToast(message, "success")
-      await loadShellUser()
+      const message = await bridge.resetShellUsers();
+      onStatus("Shell user preferences reset.");
+      onToast("Shell user preferences reset.", "success");
+      await loadShellUser();
     } catch (err) {
-      const message = `Failed to reset shell users: ${err}`
-      onStatus(message)
-      onToast(message, "error")
+      const message = "Could not reset shell users.";
+      onStatus(message);
+      onToast(message, "error");
     }
-  }
+  };
 
-  return { loadShellUser, saveShellUser, openShell, resetShellUsers }
-}
-
+  return { loadShellUser, saveShellUser, openShell, resetShellUsers };
+};

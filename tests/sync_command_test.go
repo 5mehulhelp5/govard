@@ -46,13 +46,13 @@ remotes:
 	if !strings.Contains(buf.String(), "rsync") {
 		t.Fatalf("expected rsync in plan output, got: %s", buf.String())
 	}
-	if !strings.Contains(buf.String(), "Sync Plan Summary") {
+	if !strings.Contains(buf.String(), "Synchronization Plan Review") {
 		t.Fatalf("expected summary header in plan output, got: %s", buf.String())
 	}
-	if !strings.Contains(buf.String(), "planned steps:") {
+	if !strings.Contains(buf.String(), "Planned Actions:") {
 		t.Fatalf("expected planned steps in plan output, got: %s", buf.String())
 	}
-	if !strings.Contains(buf.String(), "resume mode: enabled") {
+	if !strings.Contains(buf.String(), "Resume Mode: Enabled") {
 		t.Fatalf("expected resume mode enabled in plan output, got: %s", buf.String())
 	}
 	if !strings.Contains(buf.String(), "--partial --append-verify") {
@@ -93,10 +93,10 @@ remotes:
 	}
 
 	out := buf.String()
-	if !strings.Contains(out, "include patterns: app/*") {
+	if !strings.Contains(out, "Includes:    app/*") {
 		t.Fatalf("expected include pattern summary, got: %s", out)
 	}
-	if !strings.Contains(out, "exclude patterns: vendor/") {
+	if !strings.Contains(out, "Excludes:    vendor/") {
 		t.Fatalf("expected exclude pattern summary, got: %s", out)
 	}
 	if !strings.Contains(out, "--include app/*") {
@@ -140,7 +140,7 @@ remotes:
 	}
 
 	out := buf.String()
-	if !strings.Contains(out, "resume mode: disabled") {
+	if !strings.Contains(out, "Resume Mode: Disabled") {
 		t.Fatalf("expected resume mode disabled in plan output, got: %s", out)
 	}
 	if strings.Contains(out, "--append-verify") {
@@ -181,7 +181,7 @@ remotes:
 	}
 
 	out := buf.String()
-	if !strings.Contains(out, "compression: disabled") {
+	if !strings.Contains(out, "Compression: Disabled") {
 		t.Fatalf("expected compression disabled in plan output, got: %s", out)
 	}
 	if strings.Contains(out, "rsync -az") {
@@ -221,7 +221,7 @@ remotes:
 	if err == nil {
 		t.Fatal("expected protected destination error")
 	}
-	if !strings.Contains(err.Error(), "write-protected") {
+	if !strings.Contains(err.Error(), "Write-protected") {
 		t.Fatalf("expected protected policy error, got: %v", err)
 	}
 }
@@ -299,7 +299,7 @@ remotes:
 	if err == nil {
 		t.Fatal("expected media capability error")
 	}
-	if !strings.Contains(err.Error(), "does not allow 'media' operations") {
+	if !strings.Contains(err.Error(), "does not support Media synchronization") {
 		t.Fatalf("unexpected capability error: %v", err)
 	}
 }
@@ -339,7 +339,7 @@ remotes:
 	if err == nil {
 		t.Fatal("expected local<->remote validation error")
 	}
-	if !strings.Contains(err.Error(), "local<->remote") {
+	if !strings.Contains(err.Error(), "between local and remote environments") {
 		t.Fatalf("expected local<->remote error, got: %v", err)
 	}
 }

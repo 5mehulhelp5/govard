@@ -1,6 +1,7 @@
 package desktop
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -45,18 +46,6 @@ var defaultSyncSanitizeExcludePatterns = []string{
 var defaultSyncLogExcludePatterns = []string{
 	"var/log/**",
 	"storage/logs/**",
-}
-
-type remoteSyncPlanOptions struct {
-	Sanitize    bool
-	ExcludeLogs bool
-	Compress    bool
-}
-
-func defaultRemoteSyncPlanOptions() remoteSyncPlanOptions {
-	return remoteSyncPlanOptions{
-		Compress: true,
-	}
 }
 
 func listProjectRemotes(project string) (RemoteSnapshot, error) {
@@ -222,7 +211,7 @@ func runRemoteSyncPreset(project string, remoteName string, preset string) (stri
 		project,
 		remoteName,
 		preset,
-		defaultRemoteSyncPlanOptions(),
+		map[string]bool{"compress": true},
 	)
 }
 
@@ -230,7 +219,7 @@ func runRemoteSyncPresetWithOptions(
 	project string,
 	remoteName string,
 	preset string,
-	options remoteSyncPlanOptions,
+	options map[string]bool,
 ) (string, error) {
 	startedAt := time.Now()
 	status := engine.OperationStatusFailure
@@ -274,7 +263,20 @@ func runRemoteSyncPresetWithOptions(
 		return "", fmt.Errorf("%s", message)
 	}
 
-	args, err := buildRemoteSyncPlanArgsWithOptions(remoteName, preset, options)
+	normalizedPreset, err := normalizeRemoteSyncPreset(preset)
+	if err != nil {
+		category = "validation"
+		message = err.Error()
+		return "", err
+	}
+
+	var args []string
+	if normalizedPreset == "full" {
+		args, err = buildBootstrapArgsWithOptions(remoteName, options)
+	} else {
+		args, err = buildRemoteSyncArgsWithOptions(remoteName, preset, options, true)
+	}
+
 	if err != nil {
 		category = "validation"
 		message = err.Error()
@@ -294,6 +296,78 @@ func runRemoteSyncPresetWithOptions(
 	category = ""
 	message = "sync plan generated"
 	return output, nil
+}
+
+func runRemoteSyncBackgroundWithOptions(
+	ctx context.Context,
+	project string,
+	remoteName string,
+	preset string,
+	options map[string]bool,
+) error {
+	remoteName = strings.TrimSpace(remoteName)
+	if remoteName == "" {
+		return fmt.Errorf("remote name is required")
+	}
+
+	root, err := resolveProjectRootForRemotes(project)
+	if err != nil {
+		return err
+	}
+
+	normalizedPreset, err := normalizeRemoteSyncPreset(preset)
+	if err != nil {
+		return err
+	}
+
+	var args []string
+	if normalizedPreset == "full" {
+		args, err = buildBootstrapArgsWithOptions(remoteName, options)
+	} else {
+		args, err = buildRemoteSyncArgsWithOptions(remoteName, preset, options, false)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	binary, err := exec.LookPath("govard")
+	if err != nil {
+		return fmt.Errorf("govard CLI not found in PATH")
+	}
+
+	cmd := exec.CommandContext(ctx, binary, args...)
+	cmd.Dir = filepath.Clean(root)
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return fmt.Errorf("failed to pipe stdout: %w", err)
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return fmt.Errorf("failed to pipe stderr: %w", err)
+	}
+
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start background sync: %w", err)
+	}
+
+	done := make(chan struct{}, 2)
+	go scanPipe(ctx, stdout, "sync:stream", done)
+	go scanPipe(ctx, stderr, "sync:stream", done)
+
+	go func() {
+		<-done
+		<-done
+		err := cmd.Wait()
+		if err != nil {
+			emitEvent(ctx, "sync:failed", fmt.Sprintf("Sync failed: %v", err))
+		} else {
+			emitEvent(ctx, "sync:completed", "Sync completed successfully")
+		}
+	}()
+
+	return nil
 }
 
 func resolveProjectRootForRemotes(project string) (string, error) {
@@ -397,14 +471,23 @@ func buildRemoteSyncPlanArgs(remoteName string, preset string) ([]string, error)
 	return buildRemoteSyncPlanArgsWithOptions(
 		remoteName,
 		preset,
-		defaultRemoteSyncPlanOptions(),
+		map[string]bool{"compress": true},
 	)
 }
 
 func buildRemoteSyncPlanArgsWithOptions(
 	remoteName string,
 	preset string,
-	options remoteSyncPlanOptions,
+	options map[string]bool,
+) ([]string, error) {
+	return buildRemoteSyncArgsWithOptions(remoteName, preset, options, true)
+}
+
+func buildRemoteSyncArgsWithOptions(
+	remoteName string,
+	preset string,
+	options map[string]bool,
+	planOnly bool,
 ) ([]string, error) {
 	normalizedPreset, err := normalizeRemoteSyncPreset(preset)
 	if err != nil {
@@ -425,23 +508,133 @@ func buildRemoteSyncPlanArgsWithOptions(
 		return nil, fmt.Errorf("unsupported sync preset '%s'", normalizedPreset)
 	}
 
-	if options.Sanitize {
+	if options["sanitize"] {
 		for _, pattern := range defaultSyncSanitizeExcludePatterns {
 			args = append(args, "--exclude", pattern)
 		}
 	}
 
-	if options.ExcludeLogs {
+	if options["excludeLogs"] {
 		for _, pattern := range defaultSyncLogExcludePatterns {
 			args = append(args, "--exclude", pattern)
 		}
 	}
 
-	if !options.Compress {
+	// Default to true for compress unless explicitly set to false
+	// or wait, it's safer to just check if it's set to true or false.
+	// We'll mimic the previous behavior where `options.Compress` defaults to true.
+	compress, hasCompress := options["compress"]
+	if !hasCompress || compress {
+		// compression is default in rsync, only append no-compress if false
+	}
+	if hasCompress && !compress {
 		args = append(args, "--no-compress")
 	}
 
-	args = append(args, "--plan")
+	if options["noStreamDb"] {
+		// we don't have a no-stream-db flag on `sync` command yet! The `sync` command uses db internally.
+	}
+	if options["delete"] {
+		args = append(args, "--delete")
+	}
+
+	if planOnly {
+		args = append(args, "--plan")
+	}
+	return args, nil
+}
+
+type presetSyncOptions struct {
+	Preset  string            `json:"preset"`
+	Command string            `json:"command"`
+	Options []presetOptionDef `json:"options"`
+}
+
+type presetOptionDef struct {
+	Key          string `json:"key"`
+	Label        string `json:"label"`
+	Description  string `json:"description"`
+	DefaultValue bool   `json:"defaultValue"`
+}
+
+func buildPresetSyncOptionDefs(preset string) presetSyncOptions {
+	normalizedPreset, _ := normalizeRemoteSyncPreset(preset)
+
+	switch normalizedPreset {
+	case "db":
+		return presetSyncOptions{
+			Preset:  "db",
+			Command: "sync",
+			Options: []presetOptionDef{
+				{Key: "compress", Label: "Use Compression", Description: "Compress data during transfer", DefaultValue: true},
+				{Key: "noStreamDb", Label: "Disable Stream DB", Description: "Do not stream database via pipe, use intermediate files instead", DefaultValue: false},
+			},
+		}
+	case "media":
+		return presetSyncOptions{
+			Preset:  "media",
+			Command: "sync",
+			Options: []presetOptionDef{
+				{Key: "compress", Label: "Use Compression", Description: "Compress data during transfer", DefaultValue: true},
+				{Key: "includeProduct", Label: "Include Product Images", Description: "Include product images in media sync", DefaultValue: false},
+				{Key: "delete", Label: "Delete Missing Files", Description: "Delete files on destination that are missing on source", DefaultValue: false},
+			},
+		}
+	case "full":
+		return presetSyncOptions{
+			Preset:  "full",
+			Command: "bootstrap",
+			Options: []presetOptionDef{
+				{Key: "noDb", Label: "Skip DB Import", Description: "Do not import the database", DefaultValue: false},
+				{Key: "noMedia", Label: "Skip Media Sync", Description: "Do not sync media files", DefaultValue: false},
+				{Key: "noComposer", Label: "Skip Composer", Description: "Do not run composer install", DefaultValue: false},
+				{Key: "noAdmin", Label: "Skip Admin Creation", Description: "Do not create an admin user", DefaultValue: false},
+				{Key: "skipUp", Label: "Skip Govard Up", Description: "Do not run govard up before bootstrap", DefaultValue: false},
+				{Key: "noStreamDb", Label: "Disable Stream DB", Description: "Do not stream database via pipe, use intermediate files instead", DefaultValue: false},
+				{Key: "includeProduct", Label: "Include Product Images", Description: "Include product images in media sync", DefaultValue: false},
+				{Key: "assumeYes", Label: "Assume Yes", Description: "Automatically answer yes to all prompts", DefaultValue: false},
+			},
+		}
+	default:
+		// Fallback for "files" or unknown presets
+		return presetSyncOptions{
+			Preset:  normalizedPreset,
+			Command: "sync",
+			Options: []presetOptionDef{
+				{Key: "compress", Label: "Use Compression", Description: "Compress data during transfer", DefaultValue: true},
+			},
+		}
+	}
+}
+
+func buildBootstrapArgsWithOptions(remoteName string, options map[string]bool) ([]string, error) {
+	args := []string{"bootstrap", "--environment", strings.TrimSpace(remoteName)}
+
+	if options["noDb"] {
+		args = append(args, "--no-db")
+	}
+	if options["noMedia"] {
+		args = append(args, "--no-media")
+	}
+	if options["noComposer"] {
+		args = append(args, "--no-composer")
+	}
+	if options["noAdmin"] {
+		args = append(args, "--no-admin")
+	}
+	if options["skipUp"] {
+		args = append(args, "--skip-up")
+	}
+	if options["noStreamDb"] {
+		args = append(args, "--no-stream-db")
+	}
+	if options["includeProduct"] {
+		args = append(args, "--include-product")
+	}
+	if options["assumeYes"] {
+		args = append(args, "--yes")
+	}
+
 	return args, nil
 }
 

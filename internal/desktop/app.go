@@ -227,28 +227,45 @@ func (app *App) TestRemote(project string, remoteName string) string {
 	return output
 }
 
+func (app *App) GetSyncPresetOptions(preset string) presetSyncOptions {
+	return buildPresetSyncOptionDefs(preset)
+}
+
 func (app *App) RunRemoteSyncPreset(
 	project string,
 	remoteName string,
 	preset string,
-	sanitize bool,
-	excludeLogs bool,
-	compress bool,
+	options map[string]bool,
 ) string {
 	output, err := runRemoteSyncPresetWithOptions(
 		project,
 		remoteName,
 		preset,
-		remoteSyncPlanOptions{
-			Sanitize:    sanitize,
-			ExcludeLogs: excludeLogs,
-			Compress:    compress,
-		},
+		options,
 	)
 	if err != nil {
 		return "Remote sync plan failed: " + err.Error()
 	}
 	return output
+}
+
+func (app *App) RunRemoteSyncBackground(
+	project string,
+	remoteName string,
+	preset string,
+	options map[string]bool,
+) string {
+	err := runRemoteSyncBackgroundWithOptions(
+		app.ctx,
+		project,
+		remoteName,
+		preset,
+		options,
+	)
+	if err != nil {
+		return "Remote sync background process failed: " + err.Error()
+	}
+	return "Background sync started"
 }
 
 func (app *App) ToggleEnvironment(name string) string {

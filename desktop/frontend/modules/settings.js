@@ -81,10 +81,10 @@ export const createSettingsController = ({
         dbClientPreference,
       );
       applyTheme(theme);
-      onStatus(message);
-      onToast(message, "success");
+      onStatus("Settings saved successfully.");
+      onToast("Settings saved successfully.", "success");
     } catch (err) {
-      const message = `Failed to save settings: ${err}`;
+      const message = "Could not save settings.";
       onStatus(message);
       onToast(message, "error");
     }
@@ -93,11 +93,11 @@ export const createSettingsController = ({
   const reset = async () => {
     try {
       const message = await bridge.resetSettings();
-      onStatus(message);
-      onToast(message, "success");
+      onStatus("Settings reset to defaults.");
+      onToast("Settings reset to defaults.", "success");
       await load();
     } catch (err) {
-      const message = `Failed to reset settings: ${err}`;
+      const message = "Could not reset settings.";
       onStatus(message);
       onToast(message, "error");
     }

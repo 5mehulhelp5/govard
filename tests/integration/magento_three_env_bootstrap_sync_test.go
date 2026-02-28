@@ -8,8 +8,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gopkg.in/yaml.v3"
 	"govard/internal/engine"
+
+	"gopkg.in/yaml.v3"
 )
 
 func mergeEnvSlices(base []string, extra []string) []string {
@@ -165,12 +166,12 @@ func TestMagentoThreeEnvironmentInitBootstrapAndSyncOptions(t *testing.T) {
 	)
 	syncPlan.AssertSuccess(t)
 	planOut := syncPlan.Stdout
-	assertContains(t, planOut, "Sync Plan Summary")
-	assertContains(t, planOut, "scopes: files, media, db")
-	assertContains(t, planOut, "path filter: app/code")
-	assertContains(t, planOut, "include patterns: app/*")
-	assertContains(t, planOut, "exclude patterns: vendor/")
-	assertContains(t, planOut, "delete mode: enabled")
+	assertContains(t, planOut, "Synchronization Plan Review")
+	assertContains(t, planOut, "Scopes:      files, media, db")
+	assertContains(t, planOut, "Path Filter: app/code")
+	assertContains(t, planOut, "Includes:    app/*")
+	assertContains(t, planOut, "Excludes:    vendor/")
+	assertContains(t, planOut, "Delete Mode: Enabled")
 
 	syncRun := env.RunGovardWithEnv(
 		t,

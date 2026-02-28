@@ -64,6 +64,12 @@ const refs = {
   syncToggleCompress: byId("syncToggleCompress"),
   syncOptionsModal: byId("syncOptionsModal"),
   syncModalRemoteName: byId("syncModalRemoteName"),
+  syncModalStep1: byId("syncModalStep1"),
+  syncModalStep2: byId("syncModalStep2"),
+  syncPlanOutput: byId("syncPlanOutput"),
+  syncPlanLoading: byId("syncPlanLoading"),
+  syncModalTitle: byId("syncModalTitle"),
+  syncModalIcon: byId("syncModalIcon"),
   syncModalSanitize: byId("syncModalSanitize"),
   syncModalExcludeLogs: byId("syncModalExcludeLogs"),
   syncModalCompress: byId("syncModalCompress"),
@@ -531,8 +537,8 @@ document.addEventListener("click", async (event) => {
     return;
   }
   if (action === "open-sync-modal") {
-    const remote = String(target.dataset.remote || "");
-    const preset = String(target.dataset.preset || "");
+    const remote = String(targetElement.dataset.remote || "");
+    const preset = String(targetElement.dataset.preset || "");
     if (!remote || !preset) return;
 
     setState({ currentSyncRemote: remote, currentSyncPreset: preset });
@@ -541,16 +547,51 @@ document.addEventListener("click", async (event) => {
       refs.syncModalRemoteName.textContent = remote;
     }
 
-    const config = getState().syncConfig;
-    if (refs.syncModalSanitize)
-      refs.syncModalSanitize.checked = config.sanitize;
-    if (refs.syncModalExcludeLogs)
-      refs.syncModalExcludeLogs.checked = config.excludeLogs;
-    if (refs.syncModalCompress)
-      refs.syncModalCompress.checked = config.compress;
+    try {
+      const payload = await desktopBridge.getSyncPresetOptions(preset);
+      const optionsDef = payload.options || [];
+
+      const state = getState();
+      const presetConfigs = state.syncConfigs || {};
+      let config = presetConfigs[preset] || {};
+      let changed = false;
+
+      optionsDef.forEach((opt) => {
+        if (config[opt.key] === undefined) {
+          config[opt.key] = opt.defaultValue;
+          changed = true;
+        }
+      });
+
+      if (changed) {
+        setState({
+          syncConfigs: { ...presetConfigs, [preset]: config },
+          currentSyncPresetDefs: optionsDef,
+        });
+      } else {
+        setState({ currentSyncPresetDefs: optionsDef });
+      }
+
+      const container = document.getElementById("syncModalOptionsContainer");
+      if (container) {
+        remotesController.renderSyncOptions(
+          container,
+          preset,
+          optionsDef,
+          getState().syncConfigs[preset],
+        );
+      }
+    } catch (err) {
+      console.error("Failed to load sync options", err);
+    }
 
     if (refs.syncOptionsModal) {
       refs.syncOptionsModal.classList.remove("hidden");
+      // Always reset back to step 1 when opening
+      if (refs.syncModalStep1) refs.syncModalStep1.classList.remove("hidden");
+      if (refs.syncModalStep2) refs.syncModalStep2.classList.add("hidden");
+      if (refs.syncModalTitle) refs.syncModalTitle.textContent = "Sync Options";
+      if (refs.syncModalIcon) refs.syncModalIcon.textContent = "sync";
       setTimeout(() => {
         refs.syncOptionsModal.classList.remove("opacity-0");
         refs.syncOptionsModal.firstElementChild.classList.remove("scale-95");
@@ -564,19 +605,88 @@ document.addEventListener("click", async (event) => {
       refs.syncOptionsModal.firstElementChild.classList.add("scale-95");
       setTimeout(() => {
         refs.syncOptionsModal.classList.add("hidden");
+        // Reset to step 1 after close animation
+        if (refs.syncModalStep1) refs.syncModalStep1.classList.remove("hidden");
+        if (refs.syncModalStep2) refs.syncModalStep2.classList.add("hidden");
+        if (refs.syncModalTitle)
+          refs.syncModalTitle.textContent = "Sync Options";
+        if (refs.syncModalIcon) refs.syncModalIcon.textContent = "sync";
       }, 300);
+    }
+    return;
+  }
+  if (action === "back-to-sync-options") {
+    if (refs.syncModalStep1) refs.syncModalStep1.classList.remove("hidden");
+    if (refs.syncModalStep2) refs.syncModalStep2.classList.add("hidden");
+    if (refs.syncModalTitle) refs.syncModalTitle.textContent = "Sync Options";
+    if (refs.syncModalIcon) refs.syncModalIcon.textContent = "sync";
+    return;
+  }
+  if (action === "preview-sync-plan") {
+    const { currentSyncRemote, currentSyncPreset } = getState();
+    if (!currentSyncRemote || !currentSyncPreset) return;
+
+    const config = (getState().syncConfigs || {})[currentSyncPreset] || {};
+
+    // Show step 2 with loading state
+    if (refs.syncModalStep1) refs.syncModalStep1.classList.add("hidden");
+    if (refs.syncModalStep2) refs.syncModalStep2.classList.remove("hidden");
+    if (refs.syncModalTitle) refs.syncModalTitle.textContent = "Sync Preview";
+    if (refs.syncModalIcon) refs.syncModalIcon.textContent = "fact_check";
+    if (refs.syncPlanOutput) refs.syncPlanOutput.textContent = "";
+    if (refs.syncPlanLoading) refs.syncPlanLoading.classList.remove("hidden");
+    if (refs.syncPlanOutput) refs.syncPlanOutput.classList.add("hidden");
+
+    const currentProject = getState().selectedProject;
+    if (!currentProject) return;
+
+    try {
+      const plan = await desktopBridge.runRemoteSyncPreset(
+        currentProject,
+        currentSyncRemote,
+        currentSyncPreset,
+        config,
+      );
+      if (refs.syncPlanOutput) {
+        refs.syncPlanOutput.textContent = String(
+          plan || "No plan details returned.",
+        );
+        refs.syncPlanOutput.classList.remove("hidden");
+      }
+    } catch (err) {
+      if (refs.syncPlanOutput) {
+        refs.syncPlanOutput.textContent = `Failed to generate plan: ${err}`;
+        refs.syncPlanOutput.classList.remove("hidden");
+      }
+    } finally {
+      if (refs.syncPlanLoading) refs.syncPlanLoading.classList.add("hidden");
     }
     return;
   }
   if (action === "toggle-sync-config") {
     const configKey = targetElement.dataset.config;
-    if (configKey) {
-      const currentConfig = getState().syncConfig;
-      await remotesController.toggleSyncConfig(
+    const preset = targetElement.dataset.preset;
+    if (configKey && preset) {
+      const currentConfigs = getState().syncConfigs || {};
+      const currentConfig = currentConfigs[preset] || {};
+
+      const nextConfig = remotesController.toggleSyncConfig(
+        preset,
         configKey,
         currentConfig,
-        (nextConfig) => setState({ syncConfig: nextConfig }),
+        (cfg) =>
+          setState({ syncConfigs: { ...currentConfigs, [preset]: cfg } }),
       );
+
+      const container = document.getElementById("syncModalOptionsContainer");
+      if (container) {
+        remotesController.renderSyncOptions(
+          container,
+          preset,
+          getState().currentSyncPresetDefs,
+          nextConfig,
+        );
+      }
     }
     return;
   }
@@ -628,21 +738,11 @@ document.addEventListener("click", async (event) => {
     if (tabId) switchTab(tabId);
     return;
   }
-
-  await actionsController.handle(action, targetElement.dataset.env || "");
-});
-
-if (refs.syncModalConfirmBtn) {
-  refs.syncModalConfirmBtn.addEventListener("click", () => {
+  if (action === "confirm-sync") {
     const { currentSyncRemote, currentSyncPreset } = getState();
     if (!currentSyncRemote || !currentSyncPreset) return;
 
-    const sanitize = refs.syncModalSanitize?.checked || false;
-    const excludeLogs = refs.syncModalExcludeLogs?.checked || false;
-    const compress = refs.syncModalCompress?.checked || false;
-
-    // Switch to logs tab and start the terminal process
-    switchTab("logs");
+    const config = (getState().syncConfigs || {})[currentSyncPreset] || {};
 
     // Close the modal
     if (refs.syncOptionsModal) {
@@ -653,50 +753,59 @@ if (refs.syncModalConfirmBtn) {
       }, 300);
     }
 
-    // Build arguments
-    let cmd,
-      args = [];
-    if (currentSyncPreset === "full" || currentSyncPreset === "bootstrap") {
-      cmd = "bootstrap";
-      args = ["--environment", currentSyncRemote];
-    } else {
-      cmd = "sync";
-      args = ["--source", currentSyncRemote, "--destination", "local"];
-      if (currentSyncPreset === "db") args.push("--db");
-      if (currentSyncPreset === "media") args.push("--media");
-      if (currentSyncPreset === "files") args.push("--file");
-    }
-
-    // Add additional sync flags based on configuration
-    if (cmd === "sync") {
-      if (sanitize) {
-        args.push(
-          "--exclude",
-          ".env",
-          "--exclude",
-          "*.pem",
-          "--exclude",
-          "*.key",
-        );
-      }
-      if (excludeLogs) {
-        args.push("--exclude", "var/log/**", "--exclude", "storage/logs/**");
-      }
-      if (!compress) {
-        args.push("--no-compress");
-      }
-    }
-
-    // Execute command with embedded terminal
     const currentProject = getState().selectedProject;
-    if (currentProject) {
-      embeddedTerminalController.startGovardSession(currentProject, cmd, [
-        cmd,
-        ...args,
-      ]);
+    if (!currentProject) return;
+
+    // Show a persistent streaming toast
+    const presetLabel =
+      currentSyncPreset === "full" || currentSyncPreset === "bootstrap"
+        ? `Setting up from ${currentSyncRemote}...`
+        : currentSyncPreset === "db"
+          ? `Pulling database from ${currentSyncRemote}...`
+          : currentSyncPreset === "media"
+            ? `Pulling media from ${currentSyncRemote}...`
+            : `Syncing from ${currentSyncRemote}...`;
+    const streamingToast = toast.showStreaming(presetLabel, "info");
+
+    // Setup one-time streaming event listeners
+    let offStream, offCompleted, offFailed;
+    if (desktopBridge.runtime?.EventsOn) {
+      offStream = desktopBridge.runtime.EventsOn("sync:stream", (line) => {
+        if (streamingToast) streamingToast.update(String(line || ""));
+      });
+      offCompleted = desktopBridge.runtime.EventsOn("sync:completed", (msg) => {
+        if (streamingToast)
+          streamingToast.close(String(msg || "Sync completed ✔"), "success");
+        if (offStream) offStream();
+        if (offFailed) offFailed();
+      });
+      offFailed = desktopBridge.runtime.EventsOn("sync:failed", (msg) => {
+        if (streamingToast)
+          streamingToast.close(String(msg || "Sync failed"), "error");
+        if (offStream) offStream();
+        if (offCompleted) offCompleted();
+      });
     }
-  });
-}
+
+    // Trigger the background sync command via the bridge
+    const result = await desktopBridge.runRemoteSyncBackground(
+      currentProject,
+      currentSyncRemote,
+      currentSyncPreset,
+      config,
+    );
+    if (result && result.startsWith("Remote sync background process failed:")) {
+      if (streamingToast) streamingToast.close(result, "error");
+      if (offStream) offStream();
+      if (offCompleted) offCompleted();
+      if (offFailed) offFailed();
+    }
+
+    return;
+  }
+
+  await actionsController.handle(action, targetElement.dataset.env || "");
+});
 
 if (refs.refresh) {
   refs.refresh.addEventListener("click", () => {

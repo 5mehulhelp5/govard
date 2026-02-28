@@ -79,9 +79,11 @@ remotes:
 		projectRoot,
 		"staging",
 		"db",
-		true,
-		true,
-		false,
+		map[string]bool{
+			"sanitize":    true,
+			"excludeLogs": true,
+			"compress":    false,
+		},
 	)
 	if !strings.Contains(planMessage, "Sync plan generated.") {
 		t.Fatalf("unexpected sync plan message: %q", planMessage)

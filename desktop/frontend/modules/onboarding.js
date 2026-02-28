@@ -61,19 +61,24 @@ export const createOnboardingController = ({
     if (refs.projectDomain && !String(refs.projectDomain.value || "").trim()) {
       refs.projectDomain.value = inferProjectNameFromPath(path);
     }
-    onStatus(`Status: selected project path ${path}`);
+    onStatus(`Selected project path: ${path}`);
   };
 
   const addProject = async () => {
     const projectPath = String(refs.projectPath?.value || "").trim();
     if (!projectPath) {
-      onStatus("Project path is required");
-      onToast("Project path is required", "warning");
+      onStatus("Project root directory is required.");
+      onToast("Project root directory is required.", "warning");
       return;
     }
 
-    const framework = normalizeOnboardingFramework(refs.projectFramework?.value || "");
-    const domain = normalizeOnboardingDomain(refs.projectDomain?.value || "", projectPath);
+    const framework = normalizeOnboardingFramework(
+      refs.projectFramework?.value || "",
+    );
+    const domain = normalizeOnboardingDomain(
+      refs.projectDomain?.value || "",
+      projectPath,
+    );
     const serviceOptions = {
       varnish: Boolean(refs.onboardVarnish?.checked),
       redis: Boolean(refs.onboardRedis?.checked),
@@ -88,13 +93,19 @@ export const createOnboardingController = ({
         serviceOptions.varnish,
         serviceOptions.redis,
         serviceOptions.rabbitmq,
-        serviceOptions.elasticsearch
+        serviceOptions.elasticsearch,
       )) || "",
     );
     const isError = message.toLowerCase().includes("failed");
-    onStatus(message || "Status: project onboarding finished");
+    onStatus(
+      isError
+        ? "Failed to onboard project."
+        : "Project onboarded successfully.",
+    );
     onToast(
-      message || "Project onboarding finished",
+      isError
+        ? "Failed to onboard project."
+        : "Project onboarded successfully.",
       isError ? "error" : "success",
     );
     if (!isError && typeof onProjectAdded === "function") {

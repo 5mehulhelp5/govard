@@ -239,11 +239,11 @@ func TestSyncOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 		result.AssertSuccess(t)
 
 		out := result.Stdout
-		assertMatrixContains(t, out, "source: staging (remote: deploy@staging.example.com")
-		assertMatrixContains(t, out, "destination: local (local path:")
-		assertMatrixContains(t, out, "scopes: files")
-		assertMatrixContains(t, out, "resume mode: enabled")
-		assertMatrixContains(t, out, "planned steps:")
+		assertMatrixContains(t, out, "Source:      staging (Env: staging, Target: deploy@staging.example.com")
+		assertMatrixContains(t, out, "Destination: local (local project:")
+		assertMatrixContains(t, out, "Scopes:      files")
+		assertMatrixContains(t, out, "Resume Mode: Enabled")
+		assertMatrixContains(t, out, "Planned Actions:")
 	})
 
 	t.Run("PlanFullDeletePathIncludeExcludeResume", func(t *testing.T) {
@@ -266,14 +266,15 @@ func TestSyncOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 		result.AssertSuccess(t)
 
 		out := result.Stdout
-		assertMatrixContains(t, out, "scopes: files, media, db")
-		assertMatrixContains(t, out, "path filter: app/code")
-		assertMatrixContains(t, out, "include patterns: app/*")
-		assertMatrixContains(t, out, "exclude patterns: vendor/")
-		assertMatrixContains(t, out, "resume mode: enabled")
-		assertMatrixContains(t, out, "delete mode: enabled")
-		assertMatrixContains(t, out, "risk: high")
-		assertMatrixContains(t, out, "--path applies to file sync only. media/db sync still use full configured paths.")
+		assertMatrixContains(t, out, "Scopes:      files, media, db")
+		assertMatrixContains(t, out, "Path Filter: app/code")
+		assertMatrixContains(t, out, "Includes:    app/*")
+		assertMatrixContains(t, out, "Excludes:    vendor/")
+		assertMatrixContains(t, out, "Resume Mode: Enabled")
+		assertMatrixContains(t, out, "Delete Mode: Enabled")
+		assertMatrixContains(t, out, "Risk Level:")
+		assertMatrixContains(t, out, "HIGH RISK")
+		assertMatrixContains(t, out, "Path filter only applies to file synchronization; media and database will use full configured paths.")
 		assertMatrixContains(t, out, "--delete")
 		assertMatrixContains(t, out, "--include app/*")
 		assertMatrixContains(t, out, "--exclude vendor/")
@@ -295,7 +296,7 @@ func TestSyncOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 		result.AssertSuccess(t)
 
 		out := result.Stdout
-		assertMatrixContains(t, out, "resume mode: disabled")
+		assertMatrixContains(t, out, "Resume Mode: Disabled")
 		assertMatrixNotContains(t, out, "--append-verify")
 	})
 

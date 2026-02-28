@@ -290,8 +290,8 @@ export const createRemotesController = ({
   const saveRemote = async () => {
     const project = String(getProject?.() || "").trim();
     if (!project) {
-      onStatus("Select an environment before saving remotes.");
-      onToast("Select an environment before saving remotes.", "warning");
+      onStatus("Please select an environment before saving remotes.");
+      onToast("Please select an environment first.", "warning");
       return;
     }
 
@@ -318,8 +318,13 @@ export const createRemotesController = ({
 
     const response = String(message || "");
     const isError = response.toLowerCase().includes("failed");
-    onStatus(response || "Remote saved");
-    onToast(response || "Remote saved", isError ? "error" : "success");
+    onStatus(
+      isError ? "Failed to save remote." : "Remote configuration saved.",
+    );
+    onToast(
+      isError ? "Failed to save remote." : "Remote configuration saved.",
+      isError ? "error" : "success",
+    );
     await refresh({ silent: true });
   };
 
@@ -334,11 +339,13 @@ export const createRemotesController = ({
     const isError = response.toLowerCase().includes("failed");
     onStatus(
       isError
-        ? `Status: remote ${remoteName} test failed`
-        : `Status: remote ${remoteName} test finished`,
+        ? `Remote ${remoteName} connection failed`
+        : `Remote ${remoteName} connection successful`,
     );
     onToast(
-      response || `Remote test finished for ${remoteName}`,
+      isError
+        ? `Connection to ${remoteName} failed.`
+        : `Connection to ${remoteName} successful!`,
       isError ? "error" : "success",
     );
   };
@@ -365,56 +372,58 @@ export const createRemotesController = ({
     const isError = response.toLowerCase().includes("failed");
     onStatus(
       isError
-        ? `Status: sync plan ${normalizedPreset} for ${remoteName} failed`
-        : `Status: sync plan ${normalizedPreset} for ${remoteName} ready`,
+        ? `Failed to generate sync plan for ${remoteName}`
+        : `Sync plan for ${remoteName} is ready`,
     );
     onToast(
-      response || `Sync plan generated for ${remoteName}`,
+      isError
+        ? `Failed to prepare sync for ${remoteName}.`
+        : `Sync plan for ${remoteName} prepared.`,
       isError ? "error" : "success",
     );
   };
 
-  const syncSyncConfigUI = (syncConfig) => {
-    const {
-      syncToggleSanitize: s,
-      syncToggleExcludeLogs: e,
-      syncToggleCompress: c,
-    } = refs;
-    const items = [
-      { btn: s, key: "sanitize" },
-      { btn: e, key: "excludeLogs" },
-      { btn: c, key: "compress" },
-    ];
+  const renderSyncOptions = (container, preset, optionsDef, currentConfig) => {
+    if (!container) return;
 
-    items.forEach(({ btn, key }) => {
-      if (!btn) return;
-      const enabled = syncConfig[key];
-      const span = btn.querySelector("span");
+    const html = (optionsDef || [])
+      .map((opt) => {
+        const isChecked =
+          currentConfig[opt.key] !== undefined
+            ? currentConfig[opt.key]
+            : opt.defaultValue;
 
-      if (enabled) {
-        btn.classList.remove("bg-[#102316]", "border-slate-700");
-        btn.classList.add("bg-primary/20", "border-primary/30");
-        if (span) {
-          span.classList.remove("left-0.5", "bg-slate-500");
-          span.classList.add("right-0.5", "bg-primary");
-        }
-      } else {
-        btn.classList.add("bg-[#102316]", "border-slate-700");
-        btn.classList.remove("bg-primary/20", "border-primary/30");
-        if (span) {
-          span.classList.add("left-0.5", "bg-slate-500");
-          span.classList.remove("right-0.5", "bg-primary");
-        }
-      }
-    });
+        return `
+        <label class="flex items-center justify-between cursor-pointer group">
+          <div>
+            <div class="text-sm font-medium text-white mb-0.5">${escapeHTML(opt.label)}</div>
+            <div class="text-xs text-slate-400">${escapeHTML(opt.description)}</div>
+          </div>
+          <div class="relative inline-block w-10 h-6 align-middle select-none transition duration-200 ease-in">
+            <input
+              type="checkbox"
+              data-action="toggle-sync-config"
+              data-preset="${escapeHTML(preset)}"
+              data-config="${escapeHTML(opt.key)}"
+              class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-4 border-slate-600 appearance-none cursor-pointer transition-all duration-300 top-1 left-1 checked:left-5 checked:bg-white checked:border-white/0"
+              ${isChecked ? "checked" : ""}
+            />
+            <span class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-700 cursor-pointer transition-colors duration-300 group-hover:bg-slate-600 ${isChecked ? "bg-primary" : ""}"></span>
+          </div>
+        </label>
+      `;
+      })
+      .join("");
+
+    container.innerHTML = html;
   };
 
-  const toggleSyncConfig = async (key, currentState, onUpdate) => {
+  const toggleSyncConfig = (preset, key, currentState, onUpdate) => {
     const nextValue = !currentState[key];
     const nextState = { ...currentState, [key]: nextValue };
     onUpdate(nextState);
-    syncSyncConfigUI(nextState);
-    onStatus(`Status: sync configuration '${key}' set to ${nextValue}`);
+    onStatus(`Option "${key}" ${nextValue ? "enabled" : "disabled"}.`);
+    return nextState;
   };
 
   return {
@@ -422,7 +431,7 @@ export const createRemotesController = ({
     saveRemote,
     testRemote,
     runSyncPreset,
-    syncSyncConfigUI,
+    renderSyncOptions,
     toggleSyncConfig,
   };
 };

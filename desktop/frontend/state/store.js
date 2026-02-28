@@ -5,11 +5,7 @@ const state = {
   selectedSeverity: "all",
   logQuery: "",
   liveLogsEnabled: false,
-  syncConfig: {
-    sanitize: true,
-    excludeLogs: true,
-    compress: false,
-  },
+  syncConfigs: {},
 };
 
 export const getState = () => state;

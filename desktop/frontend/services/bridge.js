@@ -25,7 +25,12 @@ export const desktopBridge = {
   async pickProjectDirectory() {
     return call(bridge?.PickProjectDirectory?.bind(bridge));
   },
-  async onboardProject(projectPath, framework, domain = "", serviceOptions = {}) {
+  async onboardProject(
+    projectPath,
+    framework,
+    domain = "",
+    serviceOptions = {},
+  ) {
     const options = serviceOptions || {};
     return call(
       bridge?.OnboardProject?.bind(bridge),
@@ -70,22 +75,26 @@ export const desktopBridge = {
   async testRemote(project, remoteName) {
     return call(bridge?.TestRemote?.bind(bridge), project, remoteName);
   },
-  async runRemoteSyncPreset(
-    project,
-    remoteName,
-    preset,
-    syncConfig = {},
-  ) {
-    const config = syncConfig || {};
+  async runRemoteSyncPreset(project, remoteName, preset, syncConfig = {}) {
     return call(
       bridge?.RunRemoteSyncPreset?.bind(bridge),
       project,
       remoteName,
       preset,
-      Boolean(config.sanitize),
-      Boolean(config.excludeLogs),
-      Boolean(config.compress),
+      syncConfig || {},
     );
+  },
+  async runRemoteSyncBackground(project, remoteName, preset, syncConfig = {}) {
+    return call(
+      bridge?.RunRemoteSyncBackground?.bind(bridge),
+      project,
+      remoteName,
+      preset,
+      syncConfig || {},
+    );
+  },
+  async getSyncPresetOptions(preset) {
+    return call(bridge?.GetSyncPresetOptions?.bind(bridge), preset);
   },
   async startEnvironment(project) {
     return call(bridge?.StartEnvironment?.bind(bridge), project);

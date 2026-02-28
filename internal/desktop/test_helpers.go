@@ -113,12 +113,22 @@ func BuildRemoteSyncPlanArgsWithOptionsForTest(
 	return buildRemoteSyncPlanArgsWithOptions(
 		remoteName,
 		preset,
-		remoteSyncPlanOptions{
-			Sanitize:    sanitize,
-			ExcludeLogs: excludeLogs,
-			Compress:    compress,
+		map[string]bool{
+			"sanitize":    sanitize,
+			"excludeLogs": excludeLogs,
+			"compress":    compress,
 		},
 	)
+}
+
+// BuildPresetSyncOptionDefsForTest exposes preset option definitions for tests.
+func BuildPresetSyncOptionDefsForTest(preset string) presetSyncOptions {
+	return buildPresetSyncOptionDefs(preset)
+}
+
+// BuildBootstrapArgsWithOptionsForTest exposes bootstrap arguments builder for tests.
+func BuildBootstrapArgsWithOptionsForTest(remoteName string, options map[string]bool) ([]string, error) {
+	return buildBootstrapArgsWithOptions(remoteName, options)
 }
 
 // ListProjectRemotesForPathForTest exposes path-based remotes loading for tests.

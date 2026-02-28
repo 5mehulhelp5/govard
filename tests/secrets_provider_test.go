@@ -177,10 +177,10 @@ remotes:
 	}
 
 	out := buf.String()
-	if !strings.Contains(out, "remote: deploy@staging.example.com") {
+	if !strings.Contains(out, "Target: deploy@staging.example.com") {
 		t.Fatalf("expected resolved remote target in plan output, got: %s", out)
 	}
-	if !strings.Contains(out, "root: /srv/www/app") {
+	if !strings.Contains(out, "Path: /srv/www/app") {
 		t.Fatalf("expected resolved remote path in plan output, got: %s", out)
 	}
 }

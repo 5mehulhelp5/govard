@@ -169,9 +169,9 @@ Case Studies:
 					fmt.Fprintln(cmd.OutOrStdout(), line)
 				}
 				auditStatus = remote.RemoteAuditStatusPlan
-				auditMessage = "sync plan generated with fallback endpoint resolution"
+				auditMessage = "Synchronization plan created with fallback resolution."
 				operationStatus = engine.OperationStatusPlan
-				operationMessage = "sync plan generated with fallback endpoint resolution"
+				operationMessage = "Synchronization plan created with fallback resolution."
 				return nil
 			}
 			return err
@@ -192,9 +192,9 @@ Case Studies:
 				fmt.Fprintln(cmd.OutOrStdout(), line)
 			}
 			auditStatus = remote.RemoteAuditStatusPlan
-			auditMessage = "sync plan generated"
+			auditMessage = "Synchronization plan created for review."
 			operationStatus = engine.OperationStatusPlan
-			operationMessage = "sync plan generated"
+			operationMessage = "Synchronization plan created for review."
 			return nil
 		}
 
@@ -203,16 +203,18 @@ Case Studies:
 		}
 
 		if err := engine.RunHooks(config, engine.HookPreSync, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
-			return fmt.Errorf("pre-sync hooks failed: %w", err)
+			return fmt.Errorf("pre-synchronization hooks failed to execute: %w", err)
 		}
 
 		for i, rsyncCmd := range executionPlan.RsyncCommands {
-			pterm.Info.Printf("Executing: %s\n", executionPlan.Descriptions[i])
+			spinner, _ := pterm.DefaultSpinner.Start(executionPlan.Descriptions[i])
 			rsyncCmd.Stdout = cmd.OutOrStdout()
 			rsyncCmd.Stderr = cmd.ErrOrStderr()
 			if err := rsyncCmd.Run(); err != nil {
-				return fmt.Errorf("sync command failed: %w", err)
+				spinner.Fail(fmt.Sprintf("Failed to sync: %v", err))
+				return fmt.Errorf("Sync command failed: %w", err)
 			}
+			spinner.Success()
 		}
 
 		for _, dbAction := range executionPlan.DatabaseActions {
@@ -222,14 +224,14 @@ Case Studies:
 		}
 
 		if err := engine.RunHooks(config, engine.HookPostSync, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
-			return fmt.Errorf("post-sync hooks failed: %w", err)
+			return fmt.Errorf("post-synchronization hooks failed to execute: %w", err)
 		}
 
-		pterm.Success.Println("Sync completed.")
+		pterm.Success.Println("Synchronization successfully completed.")
 		auditStatus = remote.RemoteAuditStatusSuccess
-		auditMessage = "sync completed"
+		auditMessage = "Synchronization successfully completed."
 		operationStatus = engine.OperationStatusSuccess
-		operationMessage = "sync completed"
+		operationMessage = "Synchronization successfully completed."
 		return nil
 	},
 }
@@ -325,7 +327,7 @@ func resolveSyncEndpoint(config engine.Config, name string, cwd string) (syncEnd
 
 	root, media := engine.ResolveRemotePathsForConfig(config.Framework, remoteCfg)
 	if strings.TrimSpace(root) == "" {
-		return syncEndpoint{}, fmt.Errorf("remote %s has empty project path", name)
+		return syncEndpoint{}, fmt.Errorf("the remote environment '%s' does not have a configured project path", name)
 	}
 
 	return syncEndpoint{
@@ -354,7 +356,7 @@ func buildSyncExecutionPlan(config engine.Config, endpoints resolvedSyncEndpoint
 				}
 			}
 		}
-		rsyncCmd, desc, err := buildRsyncForEndpoints(
+		rsyncCmd, _, err := buildRsyncForEndpoints(
 			endpoints.Source,
 			endpoints.Destination,
 			sourcePath,
@@ -369,11 +371,11 @@ func buildSyncExecutionPlan(config engine.Config, endpoints resolvedSyncEndpoint
 			return syncExecutionPlan{}, err
 		}
 		plan.RsyncCommands = append(plan.RsyncCommands, rsyncCmd)
-		plan.Descriptions = append(plan.Descriptions, "[sync:files] "+desc)
+		plan.Descriptions = append(plan.Descriptions, "Syncing files and source code...")
 	}
 
 	if opts.Media {
-		rsyncCmd, desc, err := buildRsyncForEndpoints(
+		rsyncCmd, _, err := buildRsyncForEndpoints(
 			endpoints.Source,
 			endpoints.Destination,
 			endpoints.Source.MediaPath,
@@ -388,15 +390,15 @@ func buildSyncExecutionPlan(config engine.Config, endpoints resolvedSyncEndpoint
 			return syncExecutionPlan{}, err
 		}
 		plan.RsyncCommands = append(plan.RsyncCommands, rsyncCmd)
-		plan.Descriptions = append(plan.Descriptions, "[sync:media] "+desc)
+		plan.Descriptions = append(plan.Descriptions, "Syncing media and static assets...")
 	}
 
 	if opts.DB {
-		dbDesc, action, err := buildDatabaseSyncAction(config, endpoints.Source, endpoints.Destination)
+		_, action, err := buildDatabaseSyncAction(config, endpoints.Source, endpoints.Destination)
 		if err != nil {
 			return syncExecutionPlan{}, err
 		}
-		plan.Descriptions = append(plan.Descriptions, "[sync:db] "+dbDesc)
+		plan.Descriptions = append(plan.Descriptions, "Synchronizing database...")
 		plan.DatabaseActions = append(plan.DatabaseActions, action)
 	}
 
@@ -405,14 +407,14 @@ func buildSyncExecutionPlan(config engine.Config, endpoints resolvedSyncEndpoint
 
 func evaluateSyncPolicy(endpoints resolvedSyncEndpoints, opts syncExecutionOptions) ([]string, error) {
 	if endpoints.Source.Name == endpoints.Destination.Name {
-		return nil, fmt.Errorf("source and destination cannot be the same: %s", endpoints.Source.Name)
+		return nil, fmt.Errorf("Source and destination must be different environments (both were '%s')", endpoints.Source.Name)
 	}
 	if endpoints.Source.IsLocal == endpoints.Destination.IsLocal {
-		return nil, fmt.Errorf("sync currently supports local<->remote only")
+		return nil, fmt.Errorf("Synchronization is currently only supported between local and remote environments")
 	}
 	if !endpoints.Destination.IsLocal {
 		if blocked, reason := engine.RemoteWriteBlocked(endpoints.Destination.Name, endpoints.Destination.RemoteCfg); blocked {
-			return nil, fmt.Errorf("destination remote '%s' is write-protected: %s", endpoints.Destination.Name, reason)
+			return nil, fmt.Errorf("Destination remote '%s' is Write-protected: %s", endpoints.Destination.Name, reason)
 		}
 	}
 
@@ -434,82 +436,85 @@ func evaluateSyncPolicy(endpoints resolvedSyncEndpoints, opts syncExecutionOptio
 
 	warnings := []string{}
 	if opts.Path != "" && (opts.Media || opts.DB) {
-		warnings = append(warnings, "--path applies to file sync only. media/db sync still use full configured paths.")
+		warnings = append(warnings, "Path filter only applies to file synchronization; media and database will use full configured paths.")
 	}
 	if len(opts.Include) > 0 && !opts.Files && !opts.Media {
-		warnings = append(warnings, "--include patterns apply to file/media rsync scopes only.")
+		warnings = append(warnings, "Include patterns are only applicable to file or media rsync operations.")
 	}
 	if len(opts.Exclude) > 0 && !opts.Files && !opts.Media {
-		warnings = append(warnings, "--exclude patterns apply to file/media rsync scopes only.")
+		warnings = append(warnings, "Exclude patterns are only applicable to file or media rsync operations.")
 	}
 	if opts.Resume && !opts.Files && !opts.Media {
-		warnings = append(warnings, "--resume applies to file/media rsync scopes only.")
+		warnings = append(warnings, "Resume mode is only applicable to file or media rsync operations.")
 	}
 	if opts.NoCompress && !opts.Files && !opts.Media {
-		warnings = append(warnings, "--no-compress applies to file/media rsync scopes only.")
+		warnings = append(warnings, "Compression settings are only applicable to file or media rsync operations.")
 	}
 	if !endpoints.Destination.IsLocal {
-		warnings = append(warnings, fmt.Sprintf("This operation writes to remote destination '%s'.", endpoints.Destination.Name))
+		warnings = append(warnings, fmt.Sprintf("Action Required: This operation will overwrite files on the remote destination '%s'.", endpoints.Destination.Name))
 	}
 	if opts.Delete {
-		warnings = append(warnings, "--delete is enabled and will remove destination files that do not exist in source.")
+		warnings = append(warnings, "Caution: Delete mode is enabled. Files on the destination that do not exist on the source will be permanently removed.")
 	}
 	if opts.DB {
-		warnings = append(warnings, "Database sync overwrites data on destination database.")
+		warnings = append(warnings, "Warning: The destination database will be entirely overwritten with data from the source.")
 	}
 	return warnings, nil
 }
 
 func buildSyncPlanSummary(endpoints resolvedSyncEndpoints, execution syncExecutionPlan, opts syncExecutionOptions, warnings []string) []string {
 	lines := []string{
-		"Sync Plan Summary",
-		fmt.Sprintf("source: %s", describeSyncEndpoint(endpoints.Source)),
-		fmt.Sprintf("destination: %s", describeSyncEndpoint(endpoints.Destination)),
-		fmt.Sprintf("scopes: %s", strings.Join(syncScopes(opts), ", ")),
-		fmt.Sprintf("path filter: %s", syncPathFilter(opts.Path)),
-		fmt.Sprintf("include patterns: %s", syncPatternSummary(opts.Include)),
-		fmt.Sprintf("exclude patterns: %s", syncPatternSummary(opts.Exclude)),
-		fmt.Sprintf("resume mode: %s", boolLabel(opts.Resume, "enabled", "disabled")),
-		fmt.Sprintf("compression: %s", boolLabel(!opts.NoCompress, "enabled", "disabled")),
-		fmt.Sprintf("delete mode: %s", boolLabel(opts.Delete, "enabled", "disabled")),
+		pterm.Bold.Sprint("Synchronization Plan Review"),
+		fmt.Sprintf("  Source:      %s", describeSyncEndpoint(endpoints.Source)),
+		fmt.Sprintf("  Destination: %s", describeSyncEndpoint(endpoints.Destination)),
+		fmt.Sprintf("  Scopes:      %s", strings.Join(syncScopes(opts), ", ")),
+		fmt.Sprintf("  Path Filter: %s", syncPathFilter(opts.Path)),
+		fmt.Sprintf("  Includes:    %s", syncPatternSummary(opts.Include)),
+		fmt.Sprintf("  Excludes:    %s", syncPatternSummary(opts.Exclude)),
+		fmt.Sprintf("  Resume Mode: %s", boolLabel(opts.Resume, "Enabled", "Disabled")),
+		fmt.Sprintf("  Compression: %s", boolLabel(!opts.NoCompress, "Enabled", "Disabled")),
+		fmt.Sprintf("  Delete Mode: %s", boolLabel(opts.Delete, "Enabled (destructive)", "Disabled")),
 	}
 
 	risk, reasons := syncRiskLevel(endpoints, opts)
-	lines = append(lines, fmt.Sprintf("risk: %s (%s)", risk, strings.Join(reasons, "; ")))
+	lines = append(lines, fmt.Sprintf("  Risk Level:  %s (%s)", risk, strings.Join(reasons, "; ")))
 
 	if len(warnings) > 0 {
-		lines = append(lines, "policy warnings:")
+		lines = append(lines, pterm.Yellow("Policy Warnings:"))
 		for _, warning := range warnings {
-			lines = append(lines, " - "+warning)
+			lines = append(lines, "  ! "+warning)
 		}
 	}
 
-	lines = append(lines, "planned steps:")
+	lines = append(lines, "Planned Actions:")
 	if len(execution.Descriptions) == 0 {
-		lines = append(lines, " - no transfer actions selected")
+		lines = append(lines, "  (No transfer actions selected)")
 		return lines
 	}
 	for i, description := range execution.Descriptions {
 		lines = append(lines, fmt.Sprintf(" %d. %s", i+1, description))
+		if i < len(execution.RsyncCommands) {
+			lines = append(lines, fmt.Sprintf("    Command: %s", execution.RsyncCommands[i].String()))
+		}
 	}
 	return lines
 }
 
 func buildFallbackSyncPlanSummary(source, destination string, opts syncExecutionOptions, legacy remote.SyncPlan, resolveErr error) []string {
 	lines := []string{
-		"Sync Plan Summary",
-		fmt.Sprintf("source: %s", source),
-		fmt.Sprintf("destination: %s", destination),
-		fmt.Sprintf("scopes: %s", strings.Join(syncScopes(opts), ", ")),
-		fmt.Sprintf("path filter: %s", syncPathFilter(opts.Path)),
-		fmt.Sprintf("include patterns: %s", syncPatternSummary(opts.Include)),
-		fmt.Sprintf("exclude patterns: %s", syncPatternSummary(opts.Exclude)),
-		fmt.Sprintf("resume mode: %s", boolLabel(opts.Resume, "enabled", "disabled")),
-		fmt.Sprintf("compression: %s", boolLabel(!opts.NoCompress, "enabled", "disabled")),
-		fmt.Sprintf("delete mode: %s", boolLabel(opts.Delete, "enabled", "disabled")),
-		"risk: medium (endpoint details unavailable)",
-		fmt.Sprintf("warning: endpoint resolution failed: %v", resolveErr),
-		"planned steps:",
+		pterm.Bold.Sprint("Synchronization Plan Review (Fallback)"),
+		fmt.Sprintf("  Source:      %s", source),
+		fmt.Sprintf("  Destination: %s", destination),
+		fmt.Sprintf("  Scopes:      %s", strings.Join(syncScopes(opts), ", ")),
+		fmt.Sprintf("  Path Filter: %s", syncPathFilter(opts.Path)),
+		fmt.Sprintf("  Includes:    %s", syncPatternSummary(opts.Include)),
+		fmt.Sprintf("  Excludes:    %s", syncPatternSummary(opts.Exclude)),
+		fmt.Sprintf("  Resume Mode: %s", boolLabel(opts.Resume, "Enabled", "Disabled")),
+		fmt.Sprintf("  Compression: %s", boolLabel(!opts.NoCompress, "Enabled", "Disabled")),
+		fmt.Sprintf("  Delete Mode: %s", boolLabel(opts.Delete, "Enabled (destructive)", "Disabled")),
+		fmt.Sprintf("  Risk Level:  %s (Endpoint details unavailable)", pterm.Yellow("MEDIUM RISK")),
+		pterm.Yellow(fmt.Sprintf("Warning: Full endpoint resolution failed: %v", resolveErr)),
+		"Planned Actions:",
 		fmt.Sprintf(" 1. %s", legacy.Command),
 	}
 	return lines
@@ -517,20 +522,19 @@ func buildFallbackSyncPlanSummary(source, destination string, opts syncExecution
 
 func describeSyncEndpoint(endpoint syncEndpoint) string {
 	if endpoint.IsLocal {
-		return fmt.Sprintf("%s (local path: %s)", endpoint.Name, endpoint.RootPath)
+		return fmt.Sprintf("%s (local project: %s)", endpoint.Name, endpoint.RootPath)
 	}
-	writePolicy := "write-allowed"
+	writePolicy := "Write-allowed"
 	if blocked, reason := engine.RemoteWriteBlocked(endpoint.Name, endpoint.RemoteCfg); blocked {
-		writePolicy = "write-blocked (" + reason + ")"
+		writePolicy = "Write-blocked (" + reason + ")"
 	}
 	return fmt.Sprintf(
-		"%s (remote: %s, env: %s, capabilities: %s, policy: %s, root: %s)",
+		"%s (Env: %s, Target: %s, Path: %s, Policy: %s)",
 		endpoint.Name,
-		remote.RemoteTarget(endpoint.RemoteCfg),
 		engine.NormalizeRemoteEnvironment(endpoint.Name),
-		strings.Join(engine.RemoteCapabilityList(endpoint.RemoteCfg), ","),
-		writePolicy,
+		remote.RemoteTarget(endpoint.RemoteCfg),
 		endpoint.RootPath,
+		writePolicy,
 	)
 }
 
@@ -546,7 +550,7 @@ func syncScopes(opts syncExecutionOptions) []string {
 		scopes = append(scopes, "db")
 	}
 	if len(scopes) == 0 {
-		return []string{"none"}
+		return []string{"(none)"}
 	}
 	return scopes
 }
@@ -560,24 +564,24 @@ func syncPathFilter(path string) string {
 }
 
 func syncRiskLevel(endpoints resolvedSyncEndpoints, opts syncExecutionOptions) (string, []string) {
-	reasons := []string{"standard file synchronization"}
+	reasons := []string{"Standard file synchronization"}
 	if !endpoints.Destination.IsLocal {
-		reasons = append(reasons, "remote destination write")
+		reasons = append(reasons, "Writing to a remote destination")
 	}
 	if opts.DB {
-		reasons = append(reasons, "database overwrite")
+		reasons = append(reasons, "Destination database will be overwritten")
 	}
 	if opts.Delete {
-		reasons = append(reasons, "delete mode")
+		reasons = append(reasons, "File deletion mode enabled")
 	}
 
 	switch {
 	case opts.DB || opts.Delete:
-		return "high", reasons
+		return pterm.Red("HIGH RISK"), reasons
 	case !endpoints.Destination.IsLocal:
-		return "medium", reasons
+		return pterm.Yellow("MEDIUM RISK"), reasons
 	default:
-		return "low", reasons
+		return pterm.Green("LOW RISK"), reasons
 	}
 }
 
@@ -605,12 +609,14 @@ func ensureEndpointCapability(endpoint syncEndpoint, position string, capability
 	if engine.RemoteCapabilityEnabled(endpoint.RemoteCfg, capability) {
 		return nil
 	}
+	// We capitalize the capability name for display
+	capDisplay := strings.ToUpper(capability[0:1]) + capability[1:]
 	return fmt.Errorf(
-		"%s remote '%s' does not allow '%s' operations (capabilities: %s)",
+		"The %s environment '%s' does not support %s synchronization (supported capabilities: %s)",
 		position,
 		endpoint.Name,
-		capability,
-		strings.Join(engine.RemoteCapabilityList(endpoint.RemoteCfg), ","),
+		capDisplay,
+		strings.Join(engine.RemoteCapabilityList(endpoint.RemoteCfg), ", "),
 	)
 }
 
@@ -626,7 +632,7 @@ func buildRsyncForEndpoints(
 	excludePatterns []string,
 ) (*exec.Cmd, string, error) {
 	if source.IsLocal == destination.IsLocal {
-		return nil, "", fmt.Errorf("sync only supports local<->remote transfers")
+		return nil, "", fmt.Errorf("Synchronization only supports transfers between local and remote environments")
 	}
 
 	if source.IsLocal {
@@ -725,7 +731,7 @@ func buildDatabaseSyncAction(config engine.Config, source syncEndpoint, destinat
 			return RunDumpToImport(dumpCmd, importCmd, true, os.Stdout, os.Stderr)
 		}, nil
 	default:
-		return "", nil, fmt.Errorf("database sync only supports local<->remote transfers")
+		return "", nil, fmt.Errorf("Database synchronization only supports transfers between local and remote environments")
 	}
 }
 

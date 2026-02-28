@@ -245,19 +245,21 @@ export const createLogsController = ({
     await stopLive();
     rawLogOutput = "";
     renderFilteredOutput();
-    onStatus("Status: logs cleared.");
-    onToast("Logs cleared.", "success");
+    onStatus("Logs cleared.");
+    onToast("Logs cleared successfully.", "success");
   };
 
-  const downloadLogs = () => {
+  const downloadLogs = async () => {
     const output = String(rawLogOutput || "").trim();
     if (!output) {
-      onStatus("Status: no logs to download.");
-      onToast("No logs to download.", "warning");
+      onStatus("No logs available to download.");
+      onToast("No logs available to download.", "warning");
       return;
     }
     const { project, service } = readSelection();
-    const blob = new Blob([output + "\n"], { type: "text/plain;charset=utf-8" });
+    const blob = new Blob([output + "\n"], {
+      type: "text/plain;charset=utf-8",
+    });
     const href = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = href;
@@ -266,8 +268,8 @@ export const createLogsController = ({
     anchor.click();
     anchor.remove();
     URL.revokeObjectURL(href);
-    onStatus("Status: logs downloaded.");
-    onToast("Logs downloaded.", "success");
+    onStatus("Logs downloaded successfully.");
+    onToast("Logs downloaded successfully.", "success");
   };
 
   if (runtime?.EventsOn) {

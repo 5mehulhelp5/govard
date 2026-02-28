@@ -195,3 +195,55 @@ func containsString(items []string, expected string) bool {
 	}
 	return false
 }
+
+func TestBuildPresetSyncOptionDefs_DB(t *testing.T) {
+	opts := desktop.BuildPresetSyncOptionDefsForTest("db")
+	if opts.Command != "sync" {
+		t.Fatalf("expected command 'sync', got %s", opts.Command)
+	}
+	if len(opts.Options) != 2 {
+		t.Fatalf("expected 2 options, got %d", len(opts.Options))
+	}
+	if opts.Options[0].Key != "compress" || opts.Options[1].Key != "noStreamDb" {
+		t.Fatalf("unexpected options for db preset")
+	}
+}
+
+func TestBuildPresetSyncOptionDefs_Media(t *testing.T) {
+	opts := desktop.BuildPresetSyncOptionDefsForTest("media")
+	if opts.Command != "sync" {
+		t.Fatalf("expected command 'sync', got %s", opts.Command)
+	}
+	if len(opts.Options) != 3 {
+		t.Fatalf("expected 3 options, got %d", len(opts.Options))
+	}
+	if opts.Options[0].Key != "compress" || opts.Options[1].Key != "includeProduct" || opts.Options[2].Key != "delete" {
+		t.Fatalf("unexpected options for media preset")
+	}
+}
+
+func TestBuildPresetSyncOptionDefs_Full(t *testing.T) {
+	opts := desktop.BuildPresetSyncOptionDefsForTest("full")
+	if opts.Command != "bootstrap" {
+		t.Fatalf("expected command 'bootstrap', got %s", opts.Command)
+	}
+	if len(opts.Options) != 8 {
+		t.Fatalf("expected 8 options, got %d", len(opts.Options))
+	}
+}
+
+func TestBuildBootstrapArgsWithOptions(t *testing.T) {
+	args, err := desktop.BuildBootstrapArgsWithOptionsForTest("staging", map[string]bool{
+		"noDb":           true,
+		"assumeYes":      true,
+		"includeProduct": true,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	expected := []string{"bootstrap", "--environment", "staging", "--no-db", "--include-product", "--yes"}
+	if !reflect.DeepEqual(args, expected) {
+		t.Fatalf("expected args %v, got %v", expected, args)
+	}
+}

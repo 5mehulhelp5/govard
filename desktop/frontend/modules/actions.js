@@ -8,7 +8,7 @@ export const createActionsController = ({
 }) => {
   const runEnvironmentAction = async (fn, project, fallbackMessage) => {
     if (!project) {
-      onStatus("Select an environment first.");
+      onStatus("Please select an environment first.");
       return;
     }
     try {
@@ -32,7 +32,7 @@ export const createActionsController = ({
       await runEnvironmentAction(
         bridge.startEnvironment,
         project,
-        `Failed to start ${project}`,
+        `Started ${project} successfully`,
       );
       return;
     }
@@ -40,7 +40,7 @@ export const createActionsController = ({
       await runEnvironmentAction(
         bridge.restartEnvironment,
         project,
-        `Failed to restart ${project}`,
+        `Restarted ${project} successfully`,
       );
       return;
     }
@@ -48,7 +48,7 @@ export const createActionsController = ({
       await runEnvironmentAction(
         bridge.stopEnvironment,
         project,
-        `Failed to stop ${project}`,
+        `Stopped ${project} successfully`,
       );
       return;
     }
@@ -56,7 +56,7 @@ export const createActionsController = ({
       await runEnvironmentAction(
         bridge.openEnvironment,
         project,
-        `Failed to open ${project}`,
+        `Opened ${project} in browser`,
       );
       return;
     }
@@ -64,7 +64,7 @@ export const createActionsController = ({
       await runEnvironmentAction(
         bridge.toggleEnvironment,
         project,
-        `Failed to toggle ${project}`,
+        `Toggled ${project} state`,
       );
       return;
     }
@@ -72,7 +72,7 @@ export const createActionsController = ({
       await runEnvironmentAction(
         bridge.openEnvironment,
         project,
-        `Failed to open ${project}`,
+        `Opened ${project} in browser`,
       );
       return;
     }

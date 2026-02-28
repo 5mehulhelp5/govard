@@ -26,11 +26,11 @@ func TestSyncPlanMagento2CurrentFlags(t *testing.T) {
 	result.AssertSuccess(t)
 
 	out := result.Stdout
-	assertContains(t, out, "Sync Plan Summary")
-	assertContains(t, out, "scopes: files")
-	assertContains(t, out, "include patterns: app/*")
-	assertContains(t, out, "exclude patterns: vendor/")
-	assertContains(t, out, "resume mode: enabled")
+	assertContains(t, out, "Synchronization Plan Review")
+	assertContains(t, out, "Scopes:      files")
+	assertContains(t, out, "Includes:    app/*")
+	assertContains(t, out, "Excludes:    vendor/")
+	assertContains(t, out, "Resume Mode: Enabled")
 	assertContains(t, out, "--partial --append-verify")
 	assertContains(t, out, "--include app/*")
 	assertContains(t, out, "--exclude vendor/")
@@ -53,7 +53,7 @@ func TestSyncPlanNoResume(t *testing.T) {
 	result.AssertSuccess(t)
 
 	out := result.Stdout
-	assertContains(t, out, "resume mode: disabled")
+	assertContains(t, out, "Resume Mode: Disabled")
 	if strings.Contains(out, "--append-verify") {
 		t.Fatalf("did not expect resume rsync flags when --no-resume is set, got: %s", out)
 	}
@@ -67,7 +67,7 @@ func TestSyncPolicyProtectedDestinationBlocked(t *testing.T) {
 	if result.Success() {
 		t.Fatal("expected protected destination error")
 	}
-	assertContains(t, result.Stderr, "write-protected")
+	assertContains(t, result.Stderr, "Write-protected")
 }
 
 func TestSyncPolicyRemoteToRemoteBlocked(t *testing.T) {
@@ -78,7 +78,7 @@ func TestSyncPolicyRemoteToRemoteBlocked(t *testing.T) {
 	if result.Success() {
 		t.Fatal("expected local<->remote validation error")
 	}
-	assertContains(t, result.Stderr, "local<->remote")
+	assertContains(t, result.Stderr, "between local and remote environments")
 }
 
 func TestSyncRuntimeRsyncInvocationWithShims(t *testing.T) {
