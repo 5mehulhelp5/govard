@@ -198,7 +198,7 @@ func findAvailableLocalPort(startPort int) (int, error) {
 }
 
 func buildOpenDBTunnelCommand(remoteName string, remoteCfg engine.RemoteConfig, localPort int, remoteHost string, remotePort int) *exec.Cmd {
-	args := engineremote.BuildSSHArgs(remoteName, remoteCfg, false)
+	args := engineremote.BuildSSHArgs(remoteName, remoteCfg, false, false)
 	args = append(args, "-L", fmt.Sprintf("%d:%s:%d", localPort, remoteHost, remotePort), "-N", engineremote.RemoteTarget(remoteCfg))
 	return exec.Command("ssh", args...)
 }

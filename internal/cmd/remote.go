@@ -325,7 +325,7 @@ var remoteTestCmd = &cobra.Command{
 			remoteCfg.Auth.StrictHostKey,
 		)
 
-		testArgs := remote.BuildSSHArgs(remoteName, remoteCfg, false)
+		testArgs := remote.BuildSSHArgs(remoteName, remoteCfg, false, false)
 		testArgs = append(testArgs, "-o", "ConnectTimeout=5", remote.RemoteTarget(remoteCfg), "echo govard-remote-ok")
 		testCmd := exec.Command("ssh", testArgs...)
 		sshStartedAt := time.Now()
@@ -376,7 +376,7 @@ var remoteTestCmd = &cobra.Command{
 		operationStatus = engine.OperationStatusSuccess
 		operationMessage = "remote SSH connectivity check passed"
 
-		rsyncArgs := remote.BuildSSHArgs(remoteName, remoteCfg, false)
+		rsyncArgs := remote.BuildSSHArgs(remoteName, remoteCfg, false, false)
 		rsyncArgs = append(rsyncArgs, "-o", "ConnectTimeout=5", remote.RemoteTarget(remoteCfg), "command -v rsync >/dev/null 2>&1 && echo govard-rsync-ok")
 		rsyncCmd := exec.Command("ssh", rsyncArgs...)
 		rsyncStartedAt := time.Now()

@@ -13,9 +13,13 @@ func RemoteTarget(remoteCfg engine.RemoteConfig) string {
 }
 
 func BuildSSHExecCommand(remoteName string, remoteCfg engine.RemoteConfig, forwardAgent bool, remoteCommand string) *exec.Cmd {
-	args := BuildSSHArgs(remoteName, remoteCfg, forwardAgent)
+	args := BuildSSHArgs(remoteName, remoteCfg, forwardAgent, false)
 	args = append(args, RemoteTarget(remoteCfg), remoteCommand)
 	return exec.Command("ssh", args...)
+}
+
+func BuildSSHInteractiveArgs(remoteName string, remoteCfg engine.RemoteConfig, forwardAgent bool) []string {
+	return BuildSSHArgs(remoteName, remoteCfg, forwardAgent, true)
 }
 
 func runRemoteCapture(remoteName string, remoteCfg engine.RemoteConfig, remoteCommand string) (string, error) {
@@ -64,9 +68,24 @@ func BuildRsyncCommand(
 		args = append(args, "--exclude", trimmed)
 	}
 
-	sshArgs := append([]string{"ssh"}, BuildSSHArgs(remoteName, remoteCfg, false)...)
+	sshArgs := append([]string{"ssh"}, BuildSSHArgs(remoteName, remoteCfg, false, false)...)
 	args = append(args, "-e", strings.Join(sshArgs, " "))
 	args = append(args, source, destination)
 
 	return exec.Command("rsync", args...)
+}
+
+func RunRemoteShell(remoteName string, remoteCfg engine.RemoteConfig, remoteCommand string) error {
+	sshPath, err := exec.LookPath("ssh")
+	if err != nil {
+		return fmt.Errorf("ssh binary not found: %w", err)
+	}
+
+	args := BuildSSHInteractiveArgs(remoteName, remoteCfg, true)
+	// args[0] in syscall.Exec should be the path to the executable
+	args = append([]string{sshPath}, args...)
+	args = append(args, RemoteTarget(remoteCfg), remoteCommand)
+
+	// Since we are replacing the current process, any cleanup logic should be handled before this.
+	return engine.Handoff(sshPath, args)
 }

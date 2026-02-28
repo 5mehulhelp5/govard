@@ -62,14 +62,9 @@ func runOpenShellTarget(config engine.Config, requestedEnvironment string) error
 		return err
 	}
 
-	remoteCommand := buildRemoteShellCommand(remoteCfg.Path)
-	shellCmd := engineremote.BuildSSHExecCommand(environment, remoteCfg, true, remoteCommand)
-	shellCmd.Stdin = os.Stdin
-	shellCmd.Stdout = os.Stdout
-	shellCmd.Stderr = os.Stderr
-
 	pterm.Info.Printf("Opening remote shell on '%s'.\n", environment)
-	return shellCmd.Run()
+	remoteCommand := buildRemoteShellCommand(remoteCfg.Path)
+	return engineremote.RunRemoteShell(environment, remoteCfg, remoteCommand)
 }
 
 func runOpenSFTPTarget(config engine.Config, requestedEnvironment string) error {

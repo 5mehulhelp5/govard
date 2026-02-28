@@ -12,7 +12,7 @@ import (
 
 func TestBuildSSHArgs(t *testing.T) {
 	cfg := engine.RemoteConfig{Host: "example.com", User: "deploy", Port: 2222}
-	args := remote.BuildSSHArgs("staging", cfg, true)
+	args := remote.BuildSSHArgs("staging", cfg, true, false)
 	joined := strings.Join(args, " ")
 	if !strings.Contains(joined, "-p 2222") {
 		t.Fatal("missing port")
@@ -38,7 +38,7 @@ func TestBuildSSHArgsStrictHostKey(t *testing.T) {
 			KnownHostsFile: "/tmp/govard-known-hosts",
 		},
 	}
-	args := remote.BuildSSHArgs("staging", cfg, false)
+	args := remote.BuildSSHArgs("staging", cfg, false, false)
 	joined := strings.Join(args, " ")
 	if !strings.Contains(joined, "StrictHostKeyChecking=yes") {
 		t.Fatal("expected strict host key checking")
@@ -110,7 +110,7 @@ func TestBuildSSHArgsKeychainStoreFallback(t *testing.T) {
 			Method: remote.AuthMethodKeychain,
 		},
 	}
-	args := remote.BuildSSHArgs("staging", cfg, false)
+	args := remote.BuildSSHArgs("staging", cfg, false, false)
 	joined := strings.Join(args, " ")
 	if !strings.Contains(joined, "-i /opt/keys/staging") {
 		t.Fatalf("expected key path resolved from auth store, got: %s", joined)
@@ -133,7 +133,7 @@ func TestBuildSSHArgsKeyPathPriorityConfigOverEnvAndStore(t *testing.T) {
 			KeyPath: "/config/key",
 		},
 	}
-	args := remote.BuildSSHArgs("staging", cfg, false)
+	args := remote.BuildSSHArgs("staging", cfg, false, false)
 	joined := strings.Join(args, " ")
 	if !strings.Contains(joined, "-i /config/key") {
 		t.Fatalf("expected config key path to win priority, got: %s", joined)
@@ -158,7 +158,7 @@ func TestBuildSSHArgsKeyfileDefaultFallback(t *testing.T) {
 			Method: remote.AuthMethodKeyfile,
 		},
 	}
-	args := remote.BuildSSHArgs("staging", cfg, false)
+	args := remote.BuildSSHArgs("staging", cfg, false, false)
 	joined := strings.Join(args, " ")
 	if !strings.Contains(joined, "-i "+keyPath) {
 		t.Fatalf("expected default keyfile fallback path, got: %s", joined)

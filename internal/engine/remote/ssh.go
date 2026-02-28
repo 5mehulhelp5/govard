@@ -6,11 +6,15 @@ import (
 	"govard/internal/engine"
 )
 
-func BuildSSHArgs(remoteName string, remoteCfg engine.RemoteConfig, forwardAgent bool) []string {
+func BuildSSHArgs(remoteName string, remoteCfg engine.RemoteConfig, forwardAgent bool, interactive bool) []string {
 	args := []string{
 		"-o", "LogLevel=ERROR",
-		"-o", "BatchMode=yes",
 		"-o", "ConnectTimeout=10",
+	}
+	if !interactive {
+		args = append(args, "-o", "BatchMode=yes")
+	} else {
+		args = append(args, "-t")
 	}
 	if remoteCfg.Auth.StrictHostKey {
 		args = append(args, "-o", "StrictHostKeyChecking=yes")

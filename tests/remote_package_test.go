@@ -18,7 +18,7 @@ func TestRemotePkgBuildSSHArgs(t *testing.T) {
 			KeyPath:        "/tmp/id_ed25519",
 		},
 	}
-	args := remote.BuildSSHArgs("staging", cfg, true)
+	args := remote.BuildSSHArgs("staging", cfg, true, false)
 	joined := strings.Join(args, " ")
 	for _, want := range []string{"StrictHostKeyChecking=yes", "UserKnownHostsFile=/tmp/known_hosts", "-p 2202", "-A", "-i /tmp/id_ed25519"} {
 		if !strings.Contains(joined, want) {
