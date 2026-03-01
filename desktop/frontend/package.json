@@ -1,6 +1,6 @@
 {
   "name": "govard-frontend",
-  "version": "1.0.0",
+  "version": "1.10.0",
   "private": true,
   "scripts": {
     "build:css": "tailwindcss -i ./styles-src.css -o ./tailwind-output.css --minify",

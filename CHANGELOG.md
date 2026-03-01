@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2026-03-02
+
+### Added
+
+- **Tailwind CSS Integration**: Fully migrated the frontend to Tailwind CSS for improved maintainability and modern aesthetics.
+- **Shared Reference Architecture**: Implemented a shared `refs` object across all frontend controllers, ensuring resilient DOM binding and immediate UI updates for dynamically injected elements.
+- **Tab Selection Persistence**: The desktop app now preserves the active tab (e.g., Logs & Shell) when switching between environments.
+
+### Fixed
+
+- **Terminal Mounting**: Resolved the "Terminal requires a parent element" error by standardizing controller initialization with live DOM references.
+- **Log Service Filtering**: Corrected state management in `main.js` to ensure log output is correctly filtered for the selected service.
+- **Process Management**: Improved development server stability by adding robust cleanup logic for redundant `wails` and `govard` instances.
+
+### Improved
+
+- **Testing Infrastructure**: Expanded integration test suite for environment selection and log retrieval.
+- **Build Automation**: Enhanced release workflows for multi-platform distribution.
+
 ## [1.9.0] - 2026-03-01
 
 ### Added
