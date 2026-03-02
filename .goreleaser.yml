@@ -23,6 +23,7 @@ builds:
     binary: govard-desktop
     tags:
       - desktop
+      - production
     env:
       - CGO_ENABLED=1
     goos:
