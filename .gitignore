@@ -49,13 +49,14 @@
 /tests/integration/realenv/.ssh/
 /tests/integration/realenv/*.log
 
-# Generated test data in fixtures (committed to repo)
-# Note: init.sql and env.php files in fixtures are now part of the test data
-
 # Desktop (Wails)
 /desktop/frontend/node_modules/
 /desktop/frontend/dist/
 /desktop/frontend/.vite/
 /desktop/frontend/wailsjs/
 /desktop/build/
+/desktop/frontend/package.json.md5
+
+# Extra
+.planning/
 .worktrees/
