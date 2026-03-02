@@ -24,6 +24,7 @@ builds:
     tags:
       - desktop
       - production
+      - webkit2gtk_4.1
     env:
       - CGO_ENABLED=1
     goos:
@@ -68,6 +69,9 @@ nfpms:
     priority: optional
     dependencies:
       - ca-certificates
+    recommends:
+      - libwebkit2gtk-4.1-0
+      - libgtk-3-0
     contents:
       - src: ./packaging/linux/govard.desktop
         dst: /usr/share/applications/govard.desktop
