@@ -24,7 +24,7 @@ builds:
     tags:
       - desktop
       - production
-      - webkit2gtk_4.1
+      - webkit2_41
     env:
       - CGO_ENABLED=1
     goos:
