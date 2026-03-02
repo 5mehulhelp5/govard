@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"govard/desktop/frontend"
 	"govard/internal/desktop"
 
 	"github.com/wailsapp/wails/v2"
@@ -13,13 +14,9 @@ import (
 
 func main() {
 	app := desktop.NewApp()
-	assets, err := desktop.ResolveAssets()
-	if err != nil {
-		log.Fatalf("Failed to locate frontend assets: %v", err)
-	}
 
 	launchOptions := desktop.ResolveLaunchOptions(os.Args[1:], os.Getenv(desktop.DesktopBackgroundEnvVar))
-	err = wails.Run(desktop.BuildWailsOptions(app, assets, launchOptions))
+	err := wails.Run(desktop.BuildWailsOptions(app, frontend.Assets, launchOptions))
 	if err != nil {
 		log.Fatalf("Failed to start Govard Desktop: %v", err)
 	}

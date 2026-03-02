@@ -26,9 +26,13 @@ func FindRepoRoot() (string, error) {
 	return "", fmt.Errorf("could not locate repository root from %s", start)
 }
 
-func ResolveAssets() (fs.FS, error) {
+func ResolveAssets(embeddedAssets fs.FS) (fs.FS, error) {
 	root, err := FindRepoRoot()
 	if err != nil {
+		// Fallback to embedded assets if repo root not found (production mode)
+		if embeddedAssets != nil {
+			return embeddedAssets, nil
+		}
 		return nil, err
 	}
 
@@ -41,6 +45,12 @@ func ResolveAssets() (fs.FS, error) {
 		if isDir(candidate) {
 			return os.DirFS(candidate), nil
 		}
+	}
+
+	// If candidates exist on disk but are not folders, or if candidates don't exist,
+	// still prefer embedded assets if available.
+	if embeddedAssets != nil {
+		return embeddedAssets, nil
 	}
 
 	return nil, fmt.Errorf("desktop frontend assets not found under %s", filepath.Join(root, "desktop", "frontend"))

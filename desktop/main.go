@@ -5,6 +5,7 @@ package main
 import (
 	"log"
 
+	"govard/desktop/frontend"
 	"govard/internal/desktop"
 
 	"github.com/wailsapp/wails/v2"
@@ -14,7 +15,7 @@ import (
 
 func main() {
 	app := desktop.NewApp()
-	assets, err := desktop.ResolveAssets()
+	assets, err := desktop.ResolveAssets(frontend.Assets)
 	if err != nil {
 		log.Fatalf("Failed to locate frontend assets: %v", err)
 	}

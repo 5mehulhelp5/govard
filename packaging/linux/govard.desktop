@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Version=1.0
-Name=Govard Desktop
+Name=Govard
 GenericName=Local Development Orchestrator
 Comment=Manage Govard environments from a desktop dashboard
 Exec=govard-desktop

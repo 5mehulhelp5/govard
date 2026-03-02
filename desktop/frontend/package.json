@@ -3,8 +3,8 @@
   "version": "1.10.0",
   "private": true,
   "scripts": {
-    "build:css": "tailwindcss -i ./styles-src.css -o ./tailwind-output.css --minify",
-    "watch:css": "tailwindcss -i ./styles-src.css -o ./tailwind-output.css --watch"
+    "build:css": "tailwindcss -i ./assets/styles-src.css -o ./assets/styles.css --minify",
+    "watch:css": "tailwindcss -i ./assets/styles-src.css -o ./assets/styles.css --watch"
   },
   "devDependencies": {
     "@tailwindcss/container-queries": "^0.1.1",
