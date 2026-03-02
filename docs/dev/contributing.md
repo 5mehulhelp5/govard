@@ -33,21 +33,42 @@ Guide for contributing to Govard development.
 
 ### Prerequisites
 
-- Go 1.24+
-- Docker & Docker Compose
-- Make
+- **Go 1.24+**: The core language.
+- **Node.js 20+**: Required for frontend assets and tests.
+- **Yarn (v1.x)**: Required for building frontend CSS/JS.
+- **golangci-lint (v1.64+)**: Required for code quality checks.
+- **Docker & Docker Compose**: Required for integration tests.
+- **Make**: For running build and test automation.
+
+#### Local Toolchain Setup (No Sudo)
+
+If you don't have `sudo` privileges or want to avoid global installations, you can set up everything locally:
+
+```bash
+# 1. Install Go locally
+mkdir -p $HOME/go_dist
+GO_TAR="go1.24.0.linux-amd64.tar.gz"
+curl -sL "https://go.dev/dl/${GO_TAR}" -o "$HOME/${GO_TAR}"
+tar -C $HOME/go_dist -xzf "$HOME/${GO_TAR}"
+
+# 2. Install Yarn locally
+npm install -g yarn --prefix=$HOME/.local
+
+# 3. Install golangci-lint locally
+mkdir -p $HOME/.local/bin
+curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $HOME/.local/bin v1.64.5
+
+# 4. Update your PATH (add to .bashrc or .zshrc)
+export PATH=$HOME/go_dist/go/bin:$HOME/.local/bin:$PATH
+```
 
 Verify toolchain:
 
 ```bash
 go version
+yarn --version
+golangci-lint --version
 gofmt -h >/dev/null
-```
-
-If `go` or `gofmt` is not found, add Go bin to your shell path:
-
-```bash
-export PATH="$HOME/go/bin:$PATH"
 ```
 
 ### Build Commands

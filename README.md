@@ -80,31 +80,36 @@ sudo installer -pkg govard_<version>_Darwin_arm64.pkg -target /
 
 ### Quick Install from Source
 
-Ensure you have Go 1.24+ installed, then run:
+Ensure you have the following prerequisites installed:
+
+- **Go 1.24+**
+- **Node.js 20+**
+- **Yarn (v1.x)**
+- **golangci-lint (v1.64+)**
+- **Docker & Docker Compose**
 
 ```bash
 go version
+node --version
+yarn --version
+golangci-lint --version
 git clone https://github.com/ddtcorex/govard.git
 cd govard
 ./install.sh --source
 ```
 
-### Install from Source (Manual)
+### Local Setup (For Developers)
 
-Ensure you have Go 1.24+ installed:
+If you are contributing to Govard, follow these steps to set up your environment:
 
-```bash
-go version
-git clone https://github.com/ddtcorex/govard.git
-cd govard
-make install
-```
+1. **Go 1.24+**: Install from [go.dev](https://go.dev/dl/).
+2. **Yarn**: Enable with `corepack enable` or `npm install -g yarn`.
+3. **golangci-lint**: Install the latest version:
+   ```bash
+   curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
+   ```
 
-If `go` is installed but not found:
-
-```bash
-export PATH="$HOME/go/bin:$PATH"
-```
+If you don't have `sudo` privileges, you can install everything to a local directory and update your `PATH`.
 
 ### Docker Images (Build Args)
 
