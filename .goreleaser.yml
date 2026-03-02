@@ -24,12 +24,11 @@ builds:
     tags:
       - desktop
     env:
-      - CGO_ENABLED=0
+      - CGO_ENABLED=1
     goos:
       - linux
     goarch:
       - amd64
-      - arm64
     ldflags:
       - -s -w -X govard/internal/cmd.Version={{ .Version }} -X govard/internal/desktop.Version={{ .Version }}
 
