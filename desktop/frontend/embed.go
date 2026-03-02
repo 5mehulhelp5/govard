@@ -7,5 +7,5 @@ import "embed"
 // tooling (tailwind.config.js, assets/styles-src.css, …) are excluded from the binary.
 //
 //go:embed index.html main.js assets
-//go:embed modules services state ui utils wailsjs
+//go:embed modules services state ui utils
 var Assets embed.FS
