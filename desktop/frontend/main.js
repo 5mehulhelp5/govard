@@ -109,9 +109,18 @@ const getLiveRefs = () => ({
   projectDomain: byId("projectDomain"),
   projectDomainHint: byId("projectDomainHint"),
   projectFramework: byId("projectFramework"),
+  onboardFromGit: byId("onboardFromGit"),
+  gitCloneFields: byId("gitCloneFields"),
+  gitProtocol: byId("gitProtocol"),
+  gitUrl: byId("gitUrl"),
+  gitUrlHint: byId("gitUrlHint"),
+  gitConfirmContainer: byId("gitConfirmContainer"),
+  gitConfirmOverride: byId("gitConfirmOverride"),
+  gitConfirmHint: byId("gitConfirmHint"),
   onboardingSummaryProject: byId("onboardingSummaryProject"),
   onboardingSummaryFramework: byId("onboardingSummaryFramework"),
   onboardingSummaryDomain: byId("onboardingSummaryDomain"),
+  onboardingSubmitSpinner: byId("onboardingSubmitSpinner"),
   onboardingSubmitHint: byId("onboardingSubmitHint"),
   onboardingSubmit: byId("onboardingSubmit"),
   onboardVarnish: byId("onboardVarnish"),
@@ -1647,6 +1656,12 @@ document.addEventListener("click", async (event) => {
 });
 
 const bindRuntimeListeners = () => {
+  if (desktopBridge.runtime?.EventsOn) {
+    desktopBridge.runtime.EventsOn("onboarding:progress", (payload = {}) => {
+      onboardingController.handleProgress(payload);
+    });
+  }
+
   if (refs.refresh) {
     refs.refresh.addEventListener("click", () => {
       refreshDashboard();
@@ -1780,6 +1795,30 @@ const bindDynamicControlListeners = () => {
 
   if (refs.projectFramework) {
     refs.projectFramework.addEventListener("change", () => {
+      onboardingController.handleInputChange();
+    });
+  }
+
+  if (refs.onboardFromGit) {
+    refs.onboardFromGit.addEventListener("change", () => {
+      onboardingController.handleInputChange();
+    });
+  }
+
+  if (refs.gitProtocol) {
+    refs.gitProtocol.addEventListener("change", () => {
+      onboardingController.handleInputChange();
+    });
+  }
+
+  if (refs.gitUrl) {
+    refs.gitUrl.addEventListener("input", () => {
+      onboardingController.handleInputChange();
+    });
+  }
+
+  if (refs.gitConfirmOverride) {
+    refs.gitConfirmOverride.addEventListener("change", () => {
       onboardingController.handleInputChange();
     });
   }

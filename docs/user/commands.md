@@ -199,7 +199,12 @@ Desktop highlights:
 - Project workspace layout (environments, quick actions, onboarding)
 - Quick actions (PHPMyAdmin, Xdebug toggle, health)
 - Additional quick actions: Mailpit and DB Client shortcuts
-- Manual project onboarding (select folder and add/init project)
+- Project onboarding supports:
+  - local add/init flow (select folder and onboard)
+  - optional Git clone onboarding (SSH/HTTPS URL)
+  - pre-clone Git connection validation
+  - explicit folder-override confirmation before clearing selected folder contents
+  - step progress updates during onboarding (validate, prepare folder, clone, init)
 - Remotes tab (list/add remotes, run remote test, open SSH/DB/SFTP, trigger sync plan presets)
 - Resource monitoring (CPU/RAM/NET and OOM hints)
 - Logs with multi-service selection, severity/text filtering, and live streaming
@@ -212,6 +217,7 @@ Desktop remote open behavior:
 - Open SSH (Remote) on Linux prefers native terminal launchers (`x-terminal-emulator`, `gnome-terminal`, `konsole`, `xfce4-terminal`) and falls back to `ssh://` URL handoff when needed.
 - Open SFTP (Remote) prefers FileZilla when available and falls back to standard `sftp://` URL handoff.
 - Open Database (Remote) uses `govard open db -e <remote> --client`.
+- Desktop remote selection and bootstrap prompt use configured remote names directly.
 - For remotes with `auth.method: ssh-agent`, desktop open actions reuse `SSH_AUTH_SOCK` (Linux also probes `/run/user/<uid>/keyring/ssh`).
 - If FileZilla asks for a password, load your key into ssh-agent and set remote auth method to `ssh-agent`.
 

@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -112,6 +113,258 @@ domain: shop.test
 	}
 	if entries[0].Framework != "magento2" {
 		t.Fatalf("expected framework magento2, got %s", entries[0].Framework)
+	}
+}
+
+func TestDesktopPkgOnboardProjectFromGitForPathForTestClonesBeforeInit(t *testing.T) {
+	root := t.TempDir()
+	registryPath := filepath.Join(t.TempDir(), "projects.json")
+	t.Setenv(engine.ProjectRegistryPathEnvVar, registryPath)
+
+	steps := make([]string, 0, 3)
+	restoreValidate := desktop.SetValidateGitConnectionForDesktopForTest(func(protocol string, repoURL string) error {
+		steps = append(steps, "validate")
+		if protocol != "https" {
+			t.Fatalf("expected https protocol, got %s", protocol)
+		}
+		if repoURL != "https://example.com/acme/shop.git" {
+			t.Fatalf("unexpected repo URL: %s", repoURL)
+		}
+		return nil
+	})
+	defer restoreValidate()
+
+	restoreClone := desktop.SetCloneGitRepoForDesktopForTest(func(repoURL string, destination string) error {
+		steps = append(steps, "clone")
+		if destination != root {
+			t.Fatalf("expected destination %s, got %s", root, destination)
+		}
+		return nil
+	})
+	defer restoreClone()
+
+	restoreInit := desktop.SetRunGovardCommandForDesktopForTest(func(dir string, args []string) (string, error) {
+		steps = append(steps, "init")
+		content := strings.TrimSpace(`
+project_name: demo
+framework: laravel
+domain: demo.test
+`) + "\n"
+		if err := os.WriteFile(filepath.Join(dir, ".govard.yml"), []byte(content), 0o644); err != nil {
+			return "", err
+		}
+		return "ok", nil
+	})
+	defer restoreInit()
+
+	message, err := desktop.OnboardProjectFromGitForPathForTest(
+		root,
+		"laravel",
+		"https",
+		"https://example.com/acme/shop.git",
+	)
+	if err != nil {
+		t.Fatalf("onboard git project: %v", err)
+	}
+	if !strings.Contains(strings.ToLower(message), "initialized") {
+		t.Fatalf("expected initialized message, got %q", message)
+	}
+	expectedSteps := []string{"validate", "clone", "init"}
+	if !reflect.DeepEqual(steps, expectedSteps) {
+		t.Fatalf("unexpected step order: %#v", steps)
+	}
+}
+
+func TestDesktopPkgOnboardProjectFromGitForPathForTestShowsSSHSetupGuidanceOnValidationFail(t *testing.T) {
+	root := t.TempDir()
+	registryPath := filepath.Join(t.TempDir(), "projects.json")
+	t.Setenv(engine.ProjectRegistryPathEnvVar, registryPath)
+
+	restoreValidate := desktop.SetValidateGitConnectionForDesktopForTest(func(protocol string, repoURL string) error {
+		return fmt.Errorf("permission denied (publickey)")
+	})
+	defer restoreValidate()
+
+	restoreClone := desktop.SetCloneGitRepoForDesktopForTest(func(repoURL string, destination string) error {
+		t.Fatalf("clone should not run when validation fails")
+		return nil
+	})
+	defer restoreClone()
+
+	restoreInit := desktop.SetRunGovardCommandForDesktopForTest(func(dir string, args []string) (string, error) {
+		t.Fatalf("init should not run when git validation fails")
+		return "", nil
+	})
+	defer restoreInit()
+
+	_, err := desktop.OnboardProjectFromGitForPathForTest(
+		root,
+		"laravel",
+		"ssh",
+		"git@example.com:acme/shop.git",
+	)
+	if err == nil {
+		t.Fatal("expected git validation error")
+	}
+	lowered := strings.ToLower(err.Error())
+	if !strings.Contains(lowered, "git ssh connection validation failed") {
+		t.Fatalf("expected ssh validation error message, got %v", err)
+	}
+	if !strings.Contains(lowered, "ssh-add -l") {
+		t.Fatalf("expected ssh setup guidance, got %v", err)
+	}
+	if !strings.Contains(lowered, "ssh -t git@example.com") && !strings.Contains(lowered, "ssh -t git@") {
+		t.Fatalf("expected ssh verify guidance, got %v", err)
+	}
+}
+
+func TestDesktopPkgOnboardProjectFromGitForPathForTestRequiresFolderOverrideConfirmation(t *testing.T) {
+	root := t.TempDir()
+	registryPath := filepath.Join(t.TempDir(), "projects.json")
+	t.Setenv(engine.ProjectRegistryPathEnvVar, registryPath)
+
+	restoreValidate := desktop.SetValidateGitConnectionForDesktopForTest(func(protocol string, repoURL string) error {
+		t.Fatalf("git validation should not run without override confirmation")
+		return nil
+	})
+	defer restoreValidate()
+
+	_, err := desktop.OnboardProjectFromGitWithConfirmationForPathForTest(
+		root,
+		"laravel",
+		"https",
+		"https://example.com/acme/shop.git",
+		false,
+	)
+	if err == nil {
+		t.Fatal("expected confirmation error")
+	}
+	if !strings.Contains(strings.ToLower(err.Error()), "confirm folder override") {
+		t.Fatalf("expected confirmation guidance, got %v", err)
+	}
+}
+
+func TestDesktopPkgOnboardProjectFromGitForPathForTestClearsFolderBeforeClone(t *testing.T) {
+	root := t.TempDir()
+	registryPath := filepath.Join(t.TempDir(), "projects.json")
+	t.Setenv(engine.ProjectRegistryPathEnvVar, registryPath)
+
+	legacyFile := filepath.Join(root, "legacy.txt")
+	if err := os.WriteFile(legacyFile, []byte("legacy"), 0o644); err != nil {
+		t.Fatalf("write legacy file: %v", err)
+	}
+	legacyDir := filepath.Join(root, "old")
+	if err := os.MkdirAll(legacyDir, 0o755); err != nil {
+		t.Fatalf("create legacy dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(legacyDir, "nested.txt"), []byte("nested"), 0o644); err != nil {
+		t.Fatalf("write nested file: %v", err)
+	}
+
+	restoreValidate := desktop.SetValidateGitConnectionForDesktopForTest(func(protocol string, repoURL string) error {
+		return nil
+	})
+	defer restoreValidate()
+
+	restoreClone := desktop.SetCloneGitRepoForDesktopForTest(func(repoURL string, destination string) error {
+		if _, err := os.Stat(legacyFile); !os.IsNotExist(err) {
+			t.Fatalf("expected legacy file to be removed before clone")
+		}
+		if _, err := os.Stat(legacyDir); !os.IsNotExist(err) {
+			t.Fatalf("expected legacy directory to be removed before clone")
+		}
+		return nil
+	})
+	defer restoreClone()
+
+	restoreInit := desktop.SetRunGovardCommandForDesktopForTest(func(dir string, args []string) (string, error) {
+		content := strings.TrimSpace(`
+project_name: demo
+framework: laravel
+domain: demo.test
+`) + "\n"
+		if err := os.WriteFile(filepath.Join(dir, ".govard.yml"), []byte(content), 0o644); err != nil {
+			return "", err
+		}
+		return "ok", nil
+	})
+	defer restoreInit()
+
+	_, err := desktop.OnboardProjectFromGitForPathForTest(
+		root,
+		"laravel",
+		"https",
+		"https://example.com/acme/shop.git",
+	)
+	if err != nil {
+		t.Fatalf("onboard git project: %v", err)
+	}
+}
+
+func TestDesktopPkgOnboardProjectFromGitForPathForTestDoesNotClearFolderWhenValidationFails(t *testing.T) {
+	root := t.TempDir()
+	registryPath := filepath.Join(t.TempDir(), "projects.json")
+	t.Setenv(engine.ProjectRegistryPathEnvVar, registryPath)
+
+	legacyFile := filepath.Join(root, "legacy.txt")
+	if err := os.WriteFile(legacyFile, []byte("legacy"), 0o644); err != nil {
+		t.Fatalf("write legacy file: %v", err)
+	}
+
+	restoreValidate := desktop.SetValidateGitConnectionForDesktopForTest(func(protocol string, repoURL string) error {
+		return fmt.Errorf("auth failed")
+	})
+	defer restoreValidate()
+
+	restoreClone := desktop.SetCloneGitRepoForDesktopForTest(func(repoURL string, destination string) error {
+		t.Fatalf("clone should not run when validation fails")
+		return nil
+	})
+	defer restoreClone()
+
+	_, err := desktop.OnboardProjectFromGitForPathForTest(
+		root,
+		"laravel",
+		"https",
+		"https://example.com/acme/shop.git",
+	)
+	if err == nil {
+		t.Fatal("expected git validation error")
+	}
+	if _, statErr := os.Stat(legacyFile); statErr != nil {
+		t.Fatalf("expected legacy file to remain after validation failure, got %v", statErr)
+	}
+}
+
+func TestDesktopPkgOnboardProjectFromGitForPathForTestRejectsDangerousDestinationPath(t *testing.T) {
+	home := t.TempDir()
+	registryPath := filepath.Join(t.TempDir(), "projects.json")
+	t.Setenv(engine.ProjectRegistryPathEnvVar, registryPath)
+	t.Setenv("HOME", home)
+
+	restoreValidate := desktop.SetValidateGitConnectionForDesktopForTest(func(protocol string, repoURL string) error {
+		return nil
+	})
+	defer restoreValidate()
+
+	restoreClone := desktop.SetCloneGitRepoForDesktopForTest(func(repoURL string, destination string) error {
+		t.Fatalf("clone should not run for dangerous destination path")
+		return nil
+	})
+	defer restoreClone()
+
+	_, err := desktop.OnboardProjectFromGitForPathForTest(
+		home,
+		"laravel",
+		"https",
+		"https://example.com/acme/shop.git",
+	)
+	if err == nil {
+		t.Fatal("expected dangerous path validation error")
+	}
+	lowered := strings.ToLower(err.Error())
+	if !strings.Contains(lowered, "refusing to clone into home directory") {
+		t.Fatalf("expected home directory safety error, got %v", err)
 	}
 }
 

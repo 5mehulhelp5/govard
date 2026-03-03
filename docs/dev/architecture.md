@@ -88,6 +88,8 @@ For Magento 2:
 - **Action surface**: quick actions (start/stop/open, PHPMyAdmin, Xdebug toggle, health) and remote open actions (SSH/DB/SFTP)
 - **Additional quick actions**: Mailpit and DB client shortcuts
 - **Project management surface**: dedicated workspace grouping environment list, quick actions, and onboarding
+- **Onboarding flow**: supports optional Git clone before init/add with pre-clone connection validation, explicit folder-override confirmation, and progress events (`onboarding:progress`) for UI step updates
+- **Remote selection model**: desktop remotes UI/bootstrap selection uses configured remote names directly (no dedicated `remote.environment` field in desktop payload)
 - **Observability**: logs with service filtering and live streaming
 - **Command access**: shell launcher with project/service/user/shell selection
 - **Preferences**: theme, proxy target, preferred browser, and per-project shell-user preferences persisted in desktop preferences

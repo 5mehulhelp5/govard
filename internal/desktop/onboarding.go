@@ -12,16 +12,24 @@ import (
 )
 
 type OnboardInput struct {
-	ProjectPath          string `json:"projectPath"`
-	Framework            string `json:"framework"`
-	Domain               string `json:"domain"`
-	VarnishEnabled       bool   `json:"varnishEnabled"`
-	RedisEnabled         bool   `json:"redisEnabled"`
-	RabbitMQEnabled      bool   `json:"rabbitMQEnabled"`
-	ElasticsearchEnabled bool   `json:"elasticsearchEnabled"`
-	ApplyOverrides       bool   `json:"applyOverrides"`
-	SkipIDE              bool   `json:"skipIDE"`
+	ProjectPath           string `json:"projectPath"`
+	Framework             string `json:"framework"`
+	Domain                string `json:"domain"`
+	CloneFromGit          bool   `json:"cloneFromGit"`
+	GitProtocol           string `json:"gitProtocol"`
+	GitURL                string `json:"gitURL"`
+	ConfirmFolderOverride bool   `json:"confirmFolderOverride"`
+	VarnishEnabled        bool   `json:"varnishEnabled"`
+	RedisEnabled          bool   `json:"redisEnabled"`
+	RabbitMQEnabled       bool   `json:"rabbitMQEnabled"`
+	ElasticsearchEnabled  bool   `json:"elasticsearchEnabled"`
+	ApplyOverrides        bool   `json:"applyOverrides"`
+	SkipIDE               bool   `json:"skipIDE"`
 }
+
+type onboardingContextKey struct{}
+
+var suppressOnboardingProgressKey onboardingContextKey
 
 func pickProjectDirectoryInternal(ctx context.Context) (string, error) {
 	defaultDir := ""
@@ -55,6 +63,14 @@ func onboardProject(projectPath string, framework string) (string, error) {
 }
 
 func onboardProjectWithOptionsInternal(
+	input OnboardInput,
+) (string, error) {
+	internalCtx := context.WithValue(context.Background(), suppressOnboardingProgressKey, true)
+	return onboardProjectWithOptionsInternalWithContext(internalCtx, input)
+}
+
+func onboardProjectWithOptionsInternalWithContext(
+	ctx context.Context,
 	input OnboardInput,
 ) (string, error) {
 	projectPath := input.ProjectPath
@@ -91,6 +107,33 @@ func onboardProjectWithOptionsInternal(
 	}
 	project = root
 
+	reportProgress := func(step string, progressMessage string) {
+		if ctx == nil {
+			return
+		}
+		if suppressed, _ := ctx.Value(suppressOnboardingProgressKey).(bool); suppressed {
+			return
+		}
+		emitEvent(ctx, "onboarding:progress", map[string]string{
+			"step":    strings.TrimSpace(step),
+			"message": strings.TrimSpace(progressMessage),
+		})
+	}
+
+	if input.CloneFromGit {
+		if !input.ConfirmFolderOverride {
+			err := fmt.Errorf("please confirm folder override before cloning from Git")
+			category = "validation"
+			message = err.Error()
+			return "", err
+		}
+		if err := cloneProjectSourceFromGit(root, input.GitProtocol, input.GitURL, reportProgress); err != nil {
+			category = "validation"
+			message = err.Error()
+			return "", err
+		}
+	}
+
 	config, hasConfig, err := loadProjectConfigForOnboarding(root)
 	if err != nil {
 		category = "validation"
@@ -102,6 +145,7 @@ func onboardProjectWithOptionsInternal(
 	if !hasConfig {
 		migrateFrom := detectOnboardingMigrationSource(root)
 		args := buildInitArgs(framework, migrateFrom)
+		reportProgress("govard.init", "Running Govard init...")
 		if _, err := runGovardCommandForDesktop(root, args); err != nil {
 			message = err.Error()
 			return "", fmt.Errorf("project init failed: %w", err)
@@ -140,6 +184,7 @@ func onboardProjectWithOptionsInternal(
 		}
 	}
 
+	reportProgress("project.registry", "Registering project...")
 	entry := buildProjectRegistryEntry(root, config, "desktop-onboard")
 	if err := validateUniqueOnboardingDomain(root, entry.Domain); err != nil {
 		category = "validation"
@@ -154,6 +199,7 @@ func onboardProjectWithOptionsInternal(
 
 	status = engine.OperationStatusSuccess
 	category = ""
+	reportProgress("onboarding.complete", "Onboarding completed.")
 	if ranInit {
 		if message == "" {
 			message = "project initialized and added"
@@ -177,7 +223,7 @@ func (s *OnboardingService) PickProjectDirectory() (string, error) {
 }
 
 func (s *OnboardingService) OnboardProject(input OnboardInput) (string, error) {
-	return onboardProjectWithOptionsInternal(input)
+	return onboardProjectWithOptionsInternalWithContext(s.ctx, input)
 }
 
 func loadProjectConfigForOnboarding(root string) (engine.Config, bool, error) {

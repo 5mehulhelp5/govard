@@ -33,7 +33,6 @@ test("normalizeRemotesPayload maps mixed-case payload fields", () => {
         User: "deploy",
         Path: "/var/www/staging",
         Port: 22,
-        Environment: "staging",
         Protected: false,
         AuthMethod: "keychain",
         LastSync: "2m ago",
@@ -71,7 +70,6 @@ test("remote card renders open-url button to the left of test connection", () =>
     {
       name: "staging",
       host: "staging.example.com",
-      environment: "staging",
       protected: false,
     },
   ]);
@@ -114,7 +112,6 @@ test("remote open action buttons include loading labels for pending UX", () => {
     {
       name: "staging",
       host: "staging.example.com",
-      environment: "staging",
       protected: false,
     },
   ]);
@@ -165,7 +162,6 @@ test("pull buttons are disabled when remote capability is missing", () => {
     {
       name: "limited",
       host: "limited.example.com",
-      environment: "staging",
       capabilities: ["files"],
     },
   ]);
@@ -191,7 +187,6 @@ test("pull buttons stay enabled when capability list is not declared", () => {
     {
       name: "legacy",
       host: "legacy.example.com",
-      environment: "staging",
     },
   ]);
 
@@ -216,7 +211,6 @@ test("protected warning copy does not hardcode production wording", () => {
     {
       name: "staging-protected",
       host: "staging.example.com",
-      environment: "staging",
       protected: true,
     },
   ]);

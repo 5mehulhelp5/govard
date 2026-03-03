@@ -344,7 +344,6 @@ const safeRemotes = {
     {
       Name: "Staging",
       Host: "192.168.1.45",
-      Environment: "staging",
       LastSync: "2m ago",
       DbSize: "458 MB",
       MediaSize: "1.2 GB",
@@ -352,7 +351,6 @@ const safeRemotes = {
     {
       Name: "Production",
       Host: "203.0.113.15",
-      Environment: "production",
       LastSync: "1h ago",
       DbSize: "2.4 GB",
       MediaSize: "8.5 GB",

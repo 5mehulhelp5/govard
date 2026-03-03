@@ -20,6 +20,35 @@ export const normalizeOnboardingFramework = (framework = "") => {
   return normalized;
 };
 
+export const normalizeOnboardingGitProtocol = (protocol = "") => {
+  const normalized = String(protocol || "")
+    .trim()
+    .toLowerCase();
+  if (normalized === "https") {
+    return "https";
+  }
+  return "ssh";
+};
+
+const gitURLMatchesProtocol = (protocol = "ssh", gitURL = "") => {
+  const normalizedProtocol = normalizeOnboardingGitProtocol(protocol);
+  const value = String(gitURL || "")
+    .trim()
+    .toLowerCase();
+  if (!value) {
+    return false;
+  }
+  if (normalizedProtocol === "https") {
+    return value.startsWith("https://");
+  }
+  return value.startsWith("git@") || value.startsWith("ssh://");
+};
+
+const gitURLPlaceholderByProtocol = {
+  ssh: "git@github.com:org/repository.git",
+  https: "https://github.com/org/repository.git",
+};
+
 const inferProjectNameFromPath = (projectPath = "") => {
   const parts = String(projectPath || "")
     .split(/[\\/]+/)
@@ -206,6 +235,11 @@ export const createOnboardingController = ({
     level = "muted",
     submitting = false,
   } = {}) => {
+    const showSpinner =
+      submitting && Boolean(refs.onboardFromGit?.checked) && level !== "error";
+    if (refs.onboardingSubmitSpinner) {
+      refs.onboardingSubmitSpinner.classList.toggle("hidden", !showSpinner);
+    }
     if (refs.onboardingSubmit) {
       const disabled = submitting || !canSubmit;
       refs.onboardingSubmit.disabled = disabled;
@@ -222,6 +256,19 @@ export const createOnboardingController = ({
     const shouldShowErrors = forceValidation || hasAttemptedSubmit;
     const projectPath = String(refs.projectPath?.value || "").trim();
     const inferredName = inferProjectNameFromPath(projectPath);
+    const cloneFromGit = Boolean(refs.onboardFromGit?.checked);
+    const gitProtocol = normalizeOnboardingGitProtocol(refs.gitProtocol?.value);
+    const gitURL = String(refs.gitUrl?.value || "").trim();
+    const gitURLMatches = gitURLMatchesProtocol(gitProtocol, gitURL);
+    const gitURLMissing = cloneFromGit && !gitURL;
+    const gitURLInvalid = cloneFromGit && gitURL && !gitURLMatches;
+    const confirmFolderOverride = Boolean(refs.gitConfirmOverride?.checked);
+    const confirmOverrideMissing = cloneFromGit && !confirmFolderOverride;
+    const gitValidationMessage = gitURLMissing
+      ? "Repository URL is required when Git onboarding is enabled."
+      : gitURLInvalid
+        ? `Repository URL must match ${gitProtocol.toUpperCase()} format.`
+        : "";
 
     let framework = String(refs.projectFramework?.value || "").trim();
     if ((!framework || framework === "auto") && projectPath) {
@@ -246,6 +293,20 @@ export const createOnboardingController = ({
     }
     if (refs.onboardingSummaryDomain) {
       refs.onboardingSummaryDomain.textContent = normalizedDomain || "-";
+    }
+    if (refs.gitCloneFields) {
+      refs.gitCloneFields.classList.toggle("hidden", !cloneFromGit);
+    }
+    if (refs.gitProtocol) {
+      refs.gitProtocol.value = gitProtocol;
+    }
+    if (refs.gitUrl) {
+      refs.gitUrl.placeholder =
+        gitURLPlaceholderByProtocol[gitProtocol] ||
+        gitURLPlaceholderByProtocol.ssh;
+    }
+    if (refs.gitConfirmContainer) {
+      refs.gitConfirmContainer.classList.toggle("hidden", !cloneFromGit);
     }
 
     if (!projectPath && shouldShowErrors) {
@@ -286,6 +347,44 @@ export const createOnboardingController = ({
       );
     }
 
+    if (!cloneFromGit) {
+      setHint(
+        refs.gitUrlHint,
+        "Optional: enable Git onboarding to clone source before initialization.",
+        "muted",
+      );
+    } else if (gitURLMissing) {
+      setHint(refs.gitUrlHint, gitValidationMessage, "warning");
+    } else if (gitURLInvalid) {
+      setHint(refs.gitUrlHint, gitValidationMessage, "warning");
+    } else {
+      setHint(
+        refs.gitUrlHint,
+        `Git ${gitProtocol.toUpperCase()} URL looks valid. Connection will be validated before clone.`,
+        "success",
+      );
+    }
+
+    if (!cloneFromGit) {
+      setHint(
+        refs.gitConfirmHint,
+        "Enable Git onboarding to require folder override confirmation.",
+        "muted",
+      );
+    } else if (confirmOverrideMissing) {
+      setHint(
+        refs.gitConfirmHint,
+        "Please confirm folder override before cloning from Git.",
+        "warning",
+      );
+    } else {
+      setHint(
+        refs.gitConfirmHint,
+        "Folder override confirmed.",
+        "success",
+      );
+    }
+
     if (!projectPath && shouldShowErrors) {
       setSubmitState({
         canSubmit: false,
@@ -310,6 +409,18 @@ export const createOnboardingController = ({
         message: duplicateMessage,
         level: "warning",
       });
+    } else if (gitValidationMessage) {
+      setSubmitState({
+        canSubmit: false,
+        message: gitValidationMessage,
+        level: "warning",
+      });
+    } else if (confirmOverrideMissing) {
+      setSubmitState({
+        canSubmit: false,
+        message: "Please confirm folder override before cloning from Git.",
+        level: "warning",
+      });
     } else {
       setSubmitState({
         canSubmit: true,
@@ -323,6 +434,11 @@ export const createOnboardingController = ({
       normalizedDomain,
       framework: normalizeOnboardingFramework(framework),
       duplicateMessage,
+      cloneFromGit,
+      gitProtocol,
+      gitURL,
+      confirmFolderOverride,
+      gitValidationMessage,
     };
   };
 
@@ -335,6 +451,10 @@ export const createOnboardingController = ({
     }
     if (refs.projectDomain) refs.projectDomain.value = "";
     if (refs.projectFramework) refs.projectFramework.value = "auto";
+    if (refs.onboardFromGit) refs.onboardFromGit.checked = false;
+    if (refs.gitProtocol) refs.gitProtocol.value = "ssh";
+    if (refs.gitUrl) refs.gitUrl.value = "";
+    if (refs.gitConfirmOverride) refs.gitConfirmOverride.checked = false;
     if (refs.onboardVarnish) {
       refs.onboardVarnish.checked = defaultServiceOptions.varnish;
     }
@@ -361,6 +481,15 @@ export const createOnboardingController = ({
       return;
     }
     syncPreview();
+  };
+
+  const setSubmittingProgress = (message) => {
+    setSubmitState({
+      canSubmit: false,
+      message: String(message || "Initializing environment..."),
+      level: "muted",
+      submitting: true,
+    });
   };
 
   const getBootstrapPromptRefs = () => ({
@@ -449,11 +578,11 @@ export const createOnboardingController = ({
     validRemotes.forEach((remote) => {
       const option = document.createElement("option");
       option.value = String(remote.name);
-      option.textContent = `${String(remote.name)} (${String(remote.environment || "remote").toUpperCase()})`;
+      option.textContent = String(remote.name);
       promptRefs.remoteSelect.appendChild(option);
     });
     if (promptRefs.summary) {
-      promptRefs.summary.textContent = `Found ${validRemotes.length} remote environment(s) for ${inferProjectNameFromPath(projectPath) || "this project"}.`;
+      promptRefs.summary.textContent = `Found ${validRemotes.length} remote(s) for ${inferProjectNameFromPath(projectPath) || "this project"}.`;
     }
 
     let optionsDef = [];
@@ -530,6 +659,18 @@ export const createOnboardingController = ({
       onToast(preview.duplicateMessage, "warning");
       return;
     }
+    if (preview.gitValidationMessage) {
+      onStatus(preview.gitValidationMessage);
+      onToast(preview.gitValidationMessage, "warning");
+      return;
+    }
+    if (preview.cloneFromGit && !preview.confirmFolderOverride) {
+      const confirmMessage =
+        "Please confirm folder override before cloning from Git.";
+      onStatus(confirmMessage);
+      onToast(confirmMessage, "warning");
+      return;
+    }
 
     const serviceOptions = {
       varnish: Boolean(refs.onboardVarnish?.checked),
@@ -539,13 +680,22 @@ export const createOnboardingController = ({
     };
 
     setSubmitting(true);
-    onStatus("Starting project onboarding...");
+    if (preview.cloneFromGit) {
+      setSubmittingProgress("Validating Git connection...");
+      onStatus("Validating Git connection...");
+    } else {
+      onStatus("Starting project onboarding...");
+    }
     try {
       const message = String(
         (await bridge.onboardProject({
           projectPath: preview.projectPath,
           framework: preview.framework,
           domain: preview.normalizedDomain,
+          cloneFromGit: preview.cloneFromGit,
+          gitProtocol: preview.gitProtocol,
+          gitURL: preview.gitURL,
+          confirmFolderOverride: preview.confirmFolderOverride,
           varnishEnabled: serviceOptions.varnish,
           redisEnabled: serviceOptions.redis,
           rabbitMQEnabled: serviceOptions.rabbitmq,
@@ -613,7 +763,7 @@ export const createOnboardingController = ({
     const promptRefs = getBootstrapPromptRefs();
     const selectedRemote = String(promptRefs.remoteSelect?.value || "").trim();
     if (!selectedRemote) {
-      onToast("Please select a remote environment.", "warning");
+      onToast("Please select a remote.", "warning");
       return;
     }
 
@@ -663,6 +813,18 @@ export const createOnboardingController = ({
     refs.onboardingModal.classList.remove("flex");
   };
 
+  const handleProgress = (payload = {}) => {
+    const message =
+      typeof payload === "string"
+        ? String(payload).trim()
+        : String(payload?.message || "").trim();
+    if (!message) {
+      return;
+    }
+    setSubmittingProgress(message);
+    onStatus(message);
+  };
+
   return {
     browseProject,
     addProject,
@@ -670,6 +832,7 @@ export const createOnboardingController = ({
     skipBootstrapPrompt,
     toggleBootstrapOption,
     toggleModal,
+    handleProgress,
     handleInputChange: () => syncPreview(),
     resetForm,
   };
@@ -710,12 +873,55 @@ export const renderOnboardingModal = (container) => {
             </button>
           </header>
 
-          <main class="flex-1 overflow-hidden relative flex flex-col lg:flex-row bg-background-light dark:bg-[#102316]/50">
-            <aside class="lg:w-[360px] border-r border-slate-200 dark:border-white/10 bg-surface-light dark:bg-[#1a3322] overflow-y-auto shrink-0">
+          <main class="flex-1 overflow-hidden relative flex flex-col lg:grid lg:grid-cols-[40%_60%] bg-background-light dark:bg-[#102316]/50">
+            <aside class="min-w-0 border-r border-slate-200 dark:border-white/10 bg-surface-light dark:bg-[#1a3322] overflow-y-auto">
               <div class="p-6 flex flex-col gap-6">
                 <div>
                   <h3 class="text-lg font-bold text-slate-900 dark:text-white">Project Source</h3>
                   <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Select local project root and review resolved values.</p>
+                </div>
+
+                <div class="rounded-xl bg-slate-100 dark:bg-black/20 border border-slate-200 dark:border-white/10 p-4">
+                  <label class="flex items-start justify-between gap-3 cursor-pointer">
+                    <div class="pr-2">
+                      <div class="text-sm font-semibold text-slate-800 dark:text-slate-100">Onboard from Git Repository</div>
+                      <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Clone source code into the selected folder before running the standard onboarding flow.
+                      </p>
+                    </div>
+                    <input id="onboardFromGit" type="checkbox" class="mt-1 size-4 accent-primary" />
+                  </label>
+                  <div id="gitCloneFields" class="hidden mt-4 space-y-3">
+                    <div>
+                      <label for="gitProtocol" class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Git Protocol</label>
+                      <select
+                        id="gitProtocol"
+                        class="mt-1 w-full rounded-lg border border-slate-300 dark:border-white/15 bg-white dark:bg-[#1f3a28] text-sm text-slate-900 dark:text-slate-100 px-3 py-2"
+                      >
+                        <option value="ssh">SSH</option>
+                        <option value="https">HTTPS</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label for="gitUrl" class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Repository URL</label>
+                      <input
+                        id="gitUrl"
+                        type="text"
+                        placeholder="git@github.com:org/repository.git"
+                        class="mt-1 w-full rounded-lg border border-slate-300 dark:border-white/15 bg-white dark:bg-[#1f3a28] text-sm text-slate-900 dark:text-slate-100 px-3 py-2"
+                      />
+                    </div>
+                    <div id="gitConfirmContainer" class="hidden">
+                      <label class="flex items-start gap-2 cursor-pointer">
+                        <input id="gitConfirmOverride" type="checkbox" class="mt-0.5 size-4 accent-primary" />
+                        <span class="text-xs text-slate-600 dark:text-slate-300">
+                          I understand Govard will delete all existing files/folders inside the selected project folder before cloning.
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                  <p id="gitUrlHint" class="text-xs text-slate-500 dark:text-slate-400 mt-3"></p>
+                  <p id="gitConfirmHint" class="text-xs text-slate-500 dark:text-slate-400 mt-2"></p>
                 </div>
 
                 <div
@@ -765,14 +971,14 @@ export const renderOnboardingModal = (container) => {
               </div>
             </aside>
 
-            <div class="flex-1 overflow-y-auto">
+            <div class="min-w-0 overflow-y-auto">
               <div class="p-8 lg:p-10 max-w-3xl mx-auto w-full flex flex-col gap-8 pb-24">
                 <div>
                   <h3 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">Environment Settings</h3>
                   <p class="text-slate-500 dark:text-slate-400">Set domain, framework, and optional services before onboarding.</p>
                 </div>
 
-                <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <section class="grid grid-cols-1 gap-6">
                   <div class="flex flex-col gap-2">
                     <label class="text-sm font-medium text-slate-700 dark:text-slate-300">Local Domain</label>
                     <input
@@ -852,7 +1058,14 @@ export const renderOnboardingModal = (container) => {
           </main>
 
           <footer class="shrink-0 p-5 bg-surface-light dark:bg-[#102316] border-t border-slate-200 dark:border-white/10 flex justify-between items-center gap-3">
-            <p id="onboardingSubmitHint" class="text-xs text-slate-500 dark:text-slate-400">Select a project path to continue.</p>
+            <div class="flex items-center gap-2">
+              <span
+                id="onboardingSubmitSpinner"
+                class="hidden inline-block size-3 rounded-full border-2 border-slate-400/30 dark:border-slate-300/20 border-t-slate-500 dark:border-t-slate-100 animate-spin"
+                aria-hidden="true"
+              ></span>
+              <p id="onboardingSubmitHint" class="text-xs text-slate-500 dark:text-slate-400">Select a project path to continue.</p>
+            </div>
             <div class="flex items-center gap-3">
             <button
               data-action="close-onboarding"

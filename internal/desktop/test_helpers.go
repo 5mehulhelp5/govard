@@ -16,6 +16,8 @@ func ResetStateForTest() {
 	prefsMu.Unlock()
 	runGovardCommandForDesktop = defaultRunGovardCommandForDesktop
 	startGovardCommandForDesktop = defaultStartGovardCommandForDesktop
+	validateGitConnectionForDesktop = defaultValidateGitConnectionForDesktop
+	cloneGitRepoForDesktop = defaultCloneGitRepoForDesktop
 	openExternalURLForDesktop = defaultOpenExternalURLForDesktop
 	runGlobalServicesComposeForDesktop = defaultRunGlobalServicesComposeForDesktop
 	ensureGlobalServicesForDesktop = defaultEnsureGlobalServicesForDesktop
@@ -172,7 +174,7 @@ func BuildRemoteEntriesForTest(remotes map[string]RemoteConfigSnapshot) []Remote
 // BuildRemoteEntriesWithLastSyncForTest exposes remote entry rendering with Last Sync labels.
 func BuildRemoteEntriesWithLastSyncForTest(
 	remotes map[string]RemoteConfigSnapshot,
-	lastSyncByEnvironment map[string]string,
+	lastSyncByRemote map[string]string,
 ) []RemoteEntry {
 	engineRemotes := map[string]engine.RemoteConfig{}
 	for name, snapshot := range remotes {
@@ -194,7 +196,7 @@ func BuildRemoteEntriesWithLastSyncForTest(
 			},
 		}
 	}
-	return buildRemoteEntries(engineRemotes, lastSyncByEnvironment)
+	return buildRemoteEntries(engineRemotes, lastSyncByRemote)
 }
 
 // BuildRemoteLastSyncLabelsFromEventsForTest exposes operation-event to last-sync label mapping.
@@ -332,6 +334,32 @@ func SetStartGovardCommandForDesktopForTest(fn func(root string, args []string) 
 	}
 }
 
+// SetValidateGitConnectionForDesktopForTest overrides git connection validation in onboarding flow.
+func SetValidateGitConnectionForDesktopForTest(fn func(protocol string, repoURL string) error) func() {
+	previous := validateGitConnectionForDesktop
+	if fn == nil {
+		validateGitConnectionForDesktop = defaultValidateGitConnectionForDesktop
+	} else {
+		validateGitConnectionForDesktop = fn
+	}
+	return func() {
+		validateGitConnectionForDesktop = previous
+	}
+}
+
+// SetCloneGitRepoForDesktopForTest overrides git clone behavior in onboarding flow.
+func SetCloneGitRepoForDesktopForTest(fn func(repoURL string, destination string) error) func() {
+	previous := cloneGitRepoForDesktop
+	if fn == nil {
+		cloneGitRepoForDesktop = defaultCloneGitRepoForDesktop
+	} else {
+		cloneGitRepoForDesktop = fn
+	}
+	return func() {
+		cloneGitRepoForDesktop = previous
+	}
+}
+
 // SetRunGlobalServicesComposeForDesktopForTest overrides the global compose runner.
 func SetRunGlobalServicesComposeForDesktopForTest(fn func(args ...string) (string, error)) func() {
 	previous := runGlobalServicesComposeForDesktop
@@ -403,6 +431,47 @@ func OnboardProjectWithOptionsForPathForTest(
 		ElasticsearchEnabled: elasticsearchEnabled,
 		ApplyOverrides:       true,
 		SkipIDE:              false,
+	})
+}
+
+// OnboardProjectFromGitForPathForTest exposes onboarding flow with clone-from-git enabled.
+func OnboardProjectFromGitForPathForTest(
+	projectPath string,
+	framework string,
+	gitProtocol string,
+	gitURL string,
+) (string, error) {
+	return OnboardProjectFromGitWithConfirmationForPathForTest(
+		projectPath,
+		framework,
+		gitProtocol,
+		gitURL,
+		true,
+	)
+}
+
+// OnboardProjectFromGitWithConfirmationForPathForTest exposes git onboarding flow with explicit override confirmation.
+func OnboardProjectFromGitWithConfirmationForPathForTest(
+	projectPath string,
+	framework string,
+	gitProtocol string,
+	gitURL string,
+	confirmFolderOverride bool,
+) (string, error) {
+	return onboardProjectWithOptionsInternal(OnboardInput{
+		ProjectPath:           projectPath,
+		Framework:             framework,
+		Domain:                "",
+		CloneFromGit:          true,
+		GitProtocol:           gitProtocol,
+		GitURL:                gitURL,
+		ConfirmFolderOverride: confirmFolderOverride,
+		VarnishEnabled:        false,
+		RedisEnabled:          false,
+		RabbitMQEnabled:       false,
+		ElasticsearchEnabled:  false,
+		ApplyOverrides:        false,
+		SkipIDE:               false,
 	})
 }
 

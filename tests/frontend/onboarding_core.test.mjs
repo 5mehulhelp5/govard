@@ -64,9 +64,44 @@ test("renderOnboardingModal exposes streamlined onboarding UI contract", () => {
     "missing submit readiness hint",
   );
   assert.equal(
+    markup.includes('id="onboardingSubmitSpinner"'),
+    true,
+    "missing onboarding submit spinner",
+  );
+  assert.equal(
     markup.includes('id="onboardingBootstrapOptions"'),
     true,
     "missing onboarding bootstrap options container",
+  );
+  assert.equal(
+    markup.includes('id="onboardFromGit"'),
+    true,
+    "missing git onboarding toggle",
+  );
+  assert.equal(
+    markup.includes('id="gitProtocol"'),
+    true,
+    "missing git protocol selector",
+  );
+  assert.equal(
+    markup.includes('id="gitUrl"'),
+    true,
+    "missing git URL input",
+  );
+  assert.equal(
+    markup.includes('id="gitUrlHint"'),
+    true,
+    "missing git URL hint",
+  );
+  assert.equal(
+    markup.includes('id="gitConfirmOverride"'),
+    true,
+    "missing git folder override confirmation",
+  );
+  assert.equal(
+    markup.includes('id="gitConfirmHint"'),
+    true,
+    "missing git confirmation hint",
   );
   assert.equal(
     markup.includes('id="detectionState"'),

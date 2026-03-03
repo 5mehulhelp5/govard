@@ -22,6 +22,8 @@ Lightweight dashboard features:
 - Quick actions (Mailpit, PHPMyAdmin, DB Client, Xdebug toggle, health)
 - Embedded Mailpit inbox panel with refresh/open controls
 - Project onboarding panel (folder picker + add/init when `.govard.yml` is missing)
+- Project onboarding supports optional Git clone (SSH/HTTPS URL + pre-clone connection validation) before add/init flow
+- Git onboarding requires explicit folder-override confirmation and shows step progress (validate, prepare folder, clone, init)
 - Remotes tab (list/add remotes, connectivity test, open SSH/DB/SFTP actions, and sync plan presets)
 - Resource monitor (CPU/RAM/NET per project, OOM hints, refresh + auto-refresh)
 - Logs with multi-service (`all`) selection, severity filtering, text search, and live streaming

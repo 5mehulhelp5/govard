@@ -105,11 +105,11 @@ func listProjectRemotesByPath(root string) (RemoteSnapshot, error) {
 	if projectName == "" {
 		projectName = filepath.Base(cleanRoot)
 	}
-	lastSyncByEnvironment := buildRemoteLastSyncLabels(projectName, time.Now().UTC())
+	lastSyncByRemote := buildRemoteLastSyncLabels(projectName, time.Now().UTC())
 
 	return RemoteSnapshot{
 		Project:  projectName,
-		Remotes:  buildRemoteEntries(cfg.Remotes, lastSyncByEnvironment),
+		Remotes:  buildRemoteEntries(cfg.Remotes, lastSyncByRemote),
 		Warnings: []string{},
 	}, nil
 }
@@ -851,7 +851,7 @@ func pathHasBaseConfig(root string) bool {
 
 func buildRemoteEntries(
 	remotes map[string]engine.RemoteConfig,
-	lastSyncByEnvironment map[string]string,
+	lastSyncByRemote map[string]string,
 ) []RemoteEntry {
 	if len(remotes) == 0 {
 		return []RemoteEntry{}
@@ -866,7 +866,6 @@ func buildRemoteEntries(
 	entries := make([]RemoteEntry, 0, len(names))
 	for _, name := range names {
 		cfg := remotes[name]
-		environment := engine.NormalizeRemoteEnvironment(name)
 		port := cfg.Port
 		if port <= 0 {
 			port = 22
@@ -885,8 +884,7 @@ func buildRemoteEntries(
 			User:         strings.TrimSpace(cfg.User),
 			Path:         strings.TrimSpace(cfg.Path),
 			Port:         port,
-			Environment:  environment,
-			LastSync:     strings.TrimSpace(lastSyncByEnvironment[environment]),
+			LastSync:     strings.TrimSpace(lastSyncByRemote[strings.ToLower(strings.TrimSpace(name))]),
 			Protected:    effectiveProtected,
 			AuthMethod:   engineremote.NormalizeAuthMethod(cfg.Auth.Method),
 			Capabilities: append([]string{}, capabilities...),
@@ -913,7 +911,7 @@ func buildRemoteLastSyncLabelsFromEvents(
 	now time.Time,
 ) map[string]string {
 	trimmedProject := strings.TrimSpace(project)
-	latestByEnvironment := map[string]time.Time{}
+	latestByRemote := map[string]time.Time{}
 
 	for _, event := range events {
 		if !isRemoteSyncOperation(event.Operation) {
@@ -938,16 +936,16 @@ func buildRemoteLastSyncLabelsFromEvents(
 			continue
 		}
 
-		environment := engine.NormalizeRemoteEnvironment(source)
-		current, exists := latestByEnvironment[environment]
+		remoteName := strings.ToLower(source)
+		current, exists := latestByRemote[remoteName]
 		if !exists || timestamp.After(current) {
-			latestByEnvironment[environment] = timestamp
+			latestByRemote[remoteName] = timestamp
 		}
 	}
 
-	labels := make(map[string]string, len(latestByEnvironment))
-	for environment, timestamp := range latestByEnvironment {
-		labels[environment] = formatLastSyncLabel(timestamp, now)
+	labels := make(map[string]string, len(latestByRemote))
+	for remoteName, timestamp := range latestByRemote {
+		labels[remoteName] = formatLastSyncLabel(timestamp, now)
 	}
 	return labels
 }

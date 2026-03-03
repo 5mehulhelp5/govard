@@ -264,15 +264,12 @@ func TestDesktopPkgBuildRemoteEntriesWithLastSyncForTest(t *testing.T) {
 			},
 		},
 		map[string]string{
-			"dev": "2m ago",
+			"development": "2m ago",
 		},
 	)
 
 	if len(entries) != 1 {
 		t.Fatalf("expected 1 remote, got %d", len(entries))
-	}
-	if entries[0].Environment != "dev" {
-		t.Fatalf("expected normalized environment dev, got %s", entries[0].Environment)
 	}
 	if entries[0].LastSync != "2m ago" {
 		t.Fatalf("expected last sync '2m ago', got %q", entries[0].LastSync)
@@ -336,8 +333,8 @@ func TestDesktopPkgBuildRemoteLastSyncLabelsFromEventsForTest(t *testing.T) {
 
 	labels := desktop.BuildRemoteLastSyncLabelsFromEventsForTest(project, events, now)
 	expected := map[string]string{
-		"dev":  "2m ago",
-		"prod": "2h ago",
+		"development": "2m ago",
+		"production":  "2h ago",
 	}
 	if !reflect.DeepEqual(labels, expected) {
 		t.Fatalf("unexpected labels: got %#v, want %#v", labels, expected)

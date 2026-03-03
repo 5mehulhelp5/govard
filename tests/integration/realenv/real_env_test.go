@@ -40,7 +40,6 @@ type Remote struct {
 	Port         int          `yaml:"port,omitempty"`
 	User         string       `yaml:"user"`
 	Path         string       `yaml:"path"`
-	Environment  string       `yaml:"environment,omitempty"`
 	Protected    bool         `yaml:"protected,omitempty"`
 	Auth         Auth         `yaml:"auth,omitempty"`
 	Capabilities Capabilities `yaml:"capabilities"`
@@ -216,12 +215,11 @@ func (r *RealEnvTest) CopyConfig(t *testing.T, env string, projectDir string) {
 				},
 			},
 			"production": {
-				Host:        "localhost",
-				Port:        9025,
-				User:        "linuxserver.io",
-				Path:        "/var/www/html",
-				Environment: "production",
-				Protected:   true,
+				Host:      "localhost",
+				Port:      9025,
+				User:      "linuxserver.io",
+				Path:      "/var/www/html",
+				Protected: true,
 				Auth: Auth{
 					KeyPath: r.SSHKeyPath,
 				},
