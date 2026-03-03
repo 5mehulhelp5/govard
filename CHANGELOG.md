@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.0] - 2026-03-03
+
+### Added
+
+- **Sync Presets Remote Capabilities**: Added support for remote synchronization presets, enhancing cross-environment workflow flexibility.
+- **SSL Auto-Trust**: Automated root CA trust for `svc` lifecycle commands, simplifying SSL management on Linux systems.
+
+### Improved
+
+- **Log Stream Sanitization**: Significantly improved terminal output reliability by stripping ANSI escape codes, control characters, and invalid UTF-8 from log streams.
+- **Desktop Stability**: Refined "open" actions and default configurations for a more consistent desktop experience.
+- **Sync Options**: Refined synchronization options for better control over remote environment updates.
+
+### Fixed
+
+- **ANSI Fragment Cleaning**: Resolved issues with trailing or orphan ANSI fragments disrupting stream output.
+
+### Quality & Documentation
+
+- **Test Coverage**: Expanded command runtime coverage and refreshed the integration test suite.
+- **Project Documentation**: Updated README to highlight remote management features and core differentiators.
+
 ## [1.11.0] - 2026-03-02
 
 ### Added
@@ -22,7 +44,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Production Asset Loading**: Fixed a critical issue where the desktop application failed to locate assets after being installed via package managers.
-
 
 ## [1.10.0] - 2026-03-02
 
