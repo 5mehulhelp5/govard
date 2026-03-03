@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.15.0] - 2026-03-04
+
+### Added
+
+- **Git Project Onboarding**: Introduced the ability to clone Git repositories directly during the project onboarding process.
+- **Onboarding UI Enhancements**: Added support for Git URL, branch selection, and progress tracking for repository cloning.
+- **Terminal Integration Improvements**: Enhanced terminal output and progress monitoring for long-running onboarding operations.
+
+### Improved
+
+- **Testing Infrastructure**: Expanded integration and frontend tests to cover Git cloning and complex onboarding flows.
+- **Desktop UI**: Refined onboarding styles and logic for a smoother repository setup experience.
+
+### Fixed
+
+- **Remotes Cleaning**: Fixed issues where some remote environment references were not correctly cleaned up in the UI.
+
 ## [1.14.1] - 2026-03-04
 
 ### Improved
