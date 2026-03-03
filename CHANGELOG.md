@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.0] - 2026-03-03
+
+### Added
+
+- **Local Image Fallback**: Introduced the `--fallback-local-build` flag for `up`, `svc up`, and `svc restart` commands. This allows Govard to automatically build missing ddtcorex/govard images locally from embedded blueprints if they cannot be pulled from Docker Hub, ensuring environments can start even without internet access or registry availability.
+
+### Improved
+
+- **`open db` Command UX**: Updated the default behavior of `govard open db` to launch phpMyAdmin (PMA) in the browser for a more immediate visual experience. A new `--client` flag was added to explicitly launch external database client protocols (e.g., `mysql://`).
+
+### Quality & Testing
+
+- **Additional Test Gates**: Added comprehensive tests for image reference parsing, local build spec resolution, and command-level flag existence to maintain high stability.
+
 ## [1.12.0] - 2026-03-03
 
 ### Added

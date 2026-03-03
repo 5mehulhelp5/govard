@@ -34,6 +34,7 @@ At a glance, these are the areas where Govard delivers stronger day-to-day value
 - **Xdebug Routing**: Dedicated `php-debug` container, activated only when `XDEBUG_SESSION` cookie is present.
 - **Queue Support**: Optional RabbitMQ service for async workloads.
 - **High Performance**: Built with Go and utilizes the native Docker SDK for direct container orchestration.
+- **Local Image Fallback**: Automatically build missing Govard-managed images locally from embedded blueprints if they cannot be pulled from Docker Hub (via `--fallback-local-build`).
 - **Smart Templating**: Uses the Go `text/template` engine to render dynamic Docker Compose files from framework-specific Blueprints.
 - **Magento 2 Optimized**: Deep integration for Magento 2, including automated `env.php` configuration, Varnish 7.x support, and Redis caching.
 - **Remote Management (Flagship)**: Manage named remotes for sync/deploy/db workflows with scope-based capabilities (`files,media,db,deploy`) and flexible auth modes (`keychain`, `ssh-agent`, `keyfile`).
@@ -170,7 +171,7 @@ This scans your project (via `composer.json` or `package.json`) and generates a 
 govard env up
 ```
 
-This renders a per-project compose file under `~/.govard/compose/` and starts your specialized stack in detached mode.
+This renders a per-project compose file under `~/.govard/compose/` and starts your specialized stack in detached mode. Use `--fallback-local-build` if you need to build missing images locally.
 
 ### 3. Configure the Stack
 
@@ -367,7 +368,7 @@ _Note: Once trusted, all `*.test` domains managed by Govard will show a "Green L
 | `govard shell`       | Enter the application container                                    |
 | `govard db`          | Database operations (`connect`, `dump`, `import`, `query`, `info`) |
 | `govard debug`       | Toggle Xdebug for the current environment                          |
-| `govard open`        | Open common service URLs (Admin, DB, Mail, Portainer)              |
+| `govard open`        | Open common service URLs (Admin, DB, Mail, Portainer). `db` opens PMA by default, use `--client` for protocol URLs. |
 | `govard remote`      | Manage remote environments                                         |
 | `govard sync`        | Synchronize files, media, and databases between environments       |
 | `govard status`      | List running project environments across workspace                 |
