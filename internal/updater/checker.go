@@ -3,14 +3,25 @@ package updater
 import (
 	"encoding/json"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/pterm/pterm"
 )
 
+const updateCheckLatestURLEnvVar = "GOVARD_UPDATE_CHECK_URL"
+
+var (
+	updateCheckHTTPClient = &http.Client{Timeout: 2 * time.Second}
+	updateCheckNotifier   = func(latestTag, currentVersion string) {
+		pterm.Warning.Printf("A new version of Govard is available: %s (current: %s)\n", latestTag, currentVersion)
+		pterm.Info.Println("Run 'govard self-update' to upgrade.")
+	}
+)
+
 func CheckForUpdates(current string) {
-	client := http.Client{Timeout: 2 * time.Second}
-	resp, err := client.Get("https://api.github.com/repos/ddtcorex/govard/releases/latest")
+	resp, err := updateCheckHTTPClient.Get(updateCheckLatestURL())
 	if err != nil {
 		return
 	}
@@ -23,8 +34,53 @@ func CheckForUpdates(current string) {
 		return
 	}
 
-	if release.TagName != "" && release.TagName != "v"+current {
-		pterm.Warning.Printf("A new version of Govard is available: %s (current: %s)\n", release.TagName, current)
-		pterm.Info.Println("Run 'govard self-update' to upgrade.")
+	if shouldNotifyUpdate(current, release.TagName) {
+		updateCheckNotifier(release.TagName, current)
 	}
+}
+
+func updateCheckLatestURL() string {
+	if override := strings.TrimSpace(os.Getenv(updateCheckLatestURLEnvVar)); override != "" {
+		return override
+	}
+	return "https://api.github.com/repos/ddtcorex/govard/releases/latest"
+}
+
+func shouldNotifyUpdate(currentVersion, latestTag string) bool {
+	latest := strings.TrimSpace(latestTag)
+	if latest == "" {
+		return false
+	}
+	current := strings.TrimSpace(currentVersion)
+	if current == "" {
+		return true
+	}
+	return latest != "v"+current
+}
+
+// SetUpdateCheckHTTPClientForTest overrides the HTTP client used by update checks.
+func SetUpdateCheckHTTPClientForTest(client *http.Client) func() {
+	previous := updateCheckHTTPClient
+	if client != nil {
+		updateCheckHTTPClient = client
+	}
+	return func() {
+		updateCheckHTTPClient = previous
+	}
+}
+
+// SetUpdateCheckNotifierForTest overrides update notification side effects.
+func SetUpdateCheckNotifierForTest(fn func(latestTag, currentVersion string)) func() {
+	previous := updateCheckNotifier
+	if fn != nil {
+		updateCheckNotifier = fn
+	}
+	return func() {
+		updateCheckNotifier = previous
+	}
+}
+
+// ShouldNotifyUpdateForTest exposes update comparison logic for tests in /tests.
+func ShouldNotifyUpdateForTest(currentVersion, latestTag string) bool {
+	return shouldNotifyUpdate(currentVersion, latestTag)
 }

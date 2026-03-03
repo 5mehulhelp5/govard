@@ -104,6 +104,7 @@ func TestRenderCustomBlueprint(t *testing.T) {
 
 func TestRenderBlueprintWithFeatures(t *testing.T) {
 	tempDir := t.TempDir()
+	setTestGovardHome(t, tempDir)
 
 	_, filename, _, _ := runtime.Caller(0)
 	projectRoot := filepath.Join(filepath.Dir(filename), "..")
@@ -160,6 +161,7 @@ func TestRenderBlueprintWithFeatures(t *testing.T) {
 
 func TestRenderMagento2BlueprintHybridWebServer(t *testing.T) {
 	tempDir := t.TempDir()
+	setTestGovardHome(t, tempDir)
 
 	_, filename, _, _ := runtime.Caller(0)
 	projectRoot := filepath.Join(filepath.Dir(filename), "..")
@@ -216,6 +218,7 @@ func testBlueprintRender(t *testing.T, framework string, expectedStrings []strin
 	t.Helper()
 
 	tempDir := t.TempDir()
+	setTestGovardHome(t, tempDir)
 
 	_, filename, _, _ := runtime.Caller(0)
 	projectRoot := filepath.Join(filepath.Dir(filename), "..")
@@ -308,4 +311,15 @@ func copyFile(src, dst string) error {
 
 	_, err = io.Copy(destFile, sourceFile)
 	return err
+}
+
+func setTestGovardHome(t *testing.T, root string) string {
+	t.Helper()
+
+	homeDir := filepath.Join(root, ".govard-home")
+	if err := os.MkdirAll(homeDir, 0o755); err != nil {
+		t.Fatalf("create test govard home: %v", err)
+	}
+	t.Setenv("GOVARD_HOME_DIR", homeDir)
+	return homeDir
 }

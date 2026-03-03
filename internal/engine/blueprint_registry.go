@@ -32,6 +32,19 @@ var blueprintRegistryHTTPClient = &http.Client{
 	Timeout: 30 * time.Second,
 }
 
+// SetBlueprintRegistryHTTPClientForTest overrides the registry HTTP client for tests.
+func SetBlueprintRegistryHTTPClientForTest(client *http.Client) func() {
+	prev := blueprintRegistryHTTPClient
+	if client == nil {
+		blueprintRegistryHTTPClient = &http.Client{Timeout: 30 * time.Second}
+	} else {
+		blueprintRegistryHTTPClient = client
+	}
+	return func() {
+		blueprintRegistryHTTPClient = prev
+	}
+}
+
 func resolveBlueprintsDirForConfig(root string, config Config) (fs.FS, error) {
 	if strings.TrimSpace(config.BlueprintRegistry.URL) == "" {
 		return findBlueprintsFS(root)

@@ -32,15 +32,6 @@ func TestBootstrapPkgLaravelFreshCommands(t *testing.T) {
 	}
 }
 
-func TestBootstrapPkgLaravelRun(t *testing.T) {
-	opts := bootstrap.Options{Version: "11"}
-
-	err := bootstrap.BootstrapLaravel(opts)
-	if err != nil {
-		t.Fatalf("BootstrapLaravel failed: %v", err)
-	}
-}
-
 func TestBootstrapPkgDrupalFreshCommands(t *testing.T) {
 	cases := []struct {
 		version  string
@@ -64,69 +55,6 @@ func TestBootstrapPkgDrupalFreshCommands(t *testing.T) {
 		if !containsSubstring(cmds[0], tc.expected) {
 			t.Errorf("expected command to contain %q for version %s, got %q", tc.expected, tc.version, cmds[0])
 		}
-	}
-}
-
-func TestBootstrapPkgDrupalRun(t *testing.T) {
-	opts := bootstrap.Options{Version: "10"}
-
-	err := bootstrap.BootstrapDrupal(opts)
-	if err != nil {
-		t.Fatalf("BootstrapDrupal failed: %v", err)
-	}
-}
-
-func TestBootstrapPkgWordPressRun(t *testing.T) {
-	opts := bootstrap.Options{}
-
-	err := bootstrap.BootstrapWordPress(opts)
-	if err != nil {
-		t.Fatalf("BootstrapWordPress failed: %v", err)
-	}
-}
-
-func TestBootstrapPkgNextJSRun(t *testing.T) {
-	opts := bootstrap.Options{}
-
-	err := bootstrap.BootstrapNextJS(opts)
-	if err != nil {
-		t.Fatalf("BootstrapNextJS failed: %v", err)
-	}
-}
-
-func TestBootstrapPkgShopwareRun(t *testing.T) {
-	opts := bootstrap.Options{}
-
-	err := bootstrap.BootstrapShopware(opts)
-	if err != nil {
-		t.Fatalf("BootstrapShopware failed: %v", err)
-	}
-}
-
-func TestBootstrapPkgCakePHPRun(t *testing.T) {
-	opts := bootstrap.Options{}
-
-	err := bootstrap.BootstrapCakePHP(opts)
-	if err != nil {
-		t.Fatalf("BootstrapCakePHP failed: %v", err)
-	}
-}
-
-func TestBootstrapPkgMagento1Run(t *testing.T) {
-	opts := bootstrap.Options{}
-
-	err := bootstrap.BootstrapMagento1(opts)
-	if err != nil {
-		t.Fatalf("BootstrapMagento1 failed: %v", err)
-	}
-}
-
-func TestBootstrapPkgOpenMageRun(t *testing.T) {
-	opts := bootstrap.Options{}
-
-	err := bootstrap.BootstrapOpenMage(opts)
-	if err != nil {
-		t.Fatalf("BootstrapOpenMage failed: %v", err)
 	}
 }
 

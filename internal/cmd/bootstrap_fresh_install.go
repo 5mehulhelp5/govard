@@ -285,3 +285,19 @@ func runBootstrapFreshCreateProject(cmd *cobra.Command, config engine.Config, op
 	}
 	return nil
 }
+
+// RunBootstrapFreshCreateProjectForTest exposes runBootstrapFreshCreateProject for tests in /tests.
+func RunBootstrapFreshCreateProjectForTest(cmd *cobra.Command, config engine.Config, metaPackage, metaVersion string) error {
+	return runBootstrapFreshCreateProject(cmd, config, bootstrapRuntimeOptions{
+		MetaPackage: strings.TrimSpace(metaPackage),
+		MetaVersion: strings.TrimSpace(metaVersion),
+	})
+}
+
+// RunBootstrapFrameworkFreshInstallForTest exposes runBootstrapFrameworkFreshInstall for tests in /tests.
+func RunBootstrapFrameworkFreshInstallForTest(cmd *cobra.Command, config engine.Config, source, metaVersion string) error {
+	return runBootstrapFrameworkFreshInstall(cmd, config, bootstrapRuntimeOptions{
+		Source:      strings.TrimSpace(source),
+		MetaVersion: strings.TrimSpace(metaVersion),
+	})
+}

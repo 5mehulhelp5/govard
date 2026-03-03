@@ -268,7 +268,7 @@ func TestDesktopPkgBuildRemoteEntriesWithLastSyncForTest(t *testing.T) {
 
 func TestDesktopPkgBuildRemoteLastSyncLabelsFromEventsForTest(t *testing.T) {
 	now := time.Date(2026, time.March, 1, 12, 0, 0, 0, time.UTC)
-	project := "magento2-test-instance"
+	project := "sample-project"
 	events := []engine.OperationEvent{
 		{
 			Timestamp: now.Add(-4 * time.Minute).Format(time.RFC3339Nano),

@@ -91,6 +91,10 @@ type dbCommandOptions = DBCommandOptions
 
 var mysqlDatabaseNamePattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
+var stdinIsTerminalFn = func() bool {
+	return term.IsTerminal(int(os.Stdin.Fd()))
+}
+
 // ValidateDBCommandOptions validates DB command option combinations.
 func ValidateDBCommandOptions(subcommand string, options DBCommandOptions) error {
 	return validateDBCommandOptions(subcommand, options)
@@ -348,7 +352,7 @@ func resolveDBImportReader(options dbCommandOptions) (io.Reader, io.Closer, erro
 }
 
 func stdinIsTerminal() bool {
-	return term.IsTerminal(int(os.Stdin.Fd()))
+	return stdinIsTerminalFn()
 }
 
 func buildDBDumpCommand(config engine.Config, options dbCommandOptions) (*exec.Cmd, error) {
@@ -524,6 +528,45 @@ func RunDumpToImport(dumpCmd *exec.Cmd, importCmd *exec.Cmd, sanitize bool, stdo
 		return dumpErr
 	}
 	return importErr
+}
+
+// SetStdinIsTerminalForTest overrides terminal detection for tests.
+func SetStdinIsTerminalForTest(fn func() bool) func() {
+	previous := stdinIsTerminalFn
+	if fn != nil {
+		stdinIsTerminalFn = fn
+	}
+	return func() {
+		stdinIsTerminalFn = previous
+	}
+}
+
+// ResolveDBImportReaderForTest exposes resolveDBImportReader for tests in /tests.
+func ResolveDBImportReaderForTest(options DBCommandOptions) (io.Reader, io.Closer, error) {
+	return resolveDBImportReader(options)
+}
+
+// BuildDBDumpCommandForTest exposes buildDBDumpCommand args for tests in /tests.
+func BuildDBDumpCommandForTest(config engine.Config, options DBCommandOptions) ([]string, error) {
+	command, err := buildDBDumpCommand(config, options)
+	if err != nil {
+		return nil, err
+	}
+	return command.Args, nil
+}
+
+// BuildDBImportCommandForTest exposes buildDBImportCommand args for tests in /tests.
+func BuildDBImportCommandForTest(config engine.Config, options DBCommandOptions) ([]string, error) {
+	command, err := buildDBImportCommand(config, options)
+	if err != nil {
+		return nil, err
+	}
+	return command.Args, nil
+}
+
+// ResolveDBRemoteForTest exposes resolveDBRemote for tests in /tests.
+func ResolveDBRemoteForTest(config engine.Config, name string, forWrite bool) (engine.RemoteConfig, error) {
+	return resolveDBRemote(config, name, forWrite)
 }
 
 func classifyCommandError(err error) string {

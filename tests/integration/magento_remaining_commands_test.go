@@ -4,14 +4,24 @@
 package integration
 
 import (
+	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
+
+	govcmd "govard/internal/cmd"
 )
 
 func TestTrustCommandWithShims(t *testing.T) {
@@ -96,13 +106,20 @@ func TestSelfUpdateCommandDoesNotBlockInNonInteractiveMode(t *testing.T) {
 func TestSelfUpdateAutoConfirmViaEnv(t *testing.T) {
 	env := NewTestEnvironment(t)
 	projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "self-update-confirm-m2")
+	mockReleaseServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "not found", http.StatusNotFound)
+	}))
+	defer mockReleaseServer.Close()
 
 	result := runGovardWithTimeout(
 		t,
 		env,
 		projectDir,
 		10*time.Second,
-		[]string{"GOVARD_SELF_UPDATE_CONFIRM=yes"},
+		[]string{
+			"GOVARD_SELF_UPDATE_CONFIRM=yes",
+			"GOVARD_SELF_UPDATE_RELEASE_BASE_URL=" + mockReleaseServer.URL,
+		},
 		"self-update",
 		"--version",
 		"v1.0.2",
@@ -110,8 +127,75 @@ func TestSelfUpdateAutoConfirmViaEnv(t *testing.T) {
 	if errorsContain(result.Error, "context deadline exceeded") {
 		t.Fatalf("self-update blocked even with GOVARD_SELF_UPDATE_CONFIRM=yes; output:\nstdout=%s\nstderr=%s", result.Stdout, result.Stderr)
 	}
-	result.AssertSuccess(t)
-	assertContains(t, result.Stdout+result.Stderr, "Successfully updated Govard to")
+	output := result.Stdout + result.Stderr
+	assertContains(t, output, "Auto-confirmed via GOVARD_SELF_UPDATE_CONFIRM.")
+	if strings.Contains(output, "Update cancelled.") {
+		t.Fatalf("expected update flow to continue after auto-confirm; output:\n%s", output)
+	}
+
+	if result.Success() {
+		t.Fatalf("expected self-update to fail against mock release server; output:\n%s", output)
+	}
+	assertContains(t, output, "failed with status 404")
+}
+
+func TestSelfUpdateAutoConfirmSuccessWithMockRelease(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("self-update is not supported on Windows")
+	}
+
+	env := NewTestEnvironment(t)
+	projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "self-update-success-m2")
+	releaseTag := "v1.0.2"
+
+	archiveName, binaryName, err := govcmd.BuildReleaseAssetNameForTest("govard", releaseTag, runtime.GOOS, runtime.GOARCH)
+	if err != nil {
+		t.Fatalf("BuildReleaseAssetNameForTest failed: %v", err)
+	}
+	if !strings.HasSuffix(archiveName, ".tar.gz") {
+		t.Skipf("unexpected archive format for integration test: %s", archiveName)
+	}
+
+	archiveBody := buildTarGzBinaryAsset(t, binaryName, []byte("#!/bin/sh\necho govard\n"))
+	checksum := sha256.Sum256(archiveBody)
+	checksumsBody := fmt.Sprintf("%s  %s\n", hex.EncodeToString(checksum[:]), archiveName)
+
+	mockReleaseServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/" + archiveName:
+			w.Header().Set("Content-Type", "application/octet-stream")
+			_, _ = w.Write(archiveBody)
+		case "/checksums.txt":
+			_, _ = w.Write([]byte(checksumsBody))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer mockReleaseServer.Close()
+
+	result := runGovardWithTimeout(
+		t,
+		env,
+		projectDir,
+		10*time.Second,
+		[]string{
+			"GOVARD_SELF_UPDATE_CONFIRM=yes",
+			"GOVARD_SELF_UPDATE_RELEASE_BASE_URL=" + mockReleaseServer.URL,
+		},
+		"self-update",
+		"--version",
+		releaseTag,
+	)
+	if errorsContain(result.Error, "context deadline exceeded") {
+		t.Fatalf("self-update blocked unexpectedly; output:\nstdout=%s\nstderr=%s", result.Stdout, result.Stderr)
+	}
+	output := result.Stdout + result.Stderr
+	if !result.Success() {
+		t.Fatalf("expected self-update to succeed against mock release server; output:\n%s", output)
+	}
+	assertContains(t, output, "Auto-confirmed via GOVARD_SELF_UPDATE_CONFIRM.")
+	assertContains(t, output, "Checksum verified.")
+	assertContains(t, output, "Successfully updated Govard to "+releaseTag)
 }
 
 func runGovardWithTimeout(t *testing.T, env *TestEnvironment, projectDir string, timeout time.Duration, extraEnv []string, args ...string) *CommandResult {
@@ -165,6 +249,34 @@ func errorsContain(err error, needle string) bool {
 		return false
 	}
 	return strings.Contains(err.Error(), needle)
+}
+
+func buildTarGzBinaryAsset(t *testing.T, binaryName string, content []byte) []byte {
+	t.Helper()
+
+	var archive bytes.Buffer
+	gzipWriter := gzip.NewWriter(&archive)
+	tarWriter := tar.NewWriter(gzipWriter)
+
+	header := &tar.Header{
+		Name: binaryName,
+		Mode: 0o755,
+		Size: int64(len(content)),
+	}
+	if err := tarWriter.WriteHeader(header); err != nil {
+		t.Fatalf("write tar header: %v", err)
+	}
+	if _, err := tarWriter.Write(content); err != nil {
+		t.Fatalf("write tar content: %v", err)
+	}
+	if err := tarWriter.Close(); err != nil {
+		t.Fatalf("close tar writer: %v", err)
+	}
+	if err := gzipWriter.Close(); err != nil {
+		t.Fatalf("close gzip writer: %v", err)
+	}
+
+	return archive.Bytes()
 }
 
 func installTrustDockerShim(t *testing.T, shims *RuntimeShims) {

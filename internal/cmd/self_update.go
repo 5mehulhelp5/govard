@@ -22,9 +22,13 @@ import (
 )
 
 const (
-	selfUpdateDefaultRepo   = "ddtcorex/govard"
-	selfUpdateBinaryName    = "govard"
-	selfUpdateChecksumsFile = "checksums.txt"
+	selfUpdateDefaultRepo           = "ddtcorex/govard"
+	selfUpdateBinaryName            = "govard"
+	selfUpdateChecksumsFile         = "checksums.txt"
+	selfUpdateRepoEnvVar            = "GOVARD_REPO"
+	selfUpdateLatestURLEnvVar       = "GOVARD_SELF_UPDATE_LATEST_URL"
+	selfUpdateReleaseBaseURLEnvVar  = "GOVARD_SELF_UPDATE_RELEASE_BASE_URL"
+	selfUpdateConfirmOverrideEnvVar = "GOVARD_SELF_UPDATE_CONFIRM"
 )
 
 var selfUpdateVersion string
@@ -70,7 +74,7 @@ var selfUpdateCmd = &cobra.Command{
 		}
 		defer os.RemoveAll(tmpDir)
 
-		baseURL := fmt.Sprintf("https://github.com/%s/releases/download/%s", repo, releaseTag)
+		baseURL := selfUpdateReleaseBaseURL(repo, releaseTag)
 		archiveURL := fmt.Sprintf("%s/%s", baseURL, archiveName)
 		checksumsURL := fmt.Sprintf("%s/%s", baseURL, selfUpdateChecksumsFile)
 		archivePath := filepath.Join(tmpDir, archiveName)
@@ -135,11 +139,25 @@ func normalizeReleaseTag(tag string) string {
 }
 
 func selfUpdateRepo() string {
-	repo := strings.TrimSpace(os.Getenv("GOVARD_REPO"))
+	repo := strings.TrimSpace(os.Getenv(selfUpdateRepoEnvVar))
 	if repo == "" {
 		return selfUpdateDefaultRepo
 	}
 	return repo
+}
+
+func selfUpdateLatestReleaseURL(repo string) string {
+	if override := strings.TrimSpace(os.Getenv(selfUpdateLatestURLEnvVar)); override != "" {
+		return strings.TrimRight(override, "/")
+	}
+	return fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo)
+}
+
+func selfUpdateReleaseBaseURL(repo, releaseTag string) string {
+	if override := strings.TrimSpace(os.Getenv(selfUpdateReleaseBaseURLEnvVar)); override != "" {
+		return strings.TrimRight(override, "/")
+	}
+	return fmt.Sprintf("https://github.com/%s/releases/download/%s", repo, releaseTag)
 }
 
 func fetchLatestReleaseTag(client *http.Client, repo string) (string, error) {
@@ -154,7 +172,7 @@ func fetchLatestReleaseTag(client *http.Client, repo string) (string, error) {
 		}
 	}
 
-	url := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo)
+	url := selfUpdateLatestReleaseURL(repo)
 	body, err := downloadText(client, url)
 	if err != nil {
 		return "", err
@@ -454,18 +472,18 @@ func replaceBinary(sourcePath, targetPath string) error {
 }
 
 func shouldProceedWithSelfUpdate() bool {
-	override := strings.ToLower(strings.TrimSpace(os.Getenv("GOVARD_SELF_UPDATE_CONFIRM")))
+	override := strings.ToLower(strings.TrimSpace(os.Getenv(selfUpdateConfirmOverrideEnvVar)))
 	switch override {
 	case "1", "true", "yes", "y":
-		pterm.Info.Println("Auto-confirmed via GOVARD_SELF_UPDATE_CONFIRM.")
+		pterm.Info.Printf("Auto-confirmed via %s.\n", selfUpdateConfirmOverrideEnvVar)
 		return true
 	case "0", "false", "no", "n":
-		pterm.Info.Println("Auto-cancelled via GOVARD_SELF_UPDATE_CONFIRM.")
+		pterm.Info.Printf("Auto-cancelled via %s.\n", selfUpdateConfirmOverrideEnvVar)
 		return false
 	}
 
 	if !stdinIsTerminal() {
-		pterm.Info.Println("Non-interactive session detected; skipping update. Set GOVARD_SELF_UPDATE_CONFIRM=yes to force.")
+		pterm.Info.Printf("Non-interactive session detected; skipping update. Set %s=yes to force.\n", selfUpdateConfirmOverrideEnvVar)
 		return false
 	}
 
@@ -486,4 +504,14 @@ func BuildReleaseAssetNameForTest(binaryName, releaseTag, goos, goarch string) (
 // ChecksumForAssetForTest exposes checksumForAsset for tests in /tests.
 func ChecksumForAssetForTest(checksumsBody, assetName string) (string, error) {
 	return checksumForAsset(checksumsBody, assetName)
+}
+
+// SelfUpdateLatestReleaseURLForTest exposes selfUpdateLatestReleaseURL for tests in /tests.
+func SelfUpdateLatestReleaseURLForTest(repo string) string {
+	return selfUpdateLatestReleaseURL(repo)
+}
+
+// SelfUpdateReleaseBaseURLForTest exposes selfUpdateReleaseBaseURL for tests in /tests.
+func SelfUpdateReleaseBaseURLForTest(repo, releaseTag string) string {
+	return selfUpdateReleaseBaseURL(repo, releaseTag)
 }

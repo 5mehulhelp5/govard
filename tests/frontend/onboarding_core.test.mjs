@@ -22,8 +22,8 @@ test("normalizeOnboardingDomain auto-appends .test for plain values", () => {
     "shop.test",
   );
   assert.equal(
-    normalizeOnboardingDomain("", "/tmp/magento2-test-instance"),
-    "magento2-test-instance.test",
+    normalizeOnboardingDomain("", "/tmp/sample-project"),
+    "sample-project.test",
   );
   assert.equal(
     normalizeOnboardingDomain("custom.test", "/tmp/ignored"),

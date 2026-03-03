@@ -12,6 +12,7 @@ import (
 
 func TestRenderBlueprintMergesProjectComposeOverride(t *testing.T) {
 	tempDir := t.TempDir()
+	setTestGovardHome(t, tempDir)
 
 	_, filename, _, _ := runtime.Caller(0)
 	projectRoot := filepath.Join(filepath.Dir(filename), "..")

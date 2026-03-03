@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 const openSupportedTargets = "admin, db, mail, mftf, pma, portainer, shell, sftp, elasticsearch, opensearch"
@@ -91,4 +92,15 @@ func init() {
 	)
 	openCmd.Flags().BoolVar(&openPma, "pma", false, "Open PHPMyAdmin (for db target)")
 	openCmd.Flags().BoolVar(&openClient, "client", false, "Open local DB client like Beekeeper Studio (for db target)")
+}
+
+// ResetOpenFlagsForTest resets open command flag-backed globals for tests.
+func ResetOpenFlagsForTest() {
+	openEnvironment = ""
+	openPma = false
+	openClient = false
+	openCmd.Flags().VisitAll(func(flag *pflag.Flag) {
+		_ = flag.Value.Set(flag.DefValue)
+		flag.Changed = false
+	})
 }

@@ -118,3 +118,23 @@ func TestChecksumForAssetForTestMissing(t *testing.T) {
 		t.Fatal("ChecksumForAssetForTest() expected error for missing asset")
 	}
 }
+
+func TestSelfUpdateLatestReleaseURLForTestUsesOverride(t *testing.T) {
+	t.Setenv("GOVARD_SELF_UPDATE_LATEST_URL", "http://127.0.0.1:8080/latest/")
+
+	got := cmd.SelfUpdateLatestReleaseURLForTest("ignored/repo")
+	want := "http://127.0.0.1:8080/latest"
+	if got != want {
+		t.Fatalf("latest URL = %q, want %q", got, want)
+	}
+}
+
+func TestSelfUpdateReleaseBaseURLForTestUsesOverride(t *testing.T) {
+	t.Setenv("GOVARD_SELF_UPDATE_RELEASE_BASE_URL", "http://127.0.0.1:8080/releases/")
+
+	got := cmd.SelfUpdateReleaseBaseURLForTest("ignored/repo", "v1.0.2")
+	want := "http://127.0.0.1:8080/releases"
+	if got != want {
+		t.Fatalf("release base URL = %q, want %q", got, want)
+	}
+}

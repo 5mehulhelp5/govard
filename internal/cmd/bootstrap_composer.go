@@ -119,3 +119,22 @@ func shouldUseGlobalAuthByDefault() bool {
 	}
 	return (stdinInfo.Mode() & os.ModeCharDevice) == 0
 }
+
+// BootstrapComposerDumpAutoloadForTest exposes bootstrapComposerDumpAutoload for tests in /tests.
+func BootstrapComposerDumpAutoloadForTest(cmd *cobra.Command, cwd string) error {
+	return bootstrapComposerDumpAutoload(cmd, cwd)
+}
+
+// RunBootstrapComposerPrepareForTest exposes runBootstrapComposerPrepare for tests in /tests.
+func RunBootstrapComposerPrepareForTest(config engine.Config) error {
+	return runBootstrapComposerPrepare(config)
+}
+
+// EnsureBootstrapAuthJSONForTest exposes ensureBootstrapAuthJSON for tests in /tests.
+func EnsureBootstrapAuthJSONForTest(config engine.Config, mageUsername, magePassword string, assumeYes bool) error {
+	return ensureBootstrapAuthJSON(config, bootstrapRuntimeOptions{
+		MageUsername: strings.TrimSpace(mageUsername),
+		MagePassword: strings.TrimSpace(magePassword),
+		AssumeYes:    assumeYes,
+	})
+}

@@ -9,8 +9,8 @@ import (
 	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
+	"io"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
@@ -28,11 +28,18 @@ func TestRenderBlueprintWithRemoteRegistryArchive(t *testing.T) {
 	})
 	checksum := sha256HexArchive(archive)
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/gzip")
-		_, _ = w.Write(archive)
-	}))
-	defer server.Close()
+	restore := engine.SetBlueprintRegistryHTTPClientForTest(&http.Client{
+		Transport: roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Header: http.Header{
+					"Content-Type": []string{"application/gzip"},
+				},
+				Body: io.NopCloser(bytes.NewReader(archive)),
+			}, nil
+		}),
+	})
+	defer restore()
 
 	projectDir := t.TempDir()
 	config := engine.Config{
@@ -41,7 +48,7 @@ func TestRenderBlueprintWithRemoteRegistryArchive(t *testing.T) {
 		Domain:      "registry-demo.test",
 		BlueprintRegistry: engine.BlueprintRegistryConfig{
 			Provider: "http",
-			URL:      server.URL + "/blueprints.tar.gz",
+			URL:      "https://example.com/blueprints.tar.gz",
 			Checksum: checksum,
 			Trusted:  true,
 		},
@@ -97,4 +104,10 @@ func mustBuildTarGzArchive(t *testing.T, files map[string]string) []byte {
 func sha256HexArchive(payload []byte) string {
 	sum := sha256.Sum256(payload)
 	return hex.EncodeToString(sum[:])
+}
+
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
+	return f(r)
 }

@@ -84,6 +84,7 @@ func renderComposeWithConfig(t *testing.T, config engine.Config) string {
 	t.Helper()
 
 	tempDir := t.TempDir()
+	setTestGovardHome(t, tempDir)
 
 	_, filename, _, _ := runtime.Caller(0)
 	projectRoot := filepath.Join(filepath.Dir(filename), "..")

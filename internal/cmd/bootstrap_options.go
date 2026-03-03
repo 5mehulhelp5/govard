@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 type bootstrapRuntimeOptions struct {
@@ -143,4 +144,9 @@ func ResetBootstrapFlags() {
 	bootstrapAssumeYes = false
 	bootstrapIncludeProduct = false
 	bootstrapPlan = false
+
+	bootstrapCmd.Flags().VisitAll(func(flag *pflag.Flag) {
+		_ = flag.Value.Set(flag.DefValue)
+		flag.Changed = false
+	})
 }

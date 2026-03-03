@@ -198,9 +198,9 @@ test("project hero uses Start action when environment is not running", async () 
 
 test("localEnvironmentURL resolves local domain to HTTPS URL", () => {
   const url = localEnvironmentURL({
-    Domain: "magento2-test-instance.test",
+    Domain: "sample-project.test",
   });
-  assert.equal(url, "https://magento2-test-instance.test");
+  assert.equal(url, "https://sample-project.test");
 });
 
 test("renderProjectHero unhides and sets local URL under environment title", () => {
@@ -232,12 +232,12 @@ test("renderProjectHero unhides and sets local URL under environment title", () 
       refs,
       [
         {
-          Project: "magento2-test-instance",
-          Domain: "magento2-test-instance.test",
+          Project: "sample-project",
+          Domain: "sample-project.test",
           Status: "running",
         },
       ],
-      "magento2-test-instance",
+      "sample-project",
     );
   } finally {
     globalThis.document = previousDocument;
@@ -245,12 +245,12 @@ test("renderProjectHero unhides and sets local URL under environment title", () 
 
   assert.equal(
     refs.projectUrl.href,
-    "https://magento2-test-instance.test",
+    "https://sample-project.test",
     "expected hero URL to use local environment domain",
   );
   assert.equal(
     refs.projectUrlText.textContent,
-    "https://magento2-test-instance.test",
+    "https://sample-project.test",
     "expected hero URL text to match local URL",
   );
   assert.equal(
@@ -265,7 +265,7 @@ test("renderProjectHero unhides and sets local URL under environment title", () 
   );
   assert.equal(
     refs.projectUrl.dataset.env,
-    "magento2-test-instance",
+    "sample-project",
     "expected project URL action to target selected environment",
   );
 });

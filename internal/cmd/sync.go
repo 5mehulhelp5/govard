@@ -10,6 +10,7 @@ import (
 
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var syncCmd = &cobra.Command{
@@ -258,4 +259,12 @@ func init() {
 // SyncCommand exposes the sync command for testing.
 func SyncCommand() *cobra.Command {
 	return syncCmd
+}
+
+// ResetSyncFlagsForTest resets sync command flags to defaults for tests.
+func ResetSyncFlagsForTest() {
+	syncCmd.Flags().VisitAll(func(flag *pflag.Flag) {
+		_ = flag.Value.Set(flag.DefValue)
+		flag.Changed = false
+	})
 }

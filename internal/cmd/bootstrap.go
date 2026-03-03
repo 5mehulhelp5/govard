@@ -244,23 +244,7 @@ func runGovardSubcommand(cmd *cobra.Command, args ...string) error {
 	return govardSubcommandRunner(cmd, args...)
 }
 
-func govardComposerSubcommandArgs(args ...string) []string {
-	commandArgs := []string{"tool", "composer"}
-	commandArgs = append(commandArgs, args...)
-	return commandArgs
-}
-
-func govardMagentoSubcommandArgs(args ...string) []string {
-	commandArgs := []string{"tool", "magento"}
-	commandArgs = append(commandArgs, args...)
-	return commandArgs
-}
-
-func govardConfigureSubcommandArgs() []string {
-	return []string{"config", "auto"}
-}
-
-func runPHPContainerShellCommand(config engine.Config, commandLine string) error {
+var phpContainerShellRunner = func(config engine.Config, commandLine string) error {
 	containerName := fmt.Sprintf("%s-php-1", config.ProjectName)
 	dockerArgs := []string{"exec"}
 	if stdinIsTerminal() {
@@ -282,6 +266,26 @@ func runPHPContainerShellCommand(config engine.Config, commandLine string) error
 	dockerCmd.Stdout = os.Stdout
 	dockerCmd.Stderr = os.Stderr
 	return dockerCmd.Run()
+}
+
+func govardComposerSubcommandArgs(args ...string) []string {
+	commandArgs := []string{"tool", "composer"}
+	commandArgs = append(commandArgs, args...)
+	return commandArgs
+}
+
+func govardMagentoSubcommandArgs(args ...string) []string {
+	commandArgs := []string{"tool", "magento"}
+	commandArgs = append(commandArgs, args...)
+	return commandArgs
+}
+
+func govardConfigureSubcommandArgs() []string {
+	return []string{"config", "auto"}
+}
+
+func runPHPContainerShellCommand(config engine.Config, commandLine string) error {
+	return phpContainerShellRunner(config, commandLine)
 }
 
 func shellQuote(raw string) string {
@@ -367,6 +371,16 @@ func SetGovardSubcommandRunnerForTest(fn func(cmd *cobra.Command, args ...string
 	govardSubcommandRunner = fn
 	return func() {
 		govardSubcommandRunner = previous
+	}
+}
+
+func SetPHPContainerShellRunnerForTest(fn func(config engine.Config, commandLine string) error) func() {
+	previous := phpContainerShellRunner
+	if fn != nil {
+		phpContainerShellRunner = fn
+	}
+	return func() {
+		phpContainerShellRunner = previous
 	}
 }
 

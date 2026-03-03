@@ -204,3 +204,29 @@ func maybeAutoDetectBootstrapVersion(config engine.Config, opts *bootstrapRuntim
 	opts.MetaVersion = detectedVersion
 	pterm.Info.Printf("Detected remote Magento version %s from '%s' for fix-deps.\n", detectedVersion, opts.Source)
 }
+
+// RunBootstrapHyvaInstallForTest exposes runBootstrapHyvaInstall for tests in /tests.
+func RunBootstrapHyvaInstallForTest(cmd *cobra.Command, hyvaToken string) error {
+	return runBootstrapHyvaInstall(cmd, bootstrapRuntimeOptions{
+		HyvaToken: strings.TrimSpace(hyvaToken),
+	})
+}
+
+// RunBootstrapMagentoSetupInstallForTest exposes runBootstrapMagentoSetupInstall for tests in /tests.
+func RunBootstrapMagentoSetupInstallForTest(cmd *cobra.Command, config engine.Config, frameworkVersion string) error {
+	return runBootstrapMagentoSetupInstall(cmd, config, bootstrapRuntimeOptions{
+		MetaVersion: strings.TrimSpace(frameworkVersion),
+	})
+}
+
+// RunBootstrapSampleDataForTest exposes runBootstrapSampleData for tests in /tests.
+func RunBootstrapSampleDataForTest(cmd *cobra.Command) error {
+	return runBootstrapSampleData(cmd)
+}
+
+// RunBootstrapFixDepsForTest exposes runBootstrapFixDeps for tests in /tests.
+func RunBootstrapFixDepsForTest(cmd *cobra.Command, frameworkVersion string) {
+	runBootstrapFixDeps(cmd, bootstrapRuntimeOptions{
+		MetaVersion: strings.TrimSpace(frameworkVersion),
+	})
+}

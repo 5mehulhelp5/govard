@@ -100,6 +100,14 @@ Do not assume local success if you skipped:
 
 Project convention is to keep most tests in `tests/` package `tests`.
 
+Test isolation and fixture hygiene rules:
+
+- Keep tests hermetic: do not rely on the user's real projects, real containers, or machine-specific state.
+- Do not use real/legacy project fixture names (for example `magento2-test-instance`); use neutral fixtures such as `sample-project`.
+- Prefer mocks/fakes over live network dependencies in unit tests (for HTTP, inject client/transport and use a mock `RoundTripper`).
+- Ensure test suites isolate state via temporary `GOVARD_HOME_DIR` (use `TestMain` setup where appropriate).
+- If an integration test must touch external services, gate it with explicit env checks and clear skip reasons.
+
 When you need to test internal logic from `internal/cmd` (or other internal packages):
 
 1. keep production helpers unexported where possible

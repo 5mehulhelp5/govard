@@ -8,6 +8,14 @@ import (
 	"strings"
 )
 
+var initCaddyCommandRunner = func(container string, initJSON string) error {
+	cmd := exec.Command("docker", "exec", "-i", container, "curl", "-s", "-X", "POST",
+		"http://localhost:2019/load",
+		"-H", "Content-Type: application/json",
+		"-d", initJSON)
+	return cmd.Run()
+}
+
 func RegisterDomain(domain string, targetContainer string) error {
 	proxyContainer := "govard-proxy-caddy"
 	config, err := fetchCaddyConfig(proxyContainer)
@@ -473,9 +481,26 @@ func initCaddy(container string) error {
 			}
 		}
 	}`
-	cmd := exec.Command("docker", "exec", "-i", container, "curl", "-s", "-X", "POST",
-		"http://localhost:2019/load",
-		"-H", "Content-Type: application/json",
-		"-d", initJSON)
-	return cmd.Run()
+	return initCaddyCommandRunner(container, initJSON)
+}
+
+// IsDefaultFileServerRouteForTest exposes default route detection for tests in /tests.
+func IsDefaultFileServerRouteForTest(route interface{}) bool {
+	return isDefaultFileServerRoute(route)
+}
+
+// InitCaddyForTest exposes initCaddy for tests in /tests.
+func InitCaddyForTest(container string) error {
+	return initCaddy(container)
+}
+
+// SetInitCaddyCommandRunnerForTest overrides init caddy command execution for tests.
+func SetInitCaddyCommandRunnerForTest(fn func(container string, initJSON string) error) func() {
+	previous := initCaddyCommandRunner
+	if fn != nil {
+		initCaddyCommandRunner = fn
+	}
+	return func() {
+		initCaddyCommandRunner = previous
+	}
 }

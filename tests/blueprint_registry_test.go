@@ -6,10 +6,11 @@ import (
 	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
+	"io"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -52,16 +53,23 @@ func TestBlueprintRegistryCachesHTTPArchive(t *testing.T) {
 	checksum := sha256Hex(archive)
 
 	var requests int
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requests++
-		w.Header().Set("Content-Type", "application/gzip")
-		_, _ = w.Write(archive)
-	}))
-	defer server.Close()
+	restore := engine.SetBlueprintRegistryHTTPClientForTest(&http.Client{
+		Transport: roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+			requests++
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Header: http.Header{
+					"Content-Type": []string{"application/gzip"},
+				},
+				Body: io.NopCloser(bytes.NewReader(archive)),
+			}, nil
+		}),
+	})
+	defer restore()
 
 	cfg := engine.BlueprintRegistryConfig{
 		Provider: "http",
-		URL:      server.URL + "/blueprints.tar.gz",
+		URL:      "https://example.com/blueprints.tar.gz",
 		Checksum: checksum,
 		Trusted:  true,
 	}
@@ -83,6 +91,41 @@ func TestBlueprintRegistryCachesHTTPArchive(t *testing.T) {
 	}
 	if requests != 1 {
 		t.Fatalf("expected one HTTP request due to cache reuse, got %d", requests)
+	}
+}
+
+func TestBlueprintRegistryRejectsChecksumMismatch(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	archive := mustBuildTarGz(t, map[string]string{
+		"blueprints/legacytest.tmpl": "services:\n  app:\n    image: alpine:3.20\n",
+	})
+
+	restore := engine.SetBlueprintRegistryHTTPClientForTest(&http.Client{
+		Transport: roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Header: http.Header{
+					"Content-Type": []string{"application/gzip"},
+				},
+				Body: io.NopCloser(bytes.NewReader(archive)),
+			}, nil
+		}),
+	})
+	defer restore()
+
+	_, err := engine.ResolveBlueprintRegistryForTest(engine.BlueprintRegistryConfig{
+		Provider: "http",
+		URL:      "https://example.com/blueprints.tar.gz",
+		Checksum: strings.Repeat("0", 64),
+		Trusted:  true,
+	})
+	if err == nil {
+		t.Fatal("expected checksum mismatch error")
+	}
+	if !strings.Contains(err.Error(), "checksum mismatch") {
+		t.Fatalf("expected checksum mismatch error, got %v", err)
 	}
 }
 
@@ -120,4 +163,10 @@ func mustBuildTarGz(t *testing.T, files map[string]string) []byte {
 func sha256Hex(payload []byte) string {
 	sum := sha256.Sum256(payload)
 	return hex.EncodeToString(sum[:])
+}
+
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
+	return f(r)
 }
