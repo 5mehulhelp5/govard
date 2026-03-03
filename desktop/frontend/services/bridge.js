@@ -87,6 +87,18 @@ export const desktopBridge = {
     const bridge = getBridge();
     return call(bridge?.OpenRemoteURL?.bind(bridge), project, remoteName);
   },
+  async openRemoteShell(project, remoteName) {
+    const bridge = getBridge();
+    return call(bridge?.OpenRemoteShell?.bind(bridge), project, remoteName);
+  },
+  async openRemoteDB(project, remoteName) {
+    const bridge = getBridge();
+    return call(bridge?.OpenRemoteDB?.bind(bridge), project, remoteName);
+  },
+  async openRemoteSFTP(project, remoteName) {
+    const bridge = getBridge();
+    return call(bridge?.OpenRemoteSFTP?.bind(bridge), project, remoteName);
+  },
   async runRemoteSyncPreset(project, remoteName, preset, syncConfig = {}) {
     const bridge = getBridge();
     return call(
@@ -173,6 +185,10 @@ export const desktopBridge = {
     const bridge = getBridge();
     return call(bridge?.ResizeTerminal?.bind(bridge), id, cols, rows);
   },
+  async terminateTerminal(id) {
+    const bridge = getBridge();
+    return call(bridge?.TerminateTerminal?.bind(bridge), id);
+  },
   async openShellForService(project, service, user, shell) {
     const bridge = getBridge();
     return call(
@@ -210,7 +226,7 @@ export const desktopBridge = {
       proxyTarget: String(settings.proxyTarget || ""),
       preferredBrowser: String(settings.preferredBrowser || ""),
       codeEditor: String(settings.codeEditor || ""),
-      dbClientPreference: String(settings.dbClientPreference || "desktop"),
+      dbClientPreference: String(settings.dbClientPreference || "pma"),
     };
     return call(bridge?.UpdateSettings?.bind(bridge), payload);
   },

@@ -91,6 +91,54 @@ test("remote card renders open-url button to the left of test connection", () =>
     false,
     "connected badge should no longer be rendered",
   );
+  assert.equal(
+    container.innerHTML.includes('data-action="open-remote-shell"'),
+    true,
+    "missing open remote shell action button",
+  );
+  assert.equal(
+    container.innerHTML.includes('data-action="open-remote-db"'),
+    true,
+    "missing open remote db action button",
+  );
+  assert.equal(
+    container.innerHTML.includes('data-action="open-remote-sftp"'),
+    true,
+    "missing open remote sftp action button",
+  );
+});
+
+test("remote open action buttons include loading labels for pending UX", () => {
+  const container = { innerHTML: "" };
+  renderRemotes(container, [
+    {
+      name: "staging",
+      host: "staging.example.com",
+      environment: "staging",
+      protected: false,
+    },
+  ]);
+
+  assert.equal(
+    container.innerHTML.includes('data-loading-label="Opening SSH..."'),
+    true,
+    "open ssh button should define loading label",
+  );
+  assert.equal(
+    container.innerHTML.includes('data-loading-label="Opening Database..."'),
+    true,
+    "open database button should define loading label",
+  );
+  assert.equal(
+    container.innerHTML.includes('data-loading-label="Opening SFTP..."'),
+    true,
+    "open sftp button should define loading label",
+  );
+  assert.equal(
+    container.innerHTML.includes('data-role="label"'),
+    true,
+    "open action buttons should include label span for loading updates",
+  );
 });
 
 test("remote card shows auth method summary", () => {

@@ -5,7 +5,7 @@ export const normalizeSettingsPayload = (settings = {}) => ({
     settings.preferredBrowser || settings.PreferredBrowser || "",
   codeEditor: settings.codeEditor || settings.CodeEditor || "",
   dbClientPreference:
-    settings.dbClientPreference || settings.DBClientPreference || "desktop",
+    settings.dbClientPreference || settings.DBClientPreference || "pma",
 });
 
 export const applyTheme = (theme) => {
@@ -74,7 +74,7 @@ export const createSettingsController = ({
     const proxyTarget = refs.proxyTarget?.value || "";
     const preferredBrowser = refs.preferredBrowser?.value || "";
     const codeEditor = refs.codeEditor?.value || "";
-    const dbClientPreference = refs.dbClientPreference?.value || "desktop";
+    const dbClientPreference = refs.dbClientPreference?.value || "pma";
     try {
       const message = await bridge.updateSettings({
         theme,
@@ -188,8 +188,8 @@ export const renderSettingsDrawer = (container) => {
                 id="dbClientPreference"
                 class="bg-[#102316] border border-[#2e573a] rounded-lg px-4 py-3 text-white outline-none focus:border-primary/50 appearance-none cursor-pointer"
               >
-                <option value="desktop">Local Client (e.g. BeeKeeper Studio)</option>
                 <option value="pma">PHPMyAdmin (Proxy Container)</option>
+                <option value="desktop">Local Client (e.g. BeeKeeper Studio)</option>
               </select>
             </label>
           </div>

@@ -132,6 +132,9 @@ func TestDesktopPkgResetSettings(t *testing.T) {
 	if settings.ProxyTarget != "govard.test" {
 		t.Fatalf("expected reset proxy target govard.test, got %s", settings.ProxyTarget)
 	}
+	if settings.DBClientPreference != "pma" {
+		t.Fatalf("expected reset db client preference pma, got %q", settings.DBClientPreference)
+	}
 }
 
 func TestDesktopPkgGetUserInfo(t *testing.T) {

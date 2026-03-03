@@ -85,6 +85,10 @@ func (app *App) ResizeTerminal(id string, cols, rows int) {
 	app.Logs.ResizeTerminal(id, cols, rows)
 }
 
+func (app *App) TerminateTerminal(id string) (string, error) {
+	return app.Logs.TerminateTerminal(id)
+}
+
 func (app *App) OpenShellForService(project, service, user, shell string) (string, error) {
 	return app.Logs.StartTerminal(project, service, user, shell)
 }
@@ -101,6 +105,18 @@ func (app *App) TestRemote(project, remoteName string) (string, error) {
 
 func (app *App) OpenRemoteURL(project, remoteName string) (string, error) {
 	return app.Remote.OpenRemoteURL(project, remoteName)
+}
+
+func (app *App) OpenRemoteShell(project, remoteName string) (string, error) {
+	return app.Remote.OpenRemoteShell(project, remoteName)
+}
+
+func (app *App) OpenRemoteDB(project, remoteName string) (string, error) {
+	return app.Remote.OpenRemoteDB(project, remoteName)
+}
+
+func (app *App) OpenRemoteSFTP(project, remoteName string) (string, error) {
+	return app.Remote.OpenRemoteSFTP(project, remoteName)
 }
 
 func (app *App) RunRemoteSyncPreset(project, remoteName, presetName string, config map[string]bool) (string, error) {

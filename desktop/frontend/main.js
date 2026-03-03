@@ -70,6 +70,7 @@ const getLiveRefs = () => ({
   proxyTarget: byId("proxyTarget"),
   preferredBrowser: byId("preferredBrowser"),
   codeEditor: byId("codeEditor"),
+  dbClientPreference: byId("dbClientPreference"),
   shellUser: byId("shellUser"),
   userAvatar: byId("userAvatar"),
   userName: byId("userName"),
@@ -719,6 +720,10 @@ const remotesController = createRemotesController({
   getSyncConfig: () => getState().syncConfig,
   onStatus: setStatus,
   onToast: showToast,
+  onOpenRemoteShellFallback: async (remoteName) => {
+    switchTab("logs");
+    await shellController.openRemoteShell(remoteName);
+  },
 });
 
 const embeddedTerminalController = createTerminalController({
@@ -1193,26 +1198,23 @@ document.addEventListener("click", async (event) => {
     return;
   }
   if (action === "open-remote-shell") {
-    console.log("[Main] open-remote-shell", targetElement.dataset.remote);
-    switchTab("logs");
-    await shellController.openRemoteShell(
+    await remotesController.openRemoteShell(
       String(targetElement.dataset.remote || ""),
+      targetElement,
     );
     return;
   }
   if (action === "open-remote-db") {
-    console.log("[Main] open-remote-db", targetElement.dataset.remote);
-    switchTab("logs");
-    await shellController.openRemoteDB(
+    await remotesController.openRemoteDB(
       String(targetElement.dataset.remote || ""),
+      targetElement,
     );
     return;
   }
   if (action === "open-remote-sftp") {
-    console.log("[Main] open-remote-sftp", targetElement.dataset.remote);
-    switchTab("logs");
-    await shellController.openRemoteSFTP(
+    await remotesController.openRemoteSFTP(
       String(targetElement.dataset.remote || ""),
+      targetElement,
     );
     return;
   }
@@ -1409,6 +1411,13 @@ document.addEventListener("click", async (event) => {
     await embeddedTerminalController.startSession();
     return;
   }
+  if (action === "restart-terminal-session") {
+    const restartedEmbedded = await embeddedTerminalController.restartSession();
+    if (!restartedEmbedded && shellController.restartSession) {
+      await shellController.restartSession();
+    }
+    return;
+  }
   if (action === "toggle-terminal-modal") {
     toggleTerminalModal();
     return;
@@ -1587,6 +1596,12 @@ const bindDynamicControlListeners = () => {
 
   if (refs.preferredBrowser) {
     refs.preferredBrowser.addEventListener("change", () => {
+      settingsController.save();
+    });
+  }
+
+  if (refs.dbClientPreference) {
+    refs.dbClientPreference.addEventListener("change", () => {
       settingsController.save();
     });
   }

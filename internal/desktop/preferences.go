@@ -200,7 +200,7 @@ func normalizeSettings(settings DesktopSettings) DesktopSettings {
 		settings.ProxyTarget = "govard.test"
 	}
 	if settings.DBClientPreference != "pma" && settings.DBClientPreference != "desktop" {
-		settings.DBClientPreference = "desktop"
+		settings.DBClientPreference = "pma"
 	}
 	return settings
 }

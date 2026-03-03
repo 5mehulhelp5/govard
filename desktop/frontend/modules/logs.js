@@ -464,7 +464,7 @@ export const renderLogsTab = (container) => {
                   >terminal</span
                 >
                 <span class="text-xs font-semibold text-slate-300"
-                  >Terminal — bash</span
+                  >Terminal</span
                 >
               </div>
               <div class="flex items-center gap-2">
@@ -474,6 +474,13 @@ export const renderLogsTab = (container) => {
                   title="Open Shell"
                 >
                   Open Shell
+                </button>
+                <button
+                  data-action="restart-terminal-session"
+                  class="px-2.5 py-1 rounded text-xs font-medium bg-[#13261a] text-slate-100 hover:bg-[#22492f] transition-colors border border-[#2e573a]"
+                  title="Terminate current session and open a new one"
+                >
+                  Restart Session
                 </button>
                 <button
                   data-action="toggle-terminal-modal"
@@ -490,7 +497,7 @@ export const renderLogsTab = (container) => {
                   <option value="">Auto</option>
                 </select>
                 <select id="shellCommand" class="hidden">
-                  <option value="bash">bash</option>
+                  <option value="sh">sh</option>
                 </select>
               </div>
             </div>

@@ -152,7 +152,9 @@ remotes:
 	if err != nil {
 		t.Fatalf("quick action db: %v", err)
 	}
-	if !strings.Contains(strings.ToLower(dbAction), "opening db client") {
+	normalizedDBAction := strings.ToLower(dbAction)
+	if !strings.Contains(normalizedDBAction, "opening db client") &&
+		!strings.Contains(normalizedDBAction, "phpmyadmin") {
 		t.Fatalf("expected db quick action message, got %q", dbAction)
 	}
 	unsupportedAction, err := app.QuickActionForProject("other", "smoke")

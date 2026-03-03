@@ -85,6 +85,16 @@ test("logs tab exposes shell controls contract", async () => {
     "missing shell action toggle-terminal-modal",
   );
   assert.equal(
+    combined.includes('data-action="restart-terminal-session"'),
+    true,
+    "missing shell action restart-terminal-session",
+  );
+  assert.equal(
+    combined.includes('<option value="sh">sh</option>'),
+    true,
+    "shell command default should be sh",
+  );
+  assert.equal(
     combined.includes('data-action="reset-shell-users"'),
     false,
     "shell reset/settings action should not be rendered",

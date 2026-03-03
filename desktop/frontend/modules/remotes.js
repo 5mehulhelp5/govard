@@ -257,17 +257,17 @@ export const renderRemotes = (container, remotes = []) => {
                 })}
             </div>
             <div class="flex flex-wrap gap-3">
-                <button data-action="open-remote-shell" data-remote="${escapeHTML(remote.name)}" class="flex-1 px-4 py-2.5 bg-[#102316] hover:bg-[#1a3322] border border-[#2e573a] rounded-lg text-sm text-slate-300 hover:text-white font-medium transition-all flex items-center justify-center gap-2 group/btn">
-                    <span class="material-symbols-outlined text-[18px] opacity-70 group-hover/btn:opacity-100">terminal</span>
-                    Open SSH
+                <button data-action="open-remote-shell" data-remote="${escapeHTML(remote.name)}" data-loading-label="Opening SSH..." class="flex-1 min-h-[42px] px-4 py-2.5 bg-[#102316] hover:bg-[#1a3322] border border-[#2e573a] rounded-lg text-sm text-slate-300 hover:text-white font-medium transition-all flex items-center justify-center gap-2 group/btn">
+                    <span class="material-symbols-outlined inline-flex h-[18px] w-[18px] items-center justify-center text-[18px] opacity-70 group-hover/btn:opacity-100">terminal</span>
+                    <span data-role="label">Open SSH</span>
                 </button>
-                <button data-action="open-remote-db" data-remote="${escapeHTML(remote.name)}" class="flex-1 px-4 py-2.5 bg-[#102316] hover:bg-[#1a3322] border border-[#2e573a] rounded-lg text-sm text-slate-300 hover:text-white font-medium transition-all flex items-center justify-center gap-2 group/btn">
-                    <span class="material-symbols-outlined text-[18px] opacity-70 group-hover/btn:opacity-100">database</span>
-                    Open Database
+                <button data-action="open-remote-db" data-remote="${escapeHTML(remote.name)}" data-loading-label="Opening Database..." class="flex-1 min-h-[42px] px-4 py-2.5 bg-[#102316] hover:bg-[#1a3322] border border-[#2e573a] rounded-lg text-sm text-slate-300 hover:text-white font-medium transition-all flex items-center justify-center gap-2 group/btn">
+                    <span class="material-symbols-outlined inline-flex h-[18px] w-[18px] items-center justify-center text-[18px] opacity-70 group-hover/btn:opacity-100">database</span>
+                    <span data-role="label">Open Database</span>
                 </button>
-                <button data-action="open-remote-sftp" data-remote="${escapeHTML(remote.name)}" class="flex-1 px-4 py-2.5 bg-[#102316] hover:bg-[#1a3322] border border-[#2e573a] rounded-lg text-sm text-slate-300 hover:text-white font-medium transition-all flex items-center justify-center gap-2 group/btn">
-                    <span class="material-symbols-outlined text-[18px] opacity-70 group-hover/btn:opacity-100">folder_open</span>
-                    Open SFTP
+                <button data-action="open-remote-sftp" data-remote="${escapeHTML(remote.name)}" data-loading-label="Opening SFTP..." class="flex-1 min-h-[42px] px-4 py-2.5 bg-[#102316] hover:bg-[#1a3322] border border-[#2e573a] rounded-lg text-sm text-slate-300 hover:text-white font-medium transition-all flex items-center justify-center gap-2 group/btn">
+                    <span class="material-symbols-outlined inline-flex h-[18px] w-[18px] items-center justify-center text-[18px] opacity-70 group-hover/btn:opacity-100">folder_open</span>
+                    <span data-role="label">Open SFTP</span>
                 </button>
             </div>
             <!-- Inline sync config removed in favor of modal -->
@@ -368,9 +368,78 @@ export const createRemotesController = ({
   getSyncConfig,
   onStatus,
   onToast,
+  onOpenRemoteShellFallback,
 }) => {
+  const MIN_REMOTE_OPEN_LOADING_MS = 1400;
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const updateRefs = (newRefs) => {
     refs = newRefs;
+  };
+  const pendingRemoteActions = new Set();
+
+  const remoteActionKey = (project, remoteName, actionName) =>
+    `${project}:${remoteName}:${actionName}`;
+
+  const setButtonLoading = (button, isLoading) => {
+    if (!(button instanceof HTMLElement)) {
+      return;
+    }
+    const icon = button.querySelector(".material-symbols-outlined");
+    if (isLoading) {
+      button.disabled = true;
+      button.setAttribute("aria-disabled", "true");
+      button.setAttribute("aria-busy", "true");
+      button.classList.add("opacity-70", "cursor-not-allowed");
+      if (icon) {
+        icon.dataset.previousIcon = icon.textContent;
+        icon.textContent = "progress_activity";
+        icon.classList.add("animate-spin");
+      }
+      return;
+    }
+
+    button.disabled = false;
+    button.setAttribute("aria-disabled", "false");
+    button.removeAttribute("aria-busy");
+    button.classList.remove("opacity-70", "cursor-not-allowed");
+    if (icon) {
+      const previousIcon = icon.dataset.previousIcon;
+      if (previousIcon) {
+        icon.textContent = previousIcon;
+      }
+      icon.classList.remove("animate-spin");
+    }
+  };
+
+  const runOpenRemoteAction = async (
+    remoteName,
+    actionName,
+    button,
+    runner,
+  ) => {
+    const project = String(getProject?.() || "").trim();
+    if (!project || !remoteName) {
+      return;
+    }
+    const key = remoteActionKey(project, remoteName, actionName);
+    if (pendingRemoteActions.has(key)) {
+      return;
+    }
+
+    pendingRemoteActions.add(key);
+    const startedAt = Date.now();
+    setButtonLoading(button, true);
+    try {
+      await runner(project);
+    } finally {
+      const elapsed = Date.now() - startedAt;
+      const remaining = MIN_REMOTE_OPEN_LOADING_MS - elapsed;
+      if (remaining > 0) {
+        await wait(remaining);
+      }
+      setButtonLoading(button, false);
+      pendingRemoteActions.delete(key);
+    }
   };
   const refresh = async ({ silent = false } = {}) => {
     const project = String(getProject?.() || "").trim();
@@ -435,6 +504,55 @@ export const createRemotesController = ({
       }
       if (btn) btn.disabled = false;
     }
+  };
+
+  const openRemoteShell = async (remoteName, button) => {
+    await runOpenRemoteAction(remoteName, "ssh", button, async (project) => {
+      try {
+        const message = await bridge.openRemoteShell(project, remoteName);
+        onStatus(message || `Opened SSH for ${remoteName}`);
+        onToast(message || `Opened SSH for ${remoteName}`, "success");
+      } catch (err) {
+        const normalizedError = String(err || "")
+          .trim()
+          .toLowerCase();
+        if (
+          typeof onOpenRemoteShellFallback === "function" &&
+          normalizedError.includes("fallback to embedded terminal")
+        ) {
+          onStatus(`Opening SSH for ${remoteName} in embedded terminal...`);
+          await onOpenRemoteShellFallback(remoteName);
+          onToast(`Opened SSH for ${remoteName}`, "success");
+          return;
+        }
+        throw err;
+      }
+    }).catch((err) => {
+      onStatus(`Failed to open SSH for ${remoteName}: ${err}`);
+      onToast(`Failed to open SSH for ${remoteName}.`, "error");
+    });
+  };
+
+  const openRemoteDB = async (remoteName, button) => {
+    await runOpenRemoteAction(remoteName, "db", button, async (project) => {
+      const message = await bridge.openRemoteDB(project, remoteName);
+      onStatus(message || `Opening remote database for ${remoteName}`);
+      onToast(message || `Opening remote database for ${remoteName}.`, "info");
+    }).catch((err) => {
+      onStatus(`Failed to open remote DB for ${remoteName}: ${err}`);
+      onToast(`Failed to open remote DB for ${remoteName}.`, "error");
+    });
+  };
+
+  const openRemoteSFTP = async (remoteName, button) => {
+    await runOpenRemoteAction(remoteName, "sftp", button, async (project) => {
+      const message = await bridge.openRemoteSFTP(project, remoteName);
+      onStatus(message || `Opening SFTP for ${remoteName}`);
+      onToast(message || `Opening SFTP for ${remoteName}.`, "info");
+    }).catch((err) => {
+      onStatus(`Failed to open SFTP for ${remoteName}: ${err}`);
+      onToast(`Failed to open SFTP for ${remoteName}.`, "error");
+    });
   };
 
   const runSyncPreset = async (remoteName, preset) => {
@@ -510,6 +628,9 @@ export const createRemotesController = ({
   return {
     refresh,
     testRemote,
+    openRemoteShell,
+    openRemoteDB,
+    openRemoteSFTP,
     runSyncPreset,
     renderSyncOptions,
     toggleSyncConfig,

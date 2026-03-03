@@ -1,6 +1,8 @@
 package desktop
 
 import (
+	"context"
+	"io"
 	"strings"
 	"time"
 
@@ -13,6 +15,8 @@ func ResetStateForTest() {
 	cachedPrefs = nil
 	prefsMu.Unlock()
 	runGovardCommandForDesktop = defaultRunGovardCommandForDesktop
+	startGovardCommandForDesktop = defaultStartGovardCommandForDesktop
+	openExternalURLForDesktop = defaultOpenExternalURLForDesktop
 }
 
 // ResolveRequestedLogTargetsForTest exposes log target normalization for tests.
@@ -41,6 +45,81 @@ func ResolveShellServiceNameForTest(requested string, available []string) string
 		info.services[trimmed] = true
 	}
 	return resolveShellServiceName(info, requested)
+}
+
+// NormalizeShellForTest exposes shell normalization logic for tests.
+func NormalizeShellForTest(shell string) string {
+	return normalizeShell(shell)
+}
+
+// ParseDockerPublishedPortForTest exposes docker port output parsing for tests.
+func ParseDockerPublishedPortForTest(raw string) (string, string, bool) {
+	return parseDockerPublishedPort(raw)
+}
+
+// BuildDesktopDBClientURLForTest exposes local DB client URL formatting for tests.
+func BuildDesktopDBClientURLForTest(
+	scheme string,
+	user string,
+	pass string,
+	host string,
+	port string,
+	db string,
+) string {
+	return buildDesktopDBClientURL(scheme, user, pass, host, port, db)
+}
+
+// ParseContainerIPAddressesForTest exposes container IP list parsing for tests.
+func ParseContainerIPAddressesForTest(raw string) []string {
+	return parseContainerIPAddresses(raw)
+}
+
+type testTerminalPTY struct {
+	closed bool
+}
+
+func (pty *testTerminalPTY) Read(_ []byte) (int, error) {
+	return 0, io.EOF
+}
+
+func (pty *testTerminalPTY) Write(data []byte) (int, error) {
+	return len(data), nil
+}
+
+func (pty *testTerminalPTY) Close() error {
+	pty.closed = true
+	return nil
+}
+
+// InjectTerminalSessionForTest injects a fake terminal session and returns cleanup/status helpers.
+func InjectTerminalSessionForTest(sessionID string) (cleanup func(), wasClosed func() bool) {
+	pty := &testTerminalPTY{}
+	ctx, cancel := context.WithCancel(context.Background())
+	sessionsMu.Lock()
+	sessions[sessionID] = &terminalSession{
+		id:     sessionID,
+		pty:    pty,
+		ctx:    ctx,
+		cancel: cancel,
+	}
+	sessionsMu.Unlock()
+
+	return func() {
+			sessionsMu.Lock()
+			delete(sessions, sessionID)
+			sessionsMu.Unlock()
+			cancel()
+		}, func() bool {
+			return pty.closed
+		}
+}
+
+// HasTerminalSessionForTest reports whether the terminal session registry has an entry.
+func HasTerminalSessionForTest(sessionID string) bool {
+	sessionsMu.Lock()
+	_, ok := sessions[sessionID]
+	sessionsMu.Unlock()
+	return ok
 }
 
 // NormalizeOnboardingDomainForTest exposes domain normalization for tests.
@@ -235,6 +314,19 @@ func SetRunGovardCommandForDesktopForTest(fn func(root string, args []string) (s
 	}
 	return func() {
 		runGovardCommandForDesktop = previous
+	}
+}
+
+// SetStartGovardCommandForDesktopForTest overrides the desktop background govard starter.
+func SetStartGovardCommandForDesktopForTest(fn func(root string, args []string) error) func() {
+	previous := startGovardCommandForDesktop
+	if fn == nil {
+		startGovardCommandForDesktop = defaultStartGovardCommandForDesktop
+	} else {
+		startGovardCommandForDesktop = fn
+	}
+	return func() {
+		startGovardCommandForDesktop = previous
 	}
 }
 

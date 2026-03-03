@@ -14,7 +14,7 @@ test("normalizeSettingsPayload maps settings payload", () => {
     proxyTarget: "govard.test",
     preferredBrowser: "firefox",
     codeEditor: "",
-    dbClientPreference: "desktop",
+    dbClientPreference: "pma",
   });
 });
 
@@ -25,6 +25,6 @@ test("normalizeSettingsPayload falls back to defaults", () => {
     proxyTarget: "",
     preferredBrowser: "",
     codeEditor: "",
-    dbClientPreference: "desktop",
+    dbClientPreference: "pma",
   });
 });

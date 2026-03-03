@@ -11,6 +11,20 @@ export const createTerminalController = ({
   let fitAddon = null;
   let resizeObserver = null;
 
+  const terminateSession = async () => {
+    if (!activeSessionId) {
+      return false;
+    }
+    const sessionID = activeSessionId;
+    activeSessionId = null;
+    try {
+      await bridge.terminateTerminal(sessionID);
+    } catch (_err) {
+      // Session may already be closed; ignore to keep UI responsive.
+    }
+    return true;
+  };
+
   const updateRefs = (newRefs) => {
     refs = newRefs;
   };
@@ -179,10 +193,21 @@ export const createTerminalController = ({
     }
   };
 
+  const restartSession = async () => {
+    const hadSession = await terminateSession();
+    if (!hadSession) {
+      return false;
+    }
+    await startSession();
+    return true;
+  };
+
   return {
     updateRefs,
     startSession,
     startGovardSession,
     resize,
+    restartSession,
+    terminateSession,
   };
 };

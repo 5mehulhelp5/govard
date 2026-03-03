@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/creack/pty"
@@ -107,6 +108,19 @@ func (s *LogService) ResizeTerminal(sessionID string, cols int, rows int) {
 	}
 }
 
+func (s *LogService) TerminateTerminal(sessionID string) (string, error) {
+	trimmedID := strings.TrimSpace(sessionID)
+	if trimmedID == "" {
+		return "", fmt.Errorf("session id is required")
+	}
+
+	if !terminateSession(trimmedID) {
+		return "Terminal session not found", nil
+	}
+
+	return "Terminal session terminated", nil
+}
+
 func (s *LogService) GetLogs(project string, lines int) (string, error) {
 	output, err := getLogs(project, lines)
 	if err != nil {
@@ -135,8 +149,12 @@ func (s *LogService) startSession(sessionID string, cmd *exec.Cmd) (string, erro
 
 	sessionsMu.Lock()
 	if old, ok := sessions[sessionID]; ok {
-		old.cancel()
-		old.pty.Close()
+		if old.cancel != nil {
+			old.cancel()
+		}
+		if old.pty != nil {
+			_ = old.pty.Close()
+		}
 	}
 	sessions[sessionID] = &terminalSession{
 		id:     sessionID,
@@ -172,4 +190,25 @@ func (s *LogService) startSession(sessionID string, cmd *exec.Cmd) (string, erro
 	}()
 
 	return sessionID, nil
+}
+
+func terminateSession(sessionID string) bool {
+	sessionsMu.Lock()
+	session, ok := sessions[sessionID]
+	if ok {
+		delete(sessions, sessionID)
+	}
+	sessionsMu.Unlock()
+
+	if !ok {
+		return false
+	}
+
+	if session.cancel != nil {
+		session.cancel()
+	}
+	if session.pty != nil {
+		_ = session.pty.Close()
+	}
+	return true
 }

@@ -12,6 +12,20 @@ export const createShellController = ({
   let fitAddon = null;
   let currentSessionID = null;
 
+  const terminateCurrentSession = async () => {
+    if (!currentSessionID) {
+      return false;
+    }
+    const sessionID = currentSessionID;
+    currentSessionID = null;
+    try {
+      await bridge.terminateTerminal(sessionID);
+    } catch (_err) {
+      // Session may already be closed; keep restart flow resilient.
+    }
+    return true;
+  };
+
   const initTerminal = () => {
     if (term || !refs.terminalContainer) return;
 
@@ -98,7 +112,7 @@ export const createShellController = ({
     if (!term) initTerminal();
 
     const shellUser = refs.shellUser?.value || "";
-    const shell = refs.shellCommand?.value || "bash";
+    const shell = refs.shellCommand?.value || "sh";
 
     try {
       term.reset();
@@ -158,7 +172,7 @@ export const createShellController = ({
         "exec",
         remoteName,
         "--",
-        "bash",
+        "sh",
       ]);
       if (sessionID.startsWith("error:"))
         throw new Error(sessionID.replace("error: ", ""));
@@ -281,6 +295,15 @@ export const createShellController = ({
     }
   };
 
+  const restartSession = async () => {
+    const hadSession = await terminateCurrentSession();
+    if (!hadSession) {
+      return false;
+    }
+    await openShell();
+    return true;
+  };
+
   return {
     updateRefs,
     loadShellUser,
@@ -291,5 +314,6 @@ export const createShellController = ({
     openRemoteDB,
     openRemoteSFTP,
     openRemoteURL,
+    restartSession,
   };
 };

@@ -3,12 +3,16 @@ package desktop
 import (
 	"context"
 	"fmt"
+	"net"
+	neturl "net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"govard/internal/engine"
 
@@ -18,6 +22,9 @@ import (
 	"github.com/pkg/browser"
 	"gopkg.in/yaml.v3"
 )
+
+var defaultOpenExternalURLForDesktop = browser.OpenURL
+var openExternalURLForDesktop = defaultOpenExternalURLForDesktop
 
 func quickAction(ctx context.Context, action string, project string) (string, error) {
 	switch action {
@@ -41,20 +48,31 @@ func quickAction(ctx context.Context, action string, project string) (string, er
 }
 
 func openDBClient(ctx context.Context, project string) (string, error) {
+	normalizedProject := strings.TrimSpace(project)
+	if normalizedProject == "" {
+		info, err := selectProject("")
+		if err != nil {
+			return "", err
+		}
+		normalizedProject = strings.TrimSpace(info.name)
+	}
+
 	settings, err := getSettingsInternal()
 	if err == nil && settings.DBClientPreference == "pma" {
-		if err := browser.OpenURL("https://pma.govard.test/?db=" + project); err != nil {
-			return "", fmt.Errorf("failed to open PHPMyAdmin URL: %w", err)
-		}
-		return "PMA Opened", nil
+		target := buildProxyURL("pma") + "/?db=" + neturl.QueryEscape(normalizedProject)
+		return openDestination(ctx, target, "Opening PHPMyAdmin...")
 	}
 
-	info, _ := loadProjectInfo(project)
-	if info == nil {
-		info = &projectInfo{}
+	info, err := loadProjectInfo(normalizedProject)
+	if err != nil {
+		info = &projectInfo{name: normalizedProject}
 	}
 
-	containerName := project + "-db-1"
+	containerProjectName := strings.TrimSpace(info.name)
+	if containerProjectName == "" {
+		containerProjectName = normalizedProject
+	}
+	containerName := containerProjectName + "-db-1"
 
 	user := "magento"
 	pass := "magento"
@@ -106,32 +124,188 @@ func openDBClient(ctx context.Context, project string) (string, error) {
 		}
 	}
 
+	host := "127.0.0.1"
 	port := internalPort
 	portCmd := exec.Command("docker", "port", containerName, internalPort)
 	if portOut, err := portCmd.Output(); err == nil {
-		res := strings.TrimSpace(string(portOut))
-		parts := strings.Split(res, "\n")
-		if len(parts) > 0 {
-			idx := strings.LastIndex(parts[0], ":")
-			if idx != -1 {
-				port = parts[0][idx+1:]
+		if mappedHost, mappedPort, ok := parseDockerPublishedPort(strings.TrimSpace(string(portOut))); ok {
+			host = mappedHost
+			port = mappedPort
+		}
+	}
+
+	if host == "127.0.0.1" && port == internalPort {
+		ipCmd := exec.Command(
+			"docker",
+			"inspect",
+			"-f",
+			"{{range .NetworkSettings.Networks}}{{println .IPAddress}}{{end}}",
+			containerName,
+		)
+		if ipOut, err := ipCmd.Output(); err == nil {
+			candidates := parseContainerIPAddresses(string(ipOut))
+			if resolvedHost := chooseReachableContainerHost(candidates, port); resolvedHost != "" {
+				host = resolvedHost
 			}
 		}
 	}
 
-	host := "127.0.0.1"
-	ipCmd := exec.Command("docker", "inspect", "-f", "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}", containerName)
-	if ipOut, err := ipCmd.Output(); err == nil {
-		ip := strings.TrimSpace(string(ipOut))
-		if ip != "" {
-			host = ip
+	urlStr := buildDesktopDBClientURL(scheme, user, pass, host, port, db)
+	if err := openExternalURLForDesktop(urlStr); err != nil {
+		fallbackTarget := buildProxyURL("pma") + "/?db=" + neturl.QueryEscape(db)
+		if _, fallbackErr := openDestination(
+			ctx,
+			fallbackTarget,
+			"Desktop DB client is unavailable. Opening PHPMyAdmin...",
+		); fallbackErr != nil {
+			return "", fmt.Errorf("failed to open desktop DB client (%v) and fallback PMA (%w)", err, fallbackErr)
+		}
+		return fmt.Sprintf("Desktop DB client unavailable, opened PHPMyAdmin for %s.", db), nil
+	}
+
+	return "Opening DB Client...", nil
+}
+
+func parseDockerPublishedPort(raw string) (string, string, bool) {
+	lines := strings.Split(raw, "\n")
+	for _, line := range lines {
+		candidate := strings.TrimSpace(line)
+		if candidate == "" {
+			continue
+		}
+		if strings.Contains(candidate, "->") {
+			parts := strings.Split(candidate, "->")
+			candidate = strings.TrimSpace(parts[len(parts)-1])
+		}
+		candidate = strings.TrimPrefix(candidate, "tcp://")
+
+		host, port, err := net.SplitHostPort(candidate)
+		if err != nil {
+			idx := strings.LastIndex(candidate, ":")
+			if idx <= 0 || idx >= len(candidate)-1 {
+				continue
+			}
+			host = strings.TrimSpace(candidate[:idx])
+			port = strings.TrimSpace(candidate[idx+1:])
+		}
+
+		host = normalizeDockerPublishedHost(host)
+		if port == "" {
+			continue
+		}
+		if _, err := strconv.Atoi(port); err != nil {
+			continue
+		}
+
+		return host, port, true
+	}
+
+	return "", "", false
+}
+
+func normalizeDockerPublishedHost(rawHost string) string {
+	host := strings.Trim(strings.TrimSpace(rawHost), "[]")
+	if host == "" || host == "0.0.0.0" || host == "::" || host == "*" {
+		return "127.0.0.1"
+	}
+
+	if ip := net.ParseIP(host); ip != nil {
+		if ip.IsUnspecified() {
+			return "127.0.0.1"
+		}
+		return host
+	}
+
+	// Some runtimes emit host values like "192.168.65.2:172.18.0.4";
+	// pick the first concrete address token to avoid malformed URLs.
+	if strings.Contains(host, ":") {
+		for _, token := range strings.Split(host, ":") {
+			candidate := strings.Trim(strings.TrimSpace(token), "[]")
+			if candidate == "" {
+				continue
+			}
+			if ip := net.ParseIP(candidate); ip != nil {
+				if ip.IsUnspecified() {
+					continue
+				}
+				return candidate
+			}
+		}
+		return "127.0.0.1"
+	}
+
+	return host
+}
+
+func buildDesktopDBClientURL(scheme string, user string, pass string, host string, port string, db string) string {
+	normalizedScheme := strings.TrimSpace(scheme)
+	if normalizedScheme == "" {
+		normalizedScheme = "mysql"
+	}
+
+	normalizedHost := strings.TrimSpace(host)
+	if normalizedHost == "" {
+		normalizedHost = "127.0.0.1"
+	}
+
+	normalizedPort := strings.TrimSpace(port)
+	if normalizedPort == "" {
+		if normalizedScheme == "postgresql" {
+			normalizedPort = "5432"
+		} else {
+			normalizedPort = "3306"
 		}
 	}
 
-	urlStr := fmt.Sprintf("%s://%s:%s@%s:%s/%s", scheme, user, pass, host, port, db)
-	_ = browser.OpenURL(urlStr)
+	dbPath := "/" + strings.TrimPrefix(strings.TrimSpace(db), "/")
+	if dbPath == "/" {
+		dbPath = ""
+	}
 
-	return "Opening DB Client...", nil
+	connectionURL := &neturl.URL{
+		Scheme: normalizedScheme,
+		User:   neturl.UserPassword(user, pass),
+		Host:   net.JoinHostPort(normalizedHost, normalizedPort),
+		Path:   dbPath,
+	}
+	return connectionURL.String()
+}
+
+func parseContainerIPAddresses(raw string) []string {
+	lines := strings.Split(raw, "\n")
+	seen := map[string]bool{}
+	result := make([]string, 0, len(lines))
+	for _, line := range lines {
+		candidate := strings.Trim(strings.TrimSpace(line), "[]")
+		if candidate == "" {
+			continue
+		}
+		ip := net.ParseIP(candidate)
+		if ip == nil || ip.IsUnspecified() {
+			continue
+		}
+		if seen[candidate] {
+			continue
+		}
+		seen[candidate] = true
+		result = append(result, candidate)
+	}
+	return result
+}
+
+func chooseReachableContainerHost(candidates []string, port string) string {
+	for _, candidate := range candidates {
+		target := net.JoinHostPort(candidate, port)
+		conn, err := net.DialTimeout("tcp", target, 250*time.Millisecond)
+		if err == nil {
+			_ = conn.Close()
+			return candidate
+		}
+	}
+	if len(candidates) == 0 {
+		return ""
+	}
+	return candidates[0]
 }
 
 func openFolder(project string) (string, error) {
@@ -445,10 +619,13 @@ func openDocs(ctx context.Context, docPath string) error {
 // Shell functions moved to LogService/SystemService
 
 func normalizeShell(shell string) string {
-	if shell == "sh" {
+	normalized := strings.ToLower(strings.TrimSpace(shell))
+	switch normalized {
+	case "bash", "sh":
+		return normalized
+	default:
 		return "sh"
 	}
-	return "bash"
 }
 
 func normalizeShellUser(info *projectInfo, service string, user string) string {

@@ -19,16 +19,28 @@ Keyboard shortcuts:
 Lightweight dashboard features:
 
 - Environment list with start/stop/open
-- Quick actions (Mailpit, PHPMyAdmin, Xdebug toggle, health)
+- Quick actions (Mailpit, PHPMyAdmin, DB Client, Xdebug toggle, health)
 - Embedded Mailpit inbox panel with refresh/open controls
 - Project onboarding panel (folder picker + add/init when `.govard.yml` is missing)
-- Remotes tab (list/add remotes, connectivity test, and sync plan presets)
+- Remotes tab (list/add remotes, connectivity test, open SSH/DB/SFTP actions, and sync plan presets)
 - Resource monitor (CPU/RAM/NET per project, OOM hints, refresh + auto-refresh)
 - Logs with multi-service (`all`) selection, severity filtering, text search, and live streaming
 - Shell launcher (service, user, shell)
 - Native notifications from operation success/failure events while desktop is running
 - Warnings panel
 - Settings drawer
+
+Remote open behavior in Desktop:
+
+- Open Database (Local) resolves Docker published host/port robustly and falls back to reachable container IPs when needed.
+- Open Database (Local) falls back to PHPMyAdmin if launching the configured desktop DB client fails.
+- Open Database (Remote) triggers `govard open db -e <remote> --client`.
+- Open SSH (Remote) on Linux prefers native terminal launchers (`x-terminal-emulator`, `gnome-terminal`, `konsole`, `xfce4-terminal`) and falls back to `ssh://` URL handoff if needed.
+- Open SFTP (Remote) prefers FileZilla when `filezilla` is available and falls back to `sftp://` URL handoff when not available.
+- For remotes with `auth.method: ssh-agent`, desktop open actions reuse `SSH_AUTH_SOCK`.
+- On Linux, when `SSH_AUTH_SOCK` is not set, desktop also probes `/run/user/<uid>/keyring/ssh`.
+- If FileZilla still asks for a password, switch remote auth to `ssh-agent` and ensure your key is loaded into ssh-agent before launching Desktop.
+- If no ssh-agent socket is available for `auth.method: ssh-agent`, desktop returns a clear error and you should load keys into ssh-agent or switch remote auth to `keychain`/`keyfile`.
 
 Removed from desktop surface:
 

@@ -51,6 +51,11 @@ govard remote audit tail --since 2026-02-12 --until 2026-02-12
 - Production remotes (normalizing to `prod` via name) are write-protected by default. This can be overridden via `protected: false`.
 - Remote operations are appended to `~/.govard/remote.log` (override with `GOVARD_REMOTE_AUDIT_LOG_PATH`).
 - Remote commands also emit structured operation events to `~/.govard/operations.log`, which the desktop app uses for native success/failure notifications.
+- In Desktop Remotes tab, `Open Database` uses `govard open db -e <remote> --client`.
+- In Desktop Remotes tab, `Open SSH` on Linux prefers native terminal launchers and falls back to `ssh://` URL handoff.
+- In Desktop Remotes tab, `Open SFTP` prefers FileZilla when available and falls back to `sftp://` URL handoff.
+- For desktop remote open actions with `auth.method: ssh-agent`, Govard reuses `SSH_AUTH_SOCK` and also probes `/run/user/<uid>/keyring/ssh` on Linux.
+- If FileZilla prompts for password unexpectedly, prefer `auth.method: ssh-agent` and confirm the key is loaded in your local ssh-agent.
 - `remote audit tail` supports filtering by `--status` and `--operation`, and `--json` output.
 - `remote audit stats` summarizes recent events by status, category, and operation.
 - Both `tail` and `stats` support time-window filters via `--since` and `--until` (RFC3339 or `YYYY-MM-DD`).

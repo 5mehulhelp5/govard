@@ -3,10 +3,15 @@ package desktop
 import (
 	"context"
 	"fmt"
+	"io"
+	"net"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -46,6 +51,29 @@ var defaultRunGovardCommandForDesktop = func(root string, args []string) (string
 }
 
 var runGovardCommandForDesktop = defaultRunGovardCommandForDesktop
+
+var defaultStartGovardCommandForDesktop = func(root string, args []string) error {
+	binary, err := exec.LookPath("govard")
+	if err != nil {
+		return fmt.Errorf("govard CLI not found in PATH")
+	}
+
+	cmd := exec.Command(binary, args...)
+	cmd.Dir = filepath.Clean(root)
+	cmd.Stdout = io.Discard
+	cmd.Stderr = io.Discard
+
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("start govard command: %w", err)
+	}
+
+	go func() {
+		_ = cmd.Wait()
+	}()
+	return nil
+}
+
+var startGovardCommandForDesktop = defaultStartGovardCommandForDesktop
 
 var defaultSyncSanitizeExcludePatterns = []string{
 	".env",
@@ -185,6 +213,125 @@ func openRemoteURL(project string, remoteName string, ctx context.Context) (stri
 	return result, nil
 }
 
+func openRemoteDB(project string, remoteName string) (string, error) {
+	trimmedRemoteName := strings.TrimSpace(remoteName)
+	if trimmedRemoteName == "" {
+		return "", fmt.Errorf("remote name is required")
+	}
+
+	root, err := resolveProjectRootForRemotes(project)
+	if err != nil {
+		return "", err
+	}
+
+	cfg, _, err := engine.LoadConfigFromDir(root, true)
+	if err != nil {
+		return "", fmt.Errorf("load config for remotes: %w", err)
+	}
+
+	resolvedRemoteName, _, err := resolveRemoteConfigForCapability(cfg, trimmedRemoteName, engine.RemoteCapabilityDB)
+	if err != nil {
+		return "", err
+	}
+
+	if err := startGovardCommandForDesktop(root, []string{"open", "db", "-e", resolvedRemoteName, "--client"}); err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("Opening remote database client for %s...", resolvedRemoteName), nil
+}
+
+func openRemoteSFTP(project string, remoteName string, ctx context.Context) (string, error) {
+	trimmedRemoteName := strings.TrimSpace(remoteName)
+	if trimmedRemoteName == "" {
+		return "", fmt.Errorf("remote name is required")
+	}
+
+	root, err := resolveProjectRootForRemotes(project)
+	if err != nil {
+		return "", err
+	}
+
+	cfg, _, err := engine.LoadConfigFromDir(root, true)
+	if err != nil {
+		return "", fmt.Errorf("load config for remotes: %w", err)
+	}
+
+	resolvedRemoteName, remoteCfg, err := resolveRemoteConfigForCapability(cfg, trimmedRemoteName, engine.RemoteCapabilityFiles)
+	if err != nil {
+		return "", err
+	}
+
+	target := buildRemoteSFTPURLForDesktop(remoteCfg)
+	if ctx != nil {
+		if opened, err := tryOpenSFTPWithFileZilla(target, remoteCfg); opened {
+			return fmt.Sprintf("Opening SFTP for %s in FileZilla...", resolvedRemoteName), nil
+		} else if err != nil {
+			message := fmt.Sprintf("FileZilla launch failed: %v. ", err)
+			fallbackMessage, fallbackErr := openDestination(ctx, target, fmt.Sprintf("Opening %s...", target))
+			if fallbackErr != nil {
+				return "", fallbackErr
+			}
+			return message + fallbackMessage, nil
+		}
+	}
+
+	message, err := openDestination(ctx, target, fmt.Sprintf("Opening %s...", target))
+	if err != nil {
+		return "", err
+	}
+	if strings.TrimSpace(message) == "" {
+		return fmt.Sprintf("Opening SFTP for %s...", resolvedRemoteName), nil
+	}
+	return message, nil
+}
+
+func openRemoteShell(project string, remoteName string, ctx context.Context) (string, error) {
+	trimmedRemoteName := strings.TrimSpace(remoteName)
+	if trimmedRemoteName == "" {
+		return "", fmt.Errorf("remote name is required")
+	}
+
+	root, err := resolveProjectRootForRemotes(project)
+	if err != nil {
+		return "", err
+	}
+
+	cfg, _, err := engine.LoadConfigFromDir(root, true)
+	if err != nil {
+		return "", fmt.Errorf("load config for remotes: %w", err)
+	}
+
+	resolvedRemoteName, remoteCfg, err := resolveRemoteConfigForCapability(cfg, trimmedRemoteName, engine.RemoteCapabilityFiles)
+	if err != nil {
+		return "", err
+	}
+
+	if ctx != nil {
+		if opened, err := tryOpenSSHInTerminal(resolvedRemoteName, remoteCfg); opened {
+			return fmt.Sprintf("Opening SSH for %s in terminal...", resolvedRemoteName), nil
+		} else if err != nil {
+			target := buildRemoteSSHURLForDesktop(remoteCfg)
+			message := fmt.Sprintf("Terminal SSH launch failed: %v. ", err)
+			fallbackMessage, fallbackErr := openDestination(ctx, target, fmt.Sprintf("Opening %s...", target))
+			if fallbackErr != nil {
+				return "", fallbackErr
+			}
+			return message + fallbackMessage, nil
+		}
+	}
+
+	target := buildRemoteSSHURLForDesktop(remoteCfg)
+	message, err := openDestination(ctx, target, fmt.Sprintf("Opening %s...", target))
+	if err != nil {
+		return "", err
+	}
+	if strings.TrimSpace(message) == "" {
+		return fmt.Sprintf("Opening SSH for %s...", resolvedRemoteName), nil
+	}
+	return message, nil
+}
+
 func resolveRemoteAdminURL(project string, remoteName string) (string, string, error) {
 	trimmedRemoteName := strings.TrimSpace(remoteName)
 	if trimmedRemoteName == "" {
@@ -221,16 +368,25 @@ func resolveRemoteConfigForOpen(
 	cfg engine.Config,
 	requestedRemoteName string,
 ) (string, engine.RemoteConfig, error) {
+	return resolveRemoteConfigForCapability(cfg, requestedRemoteName, engine.RemoteCapabilityFiles)
+}
+
+func resolveRemoteConfigForCapability(
+	cfg engine.Config,
+	requestedRemoteName string,
+	capability string,
+) (string, engine.RemoteConfig, error) {
 	trimmedRequested := strings.TrimSpace(requestedRemoteName)
 	if trimmedRequested == "" {
 		return "", engine.RemoteConfig{}, fmt.Errorf("remote name is required")
 	}
 
 	if remoteCfg, ok := cfg.Remotes[trimmedRequested]; ok {
-		if !engine.RemoteCapabilityEnabled(remoteCfg, engine.RemoteCapabilityFiles) {
+		if capability != "" && !engine.RemoteCapabilityEnabled(remoteCfg, capability) {
 			return "", engine.RemoteConfig{}, fmt.Errorf(
-				"remote '%s' does not allow files operations (capabilities: %s)",
+				"remote '%s' does not allow %s operations (capabilities: %s)",
 				trimmedRequested,
+				capability,
 				strings.Join(engine.RemoteCapabilityList(remoteCfg), ","),
 			)
 		}
@@ -242,10 +398,11 @@ func resolveRemoteConfigForOpen(
 		if engine.NormalizeRemoteEnvironment(name) != normalizedRequested {
 			continue
 		}
-		if !engine.RemoteCapabilityEnabled(remoteCfg, engine.RemoteCapabilityFiles) {
+		if capability != "" && !engine.RemoteCapabilityEnabled(remoteCfg, capability) {
 			return "", engine.RemoteConfig{}, fmt.Errorf(
-				"remote '%s' does not allow files operations (capabilities: %s)",
+				"remote '%s' does not allow %s operations (capabilities: %s)",
 				name,
+				capability,
 				strings.Join(engine.RemoteCapabilityList(remoteCfg), ","),
 			)
 		}
@@ -299,11 +456,190 @@ func buildRemoteAdminURLForDesktop(remoteCfg engine.RemoteConfig, adminPath stri
 	return base + "/" + trimmedPath
 }
 
+func buildRemoteSFTPURLForDesktop(remoteCfg engine.RemoteConfig) string {
+	host := strings.TrimSpace(remoteCfg.Host)
+	if host == "" {
+		host = "localhost"
+	}
+	port := remoteCfg.Port
+	if port <= 0 {
+		port = 22
+	}
+
+	targetURL := &url.URL{
+		Scheme: "sftp",
+		Host:   net.JoinHostPort(host, strconv.Itoa(port)),
+		Path:   strings.TrimSpace(remoteCfg.Path),
+	}
+	user := strings.TrimSpace(remoteCfg.User)
+	if user != "" {
+		targetURL.User = url.User(user)
+	}
+	return targetURL.String()
+}
+
+func buildRemoteSSHURLForDesktop(remoteCfg engine.RemoteConfig) string {
+	host := strings.TrimSpace(remoteCfg.Host)
+	if host == "" {
+		host = "localhost"
+	}
+	port := remoteCfg.Port
+	if port <= 0 {
+		port = 22
+	}
+
+	targetURL := &url.URL{
+		Scheme: "ssh",
+		Host:   net.JoinHostPort(host, strconv.Itoa(port)),
+	}
+	user := strings.TrimSpace(remoteCfg.User)
+	if user != "" {
+		targetURL.User = url.User(user)
+	}
+	path := strings.TrimSpace(remoteCfg.Path)
+	if path != "" {
+		targetURL.Path = path
+	}
+	return targetURL.String()
+}
+
 func shellQuoteForDesktop(raw string) string {
 	if raw == "" {
 		return "''"
 	}
 	return "'" + strings.ReplaceAll(raw, "'", `'"'"'`) + "'"
+}
+
+func tryOpenSFTPWithFileZilla(target string, remoteCfg engine.RemoteConfig) (bool, error) {
+	if runtime.GOOS == "linux" && strings.TrimSpace(os.Getenv("DISPLAY")) == "" && strings.TrimSpace(os.Getenv("WAYLAND_DISPLAY")) == "" {
+		return false, nil
+	}
+
+	fileZillaBinary, err := exec.LookPath("filezilla")
+	if err != nil {
+		return false, nil
+	}
+
+	agentSock, err := resolveSSHAgentSocketForDesktop(remoteCfg)
+	if err != nil {
+		return false, err
+	}
+
+	args := []string{}
+	authMethod := engineremote.NormalizeAuthMethod(remoteCfg.Auth.Method)
+	if authMethod == engineremote.AuthMethodSSHAgent || authMethod == engineremote.AuthMethodKeyfile {
+		args = append(args, "-l", "interactive")
+	}
+	args = append(args, target)
+
+	cmd := exec.Command(fileZillaBinary, args...)
+	if agentSock != "" {
+		cmd.Env = append(os.Environ(), "SSH_AUTH_SOCK="+agentSock)
+	}
+	if err := cmd.Start(); err != nil {
+		return false, fmt.Errorf("start filezilla: %w", err)
+	}
+	go func() {
+		_ = cmd.Wait()
+	}()
+	return true, nil
+}
+
+func tryOpenSSHInTerminal(remoteName string, remoteCfg engine.RemoteConfig) (bool, error) {
+	if runtime.GOOS != "linux" {
+		return false, nil
+	}
+	if strings.TrimSpace(os.Getenv("DISPLAY")) == "" && strings.TrimSpace(os.Getenv("WAYLAND_DISPLAY")) == "" {
+		return false, nil
+	}
+
+	sshBinary, err := exec.LookPath("ssh")
+	if err != nil {
+		return false, fmt.Errorf("ssh binary not found: %w", err)
+	}
+	agentSock, err := resolveSSHAgentSocketForDesktop(remoteCfg)
+	if err != nil {
+		return false, err
+	}
+
+	sshArgs := engineremote.BuildSSHInteractiveArgs(remoteName, remoteCfg, true)
+	sshArgs = append(
+		sshArgs,
+		engineremote.RemoteTarget(remoteCfg),
+		buildRemoteShellCommandForDesktop(remoteCfg.Path),
+	)
+
+	type launcher struct {
+		binary string
+		prefix []string
+	}
+
+	launchers := []launcher{
+		{binary: "x-terminal-emulator", prefix: []string{"-e", sshBinary}},
+		{binary: "gnome-terminal", prefix: []string{"--", sshBinary}},
+		{binary: "konsole", prefix: []string{"-e", sshBinary}},
+		{binary: "xfce4-terminal", prefix: []string{"-x", sshBinary}},
+	}
+
+	lastErr := error(nil)
+	launcherFound := false
+	for _, candidate := range launchers {
+		terminalBinary, lookupErr := exec.LookPath(candidate.binary)
+		if lookupErr != nil {
+			continue
+		}
+		launcherFound = true
+		args := append([]string{}, candidate.prefix...)
+		args = append(args, sshArgs...)
+
+		cmd := exec.Command(terminalBinary, args...)
+		if agentSock != "" {
+			cmd.Env = append(os.Environ(), "SSH_AUTH_SOCK="+agentSock)
+		}
+		if err := cmd.Start(); err != nil {
+			lastErr = err
+			continue
+		}
+
+		go func() {
+			_ = cmd.Wait()
+		}()
+		return true, nil
+	}
+
+	if launcherFound && lastErr != nil {
+		return false, fmt.Errorf("start terminal launcher: %w", lastErr)
+	}
+	return false, nil
+}
+
+func buildRemoteShellCommandForDesktop(projectPath string) string {
+	trimmedPath := strings.TrimSpace(projectPath)
+	if trimmedPath == "" {
+		return "(bash -l || sh)"
+	}
+	return "cd " + shellQuoteForDesktop(trimmedPath) + " && (bash -l || sh)"
+}
+
+func resolveSSHAgentSocketForDesktop(remoteCfg engine.RemoteConfig) (string, error) {
+	authMethod := engineremote.NormalizeAuthMethod(remoteCfg.Auth.Method)
+	if authMethod != engineremote.AuthMethodSSHAgent {
+		return "", nil
+	}
+
+	socket := strings.TrimSpace(os.Getenv("SSH_AUTH_SOCK"))
+	if socket != "" {
+		return socket, nil
+	}
+
+	candidate := fmt.Sprintf("/run/user/%d/keyring/ssh", os.Getuid())
+	if info, err := os.Stat(candidate); err == nil && info.Mode()&os.ModeSocket != 0 {
+		return candidate, nil
+	}
+
+	return "", fmt.Errorf(
+		"remote auth uses ssh-agent but SSH_AUTH_SOCK is unavailable; load key into ssh-agent or use auth.method=keyfile/keychain",
+	)
 }
 
 func runRemoteSyncPresetWithOptions(
@@ -892,6 +1228,30 @@ func (s *RemoteService) TestRemote(project string, remoteName string) (string, e
 
 func (s *RemoteService) OpenRemoteURL(project string, remoteName string) (string, error) {
 	message, err := openRemoteURL(project, remoteName, s.ctx)
+	if err != nil {
+		return "", err
+	}
+	return message, nil
+}
+
+func (s *RemoteService) OpenRemoteDB(project string, remoteName string) (string, error) {
+	message, err := openRemoteDB(project, remoteName)
+	if err != nil {
+		return "", err
+	}
+	return message, nil
+}
+
+func (s *RemoteService) OpenRemoteSFTP(project string, remoteName string) (string, error) {
+	message, err := openRemoteSFTP(project, remoteName, s.ctx)
+	if err != nil {
+		return "", err
+	}
+	return message, nil
+}
+
+func (s *RemoteService) OpenRemoteShell(project string, remoteName string) (string, error) {
+	message, err := openRemoteShell(project, remoteName, s.ctx)
 	if err != nil {
 		return "", err
 	}
