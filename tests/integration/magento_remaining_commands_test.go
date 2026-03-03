@@ -35,7 +35,7 @@ func TestTrustCommandWithShims(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected extracted cert at %s: %v", certPath, err)
 	}
-	assertContains(t, string(certBytes), "mock-cert")
+	assertContains(t, string(certBytes), "BEGIN CERTIFICATE")
 
 	logs := shim.ReadLog(t)
 	assertContains(t, logs, "docker|cp govard-proxy-caddy:/data/caddy/pki/authorities/local/root.crt "+certPath)
@@ -178,7 +178,27 @@ fi
 if [ "$#" -ge 3 ] && [ "$1" = "cp" ]; then
   dest="$3"
   mkdir -p "$(dirname "$dest")"
-  printf '%s\n' "mock-cert" > "$dest"
+  cat > "$dest" <<'EOF_CERT'
+-----BEGIN CERTIFICATE-----
+MIIDEzCCAfugAwIBAgIUciZkq4eXPE7ktpQ5jc8mUERKBe4wDQYJKoZIhvcNAQEL
+BQAwGTEXMBUGA1UEAwwOR292YXJkIFRlc3QgQ0EwHhcNMjYwMzAzMDMxNTE5WhcN
+MzYwMjI5MDMxNTE5WjAZMRcwFQYDVQQDDA5Hb3ZhcmQgVGVzdCBDQTCCASIwDQYJ
+KoZIhvcNAQEBBQADggEPADCCAQoCggEBAKBpdvlGnEsieYi5mj/9dDPvT5Fkwbir
+UvPmS/9ekFsAXNaqD6/XmM1vXHsFDf1P9OVPwnTkicq+iVShuekOMSzOI+ZOBG+C
+GdZWnXUUny3wQBxAJLCcqqlp9aA1Y+XSn47TWPWmIAWNddxr0mvn2BloW4gDssss
+g4egYlcbHHe7JxQZUEcHLm49uuE/o87y5KPtwdVi/B7pgmOh75+2N4XcxHp+rc0l
+LHFZ+5QPZiW9N8Nl60N+1Wskx7wh7D/mvs7HUUEdFZ1f9WJQLAbEZr8kCROaNlUb
+/58q7txwzvrb0pwlApkB6bi+gzOYGHPE3nRH6shTnSKexoas8aDlI2ECAwEAAaNT
+MFEwHQYDVR0OBBYEFMSQLC8cLtJkqYX/sNhyHviQcyLsMB8GA1UdIwQYMBaAFMSQ
+LC8cLtJkqYX/sNhyHviQcyLsMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQEL
+BQADggEBADP8g7Znris9/eFl8+Oclk/Zj9b0vkMTabZCj4wFxzbAmKA67OlwlnqU
+IKA+pwBo1lNXpUWUQ06O/9eaNeuypWSqpFkNMqu91AD6Y6XWghxFBZ61bBIX3S1/
+Kib0XGGkTTRkHjFyRcyhE9NmkSrM0MN9pvB5ACUvge8AEmWqG93paBVjuMTWgw1Z
+6Gm/ewY5+pnMQvJEqyPAPVQS1kQ9UiL4SLi1EiM57/8Vot84u5lmaYn0jsZe0KTS
+y8GOGWKnl7a+ZYmEoX841u9GcWl2EWAWmoIuE75YxmBDoUj5v8qD/LsJ2qOBckJu
+tPqeILVmoltqkVAloHKAMzbHtwE7J2o=
+-----END CERTIFICATE-----
+EOF_CERT
 fi
 exit "${GOVARD_TEST_EXIT_DOCKER:-0}"
 `

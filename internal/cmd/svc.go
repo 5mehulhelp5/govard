@@ -99,7 +99,7 @@ func runSvcUp(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("ensure global proxy: %w", err)
 	}
 
-	pull, _ := cmd.Flags().GetBool("pull")
+	pull := boolFlagOrDefault(cmd, "pull", false)
 	if pull {
 		pterm.Info.Println("Pulling latest images...")
 		if err := runGlobalProxyCompose(cmd, "pull"); err != nil {
@@ -107,7 +107,7 @@ func runSvcUp(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	removeOrphans, _ := cmd.Flags().GetBool("remove-orphans")
+	removeOrphans := boolFlagOrDefault(cmd, "remove-orphans", false)
 	upArgs := []string{"up", "-d"}
 	if removeOrphans {
 		upArgs = append(upArgs, "--remove-orphans")
@@ -124,6 +124,18 @@ func runSvcUp(cmd *cobra.Command, args []string) error {
 	// Deep revival: re-register routes for all currently running projects
 	if err := reviveRunningProjectRoutes(); err != nil {
 		pterm.Warning.Printf("Could not fully revive all running project routes: %v\n", err)
+	}
+
+	autoTrust := boolFlagOrDefault(cmd, "auto-trust", true)
+	if autoTrust {
+		trustBrowsers := boolFlagOrDefault(cmd, "trust-browsers", true)
+		if err := engine.TrustCAWithOptions(engine.TrustOptions{
+			ImportBrowsers:         trustBrowsers,
+			ContinueOnBrowserError: true,
+		}); err != nil {
+			pterm.Warning.Printf("Could not automatically trust Govard Root CA: %v\n", err)
+			pterm.Info.Println("You can retry manually with `govard doctor trust`.")
+		}
 	}
 
 	pterm.Success.Println("✅ Global services are running.")
@@ -188,7 +200,7 @@ func reviveRunningProjectRoutes() error {
 func runSvcDown(cmd *cobra.Command, args []string) error {
 	pterm.DefaultHeader.Println("Stopping Govard Global Services")
 
-	removeOrphans, _ := cmd.Flags().GetBool("remove-orphans")
+	removeOrphans := boolFlagOrDefault(cmd, "remove-orphans", false)
 	downArgs := []string{"down"}
 	if removeOrphans {
 		downArgs = append(downArgs, "--remove-orphans")
@@ -312,8 +324,14 @@ func globalProxyComposeFilePath() string {
 func init() {
 	svcUpCmd.Flags().Bool("pull", false, "Pull latest images before starting")
 	svcUpCmd.Flags().Bool("remove-orphans", false, "Remove containers for services not defined in the compose file")
+	svcUpCmd.Flags().Bool("auto-trust", true, "Automatically trust Govard Root CA after services start")
+	svcUpCmd.Flags().Bool("trust-browsers", true, "When auto-trust is enabled, also import CA into browser NSS stores (best effort)")
 
 	svcDownCmd.Flags().Bool("remove-orphans", false, "Remove containers for services not defined in the compose file")
+	svcRestartCmd.Flags().Bool("pull", false, "Pull latest images before starting")
+	svcRestartCmd.Flags().Bool("remove-orphans", false, "Remove containers for services not defined in the compose file")
+	svcRestartCmd.Flags().Bool("auto-trust", true, "Automatically trust Govard Root CA after services restart")
+	svcRestartCmd.Flags().Bool("trust-browsers", true, "When auto-trust is enabled, also import CA into browser NSS stores (best effort)")
 
 	svcLogsCmd.Flags().IntVar(&svcLogsTailCount, "tail", 100, "Number of lines to show from the end of the logs")
 
@@ -325,4 +343,19 @@ func init() {
 	svcCmd.AddCommand(svcLogsCmd)
 	svcCmd.AddCommand(svcSleepCmd)
 	svcCmd.AddCommand(svcWakeCmd)
+}
+
+func boolFlagOrDefault(cmd *cobra.Command, name string, fallback bool) bool {
+	if cmd == nil {
+		return fallback
+	}
+	flag := cmd.Flags().Lookup(name)
+	if flag == nil {
+		return fallback
+	}
+	value, err := cmd.Flags().GetBool(name)
+	if err != nil {
+		return fallback
+	}
+	return value
 }

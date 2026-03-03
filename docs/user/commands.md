@@ -150,9 +150,13 @@ Manage global services and workspace-wide sleep state.
 govard svc up
 govard svc up --pull
 govard svc up --remove-orphans
+govard svc up --auto-trust=false
+govard svc up --trust-browsers=false
 govard svc down
 govard svc down --remove-orphans
 govard svc restart
+govard svc restart --pull
+govard svc restart --remove-orphans
 govard svc pull
 govard svc ps
 govard svc logs
@@ -162,6 +166,8 @@ govard svc wake
 ```
 
 `svc up`, `svc down`, and `svc restart` manage the global services suite (proxy, mailpit, phpmyadmin, and portainer).
+By default, `svc up` and `svc restart` also auto-trust Govard Root CA on the host machine.
+Set `--auto-trust=false` to skip CA trust, or `--trust-browsers=false` to skip browser NSS import.
 
 `svc sleep` stops all running Govard projects detected from Docker and persists wake state to
 `~/.govard/sleep-state.json` (override with `GOVARD_SLEEP_STATE_PATH`).
@@ -553,8 +559,9 @@ govard doctor trust
 
 Notes:
 
-- On Linux, this exports certs to `~/.govard/ssl/root.crt`.
-- On macOS, export the cert first: `docker cp proxy-caddy-1:/data/caddy/pki/authorities/local/root.crt /tmp/govard-ca.crt`.
+- Exports cert to `~/.govard/ssl/root.crt`.
+- On Linux, browser NSS import is attempted automatically when `certutil` is available.
+- This command is also run automatically by default during `govard svc up` and `govard svc restart`.
 
 ## Utility Commands
 

@@ -143,7 +143,7 @@ govard debug off   # Disable Xdebug
 
 ```bash
 govard doctor      # Check system requirements
-govard doctor trust       # Install Root CA for HTTPS
+govard doctor trust # Install Root CA for HTTPS (also auto-run by `govard svc up/restart` by default)
 ```
 
 ## Next Steps
