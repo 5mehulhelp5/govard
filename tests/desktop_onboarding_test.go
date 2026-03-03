@@ -287,11 +287,10 @@ domain: warden-demo.test
 	}
 }
 
-func TestDesktopPkgOnboardProjectForPathForTestAutoBootstrapFromStagingRemote(t *testing.T) {
+func TestDesktopPkgOnboardProjectForPathForTestDoesNotAutoBootstrapWhenRemotesExist(t *testing.T) {
 	root := t.TempDir()
 	registryPath := filepath.Join(t.TempDir(), "projects.json")
 	t.Setenv(engine.ProjectRegistryPathEnvVar, registryPath)
-	t.Setenv("GOVARD_DESKTOP_BOOTSTRAP_SYNC", "1")
 
 	content := strings.TrimSpace(`
 project_name: shop
@@ -328,15 +327,11 @@ remotes:
 		t.Fatalf("onboard project: %v", err)
 	}
 
-	if len(calls) != 1 {
-		t.Fatalf("expected exactly one post-onboarding command, got %d", len(calls))
+	if len(calls) != 0 {
+		t.Fatalf("expected no post-onboarding commands, got %d", len(calls))
 	}
-	expectedBootstrap := []string{"bootstrap", "--environment", "staging"}
-	if !reflect.DeepEqual(calls[0], expectedBootstrap) {
-		t.Fatalf("unexpected bootstrap args: %#v", calls[0])
-	}
-	if !strings.Contains(strings.ToLower(message), "auto bootstrap") {
-		t.Fatalf("expected auto bootstrap summary in message, got %q", message)
+	if strings.Contains(strings.ToLower(message), "auto bootstrap") {
+		t.Fatalf("did not expect auto bootstrap summary in message, got %q", message)
 	}
 }
 

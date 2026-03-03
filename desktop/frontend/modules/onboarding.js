@@ -1,3 +1,5 @@
+import { normalizeRemotesPayload } from "./remotes.js";
+
 export const normalizeOnboardingFramework = (framework = "") => {
   const normalized = String(framework || "")
     .trim()
@@ -140,8 +142,10 @@ export const createOnboardingController = ({
   onToast,
   onProjectAdded,
   getExistingDomains,
+  onRunBootstrapSync,
 }) => {
   let hasAttemptedSubmit = false;
+  let pendingBootstrapContext = null;
 
   const readExistingDomains = () => {
     if (typeof getExistingDomains !== "function") {
@@ -358,6 +362,59 @@ export const createOnboardingController = ({
     syncPreview();
   };
 
+  const getBootstrapPromptRefs = () => ({
+    container: document.getElementById("onboardingBootstrapPrompt"),
+    remoteSelect: document.getElementById("onboardingBootstrapRemote"),
+    summary: document.getElementById("onboardingBootstrapSummary"),
+  });
+
+  const closeBootstrapPrompt = () => {
+    const promptRefs = getBootstrapPromptRefs();
+    if (promptRefs.container) {
+      promptRefs.container.classList.add("hidden");
+    }
+    if (promptRefs.remoteSelect) {
+      promptRefs.remoteSelect.innerHTML = "";
+    }
+    pendingBootstrapContext = null;
+  };
+
+  const openBootstrapPrompt = ({ projectPath, remotes }) => {
+    const normalizedRemotes = normalizeRemotesPayload({
+      remotes: remotes || [],
+    }).remotes;
+    const validRemotes = normalizedRemotes.filter(
+      (remote) => String(remote.name || "").trim() !== "",
+    );
+    if (!projectPath || validRemotes.length === 0) {
+      return false;
+    }
+
+    const promptRefs = getBootstrapPromptRefs();
+    if (!promptRefs.container || !promptRefs.remoteSelect) {
+      return false;
+    }
+
+    promptRefs.remoteSelect.innerHTML = "";
+    validRemotes.forEach((remote) => {
+      const option = document.createElement("option");
+      option.value = String(remote.name);
+      option.textContent = `${String(remote.name)} (${String(remote.environment || "remote").toUpperCase()})`;
+      promptRefs.remoteSelect.appendChild(option);
+    });
+    if (promptRefs.summary) {
+      promptRefs.summary.textContent = `Found ${validRemotes.length} remote environment(s) for ${inferProjectNameFromPath(projectPath) || "this project"}.`;
+    }
+
+    pendingBootstrapContext = {
+      projectPath: String(projectPath).trim(),
+      remotes: validRemotes,
+    };
+
+    promptRefs.container.classList.remove("hidden");
+    return true;
+  };
+
   const browseProject = async () => {
     try {
       const path = String((await bridge.pickProjectDirectory()) || "").trim();
@@ -434,12 +491,78 @@ export const createOnboardingController = ({
       if (typeof onProjectAdded === "function") {
         await onProjectAdded();
       }
+
+      let remotesPayload = null;
+      try {
+        remotesPayload = await bridge.getRemotes(preview.projectPath);
+      } catch (_err) {
+        remotesPayload = null;
+      }
+
+      const availableRemotes = normalizeRemotesPayload(remotesPayload).remotes;
+      if (availableRemotes.length > 0) {
+        const opened = openBootstrapPrompt({
+          projectPath: preview.projectPath,
+          remotes: availableRemotes,
+        });
+        if (opened) {
+          onStatus("Onboarding complete. Select remote to run bootstrap.");
+          return;
+        }
+      }
+
       toggleModal(false);
     } catch (err) {
       onStatus("Failed to onboard project.");
       onToast(`Failed to onboard project: ${err}`, "error");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const skipBootstrapPrompt = () => {
+    closeBootstrapPrompt();
+    toggleModal(false);
+    onStatus("Onboarding complete. Bootstrap skipped.");
+  };
+
+  const confirmBootstrapPrompt = async () => {
+    if (!pendingBootstrapContext) {
+      return;
+    }
+
+    const promptRefs = getBootstrapPromptRefs();
+    const selectedRemote = String(promptRefs.remoteSelect?.value || "").trim();
+    if (!selectedRemote) {
+      onToast("Please select a remote environment.", "warning");
+      return;
+    }
+
+    if (typeof onRunBootstrapSync !== "function") {
+      closeBootstrapPrompt();
+      toggleModal(false);
+      return;
+    }
+
+    try {
+      if (promptRefs.remoteSelect) {
+        promptRefs.remoteSelect.disabled = true;
+      }
+      onStatus(`Starting bootstrap from ${selectedRemote}...`);
+      await onRunBootstrapSync({
+        projectPath: pendingBootstrapContext.projectPath,
+        remoteName: selectedRemote,
+        preset: "full",
+      });
+      closeBootstrapPrompt();
+      toggleModal(false);
+    } catch (err) {
+      onStatus(`Failed to start bootstrap from ${selectedRemote}.`);
+      onToast(`Failed to start bootstrap: ${err}`, "error");
+    } finally {
+      if (promptRefs.remoteSelect) {
+        promptRefs.remoteSelect.disabled = false;
+      }
     }
   };
 
@@ -451,9 +574,11 @@ export const createOnboardingController = ({
       refs.onboardingModal.classList.remove("hidden");
       refs.onboardingModal.classList.add("flex");
       resetForm();
+      closeBootstrapPrompt();
       return;
     }
 
+    closeBootstrapPrompt();
     refs.onboardingModal.classList.add("hidden");
     refs.onboardingModal.classList.remove("flex");
   };
@@ -461,6 +586,8 @@ export const createOnboardingController = ({
   return {
     browseProject,
     addProject,
+    confirmBootstrapPrompt,
+    skipBootstrapPrompt,
     toggleModal,
     handleInputChange: () => syncPreview(),
     resetForm,
@@ -662,6 +789,44 @@ export const renderOnboardingModal = (container) => {
             </button>
             </div>
           </footer>
+
+          <div
+            id="onboardingBootstrapPrompt"
+            class="hidden absolute inset-0 z-[120] bg-[#0c1810]/85 backdrop-blur-sm flex items-center justify-center p-6"
+          >
+            <div class="w-full max-w-lg rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#102316] shadow-2xl">
+              <div class="px-6 py-4 border-b border-slate-200 dark:border-white/10">
+                <h3 class="text-slate-900 dark:text-white text-lg font-bold">Run Bootstrap Now</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  This project has remotes configured. Choose a remote to bootstrap from.
+                </p>
+              </div>
+              <div class="px-6 py-5 space-y-4">
+                <p id="onboardingBootstrapSummary" class="text-sm text-slate-600 dark:text-slate-300"></p>
+                <div class="flex flex-col gap-2">
+                  <label for="onboardingBootstrapRemote" class="text-sm font-medium text-slate-700 dark:text-slate-300">Remote</label>
+                  <select
+                    id="onboardingBootstrapRemote"
+                    class="w-full bg-white dark:bg-surface-dark border border-slate-300 dark:border-white/10 rounded-lg px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-shadow cursor-pointer"
+                  ></select>
+                </div>
+              </div>
+              <div class="px-6 py-4 border-t border-slate-200 dark:border-white/10 flex justify-end gap-3">
+                <button
+                  data-action="skip-onboarding-bootstrap"
+                  class="px-4 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-300 font-medium hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+                >
+                  Skip
+                </button>
+                <button
+                  data-action="confirm-onboarding-bootstrap"
+                  class="px-5 py-2 bg-primary hover:bg-primary/90 border border-primary/40 rounded-lg text-sm text-background-dark font-bold transition-all"
+                >
+                  Run Bootstrap
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
   `;

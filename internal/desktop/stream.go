@@ -2,14 +2,18 @@ package desktop
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"os/exec"
+	"regexp"
 	"sort"
 	"strings"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
+
+var ansiEscapePattern = regexp.MustCompile(`\x1b\[[0-?]*[ -/]*[@-~]`)
 
 // Internal log streaming logic
 
@@ -111,9 +115,32 @@ func scanLogPipe(ctx context.Context, pipe interface{}, event string, done chan<
 
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
-		runtime.EventsEmit(ctx, event, scanner.Text())
+		line := sanitizeStreamLine(scanner.Bytes())
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		runtime.EventsEmit(ctx, event, line)
 	}
 	done <- struct{}{}
+}
+
+func sanitizeStreamLine(raw []byte) string {
+	if len(raw) == 0 {
+		return ""
+	}
+
+	valid := bytes.ToValidUTF8(raw, []byte{})
+	line := string(valid)
+	line = ansiEscapePattern.ReplaceAllString(line, "")
+
+	var builder strings.Builder
+	builder.Grow(len(line))
+	for _, r := range line {
+		if r == '\t' || (r >= 0x20 && r != 0x7f) {
+			builder.WriteRune(r)
+		}
+	}
+	return builder.String()
 }
 
 func resolveLogContainer(info *projectInfo, service string) string {

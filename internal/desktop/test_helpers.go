@@ -25,6 +25,11 @@ func PrefixServiceLogLinesForTest(service string, raw string) string {
 	return prefixServiceLogLines(service, raw)
 }
 
+// SanitizeStreamLineForTest exposes streaming line sanitization for tests.
+func SanitizeStreamLineForTest(raw []byte) string {
+	return sanitizeStreamLine(raw)
+}
+
 // ResolveShellServiceNameForTest exposes shell target service resolution for tests.
 func ResolveShellServiceNameForTest(requested string, available []string) string {
 	info := &projectInfo{services: map[string]bool{}}

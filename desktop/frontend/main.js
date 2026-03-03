@@ -281,6 +281,106 @@ const showLoadingToast = (
   };
 };
 
+const ansiSequencePattern = /\u001b\[[0-?]*[ -/]*[@-~]/g;
+
+const sanitizeSyncToastLine = (value) => {
+  const raw = String(value ?? "");
+  if (!raw) {
+    return "";
+  }
+  return raw
+    .replace(ansiSequencePattern, "")
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
+    .trim();
+};
+
+const getSyncPresetLabel = (preset, remoteName) => {
+  if (preset === "full" || preset === "bootstrap") {
+    return `Setting up from ${remoteName}...`;
+  }
+  if (preset === "db") {
+    return `Pulling database from ${remoteName}...`;
+  }
+  if (preset === "media") {
+    return `Pulling media from ${remoteName}...`;
+  }
+  return `Syncing from ${remoteName}...`;
+};
+
+const runRemoteSyncWithProgressToast = async ({
+  project,
+  remoteName,
+  preset,
+  config = {},
+}) => {
+  const streamingToast = toast.showStreaming(
+    getSyncPresetLabel(preset, remoteName),
+    "info",
+  );
+
+  let offStream;
+  let offCompleted;
+  let offFailed;
+  const cleanup = () => {
+    if (offStream) offStream();
+    if (offCompleted) offCompleted();
+    if (offFailed) offFailed();
+  };
+
+  if (desktopBridge.runtime?.EventsOn) {
+    offStream = desktopBridge.runtime.EventsOn("sync:output", (line) => {
+      const normalized = sanitizeSyncToastLine(line);
+      if (!normalized) {
+        return;
+      }
+      if (streamingToast) streamingToast.update(normalized);
+    });
+    offCompleted = desktopBridge.runtime.EventsOn("sync:completed", (msg) => {
+      const finalMessage = sanitizeSyncToastLine(msg) || "Sync completed ✔";
+      if (streamingToast) streamingToast.close(finalMessage, "success");
+      cleanup();
+    });
+    offFailed = desktopBridge.runtime.EventsOn("sync:failed", (msg) => {
+      const finalMessage = sanitizeSyncToastLine(msg) || "Sync failed";
+      if (streamingToast) streamingToast.close(finalMessage, "error");
+      cleanup();
+    });
+  }
+
+  const result = await desktopBridge.runRemoteSyncBackground(
+    project,
+    remoteName,
+    preset,
+    config,
+  );
+
+  if (result && result.startsWith("Remote sync background process failed:")) {
+    if (streamingToast) streamingToast.close(result, "error");
+    cleanup();
+  }
+};
+
+const resolveSyncConfigForPreset = async (preset) => {
+  const payload = await desktopBridge.getSyncPresetOptions(preset);
+  const optionsDef = Array.isArray(payload?.options) ? payload.options : [];
+
+  const state = getState();
+  const currentConfigs = state.syncConfigs || {};
+  const currentConfig = { ...(currentConfigs[preset] || {}) };
+
+  optionsDef.forEach((option) => {
+    if (currentConfig[option.key] === undefined) {
+      currentConfig[option.key] = Boolean(option.defaultValue);
+    }
+  });
+
+  setState({
+    syncConfigs: { ...currentConfigs, [preset]: currentConfig },
+  });
+
+  return currentConfig;
+};
+
 const switchTab = (tabId) => {
   const tabLinks = document.querySelectorAll('[data-action="switch-tab"]');
   const tabContents = document.querySelectorAll(".tab-content");
@@ -821,6 +921,22 @@ const onboardingController = createOnboardingController({
   onStatus: setStatus,
   onToast: showToast,
   onProjectAdded: refreshDashboard,
+  onRunBootstrapSync: async ({ projectPath, remoteName, preset }) => {
+    const normalizedProjectPath = String(projectPath || "").trim();
+    const normalizedRemote = String(remoteName || "").trim();
+    const normalizedPreset = String(preset || "full").trim().toLowerCase();
+    if (!normalizedProjectPath || !normalizedRemote) {
+      return;
+    }
+
+    const config = await resolveSyncConfigForPreset(normalizedPreset);
+    await runRemoteSyncWithProgressToast({
+      project: normalizedProjectPath,
+      remoteName: normalizedRemote,
+      preset: normalizedPreset,
+      config,
+    });
+  },
   getExistingDomains: () =>
     (getState().environments || [])
       .map((item) => ({
@@ -921,6 +1037,14 @@ document.addEventListener("click", async (event) => {
   }
   if (action === "add-project") {
     await onboardingController.addProject();
+    return;
+  }
+  if (action === "confirm-onboarding-bootstrap") {
+    await onboardingController.confirmBootstrapPrompt();
+    return;
+  }
+  if (action === "skip-onboarding-bootstrap") {
+    onboardingController.skipBootstrapPrompt();
     return;
   }
   if (action === "refresh-remotes") {
@@ -1245,50 +1369,12 @@ document.addEventListener("click", async (event) => {
     const currentProject = getState().selectedProject;
     if (!currentProject) return;
 
-    // Show a persistent streaming toast
-    const presetLabel =
-      currentSyncPreset === "full" || currentSyncPreset === "bootstrap"
-        ? `Setting up from ${currentSyncRemote}...`
-        : currentSyncPreset === "db"
-          ? `Pulling database from ${currentSyncRemote}...`
-          : currentSyncPreset === "media"
-            ? `Pulling media from ${currentSyncRemote}...`
-            : `Syncing from ${currentSyncRemote}...`;
-    const streamingToast = toast.showStreaming(presetLabel, "info");
-
-    // Setup one-time streaming event listeners
-    let offStream, offCompleted, offFailed;
-    if (desktopBridge.runtime?.EventsOn) {
-      offStream = desktopBridge.runtime.EventsOn("sync:output", (line) => {
-        if (streamingToast) streamingToast.update(String(line || ""));
-      });
-      offCompleted = desktopBridge.runtime.EventsOn("sync:completed", (msg) => {
-        if (streamingToast)
-          streamingToast.close(String(msg || "Sync completed ✔"), "success");
-        if (offStream) offStream();
-        if (offFailed) offFailed();
-      });
-      offFailed = desktopBridge.runtime.EventsOn("sync:failed", (msg) => {
-        if (streamingToast)
-          streamingToast.close(String(msg || "Sync failed"), "error");
-        if (offStream) offStream();
-        if (offCompleted) offCompleted();
-      });
-    }
-
-    // Trigger the background sync command via the bridge
-    const result = await desktopBridge.runRemoteSyncBackground(
-      currentProject,
-      currentSyncRemote,
-      currentSyncPreset,
+    await runRemoteSyncWithProgressToast({
+      project: currentProject,
+      remoteName: currentSyncRemote,
+      preset: currentSyncPreset,
       config,
-    );
-    if (result && result.startsWith("Remote sync background process failed:")) {
-      if (streamingToast) streamingToast.close(result, "error");
-      if (offStream) offStream();
-      if (offCompleted) offCompleted();
-      if (offFailed) offFailed();
-    }
+    });
 
     return;
   }
