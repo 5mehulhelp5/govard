@@ -30,6 +30,17 @@ func TestUpCommandPullFlagExists(t *testing.T) {
 	}
 }
 
+func TestUpCommandFallbackLocalBuildFlagExists(t *testing.T) {
+	root := cmd.RootCommandForTest()
+	command, _, err := root.Find([]string{"env", "up"})
+	if err != nil {
+		t.Fatalf("find env up: %v", err)
+	}
+	if command.Flags().Lookup("fallback-local-build") == nil {
+		t.Fatal("expected --fallback-local-build flag on env up command")
+	}
+}
+
 func TestUpCommandRemoveOrphansFlagExists(t *testing.T) {
 	root := cmd.RootCommandForTest()
 	command, _, err := root.Find([]string{"env", "up"})

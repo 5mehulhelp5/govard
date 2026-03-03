@@ -262,6 +262,7 @@ func TestOpenAndShortcutBrowserCommands(t *testing.T) {
 	commands := [][]string{
 		{"open", "admin"},
 		{"open", "db"},
+		{"open", "db", "--client"},
 		{"open", "elasticsearch"},
 		{"open", "opensearch"},
 		{"open", "mail"},
@@ -283,6 +284,7 @@ func TestOpenAndShortcutBrowserCommands(t *testing.T) {
 
 	logs := shim.ReadLog(t)
 	assertContains(t, logs, "xdg-open|https://m2-clone-basic.test/admin")
+	assertContains(t, logs, "xdg-open|https://pma.govard.test/?db=m2-clone-basic")
 	assertContains(t, logs, "xdg-open|mysql://magento:magento@127.0.0.1:3306/magento")
 	assertContains(t, logs, "xdg-open|https://elasticsearch.govard.test")
 	assertContains(t, logs, "xdg-open|https://opensearch.govard.test")
@@ -302,9 +304,17 @@ func TestOpenDBEnvironmentSelection(t *testing.T) {
 	localResult.AssertSuccess(t)
 
 	logs := shim.ReadLog(t)
-	assertContains(t, logs, "xdg-open|mysql://magento:magento@127.0.0.1:3306/magento")
+	assertContains(t, logs, "xdg-open|https://pma.govard.test/?db=m2-clone-basic")
 	if strings.Contains(logs, "ssh|") {
 		t.Fatalf("did not expect ssh tunnel for local db open, got logs:\n%s", logs)
+	}
+
+	clientResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "open", "db", "-e", "local", "--client")
+	clientResult.AssertSuccess(t)
+	updatedLogs := shim.ReadLog(t)
+	assertContains(t, updatedLogs, "xdg-open|mysql://magento:magento@127.0.0.1:3306/magento")
+	if strings.Contains(updatedLogs, "ssh|") {
+		t.Fatalf("did not expect ssh tunnel for local db client open, got logs:\n%s", updatedLogs)
 	}
 
 	unknownResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "open", "db", "-e", "missing")
@@ -313,10 +323,10 @@ func TestOpenDBEnvironmentSelection(t *testing.T) {
 
 	defaultResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "open", "db")
 	defaultResult.AssertSuccess(t)
-	updatedLogs := shim.ReadLog(t)
-	assertContains(t, updatedLogs, "xdg-open|mysql://magento:magento@127.0.0.1:3306/magento")
-	if strings.Contains(updatedLogs, "ssh|") {
-		t.Fatalf("did not expect ssh tunnel when open db uses default local env, got logs:\n%s", updatedLogs)
+	defaultLogs := shim.ReadLog(t)
+	assertContains(t, defaultLogs, "xdg-open|https://pma.govard.test/?db=m2-clone-basic")
+	if strings.Contains(defaultLogs, "ssh|") {
+		t.Fatalf("did not expect ssh tunnel when open db uses default local env, got logs:\n%s", defaultLogs)
 	}
 }
 

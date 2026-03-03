@@ -40,9 +40,10 @@ When `GOVARD_ENV=staging`, Govard will additionally load `.govard.staging.yml` a
 
 ## Global Environment Variables
 
-- `GOVARD_IMAGE_REPOSITORY`: The Docker image repository prefix (default: `govard`). Change this to use custom managed images.
+- `GOVARD_IMAGE_REPOSITORY`: The Docker image repository prefix (default: `ddtcorex/govard-`). Change this to use custom managed images.
 - `GOVARD_BLUEPRINTS_DIR`: Override the location where Govard looks for blueprints.
 - `GOVARD_HOME_DIR`: Override the base directory for Govard runtime data (default: `~/.govard`).
+- `GOVARD_DOCKER_DIR`: Optional override for Govard Docker build contexts when using local fallback image builds.
 
 `govard config set ...` writes only to `.govard.yml` (base file). Override files are read-only from the CLI perspective.
 

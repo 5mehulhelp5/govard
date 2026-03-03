@@ -129,7 +129,8 @@ target "php-magento2" {
     version = ["8.4", "8.3", "8.2", "8.1", "7.4", "7.3", "7.2", "7.1"]
   }
   args = {
-    PHP_VERSION = version
+    PHP_VERSION             = version
+    GOVARD_IMAGE_REPOSITORY = DOCKER_ORG
   }
   tags = ["${DOCKER_ORG}php-magento2:${version}"]
 }

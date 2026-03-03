@@ -12,7 +12,7 @@ func TestSvcUpCommandTrustFlagsExist(t *testing.T) {
 	if err != nil {
 		t.Fatalf("find svc up: %v", err)
 	}
-	for _, name := range []string{"auto-trust", "trust-browsers"} {
+	for _, name := range []string{"fallback-local-build", "auto-trust", "trust-browsers"} {
 		if command.Flags().Lookup(name) == nil {
 			t.Fatalf("expected --%s flag on svc up command", name)
 		}
@@ -25,7 +25,7 @@ func TestSvcRestartCommandTrustFlagsExist(t *testing.T) {
 	if err != nil {
 		t.Fatalf("find svc restart: %v", err)
 	}
-	for _, name := range []string{"pull", "remove-orphans", "auto-trust", "trust-browsers"} {
+	for _, name := range []string{"pull", "fallback-local-build", "remove-orphans", "auto-trust", "trust-browsers"} {
 		if command.Flags().Lookup(name) == nil {
 			t.Fatalf("expected --%s flag on svc restart command", name)
 		}

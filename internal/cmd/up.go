@@ -5,6 +5,7 @@ import (
 	"govard/internal/engine"
 	"govard/internal/proxy"
 	"govard/internal/updater"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -45,6 +46,7 @@ Case Studies:
 		quickstart, _ := cmd.Flags().GetBool("quickstart")
 		profile, _ := cmd.Flags().GetString("profile")
 		pull, _ := cmd.Flags().GetBool("pull")
+		fallbackLocalBuild := boolFlagOrDefault(cmd, "fallback-local-build", true)
 		removeOrphans, _ := cmd.Flags().GetBool("remove-orphans")
 		cwd, _ := os.Getwd()
 		context := upRuntimeContext{
@@ -52,6 +54,7 @@ Case Studies:
 			Profile:       profile,
 			Quickstart:    quickstart,
 			Pull:          pull,
+			FallbackLocal: fallbackLocalBuild,
 			RemoveOrphans: removeOrphans,
 			Out:           cmd.OutOrStdout(),
 			Err:           cmd.ErrOrStderr(),
@@ -101,9 +104,10 @@ type upRuntimeContext struct {
 	Profile       string
 	Quickstart    bool
 	Pull          bool
+	FallbackLocal bool
 	RemoveOrphans bool
-	Out           interface{ Write([]byte) (int, error) }
-	Err           interface{ Write([]byte) (int, error) }
+	Out           io.Writer
+	Err           io.Writer
 }
 
 func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPipelineStage {
@@ -213,7 +217,23 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 				)
 				command.Stdout, command.Stderr = context.Out, context.Err
 				if err := command.Run(); err != nil {
-					return fmt.Errorf("docker compose pull failed: %w", err)
+					if !context.FallbackLocal {
+						return fmt.Errorf("docker compose pull failed: %w", err)
+					}
+
+					pterm.Warning.Printf("docker compose pull failed: %v\n", err)
+					pterm.Info.Println("Attempting local Govard image build fallback...")
+
+					built, fallbackErr := fallbackBuildMissingGovardImagesFromCompose(context.Compose, context.Out, context.Err)
+					if fallbackErr != nil {
+						return fmt.Errorf("docker compose pull failed: %w (local fallback failed: %v)", err, fallbackErr)
+					}
+					if len(built) == 0 {
+						pterm.Warning.Println("No missing Govard-managed images required local build. Continuing with current local cache.")
+						return nil
+					}
+
+					pterm.Success.Printf("Local fallback built %d image(s): %s\n", len(built), strings.Join(built, ", "))
 				}
 				return nil
 			},
@@ -239,7 +259,43 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 				}
 				command.Stdout, command.Stderr = context.Out, context.Err
 				if err := command.Run(); err != nil {
-					return fmt.Errorf("docker compose up failed: %w", err)
+					if !context.FallbackLocal {
+						return fmt.Errorf("docker compose up failed: %w", err)
+					}
+
+					pterm.Warning.Printf("docker compose up failed: %v\n", err)
+					pterm.Info.Println("Attempting local Govard image build fallback...")
+
+					built, fallbackErr := fallbackBuildMissingGovardImagesFromCompose(context.Compose, context.Out, context.Err)
+					if fallbackErr != nil {
+						return fmt.Errorf("docker compose up failed: %w (local fallback failed: %v)", err, fallbackErr)
+					}
+					if len(built) == 0 {
+						return fmt.Errorf("docker compose up failed: %w", err)
+					}
+
+					pterm.Success.Printf("Local fallback built %d image(s): %s\n", len(built), strings.Join(built, ", "))
+					pterm.Info.Println("Retrying docker compose up after local fallback build...")
+
+					retryCommand := exec.Command(
+						"docker",
+						"compose",
+						"--project-directory",
+						context.Cwd,
+						"-p",
+						context.Config.ProjectName,
+						"-f",
+						context.Compose,
+						"up",
+						"-d",
+					)
+					if context.RemoveOrphans {
+						retryCommand.Args = append(retryCommand.Args, "--remove-orphans")
+					}
+					retryCommand.Stdout, retryCommand.Stderr = context.Out, context.Err
+					if retryErr := retryCommand.Run(); retryErr != nil {
+						return fmt.Errorf("docker compose up failed after local fallback retry: %w", retryErr)
+					}
 				}
 				return nil
 			},
@@ -413,5 +469,6 @@ func init() {
 	upCmd.Flags().Bool("quickstart", false, "Use a minimal runtime profile for faster first run")
 	upCmd.Flags().String("profile", "", "Environment scope (profile) to use")
 	upCmd.Flags().Bool("pull", false, "Pull latest images before starting")
+	upCmd.Flags().Bool("fallback-local-build", true, "When pull/start fails due missing Govard images, build missing Govard-managed images locally and retry")
 	upCmd.Flags().Bool("remove-orphans", false, "Remove containers for services not defined in the compose file")
 }

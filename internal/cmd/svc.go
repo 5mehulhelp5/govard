@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"govard/internal/engine"
 	"govard/internal/proxy"
@@ -84,6 +85,7 @@ var svcLogsTailCount int
 
 func runSvcUp(cmd *cobra.Command, args []string) error {
 	pterm.DefaultHeader.Println("Starting Govard Global Services")
+	fallbackLocalBuild := boolFlagOrDefault(cmd, "fallback-local-build", true)
 
 	// Check for port conflicts before starting
 	if !engine.CheckPortForGovardProxy(cmd.Context(), "80") {
@@ -103,7 +105,26 @@ func runSvcUp(cmd *cobra.Command, args []string) error {
 	if pull {
 		pterm.Info.Println("Pulling latest images...")
 		if err := runGlobalProxyCompose(cmd, "pull"); err != nil {
-			return fmt.Errorf("pull global services: %w", err)
+			if !fallbackLocalBuild {
+				return fmt.Errorf("pull global services: %w", err)
+			}
+
+			pterm.Warning.Printf("Pull global services failed: %v\n", err)
+			pterm.Info.Println("Attempting local Govard image build fallback...")
+
+			built, fallbackErr := fallbackBuildMissingGovardImagesFromCompose(
+				globalProxyComposeFilePath(),
+				cmd.OutOrStdout(),
+				cmd.ErrOrStderr(),
+			)
+			if fallbackErr != nil {
+				return fmt.Errorf("pull global services: %w (local fallback failed: %v)", err, fallbackErr)
+			}
+			if len(built) == 0 {
+				pterm.Warning.Println("No missing Govard-managed global images required local build. Continuing with current local cache.")
+			} else {
+				pterm.Success.Printf("Local fallback built %d image(s): %s\n", len(built), strings.Join(built, ", "))
+			}
 		}
 	}
 
@@ -114,7 +135,30 @@ func runSvcUp(cmd *cobra.Command, args []string) error {
 	}
 
 	if err := runGlobalProxyCompose(cmd, upArgs...); err != nil {
-		return fmt.Errorf("start global services: %w", err)
+		if !fallbackLocalBuild {
+			return fmt.Errorf("start global services: %w", err)
+		}
+
+		pterm.Warning.Printf("Start global services failed: %v\n", err)
+		pterm.Info.Println("Attempting local Govard image build fallback...")
+
+		built, fallbackErr := fallbackBuildMissingGovardImagesFromCompose(
+			globalProxyComposeFilePath(),
+			cmd.OutOrStdout(),
+			cmd.ErrOrStderr(),
+		)
+		if fallbackErr != nil {
+			return fmt.Errorf("start global services: %w (local fallback failed: %v)", err, fallbackErr)
+		}
+		if len(built) == 0 {
+			return fmt.Errorf("start global services: %w", err)
+		}
+
+		pterm.Success.Printf("Local fallback built %d image(s): %s\n", len(built), strings.Join(built, ", "))
+		pterm.Info.Println("Retrying global services startup after local fallback build...")
+		if retryErr := runGlobalProxyCompose(cmd, upArgs...); retryErr != nil {
+			return fmt.Errorf("start global services after local fallback retry: %w", retryErr)
+		}
 	}
 
 	if err := registerGlobalServiceRoutes(); err != nil {
@@ -323,12 +367,14 @@ func globalProxyComposeFilePath() string {
 
 func init() {
 	svcUpCmd.Flags().Bool("pull", false, "Pull latest images before starting")
+	svcUpCmd.Flags().Bool("fallback-local-build", true, "When pull/start fails due missing Govard images, build missing Govard-managed images locally and retry")
 	svcUpCmd.Flags().Bool("remove-orphans", false, "Remove containers for services not defined in the compose file")
 	svcUpCmd.Flags().Bool("auto-trust", true, "Automatically trust Govard Root CA after services start")
 	svcUpCmd.Flags().Bool("trust-browsers", true, "When auto-trust is enabled, also import CA into browser NSS stores (best effort)")
 
 	svcDownCmd.Flags().Bool("remove-orphans", false, "Remove containers for services not defined in the compose file")
 	svcRestartCmd.Flags().Bool("pull", false, "Pull latest images before starting")
+	svcRestartCmd.Flags().Bool("fallback-local-build", true, "When pull/start fails due missing Govard images, build missing Govard-managed images locally and retry")
 	svcRestartCmd.Flags().Bool("remove-orphans", false, "Remove containers for services not defined in the compose file")
 	svcRestartCmd.Flags().Bool("auto-trust", true, "Automatically trust Govard Root CA after services restart")
 	svcRestartCmd.Flags().Bool("trust-browsers", true, "When auto-trust is enabled, also import CA into browser NSS stores (best effort)")
