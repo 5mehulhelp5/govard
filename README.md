@@ -9,6 +9,24 @@
 
 ---
 
+## 🆚 Why Govard Stands Out
+
+At a glance, these are the areas where Govard delivers stronger day-to-day value than typical local-dev wrappers and compose helpers:
+
+| Area | Govard Advantage |
+| :--- | :--- |
+| Core architecture | Native Go binary with direct Docker SDK orchestration (instead of shell-script glue), for more predictable lifecycle behavior. |
+| Framework intelligence | Automatic framework discovery + framework-specific blueprints + custom stack wizard for tailored environments. |
+| Magento depth | First-class Magento 2 workflow (auto `env.php` wiring, optional Varnish/Redis/queue/search, and dedicated `php-debug` routing). |
+| Local HTTPS/DNS | Built-in Caddy + `dnsmasq` + Root CA auto-trust flow for `*.test` domains, reducing manual local proxy/cert setup. |
+| Remote safety | `remote`/`sync` protections for sensitive targets (`prod` write blocking, scoped capabilities, audit logs, resumable transfers). |
+| Team reproducibility | `govard lock` + `lock.strict` to detect environment drift and enforce consistency across machines. |
+| Recovery workflow | `govard snapshot` for quick local DB/media checkpoints before risky operations or upgrades. |
+| CLI + Desktop parity | Same core engine exposed in both CLI and Wails Desktop app (live logs, operation events, quick actions). |
+| Update integrity | `govard self-update` validates release checksums before replacing the binary. |
+
+---
+
 ## 🚀 Key Features
 
 - **Framework Discovery**: Automatically detects Magento 1/OpenMage, Magento 2, Laravel, Next.js, Drupal, Symfony, Shopware, CakePHP, and WordPress to generate tailored configurations.
@@ -18,6 +36,12 @@
 - **High Performance**: Built with Go and utilizes the native Docker SDK for direct container orchestration.
 - **Smart Templating**: Uses the Go `text/template` engine to render dynamic Docker Compose files from framework-specific Blueprints.
 - **Magento 2 Optimized**: Deep integration for Magento 2, including automated `env.php` configuration, Varnish 7.x support, and Redis caching.
+- **Remote Management (Flagship)**: Manage named remotes for sync/deploy/db workflows with scope-based capabilities (`files,media,db,deploy`) and flexible auth modes (`keychain`, `ssh-agent`, `keyfile`).
+- **Remote Safety Guardrails**: Production remotes are write-protected by default, with policy checks to block risky destination writes and explicit capability enforcement per operation.
+- **Safe Cross-Environment Sync**: Bi-directional file/media/database sync with dry-run planning (`--plan`), resumable rsync by default (`--partial --append-verify`), include/exclude filters, and risk warnings for destructive flags.
+- **Remote Auditability & Observability**: Remote operations are logged to `~/.govard/remote.log` and also emitted to `~/.govard/operations.log` for command traceability and desktop notifications.
+- **Remote Connectivity Diagnostics**: `govard remote test` validates SSH + `rsync`, reports probe latency, and classifies failures (`network`, `auth`, `permission`, `host_key`, `dependency`) with remediation hints.
+- **Secrets-Aware Remote Config**: Remote fields support `op://...` references resolved through 1Password CLI for safer credential handling.
 - **SSL Management**: Professional CA management for "Green Lock" HTTPS on local `.test` domains.
 - **Zero-Config Debugging**: Seamless Xdebug 3 integration with one-click toggling.
 - **Rich CLI UX**: Powered by `pterm` for beautiful terminal output, progress bars, and interactive prompts. Use `--verbose` for deeper diagnostic trace logging via `log/slog`.
@@ -87,6 +111,7 @@ Ensure you have the following prerequisites installed:
 - **Yarn (v1.x)**
 - **golangci-lint (v1.64+)**
 - **Docker & Docker Compose**
+- **Wails v2.11+** (required for desktop app development)
 
 ```bash
 go version
@@ -107,6 +132,11 @@ If you are contributing to Govard, follow these steps to set up your environment
 3. **golangci-lint**: Install the latest version:
    ```bash
    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
+   ```
+4. **Wails v2.11+** (for desktop app development):
+   ```bash
+   go install github.com/wailsapp/wails/v2/cmd/wails@latest
+   wails version
    ```
 
 If you don't have `sudo` privileges, you can install everything to a local directory and update your `PATH`.
@@ -157,6 +187,35 @@ Access the application container immediately:
 ```bash
 govard shell
 ```
+
+### 5. Remote Management (Flagship)
+
+Set up and validate a remote:
+
+```bash
+govard remote add staging --host staging.example.com --user deploy --path /var/www/html
+govard remote test staging
+```
+
+Plan and run a safe sync:
+
+```bash
+govard sync --source staging --destination local --full --plan
+govard sync --source staging --destination local --full
+```
+
+Inspect remote audit events:
+
+```bash
+govard remote audit tail --status failure --lines 50
+```
+
+Remote defaults and protections:
+
+- `prod` remotes are write-protected by default.
+- Capability scopes (`files,media,db,deploy`) are enforced per operation.
+- File/media sync uses resumable rsync mode by default.
+- Full docs: `docs/commands/remote.md` and `docs/commands/sync.md`.
 
 ---
 
@@ -286,6 +345,7 @@ _Note: Once trusted, all `*.test` domains managed by Govard will show a "Green L
 │   ├── blueprints/  # Docker Compose templates for specific frameworks
 │   ├── engine/      # Core logic (Docker SDK, Discovery, Rendering)
 │   ├── desktop/     # Desktop app glue (Wails bindings)
+│   ├── proxy/       # Caddy/proxy route and TLS helpers
 │   ├── ui/          # Styled terminal output logic
 │   └── updater/     # Background update checking
 ├── Makefile         # Build and installation automation
@@ -307,14 +367,13 @@ _Note: Once trusted, all `*.test` domains managed by Govard will show a "Green L
 | `govard shell`       | Enter the application container                                    |
 | `govard db`          | Database operations (`connect`, `dump`, `import`, `query`, `info`) |
 | `govard debug`       | Toggle Xdebug for the current environment                          |
-| `govard open`        | Open common service URLs                                           |
+| `govard open`        | Open common service URLs (Admin, DB, Mail, Portainer)              |
 | `govard remote`      | Manage remote environments                                         |
 | `govard sync`        | Synchronize files, media, and databases between environments       |
 | `govard status`      | List running project environments across workspace                 |
 | `govard doctor`      | Run system diagnostics and remediation helpers                     |
 | `govard config`      | Manage `.govard.yml` configuration from CLI                        |
-| `govard open`        | Open common service URLs (Admin, DB, Mail, Portainer)              |
-| `govard deploy`      | Deploy the application                                             |
+| `govard deploy`      | Run deploy lifecycle hooks (pre/post deploy)                      |
 | `govard snapshot`    | Manage local snapshots for database and media                      |
 | `govard lock`        | Generate and validate `govard.lock` snapshots                      |
 | `govard tunnel`      | Start a public tunnel to a local project URL                       |
