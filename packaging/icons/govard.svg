@@ -13,11 +13,11 @@
     </linearGradient>
   </defs>
 
-  <!-- Slightly upscale the icon artwork to improve visual weight on Ubuntu launchers -->
-  <g transform="translate(-10.24 -10.24) scale(1.08)">
-    <rect x="16" y="16" width="224" height="224" rx="52" fill="url(#bg)"/>
-    <rect x="22" y="22" width="212" height="212" rx="46" fill="none" stroke="#2dff8b" stroke-opacity="0.22" stroke-width="4"/>
+  <!-- Removed transform and padding to maximize visual weight on Ubuntu launchers -->
+  <rect x="0" y="0" width="256" height="256" rx="52" fill="url(#bg)"/>
+  <rect x="6" y="6" width="244" height="244" rx="46" fill="none" stroke="#2dff8b" stroke-opacity="0.22" stroke-width="4"/>
 
+  <g transform="translate(12, 12)">
     <path d="M173 98c-9-16-26-26-46-26-29 0-52 24-52 53s23 53 52 53c24 0 43-15 49-37h-30"
           fill="none" stroke="url(#accent)" stroke-linecap="round" stroke-linejoin="round" stroke-width="18"/>
     <path d="M172 141h-40" fill="none" stroke="url(#accent)" stroke-linecap="round" stroke-width="18"/>

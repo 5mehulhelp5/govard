@@ -77,6 +77,16 @@ nfpms:
         dst: /usr/share/applications/govard.desktop
       - src: ./packaging/icons/govard.svg
         dst: /usr/share/icons/hicolor/scalable/apps/govard.svg
+      - src: ./packaging/icons/govard.svg
+        dst: /usr/share/icons/hicolor/16x16/apps/govard.svg
+      - src: ./packaging/icons/govard.svg
+        dst: /usr/share/icons/hicolor/32x32/apps/govard.svg
+      - src: ./packaging/icons/govard.svg
+        dst: /usr/share/icons/hicolor/48x48/apps/govard.svg
+      - src: ./packaging/icons/govard.svg
+        dst: /usr/share/icons/hicolor/128x128/apps/govard.svg
+      - src: ./packaging/icons/govard.svg
+        dst: /usr/share/icons/hicolor/256x256/apps/govard.svg
 
 changelog:
   use: github
