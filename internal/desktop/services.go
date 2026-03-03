@@ -72,9 +72,11 @@ func (s *SystemService) Setup(ctx context.Context) {
 
 // LogService handles log streaming and terminal sessions.
 type LogService struct {
-	ctx          context.Context
-	streamMu     sync.Mutex
-	streamCancel context.CancelFunc
+	ctx                context.Context
+	streamMu           sync.Mutex
+	streamCancel       context.CancelFunc
+	globalStreamMu     sync.Mutex
+	globalStreamCancel context.CancelFunc
 }
 
 func NewLogService() *LogService {
@@ -82,5 +84,18 @@ func NewLogService() *LogService {
 }
 
 func (s *LogService) Setup(ctx context.Context) {
+	s.ctx = ctx
+}
+
+// GlobalServiceService handles global Govard service management.
+type GlobalServiceService struct {
+	ctx context.Context
+}
+
+func NewGlobalServiceService() *GlobalServiceService {
+	return &GlobalServiceService{}
+}
+
+func (s *GlobalServiceService) Setup(ctx context.Context) {
 	s.ctx = ctx
 }

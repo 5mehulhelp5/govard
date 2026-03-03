@@ -18,6 +18,58 @@ export const desktopBridge = {
     const bridge = getBridge();
     return call(bridge?.GetDashboard?.bind(bridge)); // explicitly drop args
   },
+  async getGlobalServices() {
+    const bridge = getBridge();
+    return call(bridge?.GetGlobalServices?.bind(bridge));
+  },
+  async startGlobalServices() {
+    const bridge = getBridge();
+    return call(bridge?.StartGlobalServices?.bind(bridge));
+  },
+  async stopGlobalServices() {
+    const bridge = getBridge();
+    return call(bridge?.StopGlobalServices?.bind(bridge));
+  },
+  async restartGlobalServices() {
+    const bridge = getBridge();
+    return call(bridge?.RestartGlobalServices?.bind(bridge));
+  },
+  async pullGlobalServices() {
+    const bridge = getBridge();
+    return call(bridge?.PullGlobalServices?.bind(bridge));
+  },
+  async startGlobalService(serviceID) {
+    const bridge = getBridge();
+    return call(bridge?.StartGlobalService?.bind(bridge), serviceID);
+  },
+  async stopGlobalService(serviceID) {
+    const bridge = getBridge();
+    return call(bridge?.StopGlobalService?.bind(bridge), serviceID);
+  },
+  async restartGlobalService(serviceID) {
+    const bridge = getBridge();
+    return call(bridge?.RestartGlobalService?.bind(bridge), serviceID);
+  },
+  async openGlobalService(serviceID) {
+    const bridge = getBridge();
+    return call(bridge?.OpenGlobalService?.bind(bridge), serviceID);
+  },
+  async getGlobalServiceLogs(serviceID, lines = 200) {
+    const bridge = getBridge();
+    return call(
+      bridge?.GetGlobalServiceLogs?.bind(bridge),
+      serviceID,
+      Number(lines) || 200,
+    );
+  },
+  async startGlobalServiceLogStream(serviceID) {
+    const bridge = getBridge();
+    return call(bridge?.StartGlobalServiceLogStream?.bind(bridge), serviceID);
+  },
+  async stopGlobalServiceLogStream() {
+    const bridge = getBridge();
+    return call(bridge?.StopGlobalServiceLogStream?.bind(bridge));
+  },
   async getCurrentUser() {
     const bridge = getBridge();
     return call(bridge?.GetUserInfo?.bind(bridge));

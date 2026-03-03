@@ -1,10 +1,14 @@
 const state = {
+  sidebarMode: "global-services",
   environments: [],
   selectedProject: "",
   selectedService: "all",
   selectedSeverity: "all",
   logQuery: "",
+  globalServices: [],
+  selectedGlobalService: "caddy",
   liveLogsEnabled: false,
+  globalLiveLogsEnabled: false,
   terminalModalOpen: false,
   syncConfigs: {},
 };

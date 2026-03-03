@@ -62,6 +62,61 @@ func (s *LogService) StopLogStream() (string, error) {
 	return "Live logs already stopped", nil
 }
 
+func (s *LogService) StartGlobalServiceLogStream(serviceID string) (string, error) {
+	spec, err := resolveGlobalServiceSpec(serviceID)
+	if err != nil {
+		return "", err
+	}
+
+	s.globalStreamMu.Lock()
+	defer s.globalStreamMu.Unlock()
+
+	if s.globalStreamCancel != nil {
+		s.globalStreamCancel()
+		s.globalStreamCancel = nil
+	}
+
+	streamCtx, cancel := context.WithCancel(s.ctx)
+	s.globalStreamCancel = cancel
+	go s.streamGlobalServiceLogs(streamCtx, spec)
+
+	return "Global service live logs started", nil
+}
+
+func (s *LogService) StopGlobalServiceLogStream() (string, error) {
+	s.globalStreamMu.Lock()
+	defer s.globalStreamMu.Unlock()
+
+	if s.globalStreamCancel != nil {
+		s.globalStreamCancel()
+		s.globalStreamCancel = nil
+		return "Global service live logs stopped", nil
+	}
+	return "Global service live logs already stopped", nil
+}
+
+func (s *LogService) GetGlobalServiceLogs(serviceID string, lines int) (string, error) {
+	spec, err := resolveGlobalServiceSpec(serviceID)
+	if err != nil {
+		return "", err
+	}
+	if lines <= 0 {
+		lines = 200
+	}
+
+	output, err := exec.Command(
+		"docker",
+		"logs",
+		"--tail",
+		fmt.Sprintf("%d", lines),
+		spec.ContainerName,
+	).CombinedOutput()
+	if err != nil {
+		return string(output), err
+	}
+	return string(output), nil
+}
+
 func (s *LogService) streamLogs(ctx context.Context, project string, service string) {
 	info, err := loadProjectInfo(project)
 	if err != nil {
@@ -94,6 +149,43 @@ func (s *LogService) streamLogs(ctx context.Context, project string, service str
 	done := make(chan struct{}, 2)
 	go scanLogPipe(s.ctx, stdout, "logs:line", done)
 	go scanLogPipe(s.ctx, stderr, "logs:line", done)
+
+	select {
+	case <-ctx.Done():
+		if cmd.Process != nil {
+			_ = cmd.Process.Kill()
+		}
+	case <-done:
+	}
+}
+
+func (s *LogService) streamGlobalServiceLogs(ctx context.Context, spec globalServiceSpec) {
+	cmd := exec.CommandContext(ctx, "docker", "logs", "--tail", "100", "-f", spec.ContainerName)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		runtime.EventsEmit(s.ctx, "global-logs:error", "Failed to stream logs: "+err.Error())
+		return
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		runtime.EventsEmit(s.ctx, "global-logs:error", "Failed to stream logs: "+err.Error())
+		return
+	}
+
+	if err := cmd.Start(); err != nil {
+		runtime.EventsEmit(s.ctx, "global-logs:error", "Failed to start log stream: "+err.Error())
+		return
+	}
+
+	runtime.EventsEmit(
+		s.ctx,
+		"global-logs:status",
+		fmt.Sprintf("Streaming logs from %s", spec.ContainerName),
+	)
+
+	done := make(chan struct{}, 2)
+	go scanLogPipe(s.ctx, stdout, "global-logs:line", done)
+	go scanLogPipe(s.ctx, stderr, "global-logs:line", done)
 
 	select {
 	case <-ctx.Done():

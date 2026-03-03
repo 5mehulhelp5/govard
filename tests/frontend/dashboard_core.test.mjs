@@ -105,6 +105,126 @@ test("project management workspace keeps core IDs for controllers", async () => 
   );
 });
 
+test("sidebar mode switch drives global services panel on the right", async () => {
+  const html = await readFile(
+    new URL("../../desktop/frontend/index.html", import.meta.url),
+    "utf8",
+  );
+  const dashboardJS = await readFile(
+    new URL("../../desktop/frontend/modules/dashboard.js", import.meta.url),
+    "utf8",
+  );
+  for (const id of [
+    "tab-global-services",
+    "globalServicesList",
+    "globalLogOutput",
+    "sidebarPanel-environments",
+  ]) {
+    assert.equal(html.includes(`id="${id}"`), true, `missing ${id}`);
+  }
+  assert.equal(
+    html.includes('id="sidebarPanel-global-services"'),
+    false,
+    "legacy sidebar global services panel should be removed",
+  );
+  assert.equal(
+    dashboardJS.includes('data-mode="global-services"'),
+    true,
+    "missing global services sidebar row action",
+  );
+  assert.equal(
+    dashboardJS.includes('"Active Environments",'),
+    true,
+    "missing active environments section",
+  );
+  assert.equal(
+    dashboardJS.includes('"Inactive Environments",'),
+    true,
+    "missing inactive environments section",
+  );
+  assert.equal(
+    dashboardJS.includes('data-action="switch-sidebar-mode"'),
+    true,
+    "missing sidebar mode switch action",
+  );
+});
+
+test("global services right panel includes per-service and log actions", async () => {
+  const html = await readFile(
+    new URL("../../desktop/frontend/index.html", import.meta.url),
+    "utf8",
+  );
+  for (const id of [
+    "globalServiceHealthPercent",
+    "globalServiceHealthBar",
+    "globalServiceStatusStrip",
+    "globalActionFeedback",
+  ]) {
+    assert.equal(
+      html.includes(`id="${id}"`),
+      true,
+      `missing global services deck element ${id}`,
+    );
+  }
+  for (const action of [
+    "global-bulk-start",
+    "global-bulk-stop",
+    "global-bulk-restart",
+    "global-bulk-pull",
+    "toggle-global-live",
+    "refresh-global-logs",
+    "clear-global-logs",
+  ]) {
+    assert.equal(
+      html.includes(`data-action="${action}"`),
+      true,
+      `missing global services action ${action}`,
+    );
+  }
+  for (const loadingLabel of [
+    'data-loading-label="Starting All..."',
+    'data-loading-label="Restarting All..."',
+    'data-loading-label="Stopping All..."',
+    'data-loading-label="Pulling All..."',
+  ]) {
+    assert.equal(
+      html.includes(loadingLabel),
+      true,
+      `missing loading label contract ${loadingLabel}`,
+    );
+  }
+});
+
+test("global service card actions provide loading state contracts", async () => {
+  const globalServicesJS = await readFile(
+    new URL("../../desktop/frontend/modules/global-services.js", import.meta.url),
+    "utf8",
+  );
+
+  for (const loadingLabel of [
+    'data-loading-label="${primaryAction === "restart" ? "Restarting..." : "Starting..."}"',
+    'data-loading-label="Stopping..."',
+    'data-loading-label="Opening..."',
+  ]) {
+    assert.equal(
+      globalServicesJS.includes(loadingLabel),
+      true,
+      `missing per-service loading label ${loadingLabel}`,
+    );
+  }
+
+  assert.equal(
+    globalServicesJS.includes("progress_activity"),
+    true,
+    "missing loading spinner icon for global service actions",
+  );
+  assert.equal(
+    globalServicesJS.includes('button.setAttribute("aria-busy", "true")'),
+    true,
+    "missing aria-busy state for loading buttons",
+  );
+});
+
 test("footer exposes system metrics refresh control", async () => {
   const html = await readFile(
     new URL("../../desktop/frontend/index.html", import.meta.url),

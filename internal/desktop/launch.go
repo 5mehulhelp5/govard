@@ -43,6 +43,7 @@ func BuildWailsOptions(app *App, assets fs.FS, launch LaunchOptions) *options.Ap
 			app.Remote,
 			app.System,
 			app.Logs,
+			app.Global,
 		},
 	}
 

@@ -29,6 +29,42 @@ func (app *App) GetDashboard() (Dashboard, error) {
 	return app.Environment.GetDashboard()
 }
 
+func (app *App) GetGlobalServices() (GlobalServicesSnapshot, error) {
+	return app.Global.GetGlobalServices()
+}
+
+func (app *App) StartGlobalServices() (string, error) {
+	return app.Global.StartGlobalServices()
+}
+
+func (app *App) StopGlobalServices() (string, error) {
+	return app.Global.StopGlobalServices()
+}
+
+func (app *App) RestartGlobalServices() (string, error) {
+	return app.Global.RestartGlobalServices()
+}
+
+func (app *App) PullGlobalServices() (string, error) {
+	return app.Global.PullGlobalServices()
+}
+
+func (app *App) StartGlobalService(serviceID string) (string, error) {
+	return app.Global.StartGlobalService(serviceID)
+}
+
+func (app *App) StopGlobalService(serviceID string) (string, error) {
+	return app.Global.StopGlobalService(serviceID)
+}
+
+func (app *App) RestartGlobalService(serviceID string) (string, error) {
+	return app.Global.RestartGlobalService(serviceID)
+}
+
+func (app *App) OpenGlobalService(serviceID string) (string, error) {
+	return app.Global.OpenGlobalService(serviceID)
+}
+
 func (app *App) StartEnvironment(project string) (string, error) {
 	return app.Environment.StartEnvironment(project)
 }
@@ -154,4 +190,16 @@ func (app *App) StartLogStreamForService(project string, service string) (string
 
 func (app *App) StopLogStream() (string, error) {
 	return app.Logs.StopLogStream()
+}
+
+func (app *App) GetGlobalServiceLogs(serviceID string, lines int) (string, error) {
+	return app.Logs.GetGlobalServiceLogs(serviceID, lines)
+}
+
+func (app *App) StartGlobalServiceLogStream(serviceID string) (string, error) {
+	return app.Logs.StartGlobalServiceLogStream(serviceID)
+}
+
+func (app *App) StopGlobalServiceLogStream() (string, error) {
+	return app.Logs.StopGlobalServiceLogStream()
 }

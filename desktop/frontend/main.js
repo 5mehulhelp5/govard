@@ -12,6 +12,7 @@ import {
   renderMetricSkeletons as renderDashboardSkeletons,
   renderEnvironmentSkeletons,
 } from "./modules/dashboard.js";
+import { createGlobalServicesController } from "./modules/global-services.js";
 import {
   createLogsController,
   resolveLogTarget,
@@ -55,6 +56,28 @@ const getLiveRefs = () => ({
   refresh: byId("refresh"),
   status: byId("status"),
   envList: byId("envList"),
+  sidebarGlobalStatus: byId("sidebarGlobalStatus"),
+  sidebarPanelEnvironments: byId("sidebarPanel-environments"),
+  sidebarEnvActions: byId("sidebarEnvActions"),
+  globalServicesList: byId("globalServicesList"),
+  globalServicesSummary: byId("globalServicesSummary"),
+  globalServiceCount: byId("globalServiceCount"),
+  globalServiceHealthPercent: byId("globalServiceHealthPercent"),
+  globalServiceHealthBar: byId("globalServiceHealthBar"),
+  globalServiceHealthLabel: byId("globalServiceHealthLabel"),
+  globalServiceHealthLabelIcon: byId("globalServiceHealthLabelIcon"),
+  globalServiceHealthLabelText: byId("globalServiceHealthLabelText"),
+  globalServiceStatusStrip: byId("globalServiceStatusStrip"),
+  globalBulkStart: byId("globalBulkStart"),
+  globalBulkRestart: byId("globalBulkRestart"),
+  globalBulkStop: byId("globalBulkStop"),
+  globalBulkPull: byId("globalBulkPull"),
+  globalActionFeedback: byId("globalActionFeedback"),
+  globalActionFeedbackIcon: byId("globalActionFeedbackIcon"),
+  globalActionFeedbackText: byId("globalActionFeedbackText"),
+  globalToggleLive: byId("globalToggleLive"),
+  globalLogOutput: byId("globalLogOutput"),
+  globalLogServiceName: byId("globalLogServiceName"),
   envSelector: byId("envSelector"),
   logSelector: byId("logSelector"),
   logServiceSelector: byId("logServiceSelector"),
@@ -132,6 +155,8 @@ const refreshRefs = () => {
   if (metricsController?.updateRefs) metricsController.updateRefs(refs);
   if (remotesController?.updateRefs) remotesController.updateRefs(refs);
   if (settingsController?.updateRefs) settingsController.updateRefs(refs);
+  if (globalServicesController?.updateRefs)
+    globalServicesController.updateRefs(refs);
   if (embeddedTerminalController?.updateRefs)
     embeddedTerminalController.updateRefs(refs);
 };
@@ -486,6 +511,7 @@ const switchTab = (tabId) => {
   if (scrollContainer && hero && tabs && tabsInner) {
     const showHero = ["dashboard", "remotes", "logs"].includes(tabId);
     hero.classList.toggle("hidden", !showHero);
+    const showPrimaryTabs = tabId !== "global-services";
     if (tabId !== "logs" && getState().terminalModalOpen) {
       toggleTerminalModal(false);
     }
@@ -504,12 +530,52 @@ const switchTab = (tabId) => {
       setState({ selectedService: "all" });
       refreshServiceSelector();
       logsController.refresh();
+    } else if (tabId === "global-services") {
+      scrollContainer.classList.add("overflow-y-auto");
+      scrollContainer.classList.remove("overflow-hidden");
     }
 
     // Standardize header styling across all tabs
-    tabs.className =
-      "border-b border-[#22492f] shrink-0 bg-background-dark sticky top-0 z-10 w-full";
+    tabs.className = showPrimaryTabs
+      ? "border-b border-[#22492f] shrink-0 bg-background-dark sticky top-0 z-10 w-full"
+      : "hidden";
     tabsInner.className = "w-full";
+  }
+};
+
+const switchSidebarMode = async (mode, options = {}) => {
+  const normalized =
+    mode === "environments" ? "environments" : "global-services";
+  setState({ sidebarMode: normalized });
+
+  if (refs.sidebarPanelEnvironments) {
+    refs.sidebarPanelEnvironments.classList.remove("hidden");
+  }
+  if (refs.sidebarEnvActions) {
+    refs.sidebarEnvActions.classList.remove("hidden");
+  }
+  renderEnvironmentList(
+    refs.envList,
+    getState().environments,
+    getState().selectedProject,
+    { sidebarMode: normalized },
+  );
+
+  if (normalized === "global-services") {
+    switchTab("global-services");
+    await globalServicesController.refresh({ silent: Boolean(options.silent) });
+    if (!options.skipLogs) {
+      await globalServicesController.refreshLogs();
+    }
+    return;
+  }
+
+  await globalServicesController.stopLive();
+  const activeTabId = document
+    .querySelector(".tab-content.active")
+    ?.id?.replace("tab-", "");
+  if (!activeTabId || activeTabId === "global-services") {
+    switchTab("dashboard");
   }
 };
 
@@ -894,6 +960,7 @@ const refreshDashboard = async (options = {}) => {
         refs.envList,
         dashboard.environments,
         getState().selectedProject,
+        { sidebarMode: getState().sidebarMode },
       );
       console.log(
         "[refreshDashboard] renderEnvironmentList called with",
@@ -955,6 +1022,7 @@ const refreshDashboard = async (options = {}) => {
         refs.envList,
         dashboard.environments,
         getState().selectedProject,
+        { sidebarMode: getState().sidebarMode },
       );
     } catch (e) {
       console.error(
@@ -980,6 +1048,7 @@ const refreshDashboard = async (options = {}) => {
     }
     await metricsController.refresh({ silent: true });
     await remotesController.refresh({ silent: true });
+    await globalServicesController.refresh({ silent: true });
     await shellController.loadShellUser();
     await logsController.refresh();
     await loadFooterVersion();
@@ -1050,6 +1119,16 @@ const settingsController = createSettingsController({
   onToast: showToast,
 });
 
+const globalServicesController = createGlobalServicesController({
+  bridge: desktopBridge,
+  runtime: desktopBridge.runtime,
+  refs,
+  getState,
+  setState,
+  onStatus: setStatus,
+  onToast: showToast,
+});
+
 document.addEventListener("click", async (event) => {
   const target = event.target;
   if (!(target instanceof HTMLElement)) {
@@ -1063,14 +1142,101 @@ document.addEventListener("click", async (event) => {
   }
   event.preventDefault();
 
+  if (action === "switch-sidebar-mode") {
+    const mode = String(targetElement.dataset.mode || "").trim();
+    await switchSidebarMode(mode);
+    return;
+  }
+
+  if (action === "global-bulk-start") {
+    await globalServicesController.runBulkAction("start", targetElement);
+    return;
+  }
+  if (action === "global-bulk-stop") {
+    await globalServicesController.runBulkAction("stop", targetElement);
+    return;
+  }
+  if (action === "global-bulk-restart") {
+    await globalServicesController.runBulkAction("restart", targetElement);
+    return;
+  }
+  if (action === "global-bulk-pull") {
+    await globalServicesController.runBulkAction("pull", targetElement);
+    return;
+  }
+  if (action === "global-service-start") {
+    await globalServicesController.runServiceAction(
+      "start",
+      String(targetElement.dataset.service || ""),
+      targetElement,
+    );
+    return;
+  }
+  if (action === "global-service-primary") {
+    const operation = String(targetElement.dataset.operation || "start")
+      .trim()
+      .toLowerCase();
+    const resolved = operation === "restart" ? "restart" : "start";
+    await globalServicesController.runServiceAction(
+      resolved,
+      String(targetElement.dataset.service || ""),
+      targetElement,
+    );
+    return;
+  }
+  if (action === "global-service-stop") {
+    await globalServicesController.runServiceAction(
+      "stop",
+      String(targetElement.dataset.service || ""),
+      targetElement,
+    );
+    return;
+  }
+  if (action === "global-service-restart") {
+    await globalServicesController.runServiceAction(
+      "restart",
+      String(targetElement.dataset.service || ""),
+      targetElement,
+    );
+    return;
+  }
+  if (action === "global-service-open") {
+    await globalServicesController.runServiceAction(
+      "open",
+      String(targetElement.dataset.service || ""),
+      targetElement,
+    );
+    return;
+  }
+  if (action === "global-service-select-log") {
+    await globalServicesController.selectService(
+      String(targetElement.dataset.service || ""),
+    );
+    return;
+  }
+  if (action === "toggle-global-live") {
+    await globalServicesController.toggleLive();
+    return;
+  }
+  if (action === "refresh-global-logs") {
+    await globalServicesController.refreshLogs();
+    return;
+  }
+  if (action === "clear-global-logs") {
+    await globalServicesController.clearLogs();
+    return;
+  }
+
   if (action === "select-environment") {
     const project = targetElement.dataset.env || "";
     setState({ selectedProject: project });
     if (refs.envSelector) refs.envSelector.value = project;
     if (refs.logSelector) refs.logSelector.value = project;
 
+    await switchSidebarMode("environments", { silent: true, skipLogs: true });
+
     const currentTab = document.querySelector(".tab-content.active")?.id;
-    if (!currentTab || currentTab === "tab-dashboard") {
+    if (!currentTab || currentTab === "tab-global-services") {
       switchTab("dashboard");
     }
 
@@ -1645,6 +1811,9 @@ const bootstrap = async () => {
       settingsController.load(),
       refreshDashboard(),
     ]).catch((e) => console.error("Parallel bootstrap error:", e));
+    if (getState().sidebarMode === "global-services") {
+      await globalServicesController.refreshLogs();
+    }
     await loadFooterVersion();
     setTimeout(() => {
       loadFooterVersion();
@@ -1665,6 +1834,12 @@ const initApp = () => {
     bindRuntimeListeners();
     bindDynamicControlListeners();
     switchTab("dashboard");
+    switchSidebarMode(getState().sidebarMode, {
+      silent: true,
+      skipLogs: true,
+    }).catch((err) => {
+      console.error("Failed to initialize sidebar mode:", err);
+    });
     bootstrap();
   } catch (err) {
     console.error("Error in app initialization:", err);
@@ -1679,4 +1854,5 @@ if (document.readyState === "loading") {
 
 window.addEventListener("beforeunload", () => {
   metricsController.stopAutoRefresh();
+  globalServicesController.stopLive({ skipBridge: true });
 });

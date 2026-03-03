@@ -11,6 +11,28 @@ type Dashboard struct {
 	Warnings           []string      `json:"warnings"`
 }
 
+type GlobalServicesSnapshot struct {
+	Active   int             `json:"active"`
+	Total    int             `json:"total"`
+	Summary  string          `json:"summary"`
+	Services []GlobalService `json:"services"`
+	Warnings []string        `json:"warnings"`
+}
+
+type GlobalService struct {
+	ID             string `json:"id"`
+	Name           string `json:"name"`
+	ComposeService string `json:"composeService"`
+	ContainerName  string `json:"containerName"`
+	Status         string `json:"status"`
+	State          string `json:"state"`
+	Health         string `json:"health"`
+	StatusText     string `json:"statusText"`
+	Running        bool   `json:"running"`
+	Openable       bool   `json:"openable"`
+	URL            string `json:"url,omitempty"`
+}
+
 type DesktopSettings struct {
 	Theme              string `json:"theme"`
 	ProxyTarget        string `json:"proxyTarget"`

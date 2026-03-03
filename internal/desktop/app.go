@@ -35,6 +35,7 @@ type App struct {
 	Remote      *RemoteService
 	System      *SystemService
 	Logs        *LogService
+	Global      *GlobalServiceService
 
 	notifyMu     sync.Mutex
 	notifyCancel context.CancelFunc
@@ -48,6 +49,7 @@ func NewApp() *App {
 		Remote:      NewRemoteService(),
 		System:      NewSystemService(),
 		Logs:        NewLogService(),
+		Global:      NewGlobalServiceService(),
 	}
 }
 
@@ -63,6 +65,7 @@ func (app *App) Startup(ctx context.Context) {
 	app.Remote.Setup(ctx)
 	app.System.Setup(ctx)
 	app.Logs.Setup(ctx)
+	app.Global.Setup(ctx)
 
 	app.startOperationNotificationWatcher()
 }

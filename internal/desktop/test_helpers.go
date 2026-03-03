@@ -17,6 +17,8 @@ func ResetStateForTest() {
 	runGovardCommandForDesktop = defaultRunGovardCommandForDesktop
 	startGovardCommandForDesktop = defaultStartGovardCommandForDesktop
 	openExternalURLForDesktop = defaultOpenExternalURLForDesktop
+	runGlobalServicesComposeForDesktop = defaultRunGlobalServicesComposeForDesktop
+	ensureGlobalServicesForDesktop = defaultEnsureGlobalServicesForDesktop
 }
 
 // ResolveRequestedLogTargetsForTest exposes log target normalization for tests.
@@ -328,6 +330,52 @@ func SetStartGovardCommandForDesktopForTest(fn func(root string, args []string) 
 	return func() {
 		startGovardCommandForDesktop = previous
 	}
+}
+
+// SetRunGlobalServicesComposeForDesktopForTest overrides the global compose runner.
+func SetRunGlobalServicesComposeForDesktopForTest(fn func(args ...string) (string, error)) func() {
+	previous := runGlobalServicesComposeForDesktop
+	if fn == nil {
+		runGlobalServicesComposeForDesktop = defaultRunGlobalServicesComposeForDesktop
+	} else {
+		runGlobalServicesComposeForDesktop = fn
+	}
+	return func() {
+		runGlobalServicesComposeForDesktop = previous
+	}
+}
+
+// SetEnsureGlobalServicesForDesktopForTest overrides global service compose readiness checks.
+func SetEnsureGlobalServicesForDesktopForTest(fn func() error) func() {
+	previous := ensureGlobalServicesForDesktop
+	if fn == nil {
+		ensureGlobalServicesForDesktop = defaultEnsureGlobalServicesForDesktop
+	} else {
+		ensureGlobalServicesForDesktop = fn
+	}
+	return func() {
+		ensureGlobalServicesForDesktop = previous
+	}
+}
+
+// ResolveGlobalServiceForTest exposes global service definitions for tests.
+func ResolveGlobalServiceForTest(serviceID string) (GlobalService, bool) {
+	spec, err := resolveGlobalServiceSpec(serviceID)
+	if err != nil {
+		return GlobalService{}, false
+	}
+	return GlobalService{
+		ID:             spec.ID,
+		Name:           spec.Name,
+		ComposeService: spec.ComposeService,
+		ContainerName:  spec.ContainerName,
+		Openable:       spec.URLHost != "",
+	}, true
+}
+
+// DeriveGlobalContainerStatusForTest exposes container state normalization for tests.
+func DeriveGlobalContainerStatusForTest(state string, statusText string) (string, string, bool) {
+	return deriveGlobalContainerStatus(state, statusText)
 }
 
 // OnboardProjectForPathForTest exposes onboarding flow for tests.

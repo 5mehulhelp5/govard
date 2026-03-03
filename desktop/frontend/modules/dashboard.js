@@ -128,15 +128,141 @@ export const renderWarnings = (warningList, warnings = []) => {
   });
 };
 
+const ACTIVE_ENVIRONMENT_STATUSES = new Set([
+  "running",
+  "warning",
+  "healthy",
+  "up",
+  "starting",
+  "restarting",
+  "booting",
+  "syncing",
+]);
+
+const environmentServices = (env = {}) => {
+  if (Array.isArray(env.Services)) return env.Services;
+  if (Array.isArray(env.services)) return env.services;
+  return [];
+};
+
+const classifyEnvironmentStatus = (env = {}) => {
+  const status = String(env.Status || env.status || "stopped").toLowerCase();
+  const active = ACTIVE_ENVIRONMENT_STATUSES.has(status);
+  const services = environmentServices(env);
+  const serviceCount = services.length;
+
+  const meta = {
+    status,
+    active,
+    iconName: "stop_circle",
+    iconClass: "text-slate-500",
+    iconStyle: "",
+    detailClass: "text-slate-500",
+    dotClass: "bg-slate-500",
+    detailText: "Stopped",
+    showPulseDot: false,
+  };
+
+  if (status === "running" || status === "healthy" || status === "up") {
+    meta.iconName = "play_circle";
+    meta.iconClass = "text-primary fill-1";
+    meta.iconStyle = "style=\"font-variation-settings: 'FILL' 1;\"";
+    meta.detailClass = "text-primary";
+    meta.dotClass = "bg-primary";
+    meta.detailText =
+      serviceCount > 0 ? `Running • ${serviceCount} services` : "Running";
+    meta.showPulseDot = true;
+    return meta;
+  }
+
+  if (
+    status === "restarting" ||
+    status === "starting" ||
+    status === "booting" ||
+    status === "syncing"
+  ) {
+    meta.iconName = "sync";
+    meta.iconClass = "text-blue-400";
+    meta.detailClass = "text-blue-400";
+    meta.dotClass = "bg-blue-400";
+    meta.detailText = status === "starting" ? "Starting..." : "Restarting...";
+    return meta;
+  }
+
+  if (status === "warning") {
+    meta.iconName = "warning";
+    meta.iconClass = "text-amber-500";
+    meta.detailClass = "text-amber-500";
+    meta.dotClass = "bg-amber-500";
+    meta.detailText = "Warning";
+    return meta;
+  }
+
+  return meta;
+};
+
+const renderEnvironmentItem = (env, { selectedProject, sidebarMode }) => {
+  const key = projectKey(env);
+  const domain = domainLabel(env);
+  const meta = classifyEnvironmentStatus(env);
+  const isSelected = sidebarMode === "environments" && key === selectedProject;
+
+  const baseClass =
+    "w-full mb-1 flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all relative overflow-hidden text-left";
+  let stateClass = meta.active
+    ? "border-transparent hover:bg-[#173325]/40 hover:border-primary/20"
+    : "border-transparent hover:bg-[#16241b]/80 hover:border-[#2e573a] opacity-60";
+
+  if (isSelected) {
+    stateClass = "bg-[#173325] border-primary/35 shadow-[0_0_14px_rgba(13,242,89,0.12)] opacity-100";
+  }
+
+  const selectionIndicator = isSelected
+    ? `<div class="absolute inset-y-0 left-0 w-1 bg-primary"></div>`
+    : "";
+
+  const titleClass = meta.active ? "text-white" : "text-slate-400";
+
+  return `
+    <button data-action="select-environment" data-env="${escapeHTML(key)}" class="${baseClass} ${stateClass}" title="Select ${escapeHTML(domain)}">
+      ${selectionIndicator}
+      <div class="relative shrink-0 z-10">
+        <span data-action="toggle-env" data-env="${escapeHTML(key)}" class="material-symbols-outlined ${meta.iconClass} transition-colors hover:text-white text-[20px]" ${meta.iconStyle}>${meta.iconName}</span>
+        ${
+          meta.showPulseDot
+            ? `<span class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary border border-[#0c1810] animate-pulse"></span>`
+            : ""
+        }
+      </div>
+      <div class="min-w-0 pointer-events-none">
+        <div class="text-sm font-semibold truncate ${titleClass}">${escapeHTML(domain)}</div>
+        <div class="text-[11px] ${meta.detailClass} flex items-center gap-1">
+          <span class="w-1 h-1 rounded-full ${meta.dotClass}"></span>
+          <span>${escapeHTML(meta.detailText)}</span>
+        </div>
+      </div>
+    </button>
+  `;
+};
+
 export const renderEnvironmentSkeletons = (container) => {
   if (!container) return;
-  const header = `<div class="px-3 mb-2 text-xs font-semibold text-[#90cba4] uppercase tracking-wider">Environments</div>`;
+  const globalRow = `
+    <div class="w-full mt-3 mb-4 flex items-center gap-3 px-3 py-3 rounded-xl border border-[#2e573a] bg-[#13261a]">
+      <div class="h-8 w-8 rounded-lg skeleton"></div>
+      <div class="flex-1 space-y-2">
+        <div class="h-3 w-28 skeleton"></div>
+        <div class="h-2 w-20 skeleton"></div>
+      </div>
+    </div>
+  `;
+  const activeHeader = `<div class="px-1 mt-4 pb-4 text-[10px] font-semibold text-primary/80 uppercase tracking-[0.12em]">Active Environments</div>`;
   const items = Array(3)
     .fill(0)
     .map(
       () => `
     <div class="w-full mb-1 flex items-center gap-3 px-3 py-2.5 rounded-lg border border-transparent">
-      <div class="h-6 w-6 rounded-full skeleton"></div>
+      <div class="h-5 w-5 rounded-full skeleton"></div>
       <div class="flex-1 space-y-2">
         <div class="h-3 w-24 skeleton"></div>
         <div class="h-2 w-12 skeleton"></div>
@@ -145,77 +271,124 @@ export const renderEnvironmentSkeletons = (container) => {
   `,
     )
     .join("");
-  container.innerHTML = header + items;
+  const inactiveHeader = `<div class="px-1 mt-4 pb-4 text-[10px] font-semibold text-slate-500 uppercase tracking-[0.12em]">Inactive Environments</div>`;
+  container.innerHTML =
+    globalRow +
+    activeHeader +
+    items +
+    inactiveHeader +
+    items;
 };
 
 export const renderEnvironmentList = (
   container,
   environments = [],
   selectedProject = "",
+  options = {},
 ) => {
   if (!container) {
     return;
   }
+  const sidebarMode =
+    options.sidebarMode === "global-services"
+      ? "global-services"
+      : "environments";
+
+  const globalSelected = sidebarMode === "global-services";
+  const globalClass = globalSelected
+    ? "w-full mt-3 mb-4 text-left p-3 rounded-xl bg-[#173325] border-l-4 border-primary border border-primary/25 transition-all relative overflow-hidden shadow-[0_0_16px_rgba(13,242,89,0.1)]"
+    : "w-full mt-3 mb-4 text-left p-3 rounded-xl bg-[#0f1d15] border border-[#1f3d2a]/80 hover:bg-[#13261a] hover:border-primary/20 transition-all relative overflow-hidden group";
+  const globalIndicator = globalSelected
+    ? `<div class="absolute inset-y-0 left-0 w-1 bg-primary/80"></div>`
+    : "";
+  const globalIconWrapClass = globalSelected
+    ? "h-9 w-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary"
+    : "h-9 w-9 rounded-lg bg-[#13261a] border border-[#2e573a]/80 flex items-center justify-center text-[#90cba4]/70 group-hover:text-primary transition-colors";
+  const globalTitleClass = globalSelected
+    ? "text-white text-sm font-semibold truncate w-full text-left"
+    : "text-[#d5e8dd] text-sm font-semibold truncate w-full text-left group-hover:text-white transition-colors";
+  const globalSubtitleClass = globalSelected
+    ? "text-xs text-[#90cba4]/60"
+    : "text-xs text-[#90cba4]/40 group-hover:text-[#90cba4]/60 transition-colors";
+  const globalRow = `
+    <button data-action="switch-sidebar-mode" data-mode="global-services" class="${globalClass}" title="Open Global Services">
+      ${globalIndicator}
+      <div class="flex items-center gap-3">
+        <div class="${globalIconWrapClass}">
+          <span class="material-symbols-outlined text-[20px]">hub</span>
+        </div>
+        <div class="flex flex-col items-start min-w-0 pointer-events-none">
+          <span class="${globalTitleClass}">Global Services</span>
+          <span class="${globalSubtitleClass}">Shared system services</span>
+        </div>
+      </div>
+    </button>
+  `;
+
+  const active = [];
+  const inactive = [];
+  environments.forEach((env) => {
+    const status = classifyEnvironmentStatus(env);
+    if (status.active) {
+      active.push(env);
+    } else {
+      inactive.push(env);
+    }
+  });
+
+  const renderGroup = (
+    title,
+    items,
+    emptyText,
+    tone = "text-slate-400",
+    spacingClass = "mt-4 pb-4",
+  ) => `
+    <div class="px-1 ${spacingClass} text-[10px] font-semibold ${tone} uppercase tracking-[0.12em]">${title}</div>
+    ${
+      items.length
+        ? items
+            .map((env) =>
+              renderEnvironmentItem(env, { selectedProject, sidebarMode }),
+            )
+            .join("")
+        : `<div class="px-3 py-4 mb-1 text-xs text-slate-500">${emptyText}</div>`
+    }
+  `;
+
   if (!environments.length) {
-    container.innerHTML = `<div class="px-3 mb-2 text-xs font-semibold text-[#90cba4] uppercase tracking-wider">Environments</div><div class="px-3 text-slate-400 text-sm">No environments detected.</div>`;
+    container.innerHTML =
+      globalRow +
+      renderGroup(
+        "Active Environments",
+        [],
+        "No active environments.",
+        "text-primary/80",
+      ) +
+      renderGroup(
+        "Inactive Environments",
+        [],
+        "No environments detected.",
+        "text-slate-400",
+        "mt-4 pb-4",
+      );
     return;
   }
 
-  const header = `<div class="px-3 mb-2 text-xs font-semibold text-[#90cba4] uppercase tracking-wider">Environments</div>`;
-
   container.innerHTML =
-    header +
-    environments
-      .map((env) => {
-        const key = projectKey(env);
-        const domain = domainLabel(env);
-        const isSelected = key === selectedProject;
-        const status = String(
-          env.Status || env.status || "stopped",
-        ).toLowerCase();
-        const running = status === "running";
-        const warning = status === "warning";
-        const statusText = warning
-          ? "Warning"
-          : running
-            ? "Running"
-            : "Stopped";
-
-        const itemClass = isSelected
-          ? "w-full mb-1 flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#22492f] border border-primary/30 group transition-all relative overflow-hidden shadow-[0_0_15px_rgba(13,242,89,0.1)]"
-          : "w-full mb-1 flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#22492f]/50 border border-transparent transition-all relative overflow-hidden group";
-
-        const selectionIndicator = isSelected
-          ? `<div class="absolute inset-y-0 left-0 w-1 bg-primary"></div>`
-          : "";
-
-        let iconClass = "text-slate-400";
-        let iconName = "stop_circle";
-
-        if (running) {
-          iconClass = "text-primary fill-1";
-          iconName = "play_circle";
-        } else if (warning) {
-          iconClass = "text-amber-500";
-          iconName = "warning";
-        }
-
-        const iconStyle = running
-          ? "style=\"font-variation-settings: 'FILL' 1;\""
-          : "";
-
-        return `
-          <button data-action="select-environment" data-env="${escapeHTML(key)}" class="${itemClass}" title="Select ${escapeHTML(domain)}">
-            ${selectionIndicator}
-            <span data-action="toggle-env" data-env="${escapeHTML(key)}" class="material-symbols-outlined ${iconClass} hover:text-white transition-colors z-10" ${iconStyle}>${iconName}</span>
-            <div class="flex flex-col items-start min-w-0 pointer-events-none">
-              <span class="text-white text-sm font-medium truncate w-full text-left">${escapeHTML(domain)}</span>
-              <span class="text-xs ${running ? "text-primary" : warning ? "text-amber-500" : "text-slate-500"}">${statusText}</span>
-            </div>
-          </button>
-        `;
-      })
-      .join("");
+    globalRow +
+    renderGroup(
+      "Active Environments",
+      active,
+      "No active environments.",
+      "text-primary/80",
+    ) +
+    renderGroup(
+      "Inactive Environments",
+      inactive,
+      "No inactive environments.",
+      "text-slate-400",
+      "mt-4 pb-4",
+    );
 };
 
 const syncSingleSelector = (selector, environments, selectedProject) => {
@@ -266,22 +439,39 @@ export const renderProjectHero = (
 
   if (refs.projectStatusBadge) {
     const badge = refs.projectStatusBadge;
+    const dot = badge.querySelector('[data-role="project-status-dot"]');
     badge.className =
       "px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-wide neon-glow flex items-center gap-1.5";
+    if (dot instanceof HTMLElement) {
+      dot.className = "w-2 h-2 rounded-full";
+    }
     if (status === "running") {
       badge.classList.add("bg-primary/20", "border-primary/30", "text-primary");
+      if (dot instanceof HTMLElement) {
+        dot.classList.add(
+          "bg-primary",
+          "shadow-[0_0_12px_rgba(13,242,89,0.9)]",
+          "animate-pulse",
+        );
+      }
     } else if (status === "warning") {
       badge.classList.add(
         "bg-amber-500/20",
         "border-amber-500/30",
         "text-amber-500",
       );
+      if (dot instanceof HTMLElement) {
+        dot.classList.add("bg-amber-500");
+      }
     } else {
       badge.classList.add(
         "bg-slate-500/20",
         "border-slate-500/30",
         "text-slate-400",
       );
+      if (dot instanceof HTMLElement) {
+        dot.classList.add("bg-slate-500");
+      }
     }
   }
 

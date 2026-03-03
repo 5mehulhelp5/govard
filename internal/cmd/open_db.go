@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"govard/internal/desktop"
 	"govard/internal/engine"
 	engineremote "govard/internal/engine/remote"
 
@@ -30,16 +29,8 @@ func runOpenDBTarget(config engine.Config, requestedEnvironment string, pmaFlag 
 		return err
 	}
 
-	usePma := true // Local fallback default
-	if !isRemote {
-		if pref, err := desktop.ReadDesktopSettings(); err == nil {
-			if pref.DBClientPreference == "desktop" {
-				usePma = false
-			}
-		}
-	} else {
-		usePma = false // Remote is generally Desktop client SSH tunnel
-	}
+	// Keep CLI behavior stable: local `open db` defaults to PMA, remote defaults to client tunnel.
+	usePma := !isRemote
 
 	if pmaFlag {
 		usePma = true
