@@ -98,7 +98,6 @@ remotes:
 		"--exclude",
 		".env",
 		"var/log/**",
-		"--no-compress",
 		"--plan",
 	} {
 		if !containsToken(capturedArgs, expectedArg) {

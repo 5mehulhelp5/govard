@@ -64,6 +64,11 @@ test("renderOnboardingModal exposes streamlined onboarding UI contract", () => {
     "missing submit readiness hint",
   );
   assert.equal(
+    markup.includes('id="onboardingBootstrapOptions"'),
+    true,
+    "missing onboarding bootstrap options container",
+  );
+  assert.equal(
     markup.includes('id="detectionState"'),
     false,
     "legacy detection card should be removed",

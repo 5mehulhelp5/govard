@@ -146,6 +146,7 @@ export const createOnboardingController = ({
 }) => {
   let hasAttemptedSubmit = false;
   let pendingBootstrapContext = null;
+  let bootstrapOptionDefs = [];
 
   const readExistingDomains = () => {
     if (typeof getExistingDomains !== "function") {
@@ -366,6 +367,7 @@ export const createOnboardingController = ({
     container: document.getElementById("onboardingBootstrapPrompt"),
     remoteSelect: document.getElementById("onboardingBootstrapRemote"),
     summary: document.getElementById("onboardingBootstrapSummary"),
+    options: document.getElementById("onboardingBootstrapOptions"),
   });
 
   const closeBootstrapPrompt = () => {
@@ -376,10 +378,58 @@ export const createOnboardingController = ({
     if (promptRefs.remoteSelect) {
       promptRefs.remoteSelect.innerHTML = "";
     }
+    if (promptRefs.options) {
+      promptRefs.options.innerHTML = "";
+    }
+    bootstrapOptionDefs = [];
     pendingBootstrapContext = null;
   };
 
-  const openBootstrapPrompt = ({ projectPath, remotes }) => {
+  const renderBootstrapOptions = () => {
+    const promptRefs = getBootstrapPromptRefs();
+    if (!promptRefs.options) {
+      return;
+    }
+
+    promptRefs.options.innerHTML = "";
+    if (!pendingBootstrapContext || bootstrapOptionDefs.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "text-xs text-slate-500 dark:text-slate-400";
+      empty.textContent = "No additional bootstrap flags available.";
+      promptRefs.options.appendChild(empty);
+      return;
+    }
+
+    bootstrapOptionDefs.forEach((option) => {
+      const row = document.createElement("label");
+      row.className =
+        "flex items-center justify-between rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 px-3 py-2 cursor-pointer";
+
+      const left = document.createElement("div");
+      left.className = "pr-3";
+      const title = document.createElement("div");
+      title.className = "text-sm font-medium text-slate-800 dark:text-slate-100";
+      title.textContent = String(option.label || option.key || "Option");
+      const description = document.createElement("div");
+      description.className = "text-xs text-slate-500 dark:text-slate-400";
+      description.textContent = String(option.description || "");
+      left.appendChild(title);
+      left.appendChild(description);
+
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.className = "size-4 accent-primary";
+      input.setAttribute("data-action", "toggle-onboarding-bootstrap-option");
+      input.setAttribute("data-option", String(option.key || ""));
+      input.checked = Boolean(pendingBootstrapContext.config?.[option.key]);
+
+      row.appendChild(left);
+      row.appendChild(input);
+      promptRefs.options.appendChild(row);
+    });
+  };
+
+  const openBootstrapPrompt = async ({ projectPath, remotes }) => {
     const normalizedRemotes = normalizeRemotesPayload({
       remotes: remotes || [],
     }).remotes;
@@ -406,10 +456,29 @@ export const createOnboardingController = ({
       promptRefs.summary.textContent = `Found ${validRemotes.length} remote environment(s) for ${inferProjectNameFromPath(projectPath) || "this project"}.`;
     }
 
+    let optionsDef = [];
+    try {
+      const payload = await bridge.getSyncPresetOptions("full");
+      optionsDef = Array.isArray(payload?.options) ? payload.options : [];
+    } catch (_err) {
+      optionsDef = [];
+    }
+
+    const config = {};
+    optionsDef.forEach((option) => {
+      if (!option || !option.key) {
+        return;
+      }
+      config[option.key] = Boolean(option.defaultValue);
+    });
+
     pendingBootstrapContext = {
       projectPath: String(projectPath).trim(),
       remotes: validRemotes,
+      config,
     };
+    bootstrapOptionDefs = optionsDef;
+    renderBootstrapOptions();
 
     promptRefs.container.classList.remove("hidden");
     return true;
@@ -501,7 +570,7 @@ export const createOnboardingController = ({
 
       const availableRemotes = normalizeRemotesPayload(remotesPayload).remotes;
       if (availableRemotes.length > 0) {
-        const opened = openBootstrapPrompt({
+        const opened = await openBootstrapPrompt({
           projectPath: preview.projectPath,
           remotes: availableRemotes,
         });
@@ -524,6 +593,16 @@ export const createOnboardingController = ({
     closeBootstrapPrompt();
     toggleModal(false);
     onStatus("Onboarding complete. Bootstrap skipped.");
+  };
+
+  const toggleBootstrapOption = (optionKey, nextValue) => {
+    if (!pendingBootstrapContext || !optionKey) {
+      return;
+    }
+    pendingBootstrapContext.config = {
+      ...(pendingBootstrapContext.config || {}),
+      [optionKey]: Boolean(nextValue),
+    };
   };
 
   const confirmBootstrapPrompt = async () => {
@@ -553,6 +632,7 @@ export const createOnboardingController = ({
         projectPath: pendingBootstrapContext.projectPath,
         remoteName: selectedRemote,
         preset: "full",
+        config: { ...(pendingBootstrapContext.config || {}) },
       });
       closeBootstrapPrompt();
       toggleModal(false);
@@ -588,6 +668,7 @@ export const createOnboardingController = ({
     addProject,
     confirmBootstrapPrompt,
     skipBootstrapPrompt,
+    toggleBootstrapOption,
     toggleModal,
     handleInputChange: () => syncPreview(),
     resetForm,
@@ -809,6 +890,10 @@ export const renderOnboardingModal = (container) => {
                     id="onboardingBootstrapRemote"
                     class="w-full bg-white dark:bg-surface-dark border border-slate-300 dark:border-white/10 rounded-lg px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-shadow cursor-pointer"
                   ></select>
+                </div>
+                <div class="flex flex-col gap-2">
+                  <div class="text-sm font-medium text-slate-700 dark:text-slate-300">Bootstrap Flags</div>
+                  <div id="onboardingBootstrapOptions" class="space-y-2"></div>
                 </div>
               </div>
               <div class="px-6 py-4 border-t border-slate-200 dark:border-white/10 flex justify-end gap-3">

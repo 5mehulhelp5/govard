@@ -282,6 +282,7 @@ const showLoadingToast = (
 };
 
 const ansiSequencePattern = /\u001b\[[0-?]*[ -/]*[@-~]/g;
+const orphanAnsiStylePattern = /\[(?:\d{1,3}(?:;\d{1,3})*)m/g;
 
 const sanitizeSyncToastLine = (value) => {
   const raw = String(value ?? "");
@@ -290,8 +291,77 @@ const sanitizeSyncToastLine = (value) => {
   }
   return raw
     .replace(ansiSequencePattern, "")
+    .replace(orphanAnsiStylePattern, "")
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
     .trim();
+};
+
+const sanitizeSyncPlanText = (value) => {
+  const raw = String(value ?? "");
+  if (!raw) {
+    return "";
+  }
+
+  const lines = raw.split(/\r?\n/).map((line) => sanitizeSyncToastLine(line));
+  const compact = [];
+  let previousWasBlank = false;
+
+  lines.forEach((line) => {
+    const blank = line === "";
+    if (blank) {
+      if (!previousWasBlank) {
+        compact.push("");
+      }
+      previousWasBlank = true;
+      return;
+    }
+    compact.push(line);
+    previousWasBlank = false;
+  });
+
+  return compact.join("\n").trim();
+};
+
+const getSyncPresetName = (preset) => {
+  const normalized = String(preset || "")
+    .trim()
+    .toLowerCase();
+  if (normalized === "full" || normalized === "bootstrap") {
+    return "Pull Everything";
+  }
+  if (normalized === "db") {
+    return "Pull Database";
+  }
+  if (normalized === "media") {
+    return "Pull Media";
+  }
+  if (normalized === "files") {
+    return "Pull Files";
+  }
+  return normalized || "Sync";
+};
+
+const formatSyncPlanDetails = ({
+  remoteName,
+  preset,
+  config = {},
+  optionDefs = [],
+}) => {
+  const selectedOptions = (optionDefs || [])
+    .filter((option) => option && option.key && Boolean(config[option.key]))
+    .map((option) => String(option.label || option.key));
+
+  const selectedBlock = selectedOptions.length
+    ? selectedOptions.map((option) => `- ${option}`).join("\n")
+    : "- None";
+
+  return [
+    "Selected Pull Configuration",
+    `Preset: ${getSyncPresetName(preset)}`,
+    `Remote: ${String(remoteName || "").trim() || "-"}`,
+    "Enabled options:",
+    selectedBlock,
+  ].join("\n");
 };
 
 const getSyncPresetLabel = (preset, remoteName) => {
@@ -355,7 +425,8 @@ const runRemoteSyncWithProgressToast = async ({
   );
 
   if (result && result.startsWith("Remote sync background process failed:")) {
-    if (streamingToast) streamingToast.close(result, "error");
+    const normalized = sanitizeSyncToastLine(result) || "Sync failed";
+    if (streamingToast) streamingToast.close(normalized, "error");
     cleanup();
   }
 };
@@ -921,7 +992,7 @@ const onboardingController = createOnboardingController({
   onStatus: setStatus,
   onToast: showToast,
   onProjectAdded: refreshDashboard,
-  onRunBootstrapSync: async ({ projectPath, remoteName, preset }) => {
+  onRunBootstrapSync: async ({ projectPath, remoteName, preset, config }) => {
     const normalizedProjectPath = String(projectPath || "").trim();
     const normalizedRemote = String(remoteName || "").trim();
     const normalizedPreset = String(preset || "full").trim().toLowerCase();
@@ -929,12 +1000,15 @@ const onboardingController = createOnboardingController({
       return;
     }
 
-    const config = await resolveSyncConfigForPreset(normalizedPreset);
+    const resolvedConfig =
+      config && Object.keys(config).length > 0
+        ? { ...config }
+        : await resolveSyncConfigForPreset(normalizedPreset);
     await runRemoteSyncWithProgressToast({
       project: normalizedProjectPath,
       remoteName: normalizedRemote,
       preset: normalizedPreset,
-      config,
+      config: resolvedConfig,
     });
   },
   getExistingDomains: () =>
@@ -1045,6 +1119,13 @@ document.addEventListener("click", async (event) => {
   }
   if (action === "skip-onboarding-bootstrap") {
     onboardingController.skipBootstrapPrompt();
+    return;
+  }
+  if (action === "toggle-onboarding-bootstrap-option") {
+    onboardingController.toggleBootstrapOption(
+      String(targetElement.dataset.option || ""),
+      Boolean(targetElement.checked),
+    );
     return;
   }
   if (action === "refresh-remotes") {
@@ -1245,6 +1326,13 @@ document.addEventListener("click", async (event) => {
     if (!currentSyncRemote || !currentSyncPreset) return;
 
     const config = (getState().syncConfigs || {})[currentSyncPreset] || {};
+    const optionDefs = getState().currentSyncPresetDefs || [];
+    const planDetails = formatSyncPlanDetails({
+      remoteName: currentSyncRemote,
+      preset: currentSyncPreset,
+      config,
+      optionDefs,
+    });
 
     // Show step 2 with loading state
     if (refs.syncModalStep1) refs.syncModalStep1.classList.add("hidden");
@@ -1266,14 +1354,15 @@ document.addEventListener("click", async (event) => {
         config,
       );
       if (refs.syncPlanOutput) {
-        refs.syncPlanOutput.textContent = String(
-          plan || "No plan details returned.",
-        );
+        const normalizedPlan =
+          sanitizeSyncPlanText(plan) || "No plan details returned.";
+        refs.syncPlanOutput.textContent = `${planDetails}\n\n${normalizedPlan}`;
         refs.syncPlanOutput.classList.remove("hidden");
       }
     } catch (err) {
       if (refs.syncPlanOutput) {
-        refs.syncPlanOutput.textContent = `Failed to generate plan: ${err}`;
+        const failure = sanitizeSyncPlanText(err) || "Unknown error";
+        refs.syncPlanOutput.textContent = `${planDetails}\n\nFailed to generate plan: ${failure}`;
         refs.syncPlanOutput.classList.remove("hidden");
       }
     } finally {

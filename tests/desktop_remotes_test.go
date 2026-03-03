@@ -169,6 +169,22 @@ func TestDesktopPkgBuildRemoteSyncPlanArgsWithOptionsForTest(t *testing.T) {
 	}
 }
 
+func TestDesktopPkgBuildRemoteSyncPlanArgsWithOptionsForTest_DBIgnoresCompressToggle(t *testing.T) {
+	args, err := desktop.BuildRemoteSyncPlanArgsWithOptionsForTest(
+		"staging",
+		"db",
+		false,
+		false,
+		false,
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if containsString(args, "--no-compress") {
+		t.Fatalf("did not expect --no-compress for db sync args: %#v", args)
+	}
+}
+
 func containsString(items []string, expected string) bool {
 	for _, item := range items {
 		if item == expected {
@@ -183,11 +199,8 @@ func TestBuildPresetSyncOptionDefs_DB(t *testing.T) {
 	if opts.Command != "sync" {
 		t.Fatalf("expected command 'sync', got %s", opts.Command)
 	}
-	if len(opts.Options) != 2 {
-		t.Fatalf("expected 2 options, got %d", len(opts.Options))
-	}
-	if opts.Options[0].Key != "compress" || opts.Options[1].Key != "noStreamDb" {
-		t.Fatalf("unexpected options for db preset")
+	if len(opts.Options) != 0 {
+		t.Fatalf("expected no options for db preset, got %d", len(opts.Options))
 	}
 }
 
@@ -196,10 +209,10 @@ func TestBuildPresetSyncOptionDefs_Media(t *testing.T) {
 	if opts.Command != "sync" {
 		t.Fatalf("expected command 'sync', got %s", opts.Command)
 	}
-	if len(opts.Options) != 3 {
-		t.Fatalf("expected 3 options, got %d", len(opts.Options))
+	if len(opts.Options) != 2 {
+		t.Fatalf("expected 2 options, got %d", len(opts.Options))
 	}
-	if opts.Options[0].Key != "compress" || opts.Options[1].Key != "includeProduct" || opts.Options[2].Key != "delete" {
+	if opts.Options[0].Key != "compress" || opts.Options[1].Key != "delete" {
 		t.Fatalf("unexpected options for media preset")
 	}
 }

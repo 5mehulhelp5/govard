@@ -18,15 +18,31 @@ const normalizeCapabilities = (value) => {
     .filter((item) => item !== "");
 };
 
+const formatAuthMethodLabel = (authMethod) => {
+  const normalized = String(authMethod || "")
+    .trim()
+    .toLowerCase();
+  if (normalized === "ssh-agent") {
+    return "SSH Agent";
+  }
+  if (normalized === "keyfile") {
+    return "Key File";
+  }
+  if (normalized === "keychain") {
+    return "Keychain";
+  }
+  if (!normalized) {
+    return "Keychain";
+  }
+  return normalized;
+};
+
 const normalizeRemote = (remote = {}) => ({
   name: String(remote.name || remote.Name || "").trim(),
   host: String(remote.host || remote.Host || "").trim(),
   user: String(remote.user || remote.User || "").trim(),
   path: String(remote.path || remote.Path || "").trim(),
   port: asNumber(remote.port ?? remote.Port, 22),
-  environment: String(remote.environment || remote.Environment || "staging")
-    .trim()
-    .toLowerCase(),
   protected: Boolean(remote.protected ?? remote.Protected),
   authMethod: String(remote.authMethod || remote.AuthMethod || "keychain")
     .trim()
@@ -90,6 +106,48 @@ const renderWarnings = (container, warnings = []) => {
   });
 };
 
+const canUseSyncPreset = (remote, preset) => {
+  const capabilities = Array.isArray(remote?.capabilities)
+    ? remote.capabilities
+    : [];
+  if (capabilities.length === 0) {
+    return true;
+  }
+  if (preset === "db") {
+    return capabilities.includes("db");
+  }
+  if (preset === "media") {
+    return capabilities.includes("media");
+  }
+  return true;
+};
+
+const renderSyncPresetButton = ({
+  remoteName,
+  preset,
+  icon,
+  label,
+  iconHoverClass,
+  enabled,
+  disabledReason,
+}) => {
+  const buttonClasses = enabled
+    ? "flex-1 px-4 py-2.5 bg-[#22492f] hover:bg-[#2e573a] border border-[#366b47] rounded-lg text-sm text-white font-medium transition-all flex items-center justify-center gap-2 group/btn"
+    : "flex-1 px-4 py-2.5 bg-[#13231a] border border-[#2b3d31] rounded-lg text-sm text-slate-500 font-medium transition-all flex items-center justify-center gap-2 opacity-70 cursor-not-allowed";
+  const iconClasses = enabled
+    ? `material-symbols-outlined text-[18px] ${iconHoverClass} transition-colors`
+    : "material-symbols-outlined text-[18px] text-slate-500";
+  const title = enabled ? label : disabledReason;
+  const disabledAttr = enabled ? "" : ' disabled aria-disabled="true"';
+
+  return `
+                <button data-action="open-sync-modal" data-remote="${escapeHTML(remoteName)}" data-preset="${escapeHTML(preset)}" class="${buttonClasses}" title="${escapeHTML(title)}"${disabledAttr}>
+                    <span class="${iconClasses}">${icon}</span>
+                    ${escapeHTML(label)}
+                </button>
+  `;
+};
+
 export const renderRemotes = (container, remotes = []) => {
   if (!container) {
     return;
@@ -98,32 +156,36 @@ export const renderRemotes = (container, remotes = []) => {
   if (!remotes.length) {
     container.innerHTML = `
       <div class="p-8 text-center text-slate-500 border border-dashed border-[#22492f] rounded-xl">
-        No remotes configured for this environment.
+        No remotes configured for this project.
       </div>`;
     return;
   }
 
   const cardsHtml = remotes
     .map((remote) => {
-      const isProd =
-        remote.environment === "prod" || remote.environment === "production";
-      const themeColor = isProd ? "amber" : "blue";
-      const themeIcon = isProd ? "rocket_launch" : "science";
-      const borderColor = isProd ? "border-amber-500/20" : "border-[#22492f]";
-      const statusText = isProd ? "Protected" : "Connected";
-      const environmentLabel = String(remote.environment || "staging")
-        .trim()
-        .toUpperCase();
+      const isProtected = Boolean(remote.protected);
+      const themeColor = isProtected ? "amber" : "blue";
+      const themeIcon = isProtected ? "rocket_launch" : "science";
+      const borderColor = isProtected
+        ? "border-amber-500/20"
+        : "border-[#22492f]";
       const lastSyncText = String(remote.lastSync || "never")
         .trim()
         .toLowerCase();
       const lastSyncTone =
         lastSyncText === "never" ? "text-amber-300" : "text-slate-200";
+      const canPullDB = canUseSyncPreset(remote, "db");
+      const canPullMedia = canUseSyncPreset(remote, "media");
+      const dbDisabledReason =
+        "Database sync is disabled for this remote (capability: db).";
+      const mediaDisabledReason =
+        "Media sync is disabled for this remote (capability: media).";
+      const authMethodLabel = formatAuthMethodLabel(remote.authMethod);
 
       return `
       <div class="glass-card rounded-xl p-0 overflow-hidden group mb-6 border ${borderColor}">
         <div class="p-6 border-b border-[#22492f] bg-gradient-to-r from-[#1a3322] to-[#1a3322]/50 relative overflow-hidden">
-          ${isProd ? `<div class="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-amber-500/10 to-transparent pointer-events-none"></div>` : ""}
+          ${isProtected ? `<div class="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-amber-500/10 to-transparent pointer-events-none"></div>` : ""}
           <div class="relative z-10 flex flex-col gap-4">
             <div class="flex items-start justify-between gap-4">
               <div class="min-w-0 flex items-center gap-4">
@@ -135,10 +197,9 @@ export const renderRemotes = (container, remotes = []) => {
                     <h3 class="text-white text-[1.4rem] leading-none font-semibold">
                       ${escapeHTML(remote.name)}
                     </h3>
-                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-${themeColor}-500/20 text-${themeColor}-400 border border-${themeColor}-500/30 uppercase tracking-wide">${statusText}</span>
-                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-[#102316]/80 border border-[#366b47] text-[#90cba4] uppercase tracking-wide">${escapeHTML(environmentLabel)}</span>
+                    ${isProtected ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-${themeColor}-500/20 text-${themeColor}-400 border border-${themeColor}-500/30 uppercase tracking-wide">Protected</span>` : ""}
                   </div>
-                  <p class="mt-1 text-[11px] uppercase tracking-[0.08em] text-[#90cba4]/70">Remote endpoint</p>
+                  <p class="mt-1 text-[11px] uppercase tracking-[0.08em] text-[#90cba4]/70">Auth: ${escapeHTML(authMethodLabel)}</p>
                 </div>
               </div>
               <div class="flex items-center gap-1.5 p-1 rounded-lg border border-[#2e573a] bg-[#102316]/60 backdrop-blur-sm shadow-[0_0_15px_rgba(13,242,89,0.1)]">
@@ -167,18 +228,33 @@ export const renderRemotes = (container, remotes = []) => {
         <div class="p-6">
           <div class="flex flex-col gap-3">
             <div class="flex flex-wrap gap-3">
-                <button data-action="open-sync-modal" data-remote="${escapeHTML(remote.name)}" data-preset="full" class="flex-1 px-4 py-2.5 bg-[#22492f] hover:bg-[#2e573a] border border-[#366b47] rounded-lg text-sm text-white font-medium transition-all flex items-center justify-center gap-2 group/btn">
-                    <span class="material-symbols-outlined text-[18px] group-hover/btn:text-purple-400 transition-colors">all_inclusive</span>
-                    Pull Everything
-                </button>
-                <button data-action="open-sync-modal" data-remote="${escapeHTML(remote.name)}" data-preset="db" class="flex-1 px-4 py-2.5 bg-[#22492f] hover:bg-[#2e573a] border border-[#366b47] rounded-lg text-sm text-white font-medium transition-all flex items-center justify-center gap-2 group/btn">
-                    <span class="material-symbols-outlined text-[18px] group-hover/btn:text-primary transition-colors">database</span>
-                    Pull Database
-                </button>
-                <button data-action="open-sync-modal" data-remote="${escapeHTML(remote.name)}" data-preset="media" class="flex-1 px-4 py-2.5 bg-[#22492f] hover:bg-[#2e573a] border border-[#366b47] rounded-lg text-sm text-white font-medium transition-all flex items-center justify-center gap-2 group/btn">
-                    <span class="material-symbols-outlined text-[18px] group-hover/btn:text-blue-400 transition-colors">perm_media</span>
-                    Pull Media
-                </button>
+                ${renderSyncPresetButton({
+                  remoteName: remote.name,
+                  preset: "full",
+                  icon: "all_inclusive",
+                  label: "Pull Everything",
+                  iconHoverClass: "group-hover/btn:text-purple-400",
+                  enabled: true,
+                  disabledReason: "",
+                })}
+                ${renderSyncPresetButton({
+                  remoteName: remote.name,
+                  preset: "db",
+                  icon: "database",
+                  label: "Pull Database",
+                  iconHoverClass: "group-hover/btn:text-primary",
+                  enabled: canPullDB,
+                  disabledReason: dbDisabledReason,
+                })}
+                ${renderSyncPresetButton({
+                  remoteName: remote.name,
+                  preset: "media",
+                  icon: "perm_media",
+                  label: "Pull Media",
+                  iconHoverClass: "group-hover/btn:text-blue-400",
+                  enabled: canPullMedia,
+                  disabledReason: mediaDisabledReason,
+                })}
             </div>
             <div class="flex flex-wrap gap-3">
                 <button data-action="open-remote-shell" data-remote="${escapeHTML(remote.name)}" class="flex-1 px-4 py-2.5 bg-[#102316] hover:bg-[#1a3322] border border-[#2e573a] rounded-lg text-sm text-slate-300 hover:text-white font-medium transition-all flex items-center justify-center gap-2 group/btn">
@@ -196,7 +272,7 @@ export const renderRemotes = (container, remotes = []) => {
             </div>
             <!-- Inline sync config removed in favor of modal -->
           </div>
-          ${remote.protected ? `<div class="mt-4 flex items-center gap-2 p-2 bg-amber-900/10 border border-amber-900/30 rounded text-amber-500/80 text-xs"><span class="material-symbols-outlined text-[16px]">info</span>Syncing from Production can overwrite local data. Consider creating a snapshot before syncing.</div>` : ""}
+          ${remote.protected ? `<div class="mt-4 flex items-center gap-2 p-2 bg-amber-900/10 border border-amber-900/30 rounded text-amber-500/80 text-xs"><span class="material-symbols-outlined text-[16px]">info</span>Syncing from a protected remote can overwrite local data. Consider creating a snapshot before syncing.</div>` : ""}
         </div>
       </div>
     `;
@@ -301,7 +377,7 @@ export const createRemotesController = ({
     if (!project) {
       renderRemotes(refs.remotesList, []);
       renderWarnings(refs.remotesWarnings, [
-        "Select an environment to load remotes.",
+        "Select a project to load remotes.",
       ]);
       return null;
     }

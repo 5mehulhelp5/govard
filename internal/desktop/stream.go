@@ -14,6 +14,7 @@ import (
 )
 
 var ansiEscapePattern = regexp.MustCompile(`\x1b\[[0-?]*[ -/]*[@-~]`)
+var orphanAnsiStylePattern = regexp.MustCompile(`\[(?:\d{1,3}(?:;\d{1,3})*)m`)
 
 // Internal log streaming logic
 
@@ -132,6 +133,7 @@ func sanitizeStreamLine(raw []byte) string {
 	valid := bytes.ToValidUTF8(raw, []byte{})
 	line := string(valid)
 	line = ansiEscapePattern.ReplaceAllString(line, "")
+	line = orphanAnsiStylePattern.ReplaceAllString(line, "")
 
 	var builder strings.Builder
 	builder.Grow(len(line))

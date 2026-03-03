@@ -38,7 +38,7 @@ Environment behavior (`-e/--environment`):
 
 - Omitted: local behavior for all targets.
 - `-e local`: force local behavior.
-- `-e <remote>`: use remote by name or by `remotes.<name>.environment` alias.
+- `-e <remote>`: use remote by configured name. Short aliases like `dev` / `staging` / `prod` are matched against normalized remote names.
 
 For `db`:
 

@@ -721,16 +721,14 @@ func buildRemoteSyncArgsWithOptions(
 	}
 
 	// Default to true for compress unless explicitly set to false
-	// or wait, it's safer to just check if it's set to true or false.
-	// We'll mimic the previous behavior where `options.Compress` defaults to true.
 	compress, hasCompress := options["compress"]
-	// compression is default in rsync, only append no-compress if false
-	if hasCompress && !compress {
+	// Compression toggle only applies to rsync scopes (files/media/full).
+	if hasCompress && !compress && (normalizedPreset == "files" || normalizedPreset == "media" || normalizedPreset == "full") {
 		args = append(args, "--no-compress")
 	}
 
-	// we don't have a no-stream-db flag on `sync` command yet! The `sync` command uses db internally.
-	if options["delete"] {
+	// Delete toggle only applies to rsync scopes (files/media/full).
+	if options["delete"] && (normalizedPreset == "files" || normalizedPreset == "media" || normalizedPreset == "full") {
 		args = append(args, "--delete")
 	}
 
@@ -761,10 +759,7 @@ func buildPresetSyncOptionDefs(preset string) presetSyncOptions {
 		return presetSyncOptions{
 			Preset:  "db",
 			Command: "sync",
-			Options: []presetOptionDef{
-				{Key: "compress", Label: "Use Compression", Description: "Compress data during transfer", DefaultValue: true},
-				{Key: "noStreamDb", Label: "Disable Stream DB", Description: "Do not stream database via pipe, use intermediate files instead", DefaultValue: false},
-			},
+			Options: []presetOptionDef{},
 		}
 	case "media":
 		return presetSyncOptions{
@@ -772,7 +767,6 @@ func buildPresetSyncOptionDefs(preset string) presetSyncOptions {
 			Command: "sync",
 			Options: []presetOptionDef{
 				{Key: "compress", Label: "Use Compression", Description: "Compress data during transfer", DefaultValue: true},
-				{Key: "includeProduct", Label: "Include Product Images", Description: "Include product images in media sync", DefaultValue: false},
 				{Key: "delete", Label: "Delete Missing Files", Description: "Delete files on destination that are missing on source", DefaultValue: false},
 			},
 		}

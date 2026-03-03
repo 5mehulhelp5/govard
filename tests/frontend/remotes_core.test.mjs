@@ -8,6 +8,14 @@ import {
   renderRemotes,
 } from "../../desktop/frontend/modules/remotes.js";
 
+const getPresetButtonTag = (html, preset) => {
+  const match = html.match(
+    new RegExp(`<button[^>]*data-preset="${preset}"[^>]*>`, "i"),
+  );
+  assert.ok(match, `missing ${preset} preset button`);
+  return match[0];
+};
+
 test("normalizeRemotePreset canonicalizes aliases", () => {
   assert.equal(normalizeRemotePreset("file"), "files");
   assert.equal(normalizeRemotePreset("database"), "db");
@@ -77,5 +85,102 @@ test("remote card renders open-url button to the left of test connection", () =>
     openIndex < testIndex,
     true,
     "open-remote-url button should be rendered to the left of remote-test",
+  );
+  assert.equal(
+    container.innerHTML.includes("CONNECTED"),
+    false,
+    "connected badge should no longer be rendered",
+  );
+});
+
+test("remote card shows auth method summary", () => {
+  const container = { innerHTML: "" };
+  renderRemotes(container, [
+    {
+      name: "staging",
+      host: "staging.example.com",
+      authMethod: "ssh-agent",
+      protected: false,
+    },
+  ]);
+
+  assert.equal(
+    container.innerHTML.includes("Auth: SSH Agent"),
+    true,
+    "expected auth summary to show normalized auth method",
+  );
+});
+
+test("pull buttons are disabled when remote capability is missing", () => {
+  const container = { innerHTML: "" };
+  renderRemotes(container, [
+    {
+      name: "limited",
+      host: "limited.example.com",
+      environment: "staging",
+      capabilities: ["files"],
+    },
+  ]);
+
+  const dbButton = getPresetButtonTag(container.innerHTML, "db");
+  const mediaButton = getPresetButtonTag(container.innerHTML, "media");
+
+  assert.equal(
+    dbButton.includes("disabled"),
+    true,
+    "db button should be disabled when db capability is missing",
+  );
+  assert.equal(
+    mediaButton.includes("disabled"),
+    true,
+    "media button should be disabled when media capability is missing",
+  );
+});
+
+test("pull buttons stay enabled when capability list is not declared", () => {
+  const container = { innerHTML: "" };
+  renderRemotes(container, [
+    {
+      name: "legacy",
+      host: "legacy.example.com",
+      environment: "staging",
+    },
+  ]);
+
+  const dbButton = getPresetButtonTag(container.innerHTML, "db");
+  const mediaButton = getPresetButtonTag(container.innerHTML, "media");
+
+  assert.equal(
+    dbButton.includes("disabled"),
+    false,
+    "db button should remain enabled when capabilities are absent",
+  );
+  assert.equal(
+    mediaButton.includes("disabled"),
+    false,
+    "media button should remain enabled when capabilities are absent",
+  );
+});
+
+test("protected warning copy does not hardcode production wording", () => {
+  const container = { innerHTML: "" };
+  renderRemotes(container, [
+    {
+      name: "staging-protected",
+      host: "staging.example.com",
+      environment: "staging",
+      protected: true,
+    },
+  ]);
+
+  assert.equal(
+    container.innerHTML.includes("protected remote can overwrite local data"),
+    true,
+    "expected protected warning copy",
+  );
+  assert.equal(
+    container.innerHTML.includes("from Production can overwrite"),
+    false,
+    "warning copy should not hardcode production wording",
   );
 });
