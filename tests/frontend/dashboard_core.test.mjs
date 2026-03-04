@@ -6,6 +6,7 @@ import {
   localEnvironmentURL,
   normalizeDashboardPayload,
   renderProjectHero,
+  serviceTargets,
 } from "../../desktop/frontend/modules/dashboard.js";
 
 test("normalizeDashboardPayload maps core values", () => {
@@ -33,6 +34,28 @@ test("normalizeDashboardPayload uses safe defaults", () => {
   assert.equal(value.queued, 0);
   assert.deepEqual(value.environments, []);
   assert.deepEqual(value.warnings, []);
+});
+
+test("serviceTargets prefers env services over stale serviceTargets payload", () => {
+  const value = serviceTargets({
+    ServiceTargets: ["web", "php", "db", "redis", "rabbitmq"],
+    Services: [
+      { Name: "Nginx", Target: "web" },
+      { Name: "PHP", Target: "php" },
+      { Name: "MariaDB", Target: "db" },
+      { Name: "Redis", Target: "redis" },
+    ],
+  });
+
+  assert.deepEqual(value, ["web", "php", "db", "redis"]);
+});
+
+test("serviceTargets infers common targets when target field is missing", () => {
+  const value = serviceTargets({
+    Services: [{ Name: "Nginx" }, { Name: "PHP" }, { Name: "MariaDB" }],
+  });
+
+  assert.deepEqual(value, ["web", "php", "db"]);
 });
 
 test("core layout excludes removed heavyweight sections", async () => {
@@ -159,6 +182,8 @@ test("global services right panel includes per-service and log actions", async (
     "globalServiceHealthBar",
     "globalServiceStatusStrip",
     "globalActionFeedback",
+    "globalLogSearch",
+    "globalLogSeverity",
   ]) {
     assert.equal(
       html.includes(`id="${id}"`),
@@ -174,6 +199,8 @@ test("global services right panel includes per-service and log actions", async (
     "toggle-global-live",
     "refresh-global-logs",
     "clear-global-logs",
+    "download-global-logs",
+    "filter-global-severity",
   ]) {
     assert.equal(
       html.includes(`data-action="${action}"`),
@@ -268,6 +295,11 @@ test("logs section exposes filtering and streaming controls", async () => {
     combined.includes('data-action="refresh-logs"'),
     true,
     "missing refresh logs action",
+  );
+  assert.equal(
+    combined.includes('data-action="download-logs"'),
+    true,
+    "missing download logs action",
   );
   assert.equal(
     combined.includes('data-action="toggle-live"'),

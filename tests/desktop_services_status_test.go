@@ -86,3 +86,30 @@ func TestDesktopPkgBuildFallbackServicesForTestPreservesObservedState(t *testing
 		t.Fatalf("expected redis running, got %q", statusByTarget["redis"])
 	}
 }
+
+func TestDesktopPkgBuildServiceTargetsFromServicesForTestFiltersStoppedExtras(t *testing.T) {
+	services := []desktop.Service{
+		{Name: "Nginx", Target: "web"},
+		{Name: "MariaDB", Target: "db"},
+		{Name: "PHP", Target: "php"},
+		{Name: "Redis", Target: "redis"},
+		{Name: "Elasticsearch", Target: "elasticsearch"},
+	}
+
+	serviceState := map[string]string{
+		"rabbitmq":  "exited",
+		"php-debug": "running",
+	}
+
+	targets := desktop.BuildServiceTargetsFromServicesForTest(services, serviceState)
+	expected := []string{"web", "php", "db", "redis", "elasticsearch", "php-debug"}
+	if len(targets) != len(expected) {
+		t.Fatalf("expected %d service targets, got %d (%v)", len(expected), len(targets), targets)
+	}
+
+	for idx := range expected {
+		if targets[idx] != expected[idx] {
+			t.Fatalf("expected target[%d] = %q, got %q", idx, expected[idx], targets[idx])
+		}
+	}
+}

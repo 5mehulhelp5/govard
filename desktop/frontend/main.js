@@ -15,6 +15,7 @@ import {
 import { createGlobalServicesController } from "./modules/global-services.js";
 import {
   createLogsController,
+  normalizeLogSeverity,
   resolveLogTarget,
   syncServiceSelector,
   syncSeveritySelector,
@@ -77,12 +78,16 @@ const getLiveRefs = () => ({
   globalActionFeedbackText: byId("globalActionFeedbackText"),
   globalToggleLive: byId("globalToggleLive"),
   globalLogOutput: byId("globalLogOutput"),
+  globalLogViewport: byId("globalLogViewport"),
   globalLogServiceName: byId("globalLogServiceName"),
+  globalLogSeverity: byId("globalLogSeverity"),
+  globalLogSearch: byId("globalLogSearch"),
   envSelector: byId("envSelector"),
   logSelector: byId("logSelector"),
   logServiceSelector: byId("logServiceSelector"),
   logSeverity: byId("logSeverity"),
   logSearch: byId("logSearch"),
+  logOutputViewport: byId("logOutputViewport"),
   logOutput: byId("logOutput"),
   toggleLive: byId("toggleLive"),
   warningList: byId("warningList"),
@@ -1235,6 +1240,16 @@ document.addEventListener("click", async (event) => {
     await globalServicesController.clearLogs();
     return;
   }
+  if (action === "download-global-logs") {
+    await globalServicesController.downloadLogs();
+    return;
+  }
+  if (action === "filter-global-severity") {
+    const sev = normalizeLogSeverity(targetElement.dataset.severity);
+    setState({ globalLogSeverity: sev });
+    globalServicesController.applyFilters();
+    return;
+  }
 
   if (action === "select-environment") {
     const project = targetElement.dataset.env || "";
@@ -1602,7 +1617,7 @@ document.addEventListener("click", async (event) => {
     return;
   }
   if (action === "download-logs") {
-    logsController.downloadLogs();
+    await logsController.downloadLogs();
     return;
   }
   if (action === "open-shell") {
@@ -1751,6 +1766,13 @@ const bindDynamicControlListeners = () => {
     });
   }
 
+  if (refs.globalLogSearch) {
+    refs.globalLogSearch.addEventListener("input", () => {
+      setState({ globalLogQuery: refs.globalLogSearch.value || "" });
+      globalServicesController.applyFilters();
+    });
+  }
+
   if (refs.shellUser) {
     refs.shellUser.addEventListener("change", () => {
       shellController.saveShellUser();
@@ -1841,6 +1863,8 @@ const bootstrap = async () => {
       selectedService: "all",
       selectedSeverity: "all",
       logQuery: "",
+      globalLogSeverity: "all",
+      globalLogQuery: "",
     });
 
     // Run core loads in parallel

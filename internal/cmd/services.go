@@ -45,21 +45,25 @@ var opensearchCmd = &cobra.Command{
 func runServiceCLI(serviceName string, binary string, args []string) error {
 	config := loadConfig()
 	containerName := fmt.Sprintf("%s-%s-1", config.ProjectName, serviceName)
+	serviceLabel := cases.Title(language.Und).String(serviceName)
 
-	check := exec.Command("docker", "inspect", "-f", "{{.State.Running}}", containerName)
-	if output, err := check.Output(); err != nil || strings.TrimSpace(string(output)) != "true" {
-		return fmt.Errorf("%s container %s is not running", cases.Title(language.Und).String(serviceName), containerName)
+	if err := ensureContainerReadyForExec(containerName, serviceLabel); err != nil {
+		return err
 	}
 
-	pterm.Info.Printf("Connecting to %s on %s...\n", cases.Title(language.Und).String(serviceName), containerName)
+	pterm.Info.Printf("Connecting to %s on %s...\n", serviceLabel, containerName)
 
-	dockerArgs := []string{"exec", "-it", containerName, binary}
+	dockerArgs := dockerExecBaseArgs()
+	dockerArgs = append(dockerArgs, containerName, binary)
 	dockerArgs = append(dockerArgs, args...)
 
 	c := exec.Command("docker", dockerArgs...)
 	c.Stdin, c.Stdout, c.Stderr = os.Stdin, os.Stdout, os.Stderr
 	if err := c.Run(); err != nil {
-		return fmt.Errorf("%s CLI failed: %w", cases.Title(language.Und).String(serviceName), err)
+		if stateErr := ensureContainerReadyForExec(containerName, serviceLabel); stateErr != nil {
+			return fmt.Errorf("%s CLI failed: %w", serviceLabel, stateErr)
+		}
+		return fmt.Errorf("%s CLI failed: %w", serviceLabel, err)
 	}
 	return nil
 }
@@ -67,10 +71,10 @@ func runServiceCLI(serviceName string, binary string, args []string) error {
 func runSearchQuery(serviceName string, port int, args []string) error {
 	config := loadConfig()
 	containerName := fmt.Sprintf("%s-%s-1", config.ProjectName, serviceName)
+	serviceLabel := cases.Title(language.Und).String(serviceName)
 
-	check := exec.Command("docker", "inspect", "-f", "{{.State.Running}}", containerName)
-	if output, err := check.Output(); err != nil || strings.TrimSpace(string(output)) != "true" {
-		return fmt.Errorf("%s container %s is not running", cases.Title(language.Und).String(serviceName), containerName)
+	if err := ensureContainerReadyForExec(containerName, serviceLabel); err != nil {
+		return err
 	}
 
 	path := "/"
@@ -82,12 +86,16 @@ func runSearchQuery(serviceName string, port int, args []string) error {
 	}
 
 	url := fmt.Sprintf("http://localhost:%d%s", port, path)
-	pterm.Info.Printf("Querying %s: %s\n", cases.Title(language.Und).String(serviceName), url)
+	pterm.Info.Printf("Querying %s: %s\n", serviceLabel, url)
 
-	c := exec.Command("docker", "exec", "-i", containerName, "curl", "-s", "-X", "GET", url)
+	dockerArgs := []string{"exec", "-i", containerName, "curl", "-s", "-X", "GET", url}
+	c := exec.Command("docker", dockerArgs...)
 	c.Stdout, c.Stderr = os.Stdout, os.Stderr
 	if err := c.Run(); err != nil {
-		return fmt.Errorf("%s query failed: %w", cases.Title(language.Und).String(serviceName), err)
+		if stateErr := ensureContainerReadyForExec(containerName, serviceLabel); stateErr != nil {
+			return fmt.Errorf("%s query failed: %w", serviceLabel, stateErr)
+		}
+		return fmt.Errorf("%s query failed: %w", serviceLabel, err)
 	}
 	fmt.Println() // Add newline at the end
 	return nil

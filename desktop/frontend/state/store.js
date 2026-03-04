@@ -7,6 +7,8 @@ const state = {
   logQuery: "",
   globalServices: [],
   selectedGlobalService: "caddy",
+  globalLogSeverity: "all",
+  globalLogQuery: "",
   liveLogsEnabled: false,
   globalLiveLogsEnabled: false,
   terminalModalOpen: false,

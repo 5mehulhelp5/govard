@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"govard/internal/engine"
 	"govard/internal/proxy"
@@ -159,6 +160,10 @@ func runSvcUp(cmd *cobra.Command, args []string) error {
 		if retryErr := runGlobalProxyCompose(cmd, upArgs...); retryErr != nil {
 			return fmt.Errorf("start global services after local fallback retry: %w", retryErr)
 		}
+	}
+
+	if !waitForGlobalProxyReady(cmd.Context(), 8*time.Second) {
+		return fmt.Errorf("global proxy caddy is not ready (check conflicts on ports 80/443)")
 	}
 
 	if err := registerGlobalServiceRoutes(); err != nil {
@@ -342,6 +347,23 @@ func runGlobalProxyCompose(cmd *cobra.Command, args ...string) error {
 	command.Stdout = cmd.OutOrStdout()
 	command.Stderr = cmd.ErrOrStderr()
 	return command.Run()
+}
+
+func waitForGlobalProxyReady(ctx context.Context, timeout time.Duration) bool {
+	deadline := time.Now().Add(timeout)
+	for {
+		if engine.IsContainerRunning(ctx, "govard-proxy-caddy") || engine.IsContainerRunning(ctx, "proxy-caddy-1") {
+			return true
+		}
+		if time.Now().After(deadline) {
+			return false
+		}
+		select {
+		case <-ctx.Done():
+			return false
+		case <-time.After(250 * time.Millisecond):
+		}
+	}
 }
 
 func registerGlobalServiceRoutes() error {

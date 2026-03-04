@@ -13,15 +13,14 @@ var noTty bool
 var shellCmd = &cobra.Command{
 	Use:   "shell",
 	Short: "Enter the application container",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		config := loadConfig()
 		containerName := fmt.Sprintf("%s-php-1", config.ProjectName)
-
 		user := "www-data"
 
-		execArgs := []string{"exec"}
+		execArgs := []string{"exec", "-i"}
 		if !noTty {
-			execArgs = append(execArgs, "-it")
+			execArgs = []string{"exec", "-it"}
 		}
 		execArgs = append(execArgs, "-u", user, containerName, "bash")
 
@@ -33,8 +32,14 @@ var shellCmd = &cobra.Command{
 			execArgs[len(execArgs)-1] = "sh"
 			c = exec.Command("docker", execArgs...)
 			c.Stdin, c.Stdout, c.Stderr = os.Stdin, os.Stdout, os.Stderr
-			_ = c.Run()
+			if fallbackErr := c.Run(); fallbackErr != nil {
+				if stateErr := ensureContainerReadyForExec(containerName, "PHP"); stateErr != nil {
+					return stateErr
+				}
+				return nil
+			}
 		}
+		return nil
 	},
 }
 

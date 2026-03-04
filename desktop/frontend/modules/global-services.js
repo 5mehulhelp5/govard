@@ -1,3 +1,10 @@
+import {
+  buildLogFilename,
+  downloadTextAsFile,
+  filterLogsText,
+  normalizeLogSeverity,
+  syncSeveritySelector,
+} from "./logs.js";
 import { escapeHTML, setText } from "../utils/dom.js";
 
 const globalServiceIcons = {
@@ -15,6 +22,7 @@ const ACTIVE_STATUSES = new Set([
   "healthy",
   "up",
 ]);
+const PORT_CONFLICT_WARNING_PREFIX = "port conflict ";
 
 const BULK_START_ENABLED_CLASS =
   "h-10 min-w-[118px] px-3 bg-primary text-background-dark rounded-xl text-xs font-bold uppercase tracking-[0.08em] hover:bg-primary/90 transition-all active:scale-95 inline-flex items-center justify-center gap-1.5 shadow-[0_8px_22px_rgba(13,242,89,0.18)] ring-1 ring-primary/30 whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100";
@@ -41,9 +49,11 @@ const isStopLikeState = (service = {}) => {
   return (
     status === "stopped" ||
     status === "exited" ||
+    status === "created" ||
     status === "dead" ||
     state.includes("stopped") ||
     state.includes("exited") ||
+    state.includes("created") ||
     state.includes("dead")
   );
 };
@@ -52,6 +62,167 @@ const hasRoutingImpact = (service = {}) =>
   (service.id === "caddy" || service.id === "dnsmasq") &&
   !isServiceActive(service) &&
   isStopLikeState(service);
+
+const hasRoutingWarningInSnapshot = (snapshot = {}) => {
+  const services = Array.isArray(snapshot.services) ? snapshot.services : [];
+  const warnings = Array.isArray(snapshot.warnings) ? snapshot.warnings : [];
+  return (
+    services.some((service) => hasRoutingImpact(service)) ||
+    warnings.some((warning) =>
+      String(warning || "")
+        .trim()
+        .toLowerCase()
+        .startsWith(PORT_CONFLICT_WARNING_PREFIX),
+    )
+  );
+};
+
+const delay = (ms) =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
+const summarizeRoutingConflicts = (warnings = []) => {
+  const conflicts = Array.isArray(warnings)
+    ? warnings
+        .map((warning) => String(warning || "").trim())
+        .filter((warning) =>
+          warning.toLowerCase().startsWith(PORT_CONFLICT_WARNING_PREFIX),
+        )
+        .map((warning) => warning.slice(PORT_CONFLICT_WARNING_PREFIX.length))
+    : [];
+
+  if (conflicts.length === 0) {
+    return {
+      hasConflicts: false,
+      missingLine: "",
+      occupiedLine: "",
+      notesLine: "",
+    };
+  }
+
+  const missingPortsByService = new Map();
+  const ownerPortsByName = new Map();
+  const otherEntries = [];
+
+  for (const conflict of conflicts) {
+    const missingMatch = conflict.match(
+      /^(\d+\/[a-z]+):\s+(.+?) is running but .+ is not published on host$/i,
+    );
+    if (missingMatch) {
+      const port = String(missingMatch[1] || "").trim().toLowerCase();
+      const serviceName = String(missingMatch[2] || "").trim();
+      if (!missingPortsByService.has(serviceName)) {
+        missingPortsByService.set(serviceName, new Set());
+      }
+      missingPortsByService.get(serviceName).add(port);
+      continue;
+    }
+
+    const dockerOwnerMatch = conflict.match(
+      /^(\d+\/[a-z]+):\s+docker container\s+(.+)$/i,
+    );
+    if (dockerOwnerMatch) {
+      const port = String(dockerOwnerMatch[1] || "").trim().toLowerCase();
+      const ownerRaw = String(dockerOwnerMatch[2] || "").trim();
+      const ownerName = ownerRaw.replace(/\s+\([^)]*\)\s*$/, "").trim();
+      if (!ownerPortsByName.has(ownerName)) {
+        ownerPortsByName.set(ownerName, new Set());
+      }
+      ownerPortsByName.get(ownerName).add(port);
+      continue;
+    }
+
+    const hostOwnerMatch = conflict.match(
+      /^(\d+\/[a-z]+):\s+host process\s+(.+)$/i,
+    );
+    if (hostOwnerMatch) {
+      const port = String(hostOwnerMatch[1] || "").trim().toLowerCase();
+      const ownerRaw = String(hostOwnerMatch[2] || "").trim();
+      const ownerName = ownerRaw.replace(/\s+\([^)]*\)\s*$/, "").trim();
+      if (!ownerPortsByName.has(ownerName)) {
+        ownerPortsByName.set(ownerName, new Set());
+      }
+      ownerPortsByName.get(ownerName).add(port);
+      continue;
+    }
+
+    otherEntries.push(conflict);
+  }
+
+  let missingLine = "";
+  let occupiedLine = "";
+  let notesLine = "";
+
+  if (missingPortsByService.size > 0) {
+    const missingSummaryList = Array.from(missingPortsByService.entries())
+      .map(([serviceName, ports]) => {
+        const portList = Array.from(ports).sort().join(", ");
+        return `${serviceName} (${portList})`;
+      });
+    const cappedMissing = missingSummaryList.slice(0, 2);
+    const remainingMissing = missingSummaryList.length - cappedMissing.length;
+    missingLine = `Missing bindings: ${cappedMissing.join("; ")}${remainingMissing > 0 ? `; +${remainingMissing} more` : ""}.`;
+  }
+
+  if (ownerPortsByName.size > 0) {
+    const ownerSummaryList = Array.from(ownerPortsByName.entries()).map(
+      ([ownerName, ports]) =>
+        `${ownerName} (${Array.from(ports).sort().join(", ")})`,
+    );
+    const cappedOwners = ownerSummaryList.slice(0, 2);
+    const remaining = ownerSummaryList.length - cappedOwners.length;
+    occupiedLine = `Occupied by: ${cappedOwners.join("; ")}${remaining > 0 ? `; +${remaining} more` : ""}.`;
+  }
+
+  if (otherEntries.length > 0) {
+    const cappedOthers = otherEntries.slice(0, 2);
+    const remaining = otherEntries.length - cappedOthers.length;
+    notesLine = `Notes: ${cappedOthers.join(" | ")}${remaining > 0 ? ` | +${remaining} more` : ""}.`;
+  }
+
+  return {
+    hasConflicts: true,
+    missingLine:
+      missingLine || "Missing bindings: could not verify published ports.",
+    occupiedLine: occupiedLine || "Occupied by: not detected.",
+    notesLine,
+  };
+};
+
+export const buildRoutingWarningMessage = (services = [], warnings = []) => {
+  const conflictSummary = summarizeRoutingConflicts(warnings);
+  const appendGuidance = (baseMessage) =>
+    conflictSummary.hasConflicts
+      ? `${baseMessage}\n${conflictSummary.missingLine}\n${conflictSummary.occupiedLine}${conflictSummary.notesLine ? ` ${conflictSummary.notesLine}` : ""} Resolve conflicts, then click Restart All or Start All.`
+      : `${baseMessage} Check Docker/host processes using ports 80/443/53, then click Start All.`;
+
+  if (!Array.isArray(services) || services.length === 0) {
+    return appendGuidance("Routing guard triggered: Caddy Proxy or DNSMasq is stopped.");
+  }
+
+  const caddy = services.find((service) => service.id === "caddy");
+  const dnsmasq = services.find((service) => service.id === "dnsmasq");
+  const caddyStopped = Boolean(caddy) && hasRoutingImpact(caddy);
+  const dnsmasqStopped = Boolean(dnsmasq) && hasRoutingImpact(dnsmasq);
+  const hasConflicts = conflictSummary.hasConflicts;
+
+  if (caddyStopped && dnsmasqStopped) {
+    return appendGuidance("Caddy Proxy and DNSMasq are stopped.");
+  }
+  if (caddyStopped) {
+    return appendGuidance("Caddy Proxy is stopped.");
+  }
+  if (dnsmasqStopped) {
+    return appendGuidance("DNSMasq is stopped.");
+  }
+
+  if (hasConflicts) {
+    return appendGuidance("Routing services are running but port bindings are degraded.");
+  }
+
+  return appendGuidance("Routing guard triggered: Caddy Proxy or DNSMasq is stopped.");
+};
 
 const normalizeGlobalService = (service = {}) => ({
   id: String(service.id || service.ID || "").trim().toLowerCase(),
@@ -361,6 +532,36 @@ export const createGlobalServicesController = ({
   let pollTimer = null;
   let rawLogOutput = "";
 
+  const resolveLogViewport = () =>
+    refs.globalLogViewport || refs.globalLogOutput?.parentElement || null;
+
+  const scrollToLatest = (force = false) => {
+    if (!force && !liveEnabled) {
+      return;
+    }
+    const viewport = resolveLogViewport();
+    if (!viewport) {
+      return;
+    }
+    viewport.scrollTop = viewport.scrollHeight;
+  };
+
+  const readLogFilters = () => {
+    const state = getState();
+    return {
+      severity: normalizeLogSeverity(state.globalLogSeverity || "all"),
+      query: String(state.globalLogQuery || "").trim(),
+    };
+  };
+
+  const syncLogFilterControls = () => {
+    const { severity, query } = readLogFilters();
+    if (refs.globalLogSearch && refs.globalLogSearch.value !== query) {
+      refs.globalLogSearch.value = query;
+    }
+    syncSeveritySelector(refs.globalLogSeverity, severity);
+  };
+
   const buildEmptyLogMessage = () => {
     const state = getState();
     const selectedID = String(state.selectedGlobalService || "")
@@ -386,36 +587,49 @@ export const createGlobalServicesController = ({
     }
   };
 
-  const renderLogOutput = () => {
+  const renderLogOutput = ({ forceScroll = false } = {}) => {
     if (!refs.globalLogOutput) {
       return;
     }
-    const trimmed = String(rawLogOutput || "").trim();
-    refs.globalLogOutput.textContent = trimmed || buildEmptyLogMessage();
-    refs.globalLogOutput.scrollTop = refs.globalLogOutput.scrollHeight;
+    const rawTrimmed = String(rawLogOutput || "").trim();
+    const { severity, query } = readLogFilters();
+    const filtered = filterLogsText(rawLogOutput, severity, query);
+    const filteredTrimmed = String(filtered || "").trim();
+
+    if (!rawTrimmed) {
+      refs.globalLogOutput.textContent = buildEmptyLogMessage();
+    } else {
+      refs.globalLogOutput.textContent =
+        filteredTrimmed || "No logs match the current filters.";
+    }
+    scrollToLatest(forceScroll);
   };
 
   const setActionFeedback = (message, tone = "info") => {
     const toneMap = {
       success: {
         icon: "check_circle",
-        iconClass: "material-symbols-outlined text-[14px] text-primary",
-        textClass: "rounded-xl border border-primary/25 bg-primary/10 px-3 py-2.5 flex items-center gap-2 text-xs text-primary/95",
+        iconClass: "material-symbols-outlined text-[15px] leading-none self-start mt-px text-primary",
+        textClass:
+          "rounded-xl border border-primary/25 bg-primary/10 px-3 py-2.5 grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-2.5 text-xs text-primary/95",
       },
       warning: {
         icon: "warning",
-        iconClass: "material-symbols-outlined text-[14px] text-amber-300",
-        textClass: "rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 flex items-center gap-2 text-xs text-amber-200",
+        iconClass: "material-symbols-outlined text-[15px] leading-none self-start mt-px text-amber-300",
+        textClass:
+          "rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-2.5 text-xs text-amber-200",
       },
       error: {
         icon: "error",
-        iconClass: "material-symbols-outlined text-[14px] text-red-300",
-        textClass: "rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2.5 flex items-center gap-2 text-xs text-red-200",
+        iconClass: "material-symbols-outlined text-[15px] leading-none self-start mt-px text-red-300",
+        textClass:
+          "rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2.5 grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-2.5 text-xs text-red-200",
       },
       info: {
         icon: "info",
-        iconClass: "material-symbols-outlined text-[14px] text-[#90cba4]",
-        textClass: "rounded-xl border border-[#2e573a] bg-[#0f2015]/80 px-3 py-2.5 flex items-center gap-2 text-xs text-slate-300",
+        iconClass: "material-symbols-outlined text-[15px] leading-none self-start mt-px text-[#90cba4]",
+        textClass:
+          "rounded-xl border border-[#2e573a] bg-[#0f2015]/80 px-3 py-2.5 grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-2.5 text-xs text-slate-300",
       },
     };
     const toneConfig = toneMap[tone] || toneMap.info;
@@ -444,9 +658,15 @@ export const createGlobalServicesController = ({
     const total = Number(snapshot.total || 0);
     const active = Number(snapshot.active || 0);
     const allRunning = total > 0 && active >= total;
+    const hasRoutingWarning = hasRoutingWarningInSnapshot(snapshot);
     const anyRunning = active > 0;
+    const canStart = !allRunning || hasRoutingWarning;
 
-    applyButtonState(refs.globalBulkStart, allRunning ? BULK_START_DISABLED_CLASS : BULK_START_ENABLED_CLASS, !allRunning);
+    applyButtonState(
+      refs.globalBulkStart,
+      canStart ? BULK_START_ENABLED_CLASS : BULK_START_DISABLED_CLASS,
+      canStart,
+    );
     applyButtonState(refs.globalBulkRestart, anyRunning ? BULK_RESTART_ENABLED_CLASS : BULK_RESTART_DISABLED_CLASS, anyRunning);
     applyButtonState(refs.globalBulkStop, anyRunning ? BULK_STOP_ENABLED_CLASS : BULK_STOP_DISABLED_CLASS, anyRunning);
     applyButtonState(refs.globalBulkPull, BULK_PULL_CLASS, true);
@@ -454,13 +674,16 @@ export const createGlobalServicesController = ({
 
   const renderSummary = (snapshot) => {
     const services = Array.isArray(snapshot.services) ? snapshot.services : [];
+    const warningList = Array.isArray(snapshot.warnings)
+      ? snapshot.warnings
+      : [];
     const total = Number(snapshot.total || services.length);
     const active = Number(
       snapshot.active || services.filter((service) => isServiceActive(service)).length,
     );
     const runningSafe = Math.max(0, Math.min(active, total || active));
     const percent = total > 0 ? Math.round((runningSafe / total) * 100) : 0;
-    const hasRoutingWarning = services.some((service) => hasRoutingImpact(service));
+    const hasRoutingWarning = hasRoutingWarningInSnapshot(snapshot);
     const offlineServices = Math.max(total - runningSafe, 0);
     const defaultSummary =
       total > 0
@@ -516,7 +739,7 @@ export const createGlobalServicesController = ({
 
     if (hasRoutingWarning) {
       setActionFeedback(
-        "Routing guard triggered: Caddy Proxy or DNSMasq is stopped.",
+        buildRoutingWarningMessage(services, snapshot.warnings),
         "warning",
       );
     } else if (percent >= 100 && total > 0) {
@@ -544,6 +767,7 @@ export const createGlobalServicesController = ({
       refs.globalLogServiceName,
       selectedService ? selectedService.name : "Select service",
     );
+    syncLogFilterControls();
   };
 
   const ensureSelectedService = () => {
@@ -610,7 +834,7 @@ export const createGlobalServicesController = ({
     const serviceID = String(getState().selectedGlobalService || "").trim();
     if (!serviceID) {
       rawLogOutput = "";
-      renderLogOutput();
+      renderLogOutput({ forceScroll: true });
       return;
     }
     if (refs.globalLogOutput) {
@@ -618,10 +842,10 @@ export const createGlobalServicesController = ({
     }
     try {
       rawLogOutput = String(await bridge.getGlobalServiceLogs(serviceID, 300) || "");
-      renderLogOutput();
+      renderLogOutput({ forceScroll: true });
     } catch (err) {
       rawLogOutput = `Failed to load logs: ${err}`;
-      renderLogOutput();
+      renderLogOutput({ forceScroll: true });
     }
   };
 
@@ -730,6 +954,32 @@ export const createGlobalServicesController = ({
       getState().globalServices.find((item) => item.id === normalized)?.name ||
       normalized;
 
+    const settleRoutingIfNeeded = async (snapshot) => {
+      if (action !== "start" && action !== "restart") {
+        return snapshot;
+      }
+
+      const isRoutingService = normalized === "caddy" || normalized === "dnsmasq";
+      if (!isRoutingService) {
+        return snapshot;
+      }
+
+      let nextSnapshot = snapshot;
+      const maxAttempts = 4;
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        if (!nextSnapshot || !hasRoutingWarningInSnapshot(nextSnapshot)) {
+          return nextSnapshot;
+        }
+        setActionFeedback(
+          `Waiting for routing bindings to stabilize (${attempt + 1}/${maxAttempts})...`,
+          "info",
+        );
+        await delay(1200);
+        nextSnapshot = await refresh({ silent: true });
+      }
+      return nextSnapshot;
+    };
+
     await withButtonLoading(
       triggerButton,
       loadingLabelByAction[action],
@@ -742,8 +992,20 @@ export const createGlobalServicesController = ({
           const message = await fn(normalized);
           onStatus(message || `${action} ${normalized} completed`);
           onToast(message || `${action} ${normalized} completed`, "success");
-          await refresh({ silent: true });
-          setActionFeedback(message || `${serviceName} ${action} completed.`, "success");
+          const snapshot = await settleRoutingIfNeeded(
+            await refresh({ silent: true }),
+          );
+          if (snapshot && hasRoutingWarningInSnapshot(snapshot)) {
+            setActionFeedback(
+              buildRoutingWarningMessage(snapshot.services, snapshot.warnings),
+              "warning",
+            );
+          } else {
+            setActionFeedback(
+              message || `${serviceName} ${action} completed.`,
+              "success",
+            );
+          }
         } catch (err) {
           onStatus(`${action} ${normalized} failed: ${err}`);
           onToast(`${action} ${normalized} failed: ${err}`, "error");
@@ -781,6 +1043,27 @@ export const createGlobalServicesController = ({
       pull: "Pulling",
     };
 
+    const settleRoutingIfNeeded = async (snapshot) => {
+      if (action !== "start" && action !== "restart") {
+        return snapshot;
+      }
+
+      let nextSnapshot = snapshot;
+      const maxAttempts = 6;
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        if (!nextSnapshot || !hasRoutingWarningInSnapshot(nextSnapshot)) {
+          return nextSnapshot;
+        }
+        setActionFeedback(
+          `Waiting for routing bindings to stabilize (${attempt + 1}/${maxAttempts})...`,
+          "info",
+        );
+        await delay(1200);
+        nextSnapshot = await refresh({ silent: true });
+      }
+      return nextSnapshot;
+    };
+
     await withButtonLoading(triggerButton, loadingLabelByAction[action], async () => {
       setActionFeedback(
         `${actionVerbByAction[action] || "Processing"} all global services...`,
@@ -790,11 +1073,20 @@ export const createGlobalServicesController = ({
         const message = await fn();
         onStatus(message || `Global ${action} completed`);
         onToast(message || `Global ${action} completed`, "success");
-        await refresh({ silent: true });
-        setActionFeedback(
-          message || `Global ${action} completed successfully.`,
-          "success",
+        const snapshot = await settleRoutingIfNeeded(
+          await refresh({ silent: true }),
         );
+        if (snapshot && hasRoutingWarningInSnapshot(snapshot)) {
+          setActionFeedback(
+            buildRoutingWarningMessage(snapshot.services, snapshot.warnings),
+            "warning",
+          );
+        } else {
+          setActionFeedback(
+            message || `Global ${action} completed successfully.`,
+            "success",
+          );
+        }
       } catch (err) {
         onStatus(`Global ${action} failed: ${err}`);
         onToast(`Global ${action} failed: ${err}`, "error");
@@ -806,9 +1098,72 @@ export const createGlobalServicesController = ({
   const clearLogs = async () => {
     await stopLive();
     rawLogOutput = "";
-    renderLogOutput();
+    renderLogOutput({ forceScroll: true });
     onStatus("Global service logs cleared.");
     setActionFeedback("Global service logs cleared.", "info");
+  };
+
+  const downloadLogs = async () => {
+    const output = String(rawLogOutput || "").trim();
+    if (!output) {
+      onStatus("No global logs available to download.");
+      onToast("No global logs available to download.", "warning");
+      return;
+    }
+
+    const state = getState();
+    const selectedID = String(state.selectedGlobalService || "").trim();
+    const selectedService = (state.globalServices || []).find(
+      (item) => item.id === selectedID,
+    );
+    const filename = buildLogFilename({
+      scope: "global",
+      project: "services",
+      service: selectedService?.name || selectedID || "all",
+    });
+
+    let nativeExportError = null;
+    if (bridge?.saveLogsToFile) {
+      try {
+        const response = await bridge.saveLogsToFile(output, filename);
+        const message = String(response || "").trim();
+        if (message.toLowerCase().includes("cancelled")) {
+          onStatus(message || "Global log export cancelled.");
+          setActionFeedback(message || "Global log export cancelled.", "info");
+          return;
+        }
+        onStatus(message || "Global logs downloaded successfully.");
+        onToast("Global logs downloaded successfully.", "success");
+        setActionFeedback(
+          message || "Global logs downloaded successfully.",
+          "success",
+        );
+        return;
+      } catch (err) {
+        nativeExportError = err;
+      }
+    }
+
+    const downloaded = downloadTextAsFile(output, filename);
+    if (!downloaded) {
+      const details =
+        nativeExportError !== null
+          ? `Failed to download global logs: ${nativeExportError}`
+          : "Failed to download global logs.";
+      onStatus(details);
+      onToast("Failed to download global logs.", "error");
+      setActionFeedback("Failed to download global logs.", "error");
+      return;
+    }
+
+    onStatus("Global logs downloaded successfully.");
+    onToast("Global logs downloaded successfully.", "success");
+    setActionFeedback("Global logs downloaded successfully.", "success");
+  };
+
+  const applyFilters = () => {
+    syncLogFilterControls();
+    renderLogOutput();
   };
 
   if (runtime?.EventsOn) {
@@ -829,9 +1184,11 @@ export const createGlobalServicesController = ({
   return {
     refresh,
     refreshLogs,
+    applyFilters,
     stopLive,
     toggleLive,
     clearLogs,
+    downloadLogs,
     selectService,
     runServiceAction,
     runBulkAction,

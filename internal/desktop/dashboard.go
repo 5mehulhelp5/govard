@@ -36,10 +36,22 @@ func buildDashboardInternal() (Dashboard, error) {
 	projects := map[string]*projectInfo{}
 	warnings := []string{}
 	proxyRunning := false
+	allContainers := []container.Summary{}
+	containersByName := map[string]container.Summary{}
 
 	// Docker connectivity is optional — if unavailable, fall back to registry-only mode
 	if cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation()); err == nil {
 		if containers, err := cli.ContainerList(ctx, container.ListOptions{All: true}); err == nil {
+			allContainers = containers
+			for _, c := range containers {
+				for _, rawName := range c.Names {
+					name := strings.TrimSpace(strings.TrimPrefix(rawName, "/"))
+					if name == "" {
+						continue
+					}
+					containersByName[name] = c
+				}
+			}
 			proxyRunning = isProxyRunning(containers)
 			for _, c := range containers {
 				projectName, serviceName := extractProjectAndService(c)
@@ -161,6 +173,7 @@ func buildDashboardInternal() (Dashboard, error) {
 				env.PHP = info.config.Stack.PHPVersion
 				env.Database = formatDatabase(info.config.Stack.DBType, info.config.Stack.DBVersion)
 				env.Services = deriveServices(info.config, info.serviceState)
+				env.ServiceTargets = collectServiceTargetsFromServices(info, env.Services)
 				env.Technologies = buildTechnologies(env)
 				if entry.Domain != "" {
 					env.Name = entry.Domain
@@ -202,6 +215,7 @@ func buildDashboardInternal() (Dashboard, error) {
 	if !proxyRunning {
 		warnings = append(warnings, "Govard proxy is not running. HTTPS routes may fail.")
 	}
+	warnings = append(warnings, buildEnvironmentRoutingWarnings(allContainers, containersByName)...)
 
 	return Dashboard{
 		ActiveEnvironments: activeEnvs,
@@ -361,7 +375,7 @@ func buildEnvironment(info *projectInfo) Environment {
 		env.PHP = info.config.Stack.PHPVersion
 		env.Database = formatDatabase(info.config.Stack.DBType, info.config.Stack.DBVersion)
 		env.Services = deriveServices(info.config, info.serviceState)
-		env.ServiceTargets = collectServiceTargets(info)
+		env.ServiceTargets = collectServiceTargetsFromServices(info, env.Services)
 		if info.workingDir != "" {
 			env.EnvVars = engine.ParseDotEnv(filepath.Join(info.workingDir, ".env"))
 		}
@@ -386,11 +400,61 @@ func isProxyRunning(containers []container.Summary) bool {
 		if c.State != "running" {
 			continue
 		}
-		if nameMatches(c.Names, "proxy-caddy-1") {
+		if nameMatches(c.Names, "proxy-caddy-1") || nameMatches(c.Names, "govard-proxy-caddy") {
+			return true
+		}
+		project := strings.TrimSpace(c.Labels["com.docker.compose.project"])
+		service := strings.TrimSpace(c.Labels["com.docker.compose.service"])
+		if strings.EqualFold(project, globalServicesComposeProjectName) && strings.EqualFold(service, "caddy") {
 			return true
 		}
 	}
 	return false
+}
+
+func buildEnvironmentRoutingWarnings(
+	allContainers []container.Summary,
+	containersByName map[string]container.Summary,
+) []string {
+	if len(allContainers) == 0 {
+		return nil
+	}
+
+	routingServices := []GlobalService{}
+	for _, spec := range globalServiceSpecs {
+		if spec.ID != "caddy" && spec.ID != "dnsmasq" {
+			continue
+		}
+
+		service := GlobalService{
+			ID:            spec.ID,
+			Name:          spec.Name,
+			ContainerName: spec.ContainerName,
+			Status:        "missing",
+			State:         "not-created",
+			Running:       false,
+		}
+		if c, ok := containersByName[spec.ContainerName]; ok {
+			status, _, running := deriveGlobalContainerStatus(c.State, c.Status)
+			service.Status = status
+			service.State = strings.TrimSpace(c.State)
+			if service.State == "" {
+				service.State = "unknown"
+			}
+			service.Running = running
+		}
+
+		routingServices = append(routingServices, service)
+	}
+
+	bindingWarnings := detectRoutingPublishedPortBindingWarnings(routingServices, containersByName)
+	if len(bindingWarnings) == 0 && !hasRoutingConflictSignal(routingServices) {
+		return nil
+	}
+
+	return []string{
+		"Routing layer is degraded. Environment services may appear running while domains are unreachable. Check Global Services warnings.",
+	}
 }
 
 func environmentURL(project string) (string, error) {

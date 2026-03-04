@@ -69,6 +69,8 @@ func runEnvStart(cmd *cobra.Command, args []string) error {
 	cwd, _ := os.Getwd()
 	composePath := engine.ComposeFilePath(cwd, config.ProjectName)
 
+	// Use "up -d" instead of "start" to reconcile stale container definitions
+	// and recover services that require recreation.
 	command := exec.Command(
 		"docker",
 		"compose",
@@ -78,7 +80,8 @@ func runEnvStart(cmd *cobra.Command, args []string) error {
 		config.ProjectName,
 		"-f",
 		composePath,
-		"start",
+		"up",
+		"-d",
 	)
 	command.Stdout = cmd.OutOrStdout()
 	command.Stderr = cmd.ErrOrStderr()

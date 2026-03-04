@@ -26,6 +26,19 @@ func chooseDirectory(ctx context.Context, title string, defaultDir string) (stri
 	return "", fmt.Errorf("desktop runtime not available")
 }
 
+func chooseSaveFile(
+	ctx context.Context,
+	title string,
+	defaultDir string,
+	defaultFilename string,
+) (string, error) {
+	_ = ctx
+	_ = title
+	_ = defaultDir
+	_ = defaultFilename
+	return "", fmt.Errorf("desktop runtime not available")
+}
+
 func showApplication(ctx context.Context) {
 	_ = ctx
 }

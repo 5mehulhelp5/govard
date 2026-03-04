@@ -255,9 +255,10 @@ body {
 ::-webkit-scrollbar-thumb {
   background: #22492f;
   border-radius: 4px;
+  transition: none;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #366b47;
+  background: #22492f;
 }
 
 /* Utilities */
@@ -317,6 +318,73 @@ body {
 .global-feedback-ping {
   animation: global-feedback-ping 380ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(13, 242, 89, 0.28) transparent;
+  scrollbar-gutter: stable both-edges;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  -webkit-appearance: none;
+  width: 5px !important;
+  height: 5px !important;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(54, 107, 71, 0.85);
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  transition: none;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(54, 107, 71, 0.85);
+  border: 1px solid transparent;
+}
+.log-pane-scroll {
+  padding-right: 0.75rem;
+  overflow-y: scroll !important;
+  scrollbar-gutter: stable both-edges;
+}
+.service-strip-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(54, 107, 71, 0.75) transparent;
+  scrollbar-gutter: stable;
+  overflow-x: auto !important;
+  overflow-y: hidden;
+  align-items: center;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  margin-bottom: 0;
+}
+.service-strip-scroll::-webkit-scrollbar {
+  -webkit-appearance: none;
+  height: 5px !important;
+}
+.service-strip-scroll::-webkit-scrollbar:hover,
+.service-strip-scroll::-webkit-scrollbar:horizontal {
+  height: 5px !important;
+}
+.service-strip-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.service-strip-scroll::-webkit-scrollbar-thumb {
+  background: rgba(54, 107, 71, 0.72);
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  transition: none;
+}
+.service-strip-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(54, 107, 71, 0.72);
+  border: 1px solid transparent;
+}
+.service-strip-scroll::-webkit-scrollbar-thumb:active {
+  background: rgba(54, 107, 71, 0.72);
+  border: 1px solid transparent;
+}
 .sidebar-scroll::-webkit-scrollbar {
   width: 4px;
 }
@@ -326,9 +394,10 @@ body {
 .sidebar-scroll::-webkit-scrollbar-thumb {
   background: rgba(13, 242, 89, 0.2);
   border-radius: 999px;
+  transition: none;
 }
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(13, 242, 89, 0.4);
+  background: rgba(13, 242, 89, 0.2);
 }
 .dashed-line {
   background-image: linear-gradient(

@@ -409,6 +409,30 @@ func startEnvironment(project string) (string, error) {
 		}
 		return "", err
 	}
+
+	if info.configLoaded && strings.TrimSpace(info.workingDir) != "" {
+		config := info.config
+		if strings.TrimSpace(config.ProjectName) == "" {
+			config.ProjectName = info.name
+		}
+		engine.NormalizeConfig(&config)
+
+		composePath := engine.ComposeFilePath(info.workingDir, config.ProjectName)
+		if _, statErr := os.Stat(composePath); statErr != nil {
+			if !os.IsNotExist(statErr) {
+				return "", fmt.Errorf("inspect compose file: %w", statErr)
+			}
+			if renderErr := engine.RenderBlueprint(info.workingDir, config); renderErr != nil {
+				return "", fmt.Errorf("render compose blueprint: %w", renderErr)
+			}
+		}
+
+		if runErr := runCompose(info.workingDir, config.ProjectName, composePath); runErr != nil {
+			return "", runErr
+		}
+		return "Started environment " + info.name, nil
+	}
+
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {

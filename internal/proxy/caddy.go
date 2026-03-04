@@ -6,14 +6,77 @@ import (
 	"os/exec"
 	"reflect"
 	"strings"
+	"time"
 )
 
+const caddyExecRetryAttempts = 8
+const caddyExecRetryDelay = 350 * time.Millisecond
+
 var initCaddyCommandRunner = func(container string, initJSON string) error {
-	cmd := exec.Command("docker", "exec", "-i", container, "curl", "-s", "-X", "POST",
+	_, err := runCaddyExec(container, "curl", "-s", "-X", "POST",
 		"http://localhost:2019/load",
 		"-H", "Content-Type: application/json",
 		"-d", initJSON)
-	return cmd.Run()
+	if err != nil {
+		return fmt.Errorf("initialize caddy admin config: %w", err)
+	}
+	return nil
+}
+
+func runCaddyExec(container string, args ...string) ([]byte, error) {
+	dockerArgs := []string{"exec", "-i", container}
+	dockerArgs = append(dockerArgs, args...)
+
+	var lastErr error
+	var lastOutput string
+
+	for attempt := 1; attempt <= caddyExecRetryAttempts; attempt++ {
+		cmd := exec.Command("docker", dockerArgs...)
+		output, err := cmd.CombinedOutput()
+		if err == nil {
+			return output, nil
+		}
+
+		lastErr = err
+		lastOutput = strings.TrimSpace(string(output))
+
+		if !isTransientCaddyExecError(err, lastOutput) || attempt == caddyExecRetryAttempts {
+			break
+		}
+		time.Sleep(caddyExecRetryDelay)
+	}
+
+	if lastOutput != "" {
+		return nil, fmt.Errorf("docker exec failed: %w (%s)", lastErr, lastOutput)
+	}
+	return nil, fmt.Errorf("docker exec failed: %w", lastErr)
+}
+
+func isTransientCaddyExecError(err error, output string) bool {
+	if err == nil {
+		return false
+	}
+	combined := strings.ToLower(strings.TrimSpace(err.Error() + " " + output))
+	if combined == "" {
+		return false
+	}
+
+	transientMarkers := []string{
+		"oci runtime exec failed",
+		"is restarting",
+		"is not running",
+		"no such container",
+		"cannot exec in a stopped state",
+		"connection refused",
+		"context deadline exceeded",
+		"containerd task has not started",
+	}
+	for _, marker := range transientMarkers {
+		if strings.Contains(combined, marker) {
+			return true
+		}
+	}
+	return false
 }
 
 func RegisterDomain(domain string, targetContainer string) error {
@@ -69,10 +132,9 @@ func EnsureTLS() error {
 }
 
 func fetchCaddyConfig(container string) (map[string]interface{}, error) {
-	getCmd := exec.Command("docker", "exec", "-i", container, "curl", "-s", "http://localhost:2019/config/")
-	output, err := getCmd.CombinedOutput()
+	output, err := runCaddyExec(container, "curl", "-s", "http://localhost:2019/config/")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fetch caddy config: %w", err)
 	}
 	if len(output) == 0 {
 		return map[string]interface{}{}, nil
@@ -94,12 +156,11 @@ func loadCaddyConfig(container string, config map[string]interface{}) error {
 		return err
 	}
 
-	loadCmd := exec.Command("docker", "exec", "-i", container, "curl", "-s", "-X", "POST",
+	if _, err := runCaddyExec(container, "curl", "-s", "-X", "POST",
 		"http://localhost:2019/load",
 		"-H", "Content-Type: application/json",
-		"-d", string(payload))
-	if output, err := loadCmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("caddy load failed: %v, output: %s", err, strings.TrimSpace(string(output)))
+		"-d", string(payload)); err != nil {
+		return fmt.Errorf("caddy load failed: %w", err)
 	}
 	return nil
 }

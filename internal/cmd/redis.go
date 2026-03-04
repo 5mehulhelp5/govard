@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
@@ -16,29 +15,32 @@ var redisCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		config := loadConfig()
 		containerName := fmt.Sprintf("%s-redis-1", config.ProjectName)
+		serviceLabel := "Redis"
 		cliBinary := "redis-cli"
 		if config.Stack.Services.Cache == "valkey" {
 			cliBinary = "valkey-cli"
+			serviceLabel = "Valkey"
 		}
 
-		// Check if container exists and is running
-		check := exec.Command("docker", "inspect", "-f", "{{.State.Running}}", containerName)
-		if output, err := check.Output(); err != nil || strings.TrimSpace(string(output)) != "true" {
-			return fmt.Errorf("redis container %s is not running", containerName)
+		if err := ensureContainerReadyForExec(containerName, serviceLabel); err != nil {
+			return err
 		}
 
-		pterm.Info.Printf("Connecting to Redis on %s...\n", containerName)
+		pterm.Info.Printf("Connecting to %s on %s...\n", serviceLabel, containerName)
 
-		// Prepare redis-cli command
-		dockerArgs := []string{"exec", "-it", containerName, cliBinary}
+		dockerArgs := dockerExecBaseArgs()
+		dockerArgs = append(dockerArgs, containerName, cliBinary)
 		dockerArgs = append(dockerArgs, args...)
 
 		c := exec.Command("docker", dockerArgs...)
 		c.Stdin, c.Stdout, c.Stderr = os.Stdin, os.Stdout, os.Stderr
 
 		if err := c.Run(); err != nil {
-			pterm.Debug.Printf("redis-cli exited with error: %v\n", err)
-			return fmt.Errorf("redis cli failed: %w", err)
+			if stateErr := ensureContainerReadyForExec(containerName, serviceLabel); stateErr != nil {
+				return fmt.Errorf("%s CLI failed: %w", serviceLabel, stateErr)
+			}
+			pterm.Debug.Printf("%s CLI exited with error: %v\n", serviceLabel, err)
+			return fmt.Errorf("%s CLI failed: %w", serviceLabel, err)
 		}
 		return nil
 	},

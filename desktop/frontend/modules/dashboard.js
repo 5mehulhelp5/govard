@@ -84,13 +84,101 @@ export const localEnvironmentURL = (env = {}) => {
   return withScheme(host);
 };
 
+const SERVICE_TARGET_ORDER = [
+  "web",
+  "php",
+  "db",
+  "redis",
+  "valkey",
+  "elasticsearch",
+  "opensearch",
+  "varnish",
+  "rabbitmq",
+  "mail",
+  "pma",
+];
+
+const serviceListForTargets = (env = {}) => {
+  if (Array.isArray(env.Services)) return env.Services;
+  if (Array.isArray(env.services)) return env.services;
+  return [];
+};
+
+const inferServiceTargetForFilter = (service = {}) => {
+  const explicit = String(service.Target || service.target || "")
+    .trim()
+    .toLowerCase();
+  if (explicit) {
+    return explicit;
+  }
+
+  const name = String(service.Name || service.name || "")
+    .trim()
+    .toLowerCase();
+  if (!name) {
+    return "";
+  }
+
+  if (name === "web" || name === "nginx" || name === "apache") return "web";
+  if (name === "php") return "php";
+  if (
+    name === "db" ||
+    name === "database" ||
+    name === "mariadb" ||
+    name === "mysql" ||
+    name === "postgresql" ||
+    name === "postgres"
+  ) {
+    return "db";
+  }
+  if (name === "redis") return "redis";
+  if (name === "valkey") return "valkey";
+  if (name === "elasticsearch") return "elasticsearch";
+  if (name === "opensearch") return "opensearch";
+  if (name === "varnish") return "varnish";
+  if (name === "rabbitmq") return "rabbitmq";
+  if (name === "mailhog" || name === "mailpit" || name === "mail") return "mail";
+  if (name === "pma" || name === "phpmyadmin") return "pma";
+  return "";
+};
+
+const orderedUniqueTargets = (values = []) => {
+  const seen = new Set();
+  const extras = [];
+  const known = new Set(SERVICE_TARGET_ORDER);
+
+  values.forEach((value) => {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (!normalized || seen.has(normalized)) {
+      return;
+    }
+    seen.add(normalized);
+    if (!known.has(normalized)) {
+      extras.push(normalized);
+    }
+  });
+
+  const ordered = SERVICE_TARGET_ORDER.filter((target) => seen.has(target));
+  return ordered.concat(extras);
+};
+
 export const serviceTargets = (env = {}) => {
+  const fromServices = orderedUniqueTargets(
+    serviceListForTargets(env).map((service) =>
+      inferServiceTargetForFilter(service),
+    ),
+  );
+  if (fromServices.length) {
+    return fromServices;
+  }
+
   const values = Array.isArray(env.ServiceTargets)
     ? env.ServiceTargets
     : Array.isArray(env.serviceTargets)
       ? env.serviceTargets
       : [];
-  return values.length ? values : ["web"];
+  const fromTargets = orderedUniqueTargets(values);
+  return fromTargets.length ? fromTargets : ["web"];
 };
 
 export const renderMetricSkeletons = (refs) => {

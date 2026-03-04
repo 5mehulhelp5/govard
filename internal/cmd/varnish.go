@@ -46,12 +46,20 @@ var varnishCmd = &cobra.Command{
 }
 
 func runVarnishCmd(containerName string, args []string) error {
-	dockerArgs := []string{"exec", "-it", containerName}
+	if err := ensureContainerReadyForExec(containerName, "Varnish"); err != nil {
+		return err
+	}
+
+	dockerArgs := dockerExecBaseArgs()
+	dockerArgs = append(dockerArgs, containerName)
 	dockerArgs = append(dockerArgs, args...)
 
 	c := exec.Command("docker", dockerArgs...)
 	c.Stdin, c.Stdout, c.Stderr = os.Stdin, os.Stdout, os.Stderr
 	if err := c.Run(); err != nil {
+		if stateErr := ensureContainerReadyForExec(containerName, "Varnish"); stateErr != nil {
+			return fmt.Errorf("varnish command failed: %w", stateErr)
+		}
 		return fmt.Errorf("varnish command failed: %w", err)
 	}
 	return nil

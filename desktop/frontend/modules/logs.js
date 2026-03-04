@@ -3,6 +3,64 @@ import { projectKey, serviceTargets } from "./dashboard.js";
 const errorPattern = /\b(error|critical|fail|failed|exception|fatal|panic)\b/i;
 const warnPattern = /\b(warn|warning|deprecated)\b/i;
 
+const sanitizeLogFilenameToken = (value, fallback) =>
+  String(value || "")
+    .trim()
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "") || fallback;
+
+export const buildLogFilename = ({
+  scope = "logs",
+  project = "",
+  service = "all",
+} = {}) => {
+  const stamp = new Date()
+    .toISOString()
+    .replace(/[:.]/g, "-")
+    .replace("T", "_")
+    .replace("Z", "");
+  return `govard-${sanitizeLogFilenameToken(scope, "logs")}-${sanitizeLogFilenameToken(project, "project")}-${sanitizeLogFilenameToken(service, "all")}-${stamp}.log`;
+};
+
+export const downloadTextAsFile = (content = "", filename = "govard-logs.log") => {
+  const output = String(content || "");
+  if (!output.trim()) {
+    return false;
+  }
+  if (typeof document === "undefined" || typeof URL === "undefined") {
+    return false;
+  }
+  try {
+    const blob = new Blob([output.endsWith("\n") ? output : `${output}\n`], {
+      type: "text/plain;charset=utf-8",
+    });
+    const href = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = href;
+    anchor.download = String(filename || "govard-logs.log").trim() || "govard-logs.log";
+    anchor.style.display = "none";
+    document.body.appendChild(anchor);
+    anchor.click();
+
+    const cleanup = () => {
+      try {
+        URL.revokeObjectURL(href);
+      } catch (_err) {
+        // Ignore cleanup errors.
+      }
+      anchor.remove();
+    };
+    if (typeof window !== "undefined" && typeof window.setTimeout === "function") {
+      window.setTimeout(cleanup, 1500);
+    } else {
+      cleanup();
+    }
+    return true;
+  } catch (_err) {
+    return false;
+  }
+};
+
 export const normalizeLogSeverity = (severity = "all") => {
   const normalized = String(severity || "all")
     .trim()
@@ -139,21 +197,21 @@ export const createLogsController = ({
   let liveEnabled = false;
   let rawLogOutput = "";
 
-  const buildLogFilename = (project, service) => {
-    const sanitize = (value, fallback) =>
-      String(value || "")
-        .trim()
-        .replace(/[^a-zA-Z0-9._-]+/g, "-")
-        .replace(/^-+|-+$/g, "") || fallback;
-    const stamp = new Date()
-      .toISOString()
-      .replace(/[:.]/g, "-")
-      .replace("T", "_")
-      .replace("Z", "");
-    return `govard-${sanitize(project, "project")}-${sanitize(service, "all")}-${stamp}.log`;
+  const resolveOutputViewport = () =>
+    refs.logOutputViewport || refs.logOutput?.parentElement || null;
+
+  const scrollToLatest = (force = false) => {
+    if (!force && !liveEnabled) {
+      return;
+    }
+    const viewport = resolveOutputViewport();
+    if (!viewport) {
+      return;
+    }
+    viewport.scrollTop = viewport.scrollHeight;
   };
 
-  const renderFilteredOutput = () => {
+  const renderFilteredOutput = ({ forceScroll = false } = {}) => {
     if (!refs.logOutput) {
       return;
     }
@@ -161,6 +219,7 @@ export const createLogsController = ({
     const filtered = filterLogsText(rawLogOutput, severity, query);
     refs.logOutput.textContent =
       filtered || "No logs match the current filters.";
+    scrollToLatest(forceScroll);
   };
 
   const appendLogLine = (line) => {
@@ -168,9 +227,6 @@ export const createLogsController = ({
       ? `${rawLogOutput}\n${line}`
       : String(line || "");
     renderFilteredOutput();
-    if (refs.logOutput) {
-      refs.logOutput.scrollTop = refs.logOutput.scrollHeight;
-    }
   };
 
   const refresh = async () => {
@@ -180,6 +236,7 @@ export const createLogsController = ({
         refs.logOutput.textContent = "Select an environment to view logs.";
       }
       rawLogOutput = "";
+      scrollToLatest(true);
       return;
     }
     if (refs.logOutput) {
@@ -188,12 +245,13 @@ export const createLogsController = ({
     try {
       const logs = await bridge.getLogsForService(project, service);
       rawLogOutput = String(logs || "");
-      renderFilteredOutput();
+      renderFilteredOutput({ forceScroll: true });
     } catch (err) {
       rawLogOutput = "";
       if (refs.logOutput) {
         refs.logOutput.textContent = `Failed to load logs: ${err}`;
       }
+      scrollToLatest(true);
     }
   };
 
@@ -248,7 +306,7 @@ export const createLogsController = ({
   const clearLogs = async () => {
     await stopLive();
     rawLogOutput = "";
-    renderFilteredOutput();
+    renderFilteredOutput({ forceScroll: true });
     onStatus("Logs cleared.");
     onToast("Logs cleared successfully.", "success");
   };
@@ -261,17 +319,39 @@ export const createLogsController = ({
       return;
     }
     const { project, service } = readSelection();
-    const blob = new Blob([output + "\n"], {
-      type: "text/plain;charset=utf-8",
+    const filename = buildLogFilename({
+      scope: "environment",
+      project,
+      service,
     });
-    const href = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = href;
-    anchor.download = buildLogFilename(project, service);
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    URL.revokeObjectURL(href);
+
+    let nativeExportError = null;
+    if (bridge?.saveLogsToFile) {
+      try {
+        const response = await bridge.saveLogsToFile(output, filename);
+        const message = String(response || "").trim();
+        if (message.toLowerCase().includes("cancelled")) {
+          onStatus(message || "Log export cancelled.");
+          return;
+        }
+        onStatus(message || "Logs downloaded successfully.");
+        onToast("Logs downloaded successfully.", "success");
+        return;
+      } catch (err) {
+        nativeExportError = err;
+      }
+    }
+
+    const downloaded = downloadTextAsFile(output, filename);
+    if (!downloaded) {
+      const details =
+        nativeExportError !== null
+          ? `Failed to download logs: ${nativeExportError}`
+          : "Failed to download logs.";
+      onStatus(details);
+      onToast("Failed to download logs.", "error");
+      return;
+    }
     onStatus("Logs downloaded successfully.");
     onToast("Logs downloaded successfully.", "success");
   };
@@ -279,12 +359,23 @@ export const createLogsController = ({
   if (runtime?.EventsOn) {
     runtime.EventsOn("logs:line", appendLogLine);
     runtime.EventsOn("logs:status", (message) => {
-      onStatus(message);
-      onToast(message, "success");
+      const text = String(message || "").trim();
+      if (!text) {
+        return;
+      }
+      onStatus(text);
+      onToast(text, "success");
     });
     runtime.EventsOn("logs:error", (message) => {
-      onStatus(message);
-      onToast(message, "error");
+      const text =
+        message && typeof message === "object"
+          ? String(message.message || "")
+          : String(message || "").trim();
+      if (!text) {
+        return;
+      }
+      onStatus(text);
+      onToast(text, "error");
     });
   }
 
@@ -370,12 +461,12 @@ export const renderLogsTab = (container) => {
                   <div
                     class="flex items-center gap-2 bg-[#102316] rounded-lg p-1.5 border border-[#2e573a] min-w-0 flex-1"
                   >
-                    <span class="text-[10px] uppercase tracking-wide text-[#5d856b] px-1 shrink-0"
+                    <span class="h-7 inline-flex items-center leading-none text-[10px] uppercase tracking-wide text-[#5d856b] px-1 shrink-0"
                       >Service</span
                     >
                     <div
                       id="logServiceSelector"
-                      class="flex gap-1 min-w-0 flex-1 overflow-x-auto"
+                      class="flex items-center gap-1 min-w-0 flex-1 overflow-x-auto service-strip-scroll"
                     >
                       <!-- Service buttons will be rendered here -->
                       <button
@@ -439,7 +530,8 @@ export const renderLogsTab = (container) => {
               </div>
             </div>
             <div
-              class="flex-1 overflow-y-auto px-4 pb-4 pt-2 terminal-text text-xs bg-[#0c1810] custom-scrollbar"
+              id="logOutputViewport"
+              class="flex-1 overflow-y-auto px-4 pb-4 pt-2 terminal-text text-xs bg-[#0c1810] custom-scrollbar log-pane-scroll"
             >
               <pre id="logOutput" class="m-0 font-mono whitespace-pre-wrap">Select an environment to view logs.</pre>
             </div>

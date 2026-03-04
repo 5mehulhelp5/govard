@@ -24,6 +24,25 @@ func chooseDirectory(ctx context.Context, title string, defaultDir string) (stri
 	})
 }
 
+func chooseSaveFile(
+	ctx context.Context,
+	title string,
+	defaultDir string,
+	defaultFilename string,
+) (string, error) {
+	return runtime.SaveFileDialog(ctx, runtime.SaveDialogOptions{
+		Title:                title,
+		DefaultDirectory:     defaultDir,
+		DefaultFilename:      defaultFilename,
+		CanCreateDirectories: true,
+		Filters: []runtime.FileFilter{
+			{DisplayName: "Log Files (*.log)", Pattern: "*.log"},
+			{DisplayName: "Text Files (*.txt)", Pattern: "*.txt"},
+			{DisplayName: "All Files (*.*)", Pattern: "*.*"},
+		},
+	})
+}
+
 func showApplication(ctx context.Context) {
 	runtime.Show(ctx)
 	runtime.WindowShow(ctx)

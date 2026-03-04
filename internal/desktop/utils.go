@@ -404,19 +404,34 @@ func summarizeServices(services map[string]bool) string {
 	return strings.Join(present, ", ")
 }
 
-func collectServiceTargets(info *projectInfo) []string {
-	if info == nil {
-		return nil
+var orderedServiceTargets = []string{
+	"web",
+	"php",
+	"db",
+	"redis",
+	"valkey",
+	"elasticsearch",
+	"opensearch",
+	"varnish",
+	"rabbitmq",
+	"mail",
+	"pma",
+}
+
+func normalizeServiceTargets(discovered map[string]bool) []string {
+	if len(discovered) == 0 {
+		return []string{"web"}
 	}
 
-	ordered := []string{"web", "php", "db", "redis", "valkey", "elasticsearch", "opensearch", "varnish", "rabbitmq", "mail", "pma"}
 	var targets []string
-	for _, name := range ordered {
-		if info.services[name] {
+	for _, name := range orderedServiceTargets {
+		if discovered[name] {
 			targets = append(targets, name)
 		}
 	}
-	for name := range info.services {
+
+	var extras []string
+	for name := range discovered {
 		found := false
 		for _, existing := range targets {
 			if existing == name {
@@ -425,13 +440,48 @@ func collectServiceTargets(info *projectInfo) []string {
 			}
 		}
 		if !found {
-			targets = append(targets, name)
+			extras = append(extras, name)
 		}
 	}
+	sort.Strings(extras)
+	targets = append(targets, extras...)
+
 	if len(targets) == 0 {
-		targets = append(targets, "web")
+		return []string{"web"}
 	}
 	return targets
+}
+
+func collectServiceTargets(info *projectInfo) []string {
+	if info == nil {
+		return nil
+	}
+	return normalizeServiceTargets(info.services)
+}
+
+func collectServiceTargetsFromServices(info *projectInfo, services []Service) []string {
+	discovered := map[string]bool{}
+	for _, service := range services {
+		target := strings.ToLower(strings.TrimSpace(service.Target))
+		if target == "" {
+			continue
+		}
+		discovered[target] = true
+	}
+
+	if info != nil {
+		for target, state := range info.serviceState {
+			normalizedTarget := strings.ToLower(strings.TrimSpace(target))
+			if normalizedTarget == "" || discovered[normalizedTarget] {
+				continue
+			}
+			if strings.EqualFold(strings.TrimSpace(state), "running") {
+				discovered[normalizedTarget] = true
+			}
+		}
+	}
+
+	return normalizeServiceTargets(discovered)
 }
 
 func loadProjectInfoFromPath(path string) (*projectInfo, error) {

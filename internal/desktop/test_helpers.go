@@ -3,10 +3,13 @@ package desktop
 import (
 	"context"
 	"io"
+	"os"
 	"strings"
 	"time"
 
 	"govard/internal/engine"
+
+	"github.com/docker/docker/api/types/container"
 )
 
 // ResetStateForTest clears process-level caches used by desktop package.
@@ -21,6 +24,9 @@ func ResetStateForTest() {
 	openExternalURLForDesktop = defaultOpenExternalURLForDesktop
 	runGlobalServicesComposeForDesktop = defaultRunGlobalServicesComposeForDesktop
 	ensureGlobalServicesForDesktop = defaultEnsureGlobalServicesForDesktop
+	runHostPortProbeForDesktop = defaultRunHostPortProbeForDesktop
+	chooseSaveFileForDesktop = defaultChooseSaveFileForDesktop
+	writeLogFileForDesktop = defaultWriteLogFileForDesktop
 }
 
 // ResolveRequestedLogTargetsForTest exposes log target normalization for tests.
@@ -257,6 +263,17 @@ func BuildFallbackServicesForTest(services map[string]bool, serviceState map[str
 	return fallbackServices(services, serviceState)
 }
 
+// BuildServiceTargetsFromServicesForTest exposes service target selection for configured environments.
+func BuildServiceTargetsFromServicesForTest(services []Service, serviceState map[string]string) []string {
+	info := &projectInfo{
+		serviceState: map[string]string{},
+	}
+	for target, state := range serviceState {
+		info.serviceState[target] = state
+	}
+	return collectServiceTargetsFromServices(info, services)
+}
+
 // BuildRemoteAdminURLForTest exposes remote admin URL formatting for tests.
 func BuildRemoteAdminURLForTest(remote RemoteConfigSnapshot, adminPath string) string {
 	return buildRemoteAdminURLForDesktop(engine.RemoteConfig{
@@ -386,6 +403,51 @@ func SetEnsureGlobalServicesForDesktopForTest(fn func() error) func() {
 	}
 }
 
+// SetRunHostPortProbeForDesktopForTest overrides host port probe commands (lsof/ss).
+func SetRunHostPortProbeForDesktopForTest(
+	fn func(binary string, args ...string) (string, error),
+) func() {
+	previous := runHostPortProbeForDesktop
+	if fn == nil {
+		runHostPortProbeForDesktop = defaultRunHostPortProbeForDesktop
+	} else {
+		runHostPortProbeForDesktop = fn
+	}
+	return func() {
+		runHostPortProbeForDesktop = previous
+	}
+}
+
+// SetChooseSaveFileForDesktopForTest overrides the desktop save file picker for tests.
+func SetChooseSaveFileForDesktopForTest(
+	fn func(ctx context.Context, title string, defaultDir string, defaultFilename string) (string, error),
+) func() {
+	previous := chooseSaveFileForDesktop
+	if fn == nil {
+		chooseSaveFileForDesktop = defaultChooseSaveFileForDesktop
+	} else {
+		chooseSaveFileForDesktop = fn
+	}
+	return func() {
+		chooseSaveFileForDesktop = previous
+	}
+}
+
+// SetWriteLogFileForDesktopForTest overrides log file write behavior in export flow.
+func SetWriteLogFileForDesktopForTest(
+	fn func(path string, data []byte, perm os.FileMode) error,
+) func() {
+	previous := writeLogFileForDesktop
+	if fn == nil {
+		writeLogFileForDesktop = defaultWriteLogFileForDesktop
+	} else {
+		writeLogFileForDesktop = fn
+	}
+	return func() {
+		writeLogFileForDesktop = previous
+	}
+}
+
 // ResolveGlobalServiceForTest exposes global service definitions for tests.
 func ResolveGlobalServiceForTest(serviceID string) (GlobalService, bool) {
 	spec, err := resolveGlobalServiceSpec(serviceID)
@@ -404,6 +466,31 @@ func ResolveGlobalServiceForTest(serviceID string) (GlobalService, bool) {
 // DeriveGlobalContainerStatusForTest exposes container state normalization for tests.
 func DeriveGlobalContainerStatusForTest(state string, statusText string) (string, string, bool) {
 	return deriveGlobalContainerStatus(state, statusText)
+}
+
+// DetectRoutingPublishedPortBindingWarningsForTest exposes running-state port publish checks for routing services.
+func DetectRoutingPublishedPortBindingWarningsForTest(
+	services []GlobalService,
+	containersByName map[string]container.Summary,
+) []string {
+	return detectRoutingPublishedPortBindingWarnings(services, containersByName)
+}
+
+// DetectDockerPortConflictWarningsForTest exposes docker listener conflict detection for tests.
+func DetectDockerPortConflictWarningsForTest(containers []container.Summary) []string {
+	return detectDockerPortConflictWarnings(containers)
+}
+
+// BuildHostPortConflictWarningsFromLsofForTest exposes lsof output parsing for host listeners.
+func BuildHostPortConflictWarningsFromLsofForTest(output string, port int, protocol string) []string {
+	owners := parseLsofPortOwners(output, port, protocol)
+	return formatHostPortConflictWarnings(owners)
+}
+
+// BuildHostPortConflictWarningsFromSSForTest exposes ss output parsing for host listeners.
+func BuildHostPortConflictWarningsFromSSForTest(output string, port int, protocol string) []string {
+	owners := parseSSPortOwners(output, port, protocol)
+	return formatHostPortConflictWarnings(owners)
 }
 
 // OnboardProjectForPathForTest exposes onboarding flow for tests.

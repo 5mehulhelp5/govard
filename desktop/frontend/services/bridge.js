@@ -223,6 +223,14 @@ export const desktopBridge = {
     const bridge = getBridge();
     return call(bridge?.StopLogStream?.bind(bridge));
   },
+  async saveLogsToFile(content, suggestedName) {
+    const bridge = getBridge();
+    return call(
+      bridge?.SaveLogsToFile?.bind(bridge),
+      String(content || ""),
+      String(suggestedName || ""),
+    );
+  },
   async startTerminal(project, service, user, shell) {
     const bridge = getBridge();
     return call(

@@ -203,3 +203,7 @@ func (app *App) StartGlobalServiceLogStream(serviceID string) (string, error) {
 func (app *App) StopGlobalServiceLogStream() (string, error) {
 	return app.Logs.StopGlobalServiceLogStream()
 }
+
+func (app *App) SaveLogsToFile(content string, suggestedName string) (string, error) {
+	return saveLogsToFile(app.ctx, content, suggestedName)
+}

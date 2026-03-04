@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"govard/internal/proxy"
 
@@ -129,6 +130,14 @@ if ($projectsJson) {
 		}
 	}
 
+	if !waitForAnyContainerRunning(
+		ctx,
+		[]string{"govard-proxy-caddy", "proxy-caddy-1"},
+		8*time.Second,
+	) {
+		return fmt.Errorf("global proxy caddy is not running (check conflicts on ports 80/443)")
+	}
+
 	if err := proxy.EnsureTLS(); err != nil {
 		pterm.Warning.Printf("Could not enable HTTPS for Govard Proxy: %v\n", err)
 	}
@@ -140,4 +149,23 @@ if ($projectsJson) {
 	_ = proxy.RegisterDomain("portainer.govard.test", "govard-proxy-portainer:9000")
 
 	return nil
+}
+
+func waitForAnyContainerRunning(ctx context.Context, names []string, timeout time.Duration) bool {
+	deadline := time.Now().Add(timeout)
+	for {
+		for _, name := range names {
+			if IsContainerRunning(ctx, name) {
+				return true
+			}
+		}
+		if time.Now().After(deadline) {
+			return false
+		}
+		select {
+		case <-ctx.Done():
+			return false
+		case <-time.After(250 * time.Millisecond):
+		}
+	}
 }
