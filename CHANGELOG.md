@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.1] - 2026-03-04
+
+### Added
+
+- **Update Formatting**: Unified update message formatting across the desktop app.
+
+### Improved
+
+- **Notifier UX**: Synchronized update notifier visibility with the settings drawer to avoid UI overlapping.
+
+### Fixed
+
+- **Redundant Config**: Removed unnecessary Darwin build configuration from GoReleaser.
+
 ## [1.16.0] - 2026-03-04
 
 ### Added
