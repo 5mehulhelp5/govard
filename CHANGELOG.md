@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.19.0] - 2026-03-04
+
+### Added
+
+- **Environment Pull**: Introduced `govard env pull` command to pull Docker images for the current environment.
+
+### Changed
+
+- **Database Proxy**: Refactored `open db` and generic database access to support a shared containerized proxy, improving connectivity and client-url resolution.
+
+### Testing
+
+- **Desktop & Integration**: Added comprehensive integration tests for environment compose flows, database client URL resolution, and PMA proxy configurations.
+- **Frontend**: Expanded unit tests for dashboard actions and global services modules.
+
 ## [1.18.0] - 2026-03-04
 
 ### Fixed
@@ -28,7 +43,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Backend Tests**: Added comprehensive integration tests for desktop global services and service startup logic.
 - **Frontend Tests**: Added core tests for global services frontend module.
 - **Mocking**: Introduced additional test helpers for mocking backend services in tests.
-
 
 ## [1.16.1] - 2026-03-04
 
