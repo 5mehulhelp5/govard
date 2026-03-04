@@ -34,22 +34,6 @@ builds:
     ldflags:
       - -s -w -X govard/internal/cmd.Version={{ .Version }} -X govard/internal/desktop.Version={{ .Version }}
 
-  - id: govard-desktop-darwin
-    main: ./cmd/govard-desktop/main.go
-    binary: govard-desktop
-    tags:
-      - desktop
-      - production
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - darwin
-    goarch:
-      - amd64
-      - arm64
-    ldflags:
-      - -s -w -X govard/internal/cmd.Version={{ .Version }} -X govard/internal/desktop.Version={{ .Version }}
-
 archives:
   - id: govard-archive
     ids:
@@ -66,7 +50,6 @@ archives:
   - id: govard-desktop-archive
     ids:
       - govard-desktop
-      - govard-desktop-darwin
     name_template: >-
       govard-desktop_{{ .Version }}_{{- title .Os }}_{{ .Arch }}
     formats:
