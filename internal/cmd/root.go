@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var Version = "1.15.0"
+var Version = "1.16.0"
 
 var verbose bool
 
