@@ -464,9 +464,11 @@
                       </section>
                     </div>
                   </div>
-                  <div class="grid grid-cols-1 md:grid-cols-[30%_70%] md:grid-rows-1 gap-6 flex-1 min-h-0">
+                  <div
+                    class="grid grid-cols-1 md:grid-cols-[minmax(0,3fr)_minmax(0,7fr)] md:grid-rows-1 gap-6 flex-1 min-h-0"
+                  >
                     <div
-                      class="glass-panel relative rounded-2xl overflow-hidden border border-[#22492f] min-h-0 h-full"
+                      class="glass-panel relative rounded-2xl overflow-hidden border border-[#22492f] min-h-0 min-w-0 h-full"
                     >
                       <div class="relative z-10 p-3 h-full min-h-0 flex flex-col gap-2">
                         <h3 class="text-sm font-semibold text-[#90cba4]">
@@ -485,7 +487,7 @@
                       </div>
                     </div>
                     <div
-                      class="glass-panel relative rounded-2xl overflow-hidden border border-[#22492f] min-h-0 h-full"
+                      class="glass-panel relative rounded-2xl overflow-hidden border border-[#22492f] min-h-0 min-w-0 h-full"
                     >
                       <div class="relative z-10 p-3 h-full min-h-0 flex flex-col gap-2">
                         <h3 class="text-sm font-semibold text-[#90cba4]">
@@ -497,7 +499,9 @@
                           <div
                             class="p-3 border-b border-[#2e573a] bg-[#1a3322] space-y-2"
                           >
-                            <div class="flex items-center justify-between gap-2">
+                            <div
+                              class="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between"
+                            >
                               <div class="flex items-center gap-2 min-w-0">
                                 <span
                                   class="material-symbols-outlined text-primary text-[16px]"
@@ -512,7 +516,9 @@
                                   >Select service</span
                                 >
                               </div>
-                              <div class="flex items-center gap-1.5">
+                              <div
+                                class="flex w-full flex-wrap items-center gap-1.5 sm:w-auto sm:justify-end"
+                              >
                                 <button
                                   id="globalToggleLive"
                                   data-action="toggle-global-live"
@@ -538,7 +544,7 @@
                           <div class="flex-1 min-h-0 overflow-y-auto p-3 custom-scrollbar">
                             <pre
                               id="globalLogOutput"
-                              class="m-0 font-mono whitespace-pre-wrap text-[11px] text-slate-300"
+                              class="m-0 font-mono whitespace-pre-wrap break-words text-[11px] text-slate-300"
                             >Select a global service to view logs.</pre>
                           </div>
                         </div>
