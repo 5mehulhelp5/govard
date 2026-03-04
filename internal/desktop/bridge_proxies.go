@@ -77,6 +77,10 @@ func (app *App) RestartEnvironment(project string) (string, error) {
 	return app.Environment.RestartEnvironment(project)
 }
 
+func (app *App) PullEnvironment(project string) (string, error) {
+	return app.Environment.PullEnvironment(project)
+}
+
 func (app *App) ToggleEnvironment(project string) (string, error) {
 	return app.Environment.ToggleEnvironment(project)
 }

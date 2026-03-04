@@ -470,7 +470,6 @@ govard open mail             # Mailpit target
 ### Database Admin
 
 ```bash
-govard open pma              # PHPMyAdmin target
 govard open db               # Generic DB target (opens PMA or Client according to Settings)
 govard open db --pma         # Force open local PHPMyAdmin
 govard open db --client      # Force open local Desktop Client (Beekeeper Studio)
@@ -479,7 +478,6 @@ govard open db -e staging    # Remote DB via SSH tunnel
 
 Notes:
 
-- `open pma` is local-only (`https://pma.govard.test`).
 - Use `open db -e <remote>` for remote DB access.
 
 ## Configuration Commands

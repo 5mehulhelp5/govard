@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/pflag"
 )
 
-const openSupportedTargets = "admin, db, mail, mftf, pma, portainer, shell, sftp, elasticsearch, opensearch"
+const openSupportedTargets = "admin, db, mail, mftf, portainer, shell, sftp, elasticsearch, opensearch"
 
 var openEnvironment string
 var openPma bool
@@ -22,7 +22,7 @@ Supported targets: admin, db (PMA/DB Client), mail (Mailpit), portainer, sftp, e
 
 Targets:
 - admin: The web application's admin panel.
-- db/pma: PHPMyAdmin (local) or local DB client (remote).
+- db: PHPMyAdmin (local) or local DB client (remote).
 - mail: Mailpit web UI for inspecting outgoing emails.
 - sftp: SFTP connection details (remote).
 - elasticsearch/opensearch: Search engine endpoint info.
@@ -40,9 +40,6 @@ Case Studies:
   # Open the staging admin panel
   govard open admin --environment staging
 
-  # View local PHPMyAdmin
-  govard open pma
-  
   # Open local database in Desktop Client
   govard open db --client
   
@@ -66,8 +63,6 @@ Case Studies:
 			return runOpenMailTarget(config, openEnvironment)
 		case "mftf":
 			return runOpenMFTFTarget(config, openEnvironment)
-		case "pma":
-			return runOpenPMATarget(config, openEnvironment)
 		case "portainer":
 			return runOpenPortainerTarget(config, openEnvironment)
 		case "shell":

@@ -132,20 +132,6 @@ func runOpenMFTFTarget(config engine.Config, requestedEnvironment string) error 
 	return openURL(url)
 }
 
-func runOpenPMATarget(config engine.Config, requestedEnvironment string) error {
-	_, isRemote, err := resolveOpenDBEnvironment(config, requestedEnvironment)
-	if err != nil {
-		return err
-	}
-	if isRemote {
-		return fmt.Errorf("open pma is local-only; use `govard open db -e <remote>` for remote DB access")
-	}
-
-	url := "https://pma.govard.test"
-	pterm.Info.Printf("Opening %s\n", url)
-	return openURL(url)
-}
-
 func runOpenPortainerTarget(config engine.Config, requestedEnvironment string) error {
 	_, isRemote, err := resolveOpenEnvironment(config, requestedEnvironment)
 	if err != nil {

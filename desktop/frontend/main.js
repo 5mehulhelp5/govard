@@ -151,6 +151,7 @@ const getLiveRefs = () => ({
   projectTechnologies: byId("projectTechnologies"),
   heroRestartBtn: byId("heroRestartBtn"),
   heroStopBtn: byId("heroStopBtn"),
+  heroPullBtn: byId("heroPullBtn"),
   footerVersion: byId("footerVersion"),
   footerCPU: byId("footerCPU"),
   footerMemory: byId("footerMemory"),

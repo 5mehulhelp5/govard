@@ -266,7 +266,6 @@ func TestOpenAndShortcutBrowserCommands(t *testing.T) {
 		{"open", "elasticsearch"},
 		{"open", "opensearch"},
 		{"open", "mail"},
-		{"open", "pma"},
 	}
 
 	for _, args := range commands {
@@ -284,7 +283,8 @@ func TestOpenAndShortcutBrowserCommands(t *testing.T) {
 
 	logs := shim.ReadLog(t)
 	assertContains(t, logs, "xdg-open|https://m2-clone-basic.test/admin")
-	assertContains(t, logs, "xdg-open|https://pma.govard.test/?db=m2-clone-basic")
+	assertContains(t, logs, "project=m2-clone-basic")
+	assertContains(t, logs, "db=magento")
 	assertContains(t, logs, "xdg-open|mysql://magento:magento@127.0.0.1:3306/magento")
 	assertContains(t, logs, "xdg-open|https://elasticsearch.govard.test")
 	assertContains(t, logs, "xdg-open|https://opensearch.govard.test")
@@ -304,7 +304,8 @@ func TestOpenDBEnvironmentSelection(t *testing.T) {
 	localResult.AssertSuccess(t)
 
 	logs := shim.ReadLog(t)
-	assertContains(t, logs, "xdg-open|https://pma.govard.test/?db=m2-clone-basic")
+	assertContains(t, logs, "project=m2-clone-basic")
+	assertContains(t, logs, "db=magento")
 	if strings.Contains(logs, "ssh|") {
 		t.Fatalf("did not expect ssh tunnel for local db open, got logs:\n%s", logs)
 	}
@@ -324,7 +325,8 @@ func TestOpenDBEnvironmentSelection(t *testing.T) {
 	defaultResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "open", "db")
 	defaultResult.AssertSuccess(t)
 	defaultLogs := shim.ReadLog(t)
-	assertContains(t, defaultLogs, "xdg-open|https://pma.govard.test/?db=m2-clone-basic")
+	assertContains(t, defaultLogs, "project=m2-clone-basic")
+	assertContains(t, defaultLogs, "db=magento")
 	if strings.Contains(defaultLogs, "ssh|") {
 		t.Fatalf("did not expect ssh tunnel when open db uses default local env, got logs:\n%s", defaultLogs)
 	}

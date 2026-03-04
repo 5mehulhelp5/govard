@@ -346,6 +346,28 @@ test("project hero uses Start action when environment is not running", async () 
     true,
     "project hero should use play icon for stopped environments",
   );
+  assert.equal(
+    dashboardJS.includes("refs.heroPullBtn.dataset.env = selectedProject;"),
+    true,
+    "project hero should bind pull action to selected environment",
+  );
+});
+
+test("project hero exposes pull button contract", async () => {
+  const html = await readFile(
+    new URL("../../desktop/frontend/index.html", import.meta.url),
+    "utf8",
+  );
+  assert.equal(
+    html.includes('id="heroPullBtn"'),
+    true,
+    "missing hero pull button",
+  );
+  assert.equal(
+    html.includes('data-action="env-pull"'),
+    true,
+    "hero pull button should trigger env-pull action",
+  );
 });
 
 test("localEnvironmentURL resolves local domain to HTTPS URL", () => {

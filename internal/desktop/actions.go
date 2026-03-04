@@ -26,6 +26,15 @@ import (
 var defaultOpenExternalURLForDesktop = browser.OpenURL
 var openExternalURLForDesktop = defaultOpenExternalURLForDesktop
 
+var defaultRunEnvironmentComposeForDesktop = func(dir string, args []string) error {
+	cmd := exec.Command("docker", args...)
+	cmd.Dir = filepath.Clean(dir)
+	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
+	return cmd.Run()
+}
+
+var runEnvironmentComposeForDesktop = defaultRunEnvironmentComposeForDesktop
+
 func quickAction(ctx context.Context, action string, project string) (string, error) {
 	switch action {
 	case "open-mail", "open-mail-client":
@@ -58,10 +67,7 @@ func openDBClient(ctx context.Context, project string) (string, error) {
 	}
 
 	settings, err := getSettingsInternal()
-	if err == nil && settings.DBClientPreference == "pma" {
-		target := buildProxyURL("pma") + "/?db=" + neturl.QueryEscape(normalizedProject)
-		return openDestination(ctx, target, "Opening PHPMyAdmin...")
-	}
+	preferPMA := err == nil && settings.DBClientPreference == "pma"
 
 	info, err := loadProjectInfo(normalizedProject)
 	if err != nil {
@@ -114,6 +120,11 @@ func openDBClient(ctx context.Context, project string) (string, error) {
 		}
 	}
 
+	if preferPMA {
+		target := buildPMAOpenURL(containerProjectName, db)
+		return openDestination(ctx, target, "Opening PHPMyAdmin...")
+	}
+
 	scheme := "mysql"
 	internalPort := "3306"
 	if info.configLoaded {
@@ -152,7 +163,7 @@ func openDBClient(ctx context.Context, project string) (string, error) {
 
 	urlStr := buildDesktopDBClientURL(scheme, user, pass, host, port, db)
 	if err := openExternalURLForDesktop(urlStr); err != nil {
-		fallbackTarget := buildProxyURL("pma") + "/?db=" + neturl.QueryEscape(db)
+		fallbackTarget := buildPMAOpenURL(containerProjectName, db)
 		if _, fallbackErr := openDestination(
 			ctx,
 			fallbackTarget,
@@ -164,6 +175,25 @@ func openDBClient(ctx context.Context, project string) (string, error) {
 	}
 
 	return "Opening DB Client...", nil
+}
+
+func buildPMAOpenURL(project string, database string) string {
+	target := buildProxyURL("pma")
+	params := neturl.Values{}
+
+	if normalizedProject := strings.TrimSpace(project); normalizedProject != "" {
+		params.Set("project", normalizedProject)
+	}
+
+	if normalizedDatabase := strings.TrimSpace(database); normalizedDatabase != "" {
+		params.Set("db", normalizedDatabase)
+	}
+
+	encoded := params.Encode()
+	if encoded == "" {
+		return target
+	}
+	return target + "/?" + encoded
 }
 
 func parseDockerPublishedPort(raw string) (string, string, bool) {
@@ -390,7 +420,7 @@ func toggleXdebug(project string) (string, error) {
 	}
 
 	composePath := engine.ComposeFilePath(info.workingDir, config.ProjectName)
-	if err := runCompose(info.workingDir, config.ProjectName, composePath); err != nil {
+	if err := runCompose(info.workingDir, config.ProjectName, composePath, false); err != nil {
 		return "", err
 	}
 
@@ -427,10 +457,16 @@ func startEnvironment(project string) (string, error) {
 			}
 		}
 
-		if runErr := runCompose(info.workingDir, config.ProjectName, composePath); runErr != nil {
+		if runErr := runCompose(info.workingDir, config.ProjectName, composePath, true); runErr != nil {
 			return "", runErr
 		}
 		return "Started environment " + info.name, nil
+	}
+
+	// If Docker labels do not include config metadata, try resolving the project
+	// root from registry/path and reconcile through compose before container-level start.
+	if message, resolveErr := startEnvironmentFromConfig(info.name); resolveErr == nil {
+		return message, nil
 	}
 
 	ctx := context.Background()
@@ -484,10 +520,78 @@ func startEnvironmentFromConfig(project string) (string, error) {
 		}
 	}
 
-	if err := runCompose(root, config.ProjectName, composePath); err != nil {
+	if err := runCompose(root, config.ProjectName, composePath, true); err != nil {
 		return "", err
 	}
 	return "Started environment " + config.ProjectName, nil
+}
+
+func pullEnvironment(project string) (string, error) {
+	info, err := loadProjectInfo(project)
+	if err != nil {
+		if isNoContainersError(err) {
+			return pullEnvironmentFromConfig(project)
+		}
+		return "", err
+	}
+
+	if info.configLoaded && strings.TrimSpace(info.workingDir) != "" {
+		config := info.config
+		if strings.TrimSpace(config.ProjectName) == "" {
+			config.ProjectName = info.name
+		}
+		engine.NormalizeConfig(&config)
+
+		composePath := engine.ComposeFilePath(info.workingDir, config.ProjectName)
+		if _, statErr := os.Stat(composePath); statErr != nil {
+			if !os.IsNotExist(statErr) {
+				return "", fmt.Errorf("inspect compose file: %w", statErr)
+			}
+			if renderErr := engine.RenderBlueprint(info.workingDir, config); renderErr != nil {
+				return "", fmt.Errorf("render compose blueprint: %w", renderErr)
+			}
+		}
+
+		if runErr := runComposePull(info.workingDir, config.ProjectName, composePath); runErr != nil {
+			return "", runErr
+		}
+		return "Pulled images for environment " + info.name, nil
+	}
+
+	return pullEnvironmentFromConfig(project)
+}
+
+func pullEnvironmentFromConfig(project string) (string, error) {
+	root, err := resolveProjectRootForRemotes(project)
+	if err != nil {
+		return "", err
+	}
+
+	info, err := loadProjectInfoFromPath(root)
+	if err != nil {
+		return "", err
+	}
+
+	config := info.config
+	if strings.TrimSpace(config.ProjectName) == "" {
+		config.ProjectName = filepath.Base(root)
+	}
+	engine.NormalizeConfig(&config)
+
+	composePath := engine.ComposeFilePath(root, config.ProjectName)
+	if _, err := os.Stat(composePath); err != nil {
+		if !os.IsNotExist(err) {
+			return "", fmt.Errorf("inspect compose file: %w", err)
+		}
+		if err := engine.RenderBlueprint(root, config); err != nil {
+			return "", fmt.Errorf("render compose blueprint: %w", err)
+		}
+	}
+
+	if err := runComposePull(root, config.ProjectName, composePath); err != nil {
+		return "", err
+	}
+	return "Pulled images for environment " + config.ProjectName, nil
 }
 
 func isNoContainersError(err error) bool {
@@ -569,7 +673,7 @@ func selectProject(project string) (*projectInfo, error) {
 	return loadProjectInfo(selected)
 }
 
-func runCompose(dir, project, composeFile string) error {
+func runCompose(dir, project, composeFile string, removeOrphans bool) error {
 	args := []string{"compose", "--project-directory", filepath.Clean(dir)}
 	if project != "" {
 		args = append(args, "-p", project)
@@ -578,11 +682,24 @@ func runCompose(dir, project, composeFile string) error {
 		args = append(args, "-f", composeFile)
 	}
 	args = append(args, "up", "-d")
+	if removeOrphans {
+		args = append(args, "--remove-orphans")
+	}
 
-	cmd := exec.Command("docker", args...)
-	cmd.Dir = filepath.Clean(dir)
-	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
-	return cmd.Run()
+	return runEnvironmentComposeForDesktop(dir, args)
+}
+
+func runComposePull(dir, project, composeFile string) error {
+	args := []string{"compose", "--project-directory", filepath.Clean(dir)}
+	if project != "" {
+		args = append(args, "-p", project)
+	}
+	if composeFile != "" {
+		args = append(args, "-f", composeFile)
+	}
+	args = append(args, "pull")
+
+	return runEnvironmentComposeForDesktop(dir, args)
 }
 
 func openDestination(ctx context.Context, url string, message string) (string, error) {

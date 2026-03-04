@@ -15,7 +15,7 @@ func TestOpenTargets(t *testing.T) {
 
 	// We test targets that are expected to print a URL and then try to open it.
 	// Even if opening fails (no browser), we can check the output for the URL.
-	targets := []string{"admin", "mail", "pma", "sftp", "elasticsearch", "opensearch"}
+	targets := []string{"admin", "mail", "sftp", "elasticsearch", "opensearch"}
 
 	for _, target := range targets {
 		t.Run(target, func(t *testing.T) {
@@ -28,9 +28,6 @@ func TestOpenTargets(t *testing.T) {
 			case "mail":
 				result.AssertOutputContains(t, "Opening")
 				result.AssertOutputContains(t, "mail.govard.test")
-			case "pma":
-				result.AssertOutputContains(t, "Opening")
-				result.AssertOutputContains(t, "pma.govard.test")
 			case "sftp":
 				// sftp requires a remote environment by default if no local sftp configured
 				// Actually open_targets.go says "SFTP is not supported for local target"

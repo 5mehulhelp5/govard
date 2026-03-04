@@ -195,6 +195,10 @@ export const desktopBridge = {
     const bridge = getBridge();
     return call(bridge?.RestartEnvironment?.bind(bridge), project);
   },
+  async pullEnvironment(project) {
+    const bridge = getBridge();
+    return call(bridge?.PullEnvironment?.bind(bridge), project);
+  },
   async toggleEnvironment(project) {
     const bridge = getBridge();
     return call(bridge?.ToggleEnvironment?.bind(bridge), project);

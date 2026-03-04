@@ -649,6 +649,10 @@ export const renderProjectHero = (
       ? "h-12 w-12 bg-[#13261a] text-slate-500 border border-[#2e573a] rounded-lg transition-all flex items-center justify-center cursor-not-allowed opacity-70"
       : "h-12 w-12 bg-red-600 text-white border border-red-500 rounded-lg hover:bg-red-500 transition-all active:scale-95 flex items-center justify-center shadow-lg shadow-red-500/20";
   }
+  if (refs.heroPullBtn) {
+    refs.heroPullBtn.dataset.env = selectedProject;
+    refs.heroPullBtn.title = "Pull Images";
+  }
 
   if (refs.envVarsList) {
     renderEnvVars(refs.envVarsList, env);

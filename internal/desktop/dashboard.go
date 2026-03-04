@@ -247,6 +247,10 @@ func (s *EnvironmentService) RestartEnvironment(project string) (string, error) 
 	return restartEnvironment(project)
 }
 
+func (s *EnvironmentService) PullEnvironment(project string) (string, error) {
+	return pullEnvironment(project)
+}
+
 func (s *EnvironmentService) ToggleEnvironment(project string) (string, error) {
 	return toggleEnvironment(project)
 }

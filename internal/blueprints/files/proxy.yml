@@ -33,6 +33,7 @@ services:
     volumes:
       - ./config.user.inc.php:/etc/phpmyadmin/config.user.inc.php:ro
       - ../projects.json:/tmp/projects.json:ro
+      - ../active-projects.json:/tmp/active-projects.json:ro
     networks:
       - govard-proxy
 

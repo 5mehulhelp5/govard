@@ -48,17 +48,12 @@ framework: laravel
 		t.Fatalf("open db --pma failed: %v", err)
 	}
 
-	root.SetArgs([]string{"open", "pma"})
-	if err := root.Execute(); err != nil {
-		t.Fatalf("open pma failed: %v", err)
-	}
-
 	logs := readRuntimeLog(t, logPath)
 	if !strings.Contains(logs, "https://sample.test/admin") {
 		t.Fatalf("missing admin URL in opener log:\n%s", logs)
 	}
-	if !strings.Contains(logs, "https://pma.govard.test/?db=sample-project") {
-		t.Fatalf("missing db pma URL in opener log:\n%s", logs)
+	if !strings.Contains(logs, "project=sample-project") || !strings.Contains(logs, "db=magento") {
+		t.Fatalf("missing db/project params in PMA URL in opener log:\n%s", logs)
 	}
 }
 

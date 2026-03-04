@@ -39,12 +39,14 @@ func runOpenDBTarget(config engine.Config, requestedEnvironment string, pmaFlag 
 	}
 
 	if !isRemote {
+		containerName := dbContainerName(config)
+
 		if usePma {
-			url := "https://pma.govard.test/?db=" + config.ProjectName
-			pterm.Info.Printf("Opening %s\n", url)
-			return openURL(url)
+			credentials := resolveLocalDBCredentials(containerName)
+			target := buildOpenDBPMAURL(config.ProjectName, credentials.Database)
+			pterm.Info.Printf("Opening %s\n", target)
+			return openURL(target)
 		} else {
-			containerName := dbContainerName(config)
 			if err := ensureLocalDBRunning(containerName); err != nil {
 				return err
 			}
@@ -169,6 +171,25 @@ func buildOpenDBConnectionURL(credentials dbCredentials, localPort int) string {
 		connectionURL.User = url.UserPassword(credentials.Username, credentials.Password)
 	}
 	return connectionURL.String()
+}
+
+func buildOpenDBPMAURL(project string, database string) string {
+	baseURL := "https://pma.govard.test"
+	values := url.Values{}
+
+	if normalizedProject := strings.TrimSpace(project); normalizedProject != "" {
+		values.Set("project", normalizedProject)
+	}
+
+	if normalizedDatabase := strings.TrimSpace(database); normalizedDatabase != "" {
+		values.Set("db", normalizedDatabase)
+	}
+
+	if len(values) == 0 {
+		return baseURL
+	}
+
+	return baseURL + "/?" + values.Encode()
 }
 
 func findAvailableLocalPort(startPort int) (int, error) {

@@ -29,6 +29,7 @@ func ResetStateForTest() {
 	validateGitConnectionForDesktop = defaultValidateGitConnectionForDesktop
 	cloneGitRepoForDesktop = defaultCloneGitRepoForDesktop
 	openExternalURLForDesktop = defaultOpenExternalURLForDesktop
+	runEnvironmentComposeForDesktop = defaultRunEnvironmentComposeForDesktop
 	runGlobalServicesComposeForDesktop = defaultRunGlobalServicesComposeForDesktop
 	ensureGlobalServicesForDesktop = defaultEnsureGlobalServicesForDesktop
 	waitForGlobalProxyReadyForDesktop = defaultWaitForGlobalProxyReadyForDesktop
@@ -88,9 +89,24 @@ func BuildDesktopDBClientURLForTest(
 	return buildDesktopDBClientURL(scheme, user, pass, host, port, db)
 }
 
+// BuildPMAOpenURLForTest exposes PMA deep-link formatting for tests.
+func BuildPMAOpenURLForTest(project string, database string) string {
+	return buildPMAOpenURL(project, database)
+}
+
 // ParseContainerIPAddressesForTest exposes container IP list parsing for tests.
 func ParseContainerIPAddressesForTest(raw string) []string {
 	return parseContainerIPAddresses(raw)
+}
+
+// RunComposeForTest exposes desktop compose-up execution wiring for tests.
+func RunComposeForTest(dir, project, composeFile string, removeOrphans bool) error {
+	return runCompose(dir, project, composeFile, removeOrphans)
+}
+
+// RunComposePullForTest exposes desktop compose-pull execution wiring for tests.
+func RunComposePullForTest(dir, project, composeFile string) error {
+	return runComposePull(dir, project, composeFile)
 }
 
 type testTerminalPTY struct {
@@ -494,6 +510,19 @@ func SetRunGlobalServicesComposeForDesktopForTest(fn func(args ...string) (strin
 	}
 	return func() {
 		runGlobalServicesComposeForDesktop = previous
+	}
+}
+
+// SetRunEnvironmentComposeForDesktopForTest overrides project compose execution for desktop environment actions.
+func SetRunEnvironmentComposeForDesktopForTest(fn func(dir string, args []string) error) func() {
+	previous := runEnvironmentComposeForDesktop
+	if fn == nil {
+		runEnvironmentComposeForDesktop = defaultRunEnvironmentComposeForDesktop
+	} else {
+		runEnvironmentComposeForDesktop = fn
+	}
+	return func() {
+		runEnvironmentComposeForDesktop = previous
 	}
 }
 

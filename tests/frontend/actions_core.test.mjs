@@ -28,4 +28,14 @@ test("environment actions wire loading toast lifecycle", async () => {
     true,
     "actions controller should close loading toast on failure",
   );
+  assert.equal(
+    actionsJS.includes('if (action === "env-pull") {'),
+    true,
+    "actions controller should handle env-pull action",
+  );
+  assert.equal(
+    actionsJS.includes("bridge.pullEnvironment"),
+    true,
+    "actions controller should call desktop pullEnvironment bridge",
+  );
 });

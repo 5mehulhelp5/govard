@@ -88,6 +88,15 @@ export const createActionsController = ({
       );
       return;
     }
+    if (action === "env-pull") {
+      await runEnvironmentAction(
+        bridge.pullEnvironment,
+        project,
+        `Pulled images for ${project}`,
+        `Pulling images for ${project}...`,
+      );
+      return;
+    }
     if (action === "env-open") {
       await runEnvironmentAction(
         bridge.openEnvironment,

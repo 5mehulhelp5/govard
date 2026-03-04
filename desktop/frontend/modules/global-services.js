@@ -38,6 +38,65 @@ const BULK_STOP_DISABLED_CLASS =
   "h-10 min-w-[118px] px-3 bg-[#2b1414] text-red-300/60 border border-red-900/40 rounded-xl text-xs font-bold uppercase tracking-[0.08em] transition-all inline-flex items-center justify-center gap-1.5 whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed";
 const BULK_PULL_CLASS =
   "h-10 min-w-[118px] px-3 bg-[#22492f] text-white border border-[#366b47] rounded-xl text-xs font-bold uppercase tracking-[0.08em] hover:bg-[#2e573a] transition-all active:scale-95 inline-flex items-center justify-center gap-1.5 shadow-[0_8px_20px_rgba(34,73,47,0.35)] ring-1 ring-[#3e7d53]/40 whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100";
+const BULK_ERROR_MESSAGE_MAX_LENGTH = 180;
+
+const collapseWhitespace = (value = "") =>
+  String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const pickBulkErrorDetail = (rawError = "") => {
+  const normalized = String(rawError || "").replace(/\r/g, "\n");
+  const portMatch = normalized.match(
+    /bind for [^:]+:(\d+)\s+failed:\s*port is already allocated/i,
+  );
+  if (portMatch?.[1]) {
+    return `port ${portMatch[1]} is already in use`;
+  }
+  if (/port is already allocated/i.test(normalized)) {
+    return "a required port is already in use";
+  }
+
+  const lines = normalized
+    .split("\n")
+    .map((line) => collapseWhitespace(line))
+    .filter(Boolean);
+  if (!lines.length) {
+    return "";
+  }
+
+  const preferredLine = [...lines]
+    .reverse()
+    .find((line) =>
+      /(error|failed|denied|cannot|unable|conflict|timeout|refused|already|not found)/i.test(
+        line,
+      ),
+    );
+
+  const rawDetail = preferredLine || lines[lines.length - 1];
+  return collapseWhitespace(
+    rawDetail
+      .replace(/^error response from daemon:\s*/i, "")
+      .replace(/^[a-z]+\s+global services:\s*/i, "")
+      .replace(/^exit status \d+:\s*/i, ""),
+  );
+};
+
+const formatBulkGlobalActionError = (action, err) => {
+  const actionLabel = collapseWhitespace(action).toLowerCase() || "operation";
+  const prefix = `Global ${actionLabel} failed`;
+  const rawError = err instanceof Error ? err.message : String(err || "");
+  const detail = pickBulkErrorDetail(rawError);
+
+  let message = detail ? `${prefix}: ${detail}` : `${prefix}.`;
+  if (message.length > BULK_ERROR_MESSAGE_MAX_LENGTH) {
+    message = `${message.slice(0, BULK_ERROR_MESSAGE_MAX_LENGTH - 3).trimEnd()}...`;
+  }
+  return message;
+};
+
+export const formatBulkGlobalActionErrorForTest = (action, err) =>
+  formatBulkGlobalActionError(action, err);
 
 const isServiceActive = (service = {}) =>
   ACTIVE_STATUSES.has(String(service.status || "").trim().toLowerCase()) ||
@@ -1101,9 +1160,10 @@ export const createGlobalServicesController = ({
           setActionFeedback(compactMessage, "success");
         }
       } catch (err) {
+        const compactError = formatBulkGlobalActionError(action, err);
         onStatus(`Global ${action} failed: ${err}`);
-        onToast(`Global ${action} failed: ${err}`, "error");
-        setActionFeedback(`Global ${action} failed: ${err}`, "error");
+        onToast(compactError, "error");
+        setActionFeedback(compactError, "error");
       }
     });
   };

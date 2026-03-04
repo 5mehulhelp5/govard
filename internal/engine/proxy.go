@@ -2,11 +2,13 @@ package engine
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -72,42 +74,13 @@ func EnsureGlobalProxy() error {
 		return err
 	}
 
-	pmaConfigContent := `<?php
-$projectsJson = @file_get_contents('/tmp/projects.json');
-$dbMap = [
-    'magento1' => 'magento',
-    'magento2' => 'magento',
-    'laravel' => 'laravel',
-    'symfony' => 'symfony',
-    'shopware' => 'shopware',
-    'wordpress' => 'wordpress',
-    'drupal' => 'drupal',
-    'cakephp' => 'cakephp',
-    'openmage' => 'openmage'
-];
+	activeProjectsPath := filepath.Join(tempDir, "..", "active-projects.json")
+	activeProjects := activeProjectNamesFromContainers(containers)
+	if err := writePMAActiveProjectsFile(activeProjectsPath, activeProjects); err != nil {
+		return err
+	}
 
-if ($projectsJson) {
-    $projects = json_decode($projectsJson, true);
-    if (isset($projects['projects']) && is_array($projects['projects'])) {
-        $i = 1;
-        foreach ($projects['projects'] as $p) {
-            $name = isset($p['project_name']) ? $p['project_name'] : '';
-            $framework = isset($p['framework']) ? $p['framework'] : '';
-            if ($name) {
-                $dbHost = $name . '-db-1';
-                $dbName = isset($dbMap[$framework]) ? $dbMap[$framework] : 'app';
-                
-                $cfg['Servers'][$i]['host'] = $dbHost;
-                $cfg['Servers'][$i]['verbose'] = $name;
-                $cfg['Servers'][$i]['auth_type'] = 'config';
-                $cfg['Servers'][$i]['user'] = $dbName;
-                $cfg['Servers'][$i]['password'] = $dbName;
-                $i++;
-            }
-        }
-    }
-}
-`
+	pmaConfigContent := buildPMAConfigContent()
 	if err := os.WriteFile(filepath.Join(tempDir, "config.user.inc.php"), []byte(pmaConfigContent), 0644); err != nil {
 		return err
 	}
@@ -168,4 +141,169 @@ func waitForAnyContainerRunning(ctx context.Context, names []string, timeout tim
 		case <-time.After(250 * time.Millisecond):
 		}
 	}
+}
+
+type pmaActiveProjectsDocument struct {
+	Projects []string `json:"projects"`
+}
+
+func writePMAActiveProjectsFile(path string, projects []string) error {
+	payload := pmaActiveProjectsDocument{Projects: projects}
+	data, err := json.MarshalIndent(payload, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshal PMA active projects: %w", err)
+	}
+	data = append(data, '\n')
+	if err := os.WriteFile(path, data, 0644); err != nil {
+		return fmt.Errorf("write PMA active projects file: %w", err)
+	}
+	return nil
+}
+
+func activeProjectNamesFromContainers(containers []container.Summary) []string {
+	seen := map[string]bool{}
+	for _, c := range containers {
+		projectName, serviceName := extractComposeProjectAndServiceFromContainer(c)
+		if projectName == "" || serviceName != "db" {
+			continue
+		}
+		if c.State != "running" {
+			continue
+		}
+		if projectName == "proxy" || projectName == "warden" {
+			continue
+		}
+		seen[projectName] = true
+	}
+
+	names := make([]string, 0, len(seen))
+	for name := range seen {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
+
+func extractComposeProjectAndServiceFromContainer(c container.Summary) (string, string) {
+	project := strings.TrimSpace(c.Labels["com.docker.compose.project"])
+	service := strings.TrimSpace(c.Labels["com.docker.compose.service"])
+	if project != "" {
+		return project, service
+	}
+
+	for _, name := range c.Names {
+		clean := strings.TrimPrefix(strings.TrimSpace(name), "/")
+		parts := strings.Split(clean, "-")
+		if len(parts) >= 3 {
+			project = strings.Join(parts[:len(parts)-2], "-")
+			service = parts[len(parts)-2]
+			return project, service
+		}
+	}
+
+	return "", ""
+}
+
+func buildPMAConfigContent() string {
+	return `<?php
+$projectsJson = @file_get_contents('/tmp/projects.json');
+$activeProjectsJson = @file_get_contents('/tmp/active-projects.json');
+
+$dbMap = [
+    'magento1' => 'magento',
+    'magento2' => 'magento',
+    'laravel' => 'laravel',
+    'symfony' => 'symfony',
+    'shopware' => 'shopware',
+    'wordpress' => 'wordpress',
+    'drupal' => 'drupal',
+    'cakephp' => 'cakephp',
+    'openmage' => 'openmage'
+];
+
+$activeProjects = [];
+if ($activeProjectsJson) {
+    $activePayload = json_decode($activeProjectsJson, true);
+    if (isset($activePayload['projects']) && is_array($activePayload['projects'])) {
+        foreach ($activePayload['projects'] as $projectName) {
+            if (is_string($projectName)) {
+                $trimmed = trim($projectName);
+                if ($trimmed !== '') {
+                    $activeProjects[$trimmed] = true;
+                }
+            }
+        }
+    }
+}
+
+$projectToServer = [];
+$projectToDatabase = [];
+
+if ($projectsJson) {
+    $projects = json_decode($projectsJson, true);
+    if (isset($projects['projects']) && is_array($projects['projects'])) {
+        $i = 1;
+        foreach ($projects['projects'] as $project) {
+            $name = isset($project['project_name']) ? trim((string)$project['project_name']) : '';
+            if ($name === '' || !isset($activeProjects[$name])) {
+                continue;
+            }
+
+            $framework = isset($project['framework']) ? strtolower(trim((string)$project['framework'])) : '';
+            $databaseName = isset($dbMap[$framework]) ? $dbMap[$framework] : 'app';
+            $dbHost = $name . '-db-1';
+
+            $cfg['Servers'][$i]['host'] = $dbHost;
+            $cfg['Servers'][$i]['verbose'] = $name;
+            $cfg['Servers'][$i]['auth_type'] = 'config';
+            $cfg['Servers'][$i]['user'] = $databaseName;
+            $cfg['Servers'][$i]['password'] = $databaseName;
+
+            $projectToServer[$name] = $i;
+            $projectToDatabase[$name] = $databaseName;
+            $i++;
+        }
+    }
+}
+
+$selectedProject = '';
+if (isset($_GET['project']) && is_string($_GET['project'])) {
+    $selectedProject = trim($_GET['project']);
+}
+
+// Backward compatibility for legacy links that passed ?db=<project_name>.
+if ($selectedProject === '' && isset($_GET['db']) && is_string($_GET['db'])) {
+    $legacy = trim($_GET['db']);
+    if (isset($projectToServer[$legacy])) {
+        $selectedProject = $legacy;
+    }
+}
+
+if ($selectedProject !== '' && isset($projectToServer[$selectedProject])) {
+    $serverIndex = (string)$projectToServer[$selectedProject];
+    $_GET['server'] = $serverIndex;
+    $_REQUEST['server'] = $serverIndex;
+
+    $shouldSetDatabase = !isset($_GET['db']) || !is_string($_GET['db']) || trim($_GET['db']) === '';
+    if (!$shouldSetDatabase && isset($projectToServer[trim($_GET['db'])])) {
+        $shouldSetDatabase = true;
+    }
+
+    if ($shouldSetDatabase && isset($projectToDatabase[$selectedProject])) {
+        $database = (string)$projectToDatabase[$selectedProject];
+        if ($database !== '') {
+            $_GET['db'] = $database;
+            $_REQUEST['db'] = $database;
+        }
+    }
+}
+`
+}
+
+func ActiveProjectNamesFromContainersForTest(containers []container.Summary) []string {
+	return activeProjectNamesFromContainers(containers)
+}
+
+func BuildPMAConfigContentForTest() string {
+	return buildPMAConfigContent()
 }
