@@ -24,7 +24,7 @@ func (app *App) GetUserInfo() (UserInfo, error) {
 	return res, nil
 }
 
-var Version = "1.16.1"
+var Version = "1.17.0"
 
 type App struct {
 	ctx context.Context

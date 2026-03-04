@@ -52,13 +52,13 @@ func TestDesktopCheckForUpdatesUpToDate(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"tag_name":"v1.16.1"}`))
+		_, _ = w.Write([]byte(`{"tag_name":"v1.1.1"}`))
 	}))
 	defer server.Close()
 
 	t.Setenv("GOVARD_UPDATE_CHECK_URL", server.URL)
 	previousVersion := desktop.Version
-	desktop.Version = "1.16.1"
+	desktop.Version = "1.1.1"
 	t.Cleanup(func() {
 		desktop.Version = previousVersion
 	})
