@@ -15,12 +15,12 @@ const banner = `
 `
 
 func PrintBrand(version string) {
-	header := pterm.DefaultHeader.WithFullWidth().
-		WithBackgroundStyle(pterm.NewStyle(pterm.BgBlue)).
-		WithTextStyle(pterm.NewStyle(pterm.FgWhite))
-	header.Println("Go-based Versatile Runtime & Development")
+	logoStyle := pterm.NewStyle(pterm.FgLightBlue)
+	taglineStyle := pterm.NewStyle(pterm.Bold)
+	versionStyle := pterm.NewStyle(pterm.FgLightBlue)
 
-	fmt.Println(pterm.Blue(banner))
-	pterm.Info.Printf("Govard Version: v%s\n", version)
-	fmt.Println("========================================")
+	fmt.Println(logoStyle.Sprint(banner))
+	fmt.Println(taglineStyle.Sprint("Go-based Versatile Runtime & Development"))
+	fmt.Println(taglineStyle.Sprint("========================================"))
+	fmt.Println(versionStyle.Sprint(fmt.Sprintf("v%s", version)))
 }

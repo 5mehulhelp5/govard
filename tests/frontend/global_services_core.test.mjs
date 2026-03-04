@@ -5,6 +5,7 @@ import {
   buildRoutingWarningMessage,
   normalizeGlobalServicesSnapshot,
   renderGlobalServices,
+  summarizeActionMessage,
 } from "../../desktop/frontend/modules/global-services.js";
 
 test("normalizeGlobalServicesSnapshot keeps DNSMasq directly below Caddy", () => {
@@ -112,4 +113,19 @@ test("buildRoutingWarningMessage warns when services look running but bindings a
     message.includes("is running but govard-proxy-caddy is not published on host"),
     false,
   );
+});
+
+test("summarizeActionMessage keeps only the first line from multiline command output", () => {
+  const message = summarizeActionMessage(
+    "Global services restarted.\nContainer govard-proxy-caddy Started\nContainer govard-proxy-pma Started",
+    "fallback",
+  );
+
+  assert.equal(message, "Global services restarted.");
+});
+
+test("summarizeActionMessage uses fallback when message is empty", () => {
+  const message = summarizeActionMessage("   \n\t", "Global restart completed.");
+
+  assert.equal(message, "Global restart completed.");
 });

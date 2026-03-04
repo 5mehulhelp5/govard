@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"govard/internal/engine"
+	"govard/internal/proxy"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
@@ -139,6 +140,37 @@ var defaultRunGlobalServicesComposeForDesktop = func(args ...string) (string, er
 
 var runGlobalServicesComposeForDesktop = defaultRunGlobalServicesComposeForDesktop
 
+var defaultWaitForGlobalProxyReadyForDesktop = func(ctx context.Context, timeout time.Duration) bool {
+	deadline := time.Now().Add(timeout)
+	for {
+		if engine.IsContainerRunning(ctx, "govard-proxy-caddy") || engine.IsContainerRunning(ctx, "proxy-caddy-1") {
+			return true
+		}
+		if time.Now().After(deadline) {
+			return false
+		}
+		select {
+		case <-ctx.Done():
+			return false
+		case <-time.After(250 * time.Millisecond):
+		}
+	}
+}
+
+var waitForGlobalProxyReadyForDesktop = defaultWaitForGlobalProxyReadyForDesktop
+
+var defaultRefreshGlobalServiceRoutesForDesktop = func() error {
+	if err := registerDesktopGlobalServiceRoutes(); err != nil {
+		return err
+	}
+	if err := reviveRunningProjectRoutesForDesktop(); err != nil {
+		return err
+	}
+	return nil
+}
+
+var refreshGlobalServiceRoutesForDesktop = defaultRefreshGlobalServiceRoutesForDesktop
+
 var defaultRunHostPortProbeForDesktop = func(binary string, args ...string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -235,14 +267,7 @@ func (s *GlobalServiceService) GetGlobalServices() (GlobalServicesSnapshot, erro
 }
 
 func (s *GlobalServiceService) StartGlobalServices() (string, error) {
-	if err := ensureGlobalServicesForDesktop(); err != nil {
-		return "", err
-	}
-	out, err := runGlobalServicesComposeForDesktop("up", "-d")
-	if err != nil {
-		return "", fmt.Errorf("start global services: %w", err)
-	}
-	return withCommandOutput("Global services started.", out), nil
+	return runGlobalServicesStartFlowForDesktop(false)
 }
 
 func (s *GlobalServiceService) StopGlobalServices() (string, error) {
@@ -257,16 +282,54 @@ func (s *GlobalServiceService) StopGlobalServices() (string, error) {
 }
 
 func (s *GlobalServiceService) RestartGlobalServices() (string, error) {
+	return runGlobalServicesStartFlowForDesktop(true)
+}
+
+func runGlobalServicesStartFlowForDesktop(restart bool) (string, error) {
 	if err := ensureGlobalServicesForDesktop(); err != nil {
 		return "", err
 	}
-	// Use "up -d" instead of "restart" so Docker Compose can reconcile
-	// stale container definitions and recreate routing services when needed.
-	out, err := runGlobalServicesComposeForDesktop("up", "-d")
-	if err != nil {
-		return "", fmt.Errorf("restart global services: %w", err)
+
+	action := "start"
+	message := "Global services started."
+	commandOutputs := []string{}
+	if restart {
+		action = "restart"
+		message = "Global services restarted."
+
+		downOutput, err := runGlobalServicesComposeForDesktop("down")
+		if err != nil {
+			return "", fmt.Errorf("%s global services: %w", action, err)
+		}
+		downOutput = strings.TrimSpace(downOutput)
+		if downOutput != "" {
+			commandOutputs = append(commandOutputs, downOutput)
+		}
 	}
-	return withCommandOutput("Global services restarted.", out), nil
+
+	upOutput, err := runGlobalServicesComposeForDesktop("up", "-d")
+	if err != nil {
+		return "", fmt.Errorf("%s global services: %w", action, err)
+	}
+	upOutput = strings.TrimSpace(upOutput)
+	if upOutput != "" {
+		commandOutputs = append(commandOutputs, upOutput)
+	}
+
+	warnings := []string{}
+	if !waitForGlobalProxyReadyForDesktop(context.Background(), 8*time.Second) {
+		warnings = append(
+			warnings,
+			"routing services are not ready yet (check listeners on ports 53/80/443, then retry)",
+		)
+	} else if err := refreshGlobalServiceRoutesForDesktop(); err != nil {
+		warnings = append(warnings, fmt.Sprintf("could not refresh global routes: %v", err))
+	}
+
+	return withCommandOutput(
+		withDesktopWarnings(message, warnings),
+		strings.Join(commandOutputs, "\n"),
+	), nil
 }
 
 func (s *GlobalServiceService) PullGlobalServices() (string, error) {
@@ -347,6 +410,18 @@ func withCommandOutput(base string, commandOutput string) string {
 		return base
 	}
 	return base + "\n" + trimmed
+}
+
+func withDesktopWarnings(base string, warnings []string) string {
+	lines := []string{strings.TrimSpace(base)}
+	for _, warning := range warnings {
+		trimmed := strings.TrimSpace(warning)
+		if trimmed == "" {
+			continue
+		}
+		lines = append(lines, "Warning: "+trimmed)
+	}
+	return strings.Join(lines, "\n")
 }
 
 func resolveGlobalServiceSpec(serviceID string) (globalServiceSpec, error) {
@@ -816,6 +891,70 @@ func buildPublishedPortKeySet(ports []container.Port) map[string]bool {
 		published[key] = true
 	}
 	return published
+}
+
+func registerDesktopGlobalServiceRoutes() error {
+	if err := proxy.RegisterDomain("mail.govard.test", "govard-proxy-mail:8025"); err != nil {
+		return fmt.Errorf("register mail route: %w", err)
+	}
+	if err := proxy.RegisterDomain("pma.govard.test", "govard-proxy-pma:80"); err != nil {
+		return fmt.Errorf("register pma route: %w", err)
+	}
+	if err := proxy.RegisterDomain("portainer.govard.test", "govard-proxy-portainer:9000"); err != nil {
+		return fmt.Errorf("register portainer route: %w", err)
+	}
+	return nil
+}
+
+func reviveRunningProjectRoutesForDesktop() error {
+	runningProjects, err := engine.GetRunningProjectNames(context.Background())
+	if err != nil {
+		return fmt.Errorf("get running projects: %w", err)
+	}
+	if len(runningProjects) == 0 {
+		return nil
+	}
+
+	entries, err := engine.ReadProjectRegistryEntries()
+	if err != nil {
+		return fmt.Errorf("read registry: %w", err)
+	}
+
+	for _, projectName := range runningProjects {
+		var matchedEntry *engine.ProjectRegistryEntry
+		for index := range entries {
+			if entries[index].ProjectName == projectName {
+				matchedEntry = &entries[index]
+				break
+			}
+		}
+		if matchedEntry == nil {
+			continue
+		}
+
+		config, _, configErr := engine.LoadConfigFromDir(matchedEntry.Path, false)
+		if configErr != nil {
+			if matchedEntry.Domain != "" {
+				_ = proxy.RegisterDomain(matchedEntry.Domain, projectName+"-web-1")
+			}
+			continue
+		}
+
+		target := resolveDesktopUpProxyTarget(config)
+		for _, domain := range config.AllDomains() {
+			_ = proxy.RegisterDomain(domain, target)
+		}
+	}
+
+	return nil
+}
+
+func resolveDesktopUpProxyTarget(config engine.Config) string {
+	target := config.ProjectName + "-web-1"
+	if config.Stack.Features.Varnish {
+		target = config.ProjectName + "-varnish-1"
+	}
+	return target
 }
 
 func globalServicesComposeDirPath() string {

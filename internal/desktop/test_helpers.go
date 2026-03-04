@@ -29,6 +29,8 @@ func ResetStateForTest() {
 	openExternalURLForDesktop = defaultOpenExternalURLForDesktop
 	runGlobalServicesComposeForDesktop = defaultRunGlobalServicesComposeForDesktop
 	ensureGlobalServicesForDesktop = defaultEnsureGlobalServicesForDesktop
+	waitForGlobalProxyReadyForDesktop = defaultWaitForGlobalProxyReadyForDesktop
+	refreshGlobalServiceRoutesForDesktop = defaultRefreshGlobalServiceRoutesForDesktop
 	runHostPortProbeForDesktop = defaultRunHostPortProbeForDesktop
 	chooseSaveFileForDesktop = defaultChooseSaveFileForDesktop
 	writeLogFileForDesktop = defaultWriteLogFileForDesktop
@@ -457,6 +459,34 @@ func SetEnsureGlobalServicesForDesktopForTest(fn func() error) func() {
 	}
 	return func() {
 		ensureGlobalServicesForDesktop = previous
+	}
+}
+
+// SetWaitForGlobalProxyReadyForDesktopForTest overrides global proxy readiness checks.
+func SetWaitForGlobalProxyReadyForDesktopForTest(
+	fn func(ctx context.Context, timeout time.Duration) bool,
+) func() {
+	previous := waitForGlobalProxyReadyForDesktop
+	if fn == nil {
+		waitForGlobalProxyReadyForDesktop = defaultWaitForGlobalProxyReadyForDesktop
+	} else {
+		waitForGlobalProxyReadyForDesktop = fn
+	}
+	return func() {
+		waitForGlobalProxyReadyForDesktop = previous
+	}
+}
+
+// SetRefreshGlobalServiceRoutesForDesktopForTest overrides route refresh after global start/restart.
+func SetRefreshGlobalServiceRoutesForDesktopForTest(fn func() error) func() {
+	previous := refreshGlobalServiceRoutesForDesktop
+	if fn == nil {
+		refreshGlobalServiceRoutesForDesktop = defaultRefreshGlobalServiceRoutesForDesktop
+	} else {
+		refreshGlobalServiceRoutesForDesktop = fn
+	}
+	return func() {
+		refreshGlobalServiceRoutesForDesktop = previous
 	}
 }
 

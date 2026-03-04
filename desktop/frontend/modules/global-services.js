@@ -82,6 +82,17 @@ const delay = (ms) =>
     setTimeout(resolve, ms);
   });
 
+export const summarizeActionMessage = (message, fallback = "") => {
+  const normalizedFallback = String(fallback || "").trim();
+  const text = String(message || "").trim();
+  if (!text) {
+    return normalizedFallback;
+  }
+  const [firstLineRaw] = text.split(/\r?\n/u);
+  const firstLine = String(firstLineRaw || "").trim();
+  return firstLine || normalizedFallback;
+};
+
 const summarizeRoutingConflicts = (warnings = []) => {
   const conflicts = Array.isArray(warnings)
     ? warnings
@@ -990,8 +1001,12 @@ export const createGlobalServicesController = ({
         );
         try {
           const message = await fn(normalized);
-          onStatus(message || `${action} ${normalized} completed`);
-          onToast(message || `${action} ${normalized} completed`, "success");
+          const compactMessage = summarizeActionMessage(
+            message,
+            `${serviceName} ${action} completed.`,
+          );
+          onStatus(compactMessage);
+          onToast(compactMessage, "success");
           const snapshot = await settleRoutingIfNeeded(
             await refresh({ silent: true }),
           );
@@ -1001,10 +1016,7 @@ export const createGlobalServicesController = ({
               "warning",
             );
           } else {
-            setActionFeedback(
-              message || `${serviceName} ${action} completed.`,
-              "success",
-            );
+            setActionFeedback(compactMessage, "success");
           }
         } catch (err) {
           onStatus(`${action} ${normalized} failed: ${err}`);
@@ -1071,8 +1083,12 @@ export const createGlobalServicesController = ({
       );
       try {
         const message = await fn();
-        onStatus(message || `Global ${action} completed`);
-        onToast(message || `Global ${action} completed`, "success");
+        const compactMessage = summarizeActionMessage(
+          message,
+          `Global ${action} completed successfully.`,
+        );
+        onStatus(compactMessage);
+        onToast(compactMessage, "success");
         const snapshot = await settleRoutingIfNeeded(
           await refresh({ silent: true }),
         );
@@ -1082,10 +1098,7 @@ export const createGlobalServicesController = ({
             "warning",
           );
         } else {
-          setActionFeedback(
-            message || `Global ${action} completed successfully.`,
-            "success",
-          );
+          setActionFeedback(compactMessage, "success");
         }
       } catch (err) {
         onStatus(`Global ${action} failed: ${err}`);
