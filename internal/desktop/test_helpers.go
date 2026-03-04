@@ -22,6 +22,8 @@ func ResetStateForTest() {
 	restartDesktopBinary = defaultRestartDesktopBinary
 	desktopExecutablePath = os.Executable
 	desktopBinaryLookPath = exec.LookPath
+	desktopGovardLookPath = exec.LookPath
+	desktopPrivilegedCommandLookPath = exec.LookPath
 	runGovardCommandForDesktop = defaultRunGovardCommandForDesktop
 	startGovardCommandForDesktop = defaultStartGovardCommandForDesktop
 	validateGitConnectionForDesktop = defaultValidateGitConnectionForDesktop
@@ -368,6 +370,52 @@ func SetRunDesktopSelfUpdateForTest(fn func() (string, error)) func() {
 	}
 	return func() {
 		runDesktopSelfUpdate = previous
+	}
+}
+
+// SanitizeDesktopSelfUpdateOutputForTest exposes self-update output sanitization.
+func SanitizeDesktopSelfUpdateOutputForTest(raw string) string {
+	return sanitizeDesktopSelfUpdateOutput(raw)
+}
+
+// SummarizeDesktopSelfUpdateErrorForTest exposes self-update error summarization.
+func SummarizeDesktopSelfUpdateErrorForTest(runErr error, sanitizedOutput string) string {
+	return summarizeDesktopSelfUpdateError(runErr, sanitizedOutput)
+}
+
+// ResolveGovardBinaryForDesktopUpdateForTest exposes govard binary resolution for desktop update.
+func ResolveGovardBinaryForDesktopUpdateForTest() (string, error) {
+	return resolveGovardBinaryForDesktopUpdate()
+}
+
+// ResolveDesktopBinaryForSelfUpdateTargetForTest exposes desktop target resolution for self-update.
+func ResolveDesktopBinaryForSelfUpdateTargetForTest() string {
+	return resolveDesktopBinaryForSelfUpdateTarget()
+}
+
+// SetDesktopGovardLookPathForUpdateForTest overrides govard PATH lookup for desktop update.
+func SetDesktopGovardLookPathForUpdateForTest(fn func(file string) (string, error)) func() {
+	previous := desktopGovardLookPath
+	if fn == nil {
+		desktopGovardLookPath = exec.LookPath
+	} else {
+		desktopGovardLookPath = fn
+	}
+	return func() {
+		desktopGovardLookPath = previous
+	}
+}
+
+// SetDesktopPrivilegedCommandLookPathForUpdateForTest overrides privileged command lookup for desktop update.
+func SetDesktopPrivilegedCommandLookPathForUpdateForTest(fn func(file string) (string, error)) func() {
+	previous := desktopPrivilegedCommandLookPath
+	if fn == nil {
+		desktopPrivilegedCommandLookPath = exec.LookPath
+	} else {
+		desktopPrivilegedCommandLookPath = fn
+	}
+	return func() {
+		desktopPrivilegedCommandLookPath = previous
 	}
 }
 

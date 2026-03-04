@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -15,29 +16,139 @@ import (
 
 const desktopUpdateCheckLatestURLEnvVar = "GOVARD_UPDATE_CHECK_URL"
 const desktopBinaryName = "govard-desktop"
+const desktopSelfUpdateDesktopTargetEnvVar = "GOVARD_SELF_UPDATE_DESKTOP_TARGET"
 
 var desktopUpdateHTTPClient = &http.Client{Timeout: 5 * time.Second}
 var desktopExecutablePath = os.Executable
 var desktopBinaryLookPath = exec.LookPath
+var desktopGovardLookPath = exec.LookPath
+var desktopPrivilegedCommandLookPath = exec.LookPath
+var desktopANSIEscapePattern = regexp.MustCompile(`(?:\x1B|\x9B)\[[0-?]*[ -/]*[@-~]`)
+var desktopControlCharPattern = regexp.MustCompile(`[\x00-\x08\x0B-\x1F\x7F]`)
+var desktopPermissionDeniedPattern = regexp.MustCompile(`(?i)permission denied replacing\s+\S+\s+at\s+([^;\n]+)`)
+var desktopAuthorizationDeniedPattern = regexp.MustCompile(`(?i)(request dismissed|not authorized|authorization failed|authentication failed|authentication is required|pkexec)`)
 
 var defaultRunDesktopSelfUpdate = func() (string, error) {
-	binary, err := exec.LookPath("govard")
+	binary, err := resolveGovardBinaryForDesktopUpdate()
 	if err != nil {
 		return "", fmt.Errorf("govard CLI not found in PATH")
 	}
 
-	cmd := exec.Command(binary, "self-update")
-	cmd.Env = append(os.Environ(), "GOVARD_SELF_UPDATE_CONFIRM=yes")
+	desktopTarget := resolveDesktopBinaryForSelfUpdateTarget()
 
-	output, err := cmd.CombinedOutput()
-	trimmed := strings.TrimSpace(string(output))
-	if err != nil {
-		if trimmed != "" {
-			return "", fmt.Errorf("%v: %s", err, trimmed)
-		}
+	output, err := runDesktopSelfUpdateCommand(binary, desktopTarget, false)
+	if err == nil {
+		return output, nil
+	}
+
+	if runtime.GOOS != "linux" {
 		return "", err
 	}
+
+	lower := strings.ToLower(strings.TrimSpace(err.Error()))
+	if !strings.Contains(lower, "requires elevated privileges") {
+		return "", err
+	}
+
+	return runDesktopSelfUpdateCommand(binary, desktopTarget, true)
+}
+
+func runDesktopSelfUpdateCommand(govardBinary, desktopTarget string, elevated bool) (string, error) {
+	if strings.TrimSpace(govardBinary) == "" {
+		return "", errors.New("govard CLI path is empty")
+	}
+
+	var output []byte
+	var err error
+
+	if elevated {
+		pkexecPath, lookupErr := desktopPrivilegedCommandLookPath("pkexec")
+		if lookupErr != nil {
+			return "", errors.New(`Update requires elevated privileges. Run "sudo govard self-update --yes" in Terminal, then reopen Govard Desktop.`)
+		}
+
+		envBinary := "/usr/bin/env"
+		if _, err := os.Stat(envBinary); err != nil {
+			lookedUpEnv, lookupErr := desktopPrivilegedCommandLookPath("env")
+			if lookupErr != nil {
+				return "", errors.New(`Update requires elevated privileges. Run "sudo govard self-update --yes" in Terminal, then reopen Govard Desktop.`)
+			}
+			envBinary = lookedUpEnv
+		}
+
+		args := []string{
+			envBinary,
+			"NO_COLOR=1",
+			"CLICOLOR=0",
+		}
+		if strings.TrimSpace(desktopTarget) != "" {
+			args = append(args, fmt.Sprintf("%s=%s", desktopSelfUpdateDesktopTargetEnvVar, desktopTarget))
+		}
+		args = append(args, govardBinary, "self-update", "--yes")
+
+		output, err = runDesktopPrivilegedSelfUpdate(pkexecPath, args)
+	} else {
+		cmd := exec.Command(govardBinary, "self-update", "--yes")
+		cmd.Env = append(
+			os.Environ(),
+			"NO_COLOR=1",
+			"CLICOLOR=0",
+		)
+		if strings.TrimSpace(desktopTarget) != "" {
+			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", desktopSelfUpdateDesktopTargetEnvVar, desktopTarget))
+		}
+		output, err = cmd.CombinedOutput()
+	}
+
+	trimmed := sanitizeDesktopSelfUpdateOutput(string(output))
+	if err != nil {
+		return "", errors.New(summarizeDesktopSelfUpdateError(err, trimmed))
+	}
 	return trimmed, nil
+}
+
+func runDesktopPrivilegedSelfUpdate(pkexecPath string, baseArgs []string) ([]byte, error) {
+	if strings.TrimSpace(pkexecPath) == "" {
+		return nil, errors.New("pkexec path is empty")
+	}
+
+	variants := [][]string{
+		baseArgs,
+		append([]string{"--disable-internal-agent"}, baseArgs...),
+	}
+
+	var lastOutput []byte
+	var lastErr error
+	for i, args := range variants {
+		cmd := exec.Command(pkexecPath, args...)
+		cmd.Env = append(
+			os.Environ(),
+			"NO_COLOR=1",
+			"CLICOLOR=0",
+		)
+
+		output, err := cmd.CombinedOutput()
+		if err == nil {
+			return output, nil
+		}
+
+		lastOutput = output
+		lastErr = err
+
+		if i >= len(variants)-1 {
+			break
+		}
+
+		sanitized := strings.ToLower(sanitizeDesktopSelfUpdateOutput(string(output)))
+		errText := strings.ToLower(strings.TrimSpace(err.Error()))
+		if strings.Contains(sanitized, "request dismissed") || strings.Contains(errText, "request dismissed") || strings.Contains(sanitized, "not authorized") || strings.Contains(errText, "not authorized") || strings.Contains(sanitized, "authorization failed") || strings.Contains(errText, "authorization failed") {
+			continue
+		}
+
+		break
+	}
+
+	return lastOutput, lastErr
 }
 
 var runDesktopSelfUpdate = defaultRunDesktopSelfUpdate
@@ -80,13 +191,189 @@ func (app *App) InstallLatestUpdate() (string, error) {
 
 	output, err := runDesktopSelfUpdate()
 	if err != nil {
-		return "", fmt.Errorf("install latest update: %w", err)
+		return "", err
 	}
 
 	if strings.TrimSpace(output) == "" {
 		return "Update completed. Restart Govard Desktop to run the new version.", nil
 	}
 	return output, nil
+}
+
+func resolveGovardBinaryForDesktopUpdate() (string, error) {
+	candidates := []string{}
+
+	if executablePath, err := desktopExecutablePath(); err == nil {
+		if resolved, resolveErr := filepath.EvalSymlinks(executablePath); resolveErr == nil {
+			executablePath = resolved
+		}
+		sibling := filepath.Join(filepath.Dir(executablePath), "govard")
+		if runtime.GOOS == "windows" {
+			sibling += ".exe"
+		}
+		candidates = append(candidates, sibling)
+	}
+
+	if pathFromPATH, err := desktopGovardLookPath("govard"); err == nil {
+		candidates = append(candidates, pathFromPATH)
+	}
+
+	for _, candidate := range candidates {
+		clean := strings.TrimSpace(candidate)
+		if clean == "" {
+			continue
+		}
+		if resolved, resolveErr := filepath.EvalSymlinks(clean); resolveErr == nil {
+			clean = resolved
+		}
+		if stat, statErr := os.Stat(clean); statErr == nil && !stat.IsDir() {
+			return clean, nil
+		}
+	}
+
+	return "", errors.New("govard CLI not found")
+}
+
+func resolveDesktopBinaryForSelfUpdateTarget() string {
+	executablePath, err := desktopExecutablePath()
+	if err != nil {
+		return ""
+	}
+
+	if resolved, resolveErr := filepath.EvalSymlinks(executablePath); resolveErr == nil {
+		executablePath = resolved
+	}
+	executablePath = strings.TrimSpace(executablePath)
+	if executablePath == "" {
+		return ""
+	}
+
+	if stat, statErr := os.Stat(executablePath); statErr != nil || stat.IsDir() {
+		return ""
+	}
+	return executablePath
+}
+
+func sanitizeDesktopSelfUpdateOutput(raw string) string {
+	normalized := strings.ReplaceAll(raw, "\r\n", "\n")
+	normalized = strings.ReplaceAll(normalized, "\r", "\n")
+	normalized = desktopANSIEscapePattern.ReplaceAllString(normalized, "")
+	normalized = strings.ReplaceAll(normalized, "\u241B", "")
+
+	lines := strings.Split(normalized, "\n")
+	sanitized := make([]string, 0, len(lines))
+	for _, line := range lines {
+		clean := desktopControlCharPattern.ReplaceAllString(line, "")
+		trimmed := strings.TrimSpace(clean)
+		if trimmed == "" {
+			continue
+		}
+		sanitized = append(sanitized, trimmed)
+	}
+
+	return strings.Join(sanitized, "\n")
+}
+
+func summarizeDesktopSelfUpdateError(runErr error, sanitizedOutput string) string {
+	if message := desktopPermissionDeniedHint(sanitizedOutput); message != "" {
+		return message
+	}
+
+	if message := desktopAuthorizationDeniedHint(sanitizedOutput); message != "" {
+		return message
+	}
+
+	if message := extractDesktopSelfUpdateErrorMessage(sanitizedOutput); message != "" {
+		return message
+	}
+
+	if runErr != nil {
+		trimmed := strings.TrimSpace(runErr.Error())
+		if trimmed != "" {
+			return trimmed
+		}
+	}
+
+	return "automatic update failed"
+}
+
+func desktopPermissionDeniedHint(sanitizedOutput string) string {
+	match := desktopPermissionDeniedPattern.FindStringSubmatch(sanitizedOutput)
+	if len(match) < 2 {
+		return ""
+	}
+
+	targetPath := strings.TrimSpace(match[1])
+	if targetPath == "" {
+		return `Update requires elevated privileges. Run "sudo govard self-update" in Terminal, then reopen Govard Desktop.`
+	}
+
+	return fmt.Sprintf(
+		`Update requires elevated privileges to modify %s. Run "sudo govard self-update" in Terminal, then reopen Govard Desktop.`,
+		targetPath,
+	)
+}
+
+func desktopAuthorizationDeniedHint(sanitizedOutput string) string {
+	if !desktopAuthorizationDeniedPattern.MatchString(sanitizedOutput) {
+		return ""
+	}
+
+	return `Administrator authorization was not granted. Run "sudo govard self-update --yes" in Terminal, then reopen Govard Desktop.`
+}
+
+func extractDesktopSelfUpdateErrorMessage(sanitizedOutput string) string {
+	if strings.TrimSpace(sanitizedOutput) == "" {
+		return ""
+	}
+
+	lines := strings.Split(sanitizedOutput, "\n")
+	for i := len(lines) - 1; i >= 0; i-- {
+		line := strings.TrimSpace(lines[i])
+		if line == "" {
+			continue
+		}
+
+		lower := strings.ToLower(line)
+		if strings.HasPrefix(lower, "error:") {
+			message := strings.TrimSpace(line[len("error:"):])
+			if message != "" {
+				return message
+			}
+			continue
+		}
+
+		if isDesktopSelfUpdateNoiseLine(lower) {
+			continue
+		}
+		return line
+	}
+
+	return ""
+}
+
+func isDesktopSelfUpdateNoiseLine(lowerTrimmedLine string) bool {
+	if lowerTrimmedLine == "" {
+		return true
+	}
+
+	prefixes := []string{
+		"govard self-update",
+		"usage:",
+		"flags:",
+		"global flags:",
+		"--",
+		"info ",
+		"success ",
+		"warning ",
+	}
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(lowerTrimmedLine, prefix) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (app *App) RestartDesktopApp() (string, error) {

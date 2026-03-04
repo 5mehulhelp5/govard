@@ -124,6 +124,148 @@ func TestDesktopInstallLatestUpdateReturnsError(t *testing.T) {
 	}
 }
 
+func TestDesktopSanitizeSelfUpdateOutputRemovesANSISequences(t *testing.T) {
+	raw := "\u001b[30;46mINFO\u001b[0m Auto-confirmed via GOVARD_SELF_UPDATE_CONFIRM.\n\u241B[30;46mINFO\u241B[0m Resolving latest release..."
+	sanitized := desktop.SanitizeDesktopSelfUpdateOutputForTest(raw)
+
+	if strings.Contains(sanitized, "\u001b") {
+		t.Fatalf("expected sanitized output to remove ESC bytes, got %q", sanitized)
+	}
+	if strings.Contains(sanitized, "\u241B") {
+		t.Fatalf("expected sanitized output to remove visible ESC symbol, got %q", sanitized)
+	}
+	if !strings.Contains(sanitized, "Auto-confirmed via GOVARD_SELF_UPDATE_CONFIRM.") {
+		t.Fatalf("expected sanitized output to keep text content, got %q", sanitized)
+	}
+}
+
+func TestDesktopSummarizeSelfUpdateErrorPermissionDenied(t *testing.T) {
+	sanitized := strings.Join([]string{
+		"Govard Self-Update",
+		"INFO Auto-confirmed via GOVARD_SELF_UPDATE_CONFIRM.",
+		"Error: permission denied replacing govard at /usr/local/bin/govard; re-run with elevated privileges: create temp target file: open /usr/local/bin/.govard-update-123: permission denied",
+		"Usage:",
+		"govard self-update [flags]",
+	}, "\n")
+
+	message := desktop.SummarizeDesktopSelfUpdateErrorForTest(fmt.Errorf("exit status 1"), sanitized)
+
+	expected := `Update requires elevated privileges to modify /usr/local/bin/govard. Run "sudo govard self-update" in Terminal, then reopen Govard Desktop.`
+	if message != expected {
+		t.Fatalf("expected %q, got %q", expected, message)
+	}
+}
+
+func TestDesktopSummarizeSelfUpdateErrorExtractsErrorLine(t *testing.T) {
+	sanitized := strings.Join([]string{
+		"Govard Self-Update",
+		"INFO Resolving latest release...",
+		"Error: failed to download checksums.txt",
+		"Usage:",
+		"govard self-update [flags]",
+	}, "\n")
+
+	message := desktop.SummarizeDesktopSelfUpdateErrorForTest(fmt.Errorf("exit status 1"), sanitized)
+	if message != "failed to download checksums.txt" {
+		t.Fatalf("expected extracted error message, got %q", message)
+	}
+}
+
+func TestDesktopSummarizeSelfUpdateErrorAuthorizationDenied(t *testing.T) {
+	sanitized := strings.Join([]string{
+		"Error executing command as another user: Not authorized",
+		"This incident has been reported.",
+	}, "\n")
+
+	message := desktop.SummarizeDesktopSelfUpdateErrorForTest(fmt.Errorf("exit status 126"), sanitized)
+	expected := `Administrator authorization was not granted. Run "sudo govard self-update --yes" in Terminal, then reopen Govard Desktop.`
+	if message != expected {
+		t.Fatalf("expected %q, got %q", expected, message)
+	}
+}
+
+func TestDesktopResolveGovardBinaryForUpdatePrefersSibling(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	desktop.ResetStateForTest()
+
+	tmpDir := t.TempDir()
+	runningDesktop := filepath.Join(tmpDir, "govard-desktop")
+	siblingGovard := filepath.Join(tmpDir, "govard")
+	pathGovard := filepath.Join(t.TempDir(), "path-govard")
+	for _, candidate := range []string{runningDesktop, siblingGovard, pathGovard} {
+		if err := os.WriteFile(candidate, []byte("#!/bin/sh\n"), 0o755); err != nil {
+			t.Fatalf("write fake binary %s: %v", candidate, err)
+		}
+	}
+
+	restoreExec := desktop.SetDesktopExecutablePathForRestartForTest(func() (string, error) {
+		return runningDesktop, nil
+	})
+	defer restoreExec()
+
+	restoreLookPath := desktop.SetDesktopGovardLookPathForUpdateForTest(func(file string) (string, error) {
+		return pathGovard, nil
+	})
+	defer restoreLookPath()
+
+	resolved, err := desktop.ResolveGovardBinaryForDesktopUpdateForTest()
+	if err != nil {
+		t.Fatalf("resolve govard binary for desktop update failed: %v", err)
+	}
+	if resolved != siblingGovard {
+		t.Fatalf("expected sibling govard binary %q, got %q", siblingGovard, resolved)
+	}
+}
+
+func TestDesktopResolveGovardBinaryForUpdateFallsBackToPATH(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	desktop.ResetStateForTest()
+
+	pathGovard := filepath.Join(t.TempDir(), "path-govard")
+	if err := os.WriteFile(pathGovard, []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatalf("write fake path govard: %v", err)
+	}
+
+	restoreExec := desktop.SetDesktopExecutablePathForRestartForTest(func() (string, error) {
+		return "", fmt.Errorf("not running from binary")
+	})
+	defer restoreExec()
+
+	restoreLookPath := desktop.SetDesktopGovardLookPathForUpdateForTest(func(file string) (string, error) {
+		return pathGovard, nil
+	})
+	defer restoreLookPath()
+
+	resolved, err := desktop.ResolveGovardBinaryForDesktopUpdateForTest()
+	if err != nil {
+		t.Fatalf("resolve govard binary for desktop update failed: %v", err)
+	}
+	if resolved != pathGovard {
+		t.Fatalf("expected PATH govard binary %q, got %q", pathGovard, resolved)
+	}
+}
+
+func TestDesktopResolveDesktopBinaryForSelfUpdateTarget(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	desktop.ResetStateForTest()
+
+	tmpDir := t.TempDir()
+	runningDesktop := filepath.Join(tmpDir, "govard-desktop")
+	if err := os.WriteFile(runningDesktop, []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatalf("write fake desktop binary: %v", err)
+	}
+
+	restoreExec := desktop.SetDesktopExecutablePathForRestartForTest(func() (string, error) {
+		return runningDesktop, nil
+	})
+	defer restoreExec()
+
+	target := desktop.ResolveDesktopBinaryForSelfUpdateTargetForTest()
+	if target != runningDesktop {
+		t.Fatalf("expected desktop target %q, got %q", runningDesktop, target)
+	}
+}
+
 func TestDesktopRestartDesktopAppStartsBinary(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	desktop.ResetStateForTest()

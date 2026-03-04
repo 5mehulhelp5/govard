@@ -143,7 +143,7 @@ func TestSelfUpdateReleaseBaseURLForTestUsesOverride(t *testing.T) {
 	}
 }
 
-func TestResolveDesktopUpdateTargetsForTestIncludesPathAndSiblingTargets(t *testing.T) {
+func TestResolveDesktopUpdateTargetsForTestPrefersSiblingTargetWhenCLIBinaryPathIsKnown(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("self-update is not supported on windows")
 	}
@@ -170,15 +170,11 @@ func TestResolveDesktopUpdateTargetsForTestIncludesPathAndSiblingTargets(t *test
 	t.Setenv("PATH", pathDir)
 
 	got := cmd.ResolveDesktopUpdateTargetsForTest(cliBinary)
-	if len(got) != 2 {
-		t.Fatalf("expected 2 desktop targets, got %d: %v", len(got), got)
+	if len(got) != 1 {
+		t.Fatalf("expected 1 desktop target, got %d: %v", len(got), got)
 	}
-
-	if !slices.Contains(got, pathDesktop) {
-		t.Fatalf("expected PATH desktop target %q in %v", pathDesktop, got)
-	}
-	if !slices.Contains(got, siblingDesktop) {
-		t.Fatalf("expected sibling desktop target %q in %v", siblingDesktop, got)
+	if got[0] != siblingDesktop {
+		t.Fatalf("expected sibling desktop target %q, got %v", siblingDesktop, got)
 	}
 }
 
@@ -208,6 +204,65 @@ func TestResolveDesktopUpdateTargetsForTestDeduplicatesTargets(t *testing.T) {
 	}
 	if got[0] != desktopBinary {
 		t.Fatalf("unexpected desktop target %q, want %q", got[0], desktopBinary)
+	}
+}
+
+func TestResolveDesktopUpdateTargetsForTestFallsBackToPATHWhenSiblingIsMissing(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("self-update is not supported on windows")
+	}
+
+	tempDir := t.TempDir()
+	pathDir := filepath.Join(tempDir, "path")
+	cliDir := filepath.Join(tempDir, "cli")
+	if err := os.MkdirAll(pathDir, 0o755); err != nil {
+		t.Fatalf("mkdir path dir: %v", err)
+	}
+	if err := os.MkdirAll(cliDir, 0o755); err != nil {
+		t.Fatalf("mkdir cli dir: %v", err)
+	}
+
+	pathDesktop := filepath.Join(pathDir, "govard-desktop")
+	cliBinary := filepath.Join(cliDir, "govard")
+	for _, candidate := range []string{pathDesktop, cliBinary} {
+		if err := os.WriteFile(candidate, []byte(""), 0o755); err != nil {
+			t.Fatalf("write %s: %v", candidate, err)
+		}
+	}
+
+	t.Setenv("PATH", pathDir)
+	got := cmd.ResolveDesktopUpdateTargetsForTest(cliBinary)
+	if len(got) != 1 {
+		t.Fatalf("expected path fallback target, got %d: %v", len(got), got)
+	}
+	if got[0] != pathDesktop {
+		t.Fatalf("expected PATH target %q, got %v", pathDesktop, got)
+	}
+}
+
+func TestResolveDesktopUpdateTargetsForTestUsesExplicitDesktopTargetEnv(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("self-update is not supported on windows")
+	}
+
+	tempDir := t.TempDir()
+	customDesktop := filepath.Join(tempDir, "custom-govard-desktop")
+	cliBinary := filepath.Join(tempDir, "govard")
+	if err := os.WriteFile(customDesktop, []byte(""), 0o755); err != nil {
+		t.Fatalf("write custom desktop target: %v", err)
+	}
+	if err := os.WriteFile(cliBinary, []byte(""), 0o755); err != nil {
+		t.Fatalf("write cli binary: %v", err)
+	}
+
+	t.Setenv("GOVARD_SELF_UPDATE_DESKTOP_TARGET", customDesktop)
+
+	got := cmd.ResolveDesktopUpdateTargetsForTest(cliBinary)
+	if len(got) != 1 {
+		t.Fatalf("expected explicit desktop target, got %d: %v", len(got), got)
+	}
+	if !slices.Contains(got, customDesktop) {
+		t.Fatalf("expected explicit target %q in %v", customDesktop, got)
 	}
 }
 

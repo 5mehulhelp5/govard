@@ -31,11 +31,13 @@ const (
 	selfUpdateLatestURLEnvVar       = "GOVARD_SELF_UPDATE_LATEST_URL"
 	selfUpdateReleaseBaseURLEnvVar  = "GOVARD_SELF_UPDATE_RELEASE_BASE_URL"
 	selfUpdateConfirmOverrideEnvVar = "GOVARD_SELF_UPDATE_CONFIRM"
+	selfUpdateDesktopTargetEnvVar   = "GOVARD_SELF_UPDATE_DESKTOP_TARGET"
 	selfUpdateLocalBinDir           = "/usr/local/bin"
 	selfUpdateSystemBinDir          = "/usr/bin"
 )
 
 var selfUpdateVersion string
+var selfUpdateAssumeYes bool
 
 var selfUpdateCmd = &cobra.Command{
 	Use:   "self-update",
@@ -47,7 +49,7 @@ var selfUpdateCmd = &cobra.Command{
 			return errors.New("self-update is not supported on Windows yet; use a fresh release install")
 		}
 
-		if !shouldProceedWithSelfUpdate() {
+		if !shouldProceedWithSelfUpdate(selfUpdateAssumeYes) {
 			pterm.Info.Println("Update cancelled.")
 			return nil
 		}
@@ -169,6 +171,7 @@ var selfUpdateCmd = &cobra.Command{
 
 func init() {
 	selfUpdateCmd.Flags().StringVar(&selfUpdateVersion, "version", "", "Install a specific version (e.g. v1.0.1)")
+	selfUpdateCmd.Flags().BoolVar(&selfUpdateAssumeYes, "yes", false, "Skip confirmation prompt")
 }
 
 func normalizeReleaseTag(tag string) string {
@@ -584,19 +587,31 @@ func extractBinaryFromDebPackage(debPath, workDir, binaryName string) (string, e
 }
 
 func resolveDesktopUpdateTargets(cliExecutablePath string) []string {
-	candidates := []string{}
+	candidates := resolveDesktopUpdateTargetCandidates(cliExecutablePath)
+	targets := normalizeDesktopUpdateTargets(candidates)
+	if len(targets) > 0 {
+		return targets
+	}
 
 	if path, err := exec.LookPath(selfUpdateDesktopBinaryName); err == nil {
-		candidates = append(candidates, path)
+		return normalizeDesktopUpdateTargets([]string{path})
 	}
+	return []string{}
+}
 
+func resolveDesktopUpdateTargetCandidates(cliExecutablePath string) []string {
+	candidates := []string{}
+	if override := strings.TrimSpace(os.Getenv(selfUpdateDesktopTargetEnvVar)); override != "" {
+		candidates = append(candidates, override)
+	}
 	if cliExecutablePath != "" {
 		sibling := filepath.Join(filepath.Dir(cliExecutablePath), selfUpdateDesktopBinaryName)
-		if selfUpdateFileExists(sibling) {
-			candidates = append(candidates, sibling)
-		}
+		candidates = append(candidates, sibling)
 	}
+	return candidates
+}
 
+func normalizeDesktopUpdateTargets(candidates []string) []string {
 	seen := map[string]bool{}
 	targets := []string{}
 	for _, candidate := range candidates {
@@ -676,7 +691,12 @@ func reportMixedInstallChannels(binaryNames []string) {
 	pterm.Info.Println("Keep /usr/local/bin as source of truth: `sudo apt remove govard` (or `sudo dpkg -r govard`).")
 }
 
-func shouldProceedWithSelfUpdate() bool {
+func shouldProceedWithSelfUpdate(assumeYes bool) bool {
+	if assumeYes {
+		pterm.Info.Println("Auto-confirmed via --yes.")
+		return true
+	}
+
 	override := strings.ToLower(strings.TrimSpace(os.Getenv(selfUpdateConfirmOverrideEnvVar)))
 	switch override {
 	case "1", "true", "yes", "y":
@@ -688,7 +708,7 @@ func shouldProceedWithSelfUpdate() bool {
 	}
 
 	if !stdinIsTerminal() {
-		pterm.Info.Printf("Non-interactive session detected; skipping update. Set %s=yes to force.\n", selfUpdateConfirmOverrideEnvVar)
+		pterm.Info.Printf("Non-interactive session detected; skipping update. Set %s=yes or pass --yes to force.\n", selfUpdateConfirmOverrideEnvVar)
 		return false
 	}
 
