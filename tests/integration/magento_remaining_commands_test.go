@@ -155,16 +155,34 @@ func TestSelfUpdateAutoConfirmSuccessWithMockRelease(t *testing.T) {
 	if !strings.HasSuffix(archiveName, ".tar.gz") {
 		t.Skipf("unexpected archive format for integration test: %s", archiveName)
 	}
+	desktopArchiveName, desktopBinaryName, err := govcmd.BuildReleaseAssetNameForTest("govard-desktop", releaseTag, runtime.GOOS, runtime.GOARCH)
+	if err != nil {
+		t.Fatalf("BuildReleaseAssetNameForTest desktop failed: %v", err)
+	}
+	if !strings.HasSuffix(desktopArchiveName, ".tar.gz") {
+		t.Skipf("unexpected desktop archive format for integration test: %s", desktopArchiveName)
+	}
 
 	archiveBody := buildTarGzBinaryAsset(t, binaryName, []byte("#!/bin/sh\necho govard\n"))
+	desktopArchiveBody := buildTarGzBinaryAsset(t, desktopBinaryName, []byte("#!/bin/sh\necho govard-desktop\n"))
 	checksum := sha256.Sum256(archiveBody)
-	checksumsBody := fmt.Sprintf("%s  %s\n", hex.EncodeToString(checksum[:]), archiveName)
+	desktopChecksum := sha256.Sum256(desktopArchiveBody)
+	checksumsBody := fmt.Sprintf(
+		"%s  %s\n%s  %s\n",
+		hex.EncodeToString(checksum[:]),
+		archiveName,
+		hex.EncodeToString(desktopChecksum[:]),
+		desktopArchiveName,
+	)
 
 	mockReleaseServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/" + archiveName:
 			w.Header().Set("Content-Type", "application/octet-stream")
 			_, _ = w.Write(archiveBody)
+		case "/" + desktopArchiveName:
+			w.Header().Set("Content-Type", "application/octet-stream")
+			_, _ = w.Write(desktopArchiveBody)
 		case "/checksums.txt":
 			_, _ = w.Write([]byte(checksumsBody))
 		default:
@@ -173,19 +191,42 @@ func TestSelfUpdateAutoConfirmSuccessWithMockRelease(t *testing.T) {
 	}))
 	defer mockReleaseServer.Close()
 
-	result := runGovardWithTimeout(
-		t,
-		env,
-		projectDir,
-		10*time.Second,
-		[]string{
-			"GOVARD_SELF_UPDATE_CONFIRM=yes",
-			"GOVARD_SELF_UPDATE_RELEASE_BASE_URL=" + mockReleaseServer.URL,
-		},
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	isolatedDir := t.TempDir()
+	isolatedBinary := filepath.Join(isolatedDir, "govard-self-update-test")
+	copyBinaryForTest(t, env.BinaryPath, isolatedBinary)
+	isolatedDesktopBinary := filepath.Join(isolatedDir, "govard-desktop")
+	if err := os.WriteFile(isolatedDesktopBinary, []byte("stale-desktop"), 0o755); err != nil {
+		t.Fatalf("failed to seed isolated desktop binary: %v", err)
+	}
+
+	cmd := exec.CommandContext(
+		ctx,
+		isolatedBinary,
 		"self-update",
 		"--version",
 		releaseTag,
 	)
+	cmd.Dir = projectDir
+	cmd.Env = envWithOverrides(
+		os.Environ(),
+		"GOVARD_SELF_UPDATE_CONFIRM=yes",
+		"GOVARD_SELF_UPDATE_RELEASE_BASE_URL="+mockReleaseServer.URL,
+		"PATH="+isolatedDir,
+	)
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	runErr := cmd.Run()
+
+	result := &CommandResult{
+		Stdout: stdout.String(),
+		Stderr: stderr.String(),
+		Error:  runErr,
+	}
 	if errorsContain(result.Error, "context deadline exceeded") {
 		t.Fatalf("self-update blocked unexpectedly; output:\nstdout=%s\nstderr=%s", result.Stdout, result.Stderr)
 	}
@@ -193,8 +234,17 @@ func TestSelfUpdateAutoConfirmSuccessWithMockRelease(t *testing.T) {
 	if !result.Success() {
 		t.Fatalf("expected self-update to succeed against mock release server; output:\n%s", output)
 	}
+	desktopBytes, err := os.ReadFile(isolatedDesktopBinary)
+	if err != nil {
+		t.Fatalf("failed to read updated isolated desktop binary: %v", err)
+	}
+	if !strings.Contains(string(desktopBytes), "govard-desktop") {
+		t.Fatalf("expected desktop binary to be replaced, got: %q", string(desktopBytes))
+	}
 	assertContains(t, output, "Auto-confirmed via GOVARD_SELF_UPDATE_CONFIRM.")
-	assertContains(t, output, "Checksum verified.")
+	assertContains(t, output, "Checksum verified for "+archiveName+".")
+	assertContains(t, output, "Checksum verified for "+desktopArchiveName+".")
+	assertContains(t, output, "Updated govard-desktop at "+isolatedDesktopBinary)
 	assertContains(t, output, "Successfully updated Govard to "+releaseTag)
 }
 
@@ -249,6 +299,32 @@ func errorsContain(err error, needle string) bool {
 		return false
 	}
 	return strings.Contains(err.Error(), needle)
+}
+
+func envWithOverrides(base []string, overrides ...string) []string {
+	out := []string{}
+	overrideValues := map[string]string{}
+	for _, pair := range overrides {
+		parts := strings.SplitN(pair, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		overrideValues[parts[0]] = parts[1]
+	}
+	for _, pair := range base {
+		parts := strings.SplitN(pair, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		if _, exists := overrideValues[parts[0]]; exists {
+			continue
+		}
+		out = append(out, pair)
+	}
+	for key, value := range overrideValues {
+		out = append(out, key+"="+value)
+	}
+	return out
 }
 
 func buildTarGzBinaryAsset(t *testing.T, binaryName string, content []byte) []byte {

@@ -80,8 +80,11 @@ go build -o govard cmd/govard/main.go
 # Build for current platform
 make build
 
-# Install locally
+# Build/install from current source tree
 make install
+
+# Install latest release binaries locally
+make install-release
 
 # Build Docker images
 make images

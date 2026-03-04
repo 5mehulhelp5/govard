@@ -1,7 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { normalizeSettingsPayload } from "../../desktop/frontend/modules/settings.js";
+import {
+  normalizeSettingsPayload,
+  renderSettingsDrawer,
+} from "../../desktop/frontend/modules/settings.js";
 
 test("normalizeSettingsPayload maps settings payload", () => {
   const value = normalizeSettingsPayload({
@@ -27,4 +30,20 @@ test("normalizeSettingsPayload falls back to defaults", () => {
     codeEditor: "",
     dbClientPreference: "pma",
   });
+});
+
+test("renderSettingsDrawer includes update controls", () => {
+  const container = { innerHTML: "" };
+  renderSettingsDrawer(container);
+
+  assert.equal(
+    container.innerHTML.includes('data-action="check-updates"'),
+    true,
+    "expected check-updates action in settings drawer",
+  );
+  assert.equal(
+    container.innerHTML.includes('data-action="install-update"'),
+    true,
+    "expected install-update action in settings drawer",
+  );
 });

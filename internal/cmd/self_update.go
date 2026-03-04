@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -24,18 +25,21 @@ import (
 const (
 	selfUpdateDefaultRepo           = "ddtcorex/govard"
 	selfUpdateBinaryName            = "govard"
+	selfUpdateDesktopBinaryName     = "govard-desktop"
 	selfUpdateChecksumsFile         = "checksums.txt"
 	selfUpdateRepoEnvVar            = "GOVARD_REPO"
 	selfUpdateLatestURLEnvVar       = "GOVARD_SELF_UPDATE_LATEST_URL"
 	selfUpdateReleaseBaseURLEnvVar  = "GOVARD_SELF_UPDATE_RELEASE_BASE_URL"
 	selfUpdateConfirmOverrideEnvVar = "GOVARD_SELF_UPDATE_CONFIRM"
+	selfUpdateLocalBinDir           = "/usr/local/bin"
+	selfUpdateSystemBinDir          = "/usr/bin"
 )
 
 var selfUpdateVersion string
 
 var selfUpdateCmd = &cobra.Command{
 	Use:   "self-update",
-	Short: "Upgrade the Govard binary",
+	Short: "Upgrade installed Govard binaries",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		pterm.DefaultHeader.Println("Govard Self-Update")
 
@@ -63,9 +67,23 @@ var selfUpdateCmd = &cobra.Command{
 
 		pterm.Info.Printf("Target version: %s\n", releaseTag)
 
-		archiveName, binaryNameInArchive, err := buildReleaseAssetName(selfUpdateBinaryName, releaseTag, runtime.GOOS, runtime.GOARCH)
+		execPath, err := os.Executable()
 		if err != nil {
-			return err
+			return fmt.Errorf("resolve executable path: %w", err)
+		}
+		if resolved, resolveErr := filepath.EvalSymlinks(execPath); resolveErr == nil {
+			execPath = resolved
+		}
+
+		targetsByBinary := map[string][]string{
+			selfUpdateBinaryName: {execPath},
+		}
+		desktopTargets := resolveDesktopUpdateTargets(execPath)
+		if len(desktopTargets) > 0 {
+			targetsByBinary[selfUpdateDesktopBinaryName] = desktopTargets
+			pterm.Info.Printf("Detected %d Govard Desktop target(s) to update.\n", len(desktopTargets))
+		} else {
+			pterm.Info.Println("No installed Govard Desktop binary detected; skipping desktop update.")
 		}
 
 		tmpDir, err := os.MkdirTemp("", "govard-self-update-*")
@@ -75,49 +93,75 @@ var selfUpdateCmd = &cobra.Command{
 		defer os.RemoveAll(tmpDir)
 
 		baseURL := selfUpdateReleaseBaseURL(repo, releaseTag)
-		archiveURL := fmt.Sprintf("%s/%s", baseURL, archiveName)
 		checksumsURL := fmt.Sprintf("%s/%s", baseURL, selfUpdateChecksumsFile)
-		archivePath := filepath.Join(tmpDir, archiveName)
-
-		pterm.Info.Printf("Downloading %s...\n", archiveName)
-		if err := downloadFile(client, archiveURL, archivePath); err != nil {
-			return err
-		}
-
 		checksumsBody, err := downloadText(client, checksumsURL)
 		if err != nil {
 			return err
 		}
-		expectedChecksum, err := checksumForAsset(checksumsBody, archiveName)
-		if err != nil {
-			return err
-		}
-		if err := verifySHA256(archivePath, expectedChecksum); err != nil {
-			return err
-		}
-		pterm.Success.Println("Checksum verified.")
 
-		extractedBinary, err := extractBinaryFromArchive(archivePath, tmpDir, binaryNameInArchive)
-		if err != nil {
-			return err
+		type updatedTarget struct {
+			binaryName string
+			path       string
 		}
-
-		execPath, err := os.Executable()
-		if err != nil {
-			return fmt.Errorf("resolve executable path: %w", err)
-		}
-		if resolved, resolveErr := filepath.EvalSymlinks(execPath); resolveErr == nil {
-			execPath = resolved
-		}
-
-		if err := replaceBinary(extractedBinary, execPath); err != nil {
-			if errors.Is(err, os.ErrPermission) {
-				return fmt.Errorf("permission denied replacing %s; re-run with elevated privileges: %w", execPath, err)
+		updatedTargets := []updatedTarget{}
+		updateOrder := []string{selfUpdateBinaryName, selfUpdateDesktopBinaryName}
+		for _, binaryName := range updateOrder {
+			targets := targetsByBinary[binaryName]
+			if len(targets) == 0 {
+				continue
 			}
-			return err
+
+			archiveName, binaryNameInArchive, err := buildReleaseAssetName(binaryName, releaseTag, runtime.GOOS, runtime.GOARCH)
+			if err != nil {
+				return err
+			}
+			archivePath := filepath.Join(tmpDir, archiveName)
+			archiveURL := fmt.Sprintf("%s/%s", baseURL, archiveName)
+
+			pterm.Info.Printf("Downloading %s...\n", archiveName)
+			var extractedBinary string
+			if err := downloadFile(client, archiveURL, archivePath); err != nil {
+				if shouldTryLinuxDesktopDebFallback(binaryName, err) {
+					pterm.Warning.Printf("Desktop archive %s not found; falling back to Linux package asset.\n", archiveName)
+					extractedBinary, err = downloadDesktopBinaryFromLinuxDeb(client, checksumsBody, baseURL, releaseTag, tmpDir)
+					if err != nil {
+						return err
+					}
+				} else {
+					return err
+				}
+			} else {
+				expectedChecksum, err := checksumForAsset(checksumsBody, archiveName)
+				if err != nil {
+					return err
+				}
+				if err := verifySHA256(archivePath, expectedChecksum); err != nil {
+					return err
+				}
+				pterm.Success.Printf("Checksum verified for %s.\n", archiveName)
+
+				extractedBinary, err = extractBinaryFromArchive(archivePath, tmpDir, binaryNameInArchive)
+				if err != nil {
+					return err
+				}
+			}
+
+			for _, targetPath := range targets {
+				if err := replaceBinary(extractedBinary, targetPath); err != nil {
+					if errors.Is(err, os.ErrPermission) {
+						return fmt.Errorf("permission denied replacing %s at %s; re-run with elevated privileges: %w", binaryName, targetPath, err)
+					}
+					return err
+				}
+				updatedTargets = append(updatedTargets, updatedTarget{binaryName: binaryName, path: targetPath})
+			}
 		}
 
 		pterm.Success.Printf("Successfully updated Govard to %s\n", releaseTag)
+		for _, updated := range updatedTargets {
+			pterm.Info.Printf("Updated %s at %s\n", updated.binaryName, updated.path)
+		}
+		reportMixedInstallChannels([]string{selfUpdateBinaryName, selfUpdateDesktopBinaryName})
 		pterm.Info.Println("Run 'govard version' to verify.")
 		return nil
 	},
@@ -471,6 +515,167 @@ func replaceBinary(sourcePath, targetPath string) error {
 	return nil
 }
 
+func shouldTryLinuxDesktopDebFallback(binaryName string, err error) bool {
+	if binaryName != selfUpdateDesktopBinaryName {
+		return false
+	}
+	if runtime.GOOS != "linux" {
+		return false
+	}
+	return strings.Contains(strings.ToLower(err.Error()), "status 404")
+}
+
+func downloadDesktopBinaryFromLinuxDeb(client *http.Client, checksumsBody, baseURL, releaseTag, workDir string) (string, error) {
+	versionNoPrefix := strings.TrimPrefix(normalizeReleaseTag(releaseTag), "v")
+	if versionNoPrefix == "" {
+		return "", errors.New("release tag is empty")
+	}
+
+	debAssetName := fmt.Sprintf("%s_%s_linux_%s.deb", selfUpdateBinaryName, versionNoPrefix, runtime.GOARCH)
+	debPath := filepath.Join(workDir, debAssetName)
+	debURL := fmt.Sprintf("%s/%s", baseURL, debAssetName)
+	pterm.Info.Printf("Downloading %s...\n", debAssetName)
+	if err := downloadFile(client, debURL, debPath); err != nil {
+		return "", err
+	}
+
+	expectedChecksum, err := checksumForAsset(checksumsBody, debAssetName)
+	if err != nil {
+		return "", err
+	}
+	if err := verifySHA256(debPath, expectedChecksum); err != nil {
+		return "", err
+	}
+	pterm.Success.Printf("Checksum verified for %s.\n", debAssetName)
+
+	return extractBinaryFromDebPackage(debPath, workDir, selfUpdateDesktopBinaryName)
+}
+
+func extractBinaryFromDebPackage(debPath, workDir, binaryName string) (string, error) {
+	if _, err := exec.LookPath("dpkg-deb"); err != nil {
+		return "", fmt.Errorf("desktop fallback requires dpkg-deb to extract %s: %w", debPath, err)
+	}
+
+	extractDir := filepath.Join(workDir, "deb-extract-"+binaryName)
+	if err := os.RemoveAll(extractDir); err != nil {
+		return "", fmt.Errorf("reset deb extract directory: %w", err)
+	}
+	if err := os.MkdirAll(extractDir, 0o755); err != nil {
+		return "", fmt.Errorf("create deb extract directory: %w", err)
+	}
+
+	cmd := exec.Command("dpkg-deb", "-x", debPath, extractDir)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("extract deb package %s: %w: %s", debPath, err, strings.TrimSpace(string(output)))
+	}
+
+	candidates := []string{
+		filepath.Join(extractDir, "usr", "local", "bin", binaryName),
+		filepath.Join(extractDir, "usr", "bin", binaryName),
+	}
+	for _, candidate := range candidates {
+		if selfUpdateFileExists(candidate) {
+			return candidate, nil
+		}
+	}
+
+	return "", fmt.Errorf("binary %s not found in package %s", binaryName, debPath)
+}
+
+func resolveDesktopUpdateTargets(cliExecutablePath string) []string {
+	candidates := []string{}
+
+	if path, err := exec.LookPath(selfUpdateDesktopBinaryName); err == nil {
+		candidates = append(candidates, path)
+	}
+
+	if cliExecutablePath != "" {
+		sibling := filepath.Join(filepath.Dir(cliExecutablePath), selfUpdateDesktopBinaryName)
+		if selfUpdateFileExists(sibling) {
+			candidates = append(candidates, sibling)
+		}
+	}
+
+	seen := map[string]bool{}
+	targets := []string{}
+	for _, candidate := range candidates {
+		if candidate == "" {
+			continue
+		}
+		resolved := candidate
+		if path, err := filepath.EvalSymlinks(candidate); err == nil {
+			resolved = path
+		}
+		if !selfUpdateFileExists(resolved) {
+			continue
+		}
+		if seen[resolved] {
+			continue
+		}
+		seen[resolved] = true
+		targets = append(targets, resolved)
+	}
+	return targets
+}
+
+func selfUpdateFileExists(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return !info.IsDir()
+}
+
+func detectMixedInstallChannelPairs(binaryNames []string, localBinDir, systemBinDir string) [][2]string {
+	pairs := [][2]string{}
+	for _, binaryName := range binaryNames {
+		if strings.TrimSpace(binaryName) == "" {
+			continue
+		}
+
+		localPath := filepath.Join(localBinDir, binaryName)
+		systemPath := filepath.Join(systemBinDir, binaryName)
+		if !selfUpdateFileExists(localPath) || !selfUpdateFileExists(systemPath) {
+			continue
+		}
+
+		localResolved := localPath
+		if resolved, err := filepath.EvalSymlinks(localPath); err == nil {
+			localResolved = resolved
+		}
+
+		systemResolved := systemPath
+		if resolved, err := filepath.EvalSymlinks(systemPath); err == nil {
+			systemResolved = resolved
+		}
+
+		if localResolved == systemResolved {
+			continue
+		}
+
+		pairs = append(pairs, [2]string{localPath, systemPath})
+	}
+	return pairs
+}
+
+func reportMixedInstallChannels(binaryNames []string) {
+	if runtime.GOOS != "linux" {
+		return
+	}
+
+	pairs := detectMixedInstallChannelPairs(binaryNames, selfUpdateLocalBinDir, selfUpdateSystemBinDir)
+	if len(pairs) == 0 {
+		return
+	}
+
+	for _, pair := range pairs {
+		pterm.Warning.Printf("Detected conflicting binaries: %s and %s\n", pair[0], pair[1])
+	}
+	pterm.Warning.Println("Mixed install channels detected (.deb + local install). Use one channel only.")
+	pterm.Info.Println("Keep /usr/local/bin as source of truth: `sudo apt remove govard` (or `sudo dpkg -r govard`).")
+}
+
 func shouldProceedWithSelfUpdate() bool {
 	override := strings.ToLower(strings.TrimSpace(os.Getenv(selfUpdateConfirmOverrideEnvVar)))
 	switch override {
@@ -514,4 +719,14 @@ func SelfUpdateLatestReleaseURLForTest(repo string) string {
 // SelfUpdateReleaseBaseURLForTest exposes selfUpdateReleaseBaseURL for tests in /tests.
 func SelfUpdateReleaseBaseURLForTest(repo, releaseTag string) string {
 	return selfUpdateReleaseBaseURL(repo, releaseTag)
+}
+
+// ResolveDesktopUpdateTargetsForTest exposes desktop update target discovery for tests in /tests.
+func ResolveDesktopUpdateTargetsForTest(cliExecutablePath string) []string {
+	return resolveDesktopUpdateTargets(cliExecutablePath)
+}
+
+// DetectMixedInstallChannelPairsForTest exposes mixed channel detection for tests in /tests.
+func DetectMixedInstallChannelPairsForTest(binaryNames []string, localBinDir, systemBinDir string) [][2]string {
+	return detectMixedInstallChannelPairs(binaryNames, localBinDir, systemBinDir)
 }

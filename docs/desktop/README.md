@@ -31,6 +31,7 @@ Lightweight dashboard features:
 - Native notifications from operation success/failure events while desktop is running
 - Warnings panel
 - Settings drawer
+- Background update checks after startup with a bottom-right prompt for one-click download/install
 
 Remote open behavior in Desktop:
 

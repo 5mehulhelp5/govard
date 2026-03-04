@@ -13,7 +13,8 @@ BOLD='\033[1m'
 NC='\033[0m'
 
 # Defaults
-BINARY_NAME="govard"
+CLI_BINARY_NAME="govard"
+DESKTOP_BINARY_NAME="govard-desktop"
 REPO="ddtcorex/govard"
 INSTALL_DIR="/usr/local/bin"
 GOVARD_DIR="/opt/govard"
@@ -21,6 +22,16 @@ MIN_GO_VERSION="1.24.0"
 SOURCE_MODE=false
 FORCE_YES=false
 SPECIFIC_VERSION=""
+SOURCE_DIR=""
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+desktop_build_tags() {
+    local tags="desktop production"
+    if [[ "$OS" == "linux" ]]; then
+        tags="${tags} webkit2_41"
+    fi
+    echo "$tags"
+}
 
 # Banner
 show_banner() {
@@ -48,6 +59,7 @@ Usage: install.sh [options]
 
 Options:
   --source       Build from source instead of downloading binary
+  --source-dir <path>  Build from a specific local source directory (requires --source)
   --local        Install to ~/.local/bin (no sudo)
   --dir <path>   Custom installation directory
   --version <v>  Install specific version (e.g. v1.9.0)
@@ -61,6 +73,7 @@ EOF
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --source) SOURCE_MODE=true; shift ;;
+        --source-dir) SOURCE_DIR="$2"; shift 2 ;;
         --local)  INSTALL_DIR="${HOME}/.local/bin"; shift ;;
         --dir)    INSTALL_DIR="$2"; shift 2 ;;
         --version) SPECIFIC_VERSION="$2"; shift 2 ;;
@@ -107,6 +120,129 @@ check_dependencies() {
     elif [[ "$SOURCE_MODE" == true ]]; then
         error "Git is required for --source mode."
     fi
+}
+
+install_binary_file() {
+    local source_path="$1"
+    local binary_name="$2"
+    local target_path="${INSTALL_DIR%/}/${binary_name}"
+
+    info "Installing ${binary_name} to ${target_path}..."
+    mkdir -p "$(dirname "$target_path")"
+
+    if [ -w "$(dirname "$target_path")" ]; then
+        mv "$source_path" "$target_path"
+    else
+        if command -v sudo >/dev/null 2>&1; then
+            sudo mv "$source_path" "$target_path"
+        else
+            error "Cannot write to $(dirname "$target_path") and sudo is not available."
+        fi
+    fi
+
+    if [ -w "$target_path" ]; then
+        chmod +x "$target_path"
+    else
+        if command -v sudo >/dev/null 2>&1; then
+            sudo chmod +x "$target_path"
+        else
+            error "Cannot chmod $target_path and sudo is not available."
+        fi
+    fi
+}
+
+warn_if_mixed_install_channels() {
+    if [[ "${INSTALL_DIR%/}" != "/usr/local/bin" ]]; then
+        return 0
+    fi
+
+    local mixed=false
+    for binary_name in "$CLI_BINARY_NAME" "$DESKTOP_BINARY_NAME"; do
+        local local_path="/usr/local/bin/${binary_name}"
+        local system_path="/usr/bin/${binary_name}"
+        if [[ -f "$local_path" && -f "$system_path" ]] && ! cmp -s "$local_path" "$system_path"; then
+            warn "Detected conflicting ${binary_name} binaries:"
+            echo "  - ${local_path}"
+            echo "  - ${system_path}"
+            mixed=true
+        fi
+    done
+
+    if [[ "$mixed" == true ]]; then
+        warn "Mixed install channels detected (.deb + local install). Use one channel only."
+        info "If you want to keep /usr/local/bin as source of truth, remove the package-managed copy:"
+        echo "  sudo apt remove govard    # or: sudo dpkg -r govard"
+    fi
+}
+
+extract_binary_from_deb() {
+    local deb_path="$1"
+    local binary_name="$2"
+    local output_path="$3"
+    local extract_dir stage_dir
+
+    extract_dir="$(mktemp -d)"
+    stage_dir="${extract_dir}/stage"
+    mkdir -p "$stage_dir"
+
+    if command -v dpkg-deb >/dev/null 2>&1; then
+        if ! dpkg-deb -x "$deb_path" "$stage_dir" >/dev/null 2>&1; then
+            warn "Failed to extract ${deb_path} using dpkg-deb."
+            rm -rf "$extract_dir"
+            return 1
+        fi
+    else
+        if ! command -v ar >/dev/null 2>&1; then
+            warn "Cannot extract .deb package: neither dpkg-deb nor ar is available."
+            rm -rf "$extract_dir"
+            return 1
+        fi
+
+        local data_archive=""
+        for candidate in data.tar.gz data.tar.xz data.tar.bz2 data.tar; do
+            if ar p "$deb_path" "$candidate" > "${extract_dir}/${candidate}" 2>/dev/null; then
+                data_archive="${extract_dir}/${candidate}"
+                break
+            fi
+        done
+
+        if [[ -z "$data_archive" ]]; then
+            warn "Could not locate data.tar.* in ${deb_path}."
+            rm -rf "$extract_dir"
+            return 1
+        fi
+
+        case "$data_archive" in
+            *.tar.gz) tar -xzf "$data_archive" -C "$stage_dir" ;;
+            *.tar.xz) tar -xJf "$data_archive" -C "$stage_dir" ;;
+            *.tar.bz2) tar -xjf "$data_archive" -C "$stage_dir" ;;
+            *.tar) tar -xf "$data_archive" -C "$stage_dir" ;;
+            *)
+                warn "Unsupported Debian data archive format: $data_archive"
+                rm -rf "$extract_dir"
+                return 1
+                ;;
+        esac
+    fi
+
+    local candidate_path=""
+    for candidate in "${stage_dir}/usr/local/bin/${binary_name}" "${stage_dir}/usr/bin/${binary_name}"; do
+        if [[ -f "$candidate" ]]; then
+            candidate_path="$candidate"
+            break
+        fi
+    done
+
+    if [[ -z "$candidate_path" ]]; then
+        warn "Binary ${binary_name} not found in Debian package ${deb_path}."
+        rm -rf "$extract_dir"
+        return 1
+    fi
+
+    cp "$candidate_path" "$output_path"
+    chmod +x "$output_path"
+    rm -rf "$extract_dir"
+    return 0
 }
 
 install_go() {
@@ -175,43 +311,86 @@ install_binary() {
     info "Version: $SPECIFIC_VERSION"
     VERSION_NO_V="${SPECIFIC_VERSION#v}"
     
-    # Capitalize OS for archive name
+    # Capitalize OS for archive names
     OS_CAP="$(echo "${OS:0:1}" | tr '[:lower:]' '[:upper:]')${OS:1}"
-    ARCHIVE_NAME="${BINARY_NAME}_${VERSION_NO_V}_${OS_CAP}_${ARCH}.tar.gz"
-    DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${SPECIFIC_VERSION}/${ARCHIVE_NAME}"
     
     TMP_DIR=$(mktemp -d)
-    info "Downloading $DOWNLOAD_URL..."
-    if ! curl -fsSL "$DOWNLOAD_URL" -o "${TMP_DIR}/bundle.tar.gz"; then
-        error "Failed to download binary. It might not exist for version $SPECIFIC_VERSION."
-    fi
-    
-    tar -xzf "${TMP_DIR}/bundle.tar.gz" -C "$TMP_DIR"
-    
-    TARGET_PATH="${INSTALL_DIR%/}/${BINARY_NAME}"
-    info "Installing to $TARGET_PATH..."
-    mkdir -p "$(dirname "$TARGET_PATH")"
-    
-    if [ -w "$(dirname "$TARGET_PATH")" ]; then
-        mv "${TMP_DIR}/${BINARY_NAME}" "$TARGET_PATH"
-    else
-        sudo mv "${TMP_DIR}/${BINARY_NAME}" "$TARGET_PATH"
-    fi
-    chmod +x "$TARGET_PATH"
-    
+    binaries=("$CLI_BINARY_NAME" "$DESKTOP_BINARY_NAME")
+    extracted_entries=()
+
+    for binary_name in "${binaries[@]}"; do
+        archive_name="${binary_name}_${VERSION_NO_V}_${OS_CAP}_${ARCH}.tar.gz"
+        archive_path="${TMP_DIR}/${archive_name}"
+        download_url="https://github.com/${REPO}/releases/download/${SPECIFIC_VERSION}/${archive_name}"
+
+        info "Downloading $download_url..."
+        if curl -fsSL "$download_url" -o "$archive_path"; then
+            tar -xzf "$archive_path" -C "$TMP_DIR"
+            extracted_path="${TMP_DIR}/${binary_name}"
+            if [[ ! -f "$extracted_path" ]]; then
+                error "Archive ${archive_name} does not contain ${binary_name}."
+            fi
+            extracted_entries+=("${binary_name}:${extracted_path}")
+            continue
+        fi
+
+        if [[ "$binary_name" == "$DESKTOP_BINARY_NAME" && "$OS" == "linux" ]]; then
+            deb_name="govard_${VERSION_NO_V}_linux_${ARCH}.deb"
+            deb_path="${TMP_DIR}/${deb_name}"
+            deb_url="https://github.com/${REPO}/releases/download/${SPECIFIC_VERSION}/${deb_name}"
+            warn "Desktop archive not found for ${SPECIFIC_VERSION}; falling back to Debian package ${deb_name}."
+            info "Downloading $deb_url..."
+            if ! curl -fsSL "$deb_url" -o "$deb_path"; then
+                error "Failed to download ${deb_name} for desktop fallback."
+            fi
+
+            extracted_path="${TMP_DIR}/${binary_name}"
+            if ! extract_binary_from_deb "$deb_path" "$binary_name" "$extracted_path"; then
+                error "Failed to extract ${binary_name} from ${deb_name}."
+            fi
+            extracted_entries+=("${binary_name}:${extracted_path}")
+            continue
+        fi
+
+        error "Failed to download ${binary_name} for version $SPECIFIC_VERSION."
+    done
+
+    for entry in "${extracted_entries[@]}"; do
+        binary_name="${entry%%:*}"
+        extracted_path="${entry#*:}"
+        install_binary_file "$extracted_path" "$binary_name"
+    done
+
     rm -rf "$TMP_DIR"
-    success "Govard $SPECIFIC_VERSION installed!"
+    success "Govard $SPECIFIC_VERSION installed (CLI + Desktop)!"
 }
 
 install_source() {
     install_go
     info "Building from source..."
-    
-    # Detect if we are in the repo
-    if [[ -f "go.mod" && -f "cmd/govard/main.go" ]]; then
-        info "Inside Govard repository. Building..."
+
+    local source_root=""
+
+    if [[ -n "$SOURCE_DIR" ]]; then
+        if ! source_root="$(cd "$SOURCE_DIR" 2>/dev/null && pwd)"; then
+            error "Invalid --source-dir path: $SOURCE_DIR"
+        fi
+        if [[ ! -f "${source_root}/go.mod" || ! -f "${source_root}/cmd/govard/main.go" ]]; then
+            error "--source-dir does not look like a Govard source tree: ${source_root}"
+        fi
+        info "Using requested source directory: ${source_root}"
+    elif [[ -f "go.mod" && -f "cmd/govard/main.go" ]]; then
+        source_root="$PWD"
+        info "Using current directory source tree: ${source_root}"
+    elif [[ -f "${SCRIPT_DIR}/go.mod" && -f "${SCRIPT_DIR}/cmd/govard/main.go" ]]; then
+        source_root="$SCRIPT_DIR"
+        info "Using installer directory source tree: ${source_root}"
+    fi
+
+    if [[ -n "$source_root" ]]; then
+        cd "$source_root"
     else
-        info "Cloning repository..."
+        info "Local source tree not found. Cloning repository..."
         TMP_SRC=$(mktemp -d)
         git clone "https://github.com/${REPO}.git" "$TMP_SRC"
         cd "$TMP_SRC"
@@ -219,27 +398,28 @@ install_source() {
     
     # Resolve version
     VERSION=$(git describe --tags --always 2>/dev/null || echo "source")
-    LDFLAGS="-s -w -X govard/internal/cmd.Version=${VERSION#v}"
-    
-    go build -ldflags "$LDFLAGS" -o "$BINARY_NAME" cmd/govard/main.go
-    
-    TARGET_PATH="${INSTALL_DIR%/}/${BINARY_NAME}"
-    info "Installing to $TARGET_PATH..."
-    mkdir -p "$(dirname "$TARGET_PATH")"
-    
-    if [ -w "$(dirname "$TARGET_PATH")" ]; then
-        mv "$BINARY_NAME" "$TARGET_PATH"
-    else
-        sudo mv "$BINARY_NAME" "$TARGET_PATH"
-    fi
-    chmod +x "$TARGET_PATH"
-    success "Govard built and installed from source!"
+    LDFLAGS="-s -w -X govard/internal/cmd.Version=${VERSION#v} -X govard/internal/desktop.Version=${VERSION#v}"
+
+    TMP_BUILD_DIR=$(mktemp -d)
+    go build -ldflags "$LDFLAGS" -o "${TMP_BUILD_DIR}/${CLI_BINARY_NAME}" cmd/govard/main.go
+    DESKTOP_BUILD_TAGS="$(desktop_build_tags)"
+    go build -tags "$DESKTOP_BUILD_TAGS" -ldflags "$LDFLAGS" -o "${TMP_BUILD_DIR}/${DESKTOP_BINARY_NAME}" cmd/govard-desktop/main.go
+
+    install_binary_file "${TMP_BUILD_DIR}/${CLI_BINARY_NAME}" "$CLI_BINARY_NAME"
+    install_binary_file "${TMP_BUILD_DIR}/${DESKTOP_BINARY_NAME}" "$DESKTOP_BINARY_NAME"
+
+    rm -rf "$TMP_BUILD_DIR"
+    success "Govard built and installed from source (CLI + Desktop, tags: ${DESKTOP_BUILD_TAGS})!"
 }
 
 main() {
     show_banner
     detect_env
     check_dependencies
+
+    if [[ -n "$SOURCE_DIR" && "$SOURCE_MODE" != true ]]; then
+        error "--source-dir requires --source"
+    fi
     
     if [[ "$SOURCE_MODE" == true ]]; then
         install_source
@@ -251,6 +431,7 @@ main() {
     info "Quick start:"
     echo "  govard --help"
     echo ""
+    warn_if_mixed_install_channels
     success "Installation complete!"
 }
 

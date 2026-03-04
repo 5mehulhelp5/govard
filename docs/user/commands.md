@@ -190,6 +190,8 @@ govard desktop --background
 
 `--dev` runs Wails dev mode and requires the Wails CLI. Running without `--dev`
 expects a built `govard-desktop` binary.
+For source/manual builds, use production tags (Linux: `desktop production webkit2_41`,
+macOS: `desktop production`) to avoid Wails startup tag errors.
 `--background` starts desktop hidden, keeps the process alive when the window is
 closed, and reuses the running instance on relaunch.
 
@@ -211,6 +213,7 @@ Desktop highlights:
 - Shell launcher (service, user, shell)
 - Native notifications for operation success/failure updates
 - Settings drawer (theme, proxy target, preferred browser)
+- Background update check after app startup (then periodic checks) with bottom-right update prompt and one-click install flow
 
 Desktop remote open behavior:
 
@@ -607,7 +610,7 @@ See `docs/commands/lock.md`.
 
 ### `govard self-update`
 
-Checks for and installs the latest Govard binary.
+Checks for and installs the latest Govard binaries.
 
 ```bash
 govard self-update
@@ -616,8 +619,9 @@ govard self-update
 **Process:**
 
 1. Queries GitHub API for latest release
-2. Downloads new binary
-3. Replaces current binary
+2. Downloads release archives for `govard` and detected `govard-desktop` (on Linux, falls back to release `.deb` for desktop when standalone desktop archive is unavailable)
+3. Verifies each archive against `checksums.txt`
+4. Replaces installed binaries atomically
 
 ### `govard upgrade`
 

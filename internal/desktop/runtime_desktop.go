@@ -53,3 +53,7 @@ func hideApplication(ctx context.Context) {
 	runtime.WindowHide(ctx)
 	runtime.Hide(ctx)
 }
+
+func quitApplication(ctx context.Context) {
+	runtime.Quit(ctx)
+}

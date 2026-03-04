@@ -23,7 +23,7 @@ At a glance, these are the areas where Govard delivers stronger day-to-day value
 | Team reproducibility | `govard lock` + `lock.strict` to detect environment drift and enforce consistency across machines. |
 | Recovery workflow | `govard snapshot` for quick local DB/media checkpoints before risky operations or upgrades. |
 | CLI + Desktop parity | Same core engine exposed in both CLI and Wails Desktop app (live logs, operation events, quick actions). |
-| Update integrity | `govard self-update` validates release checksums before replacing the binary. |
+| Update integrity | `govard self-update` validates release checksums before replacing installed binaries (`govard` + detected `govard-desktop`). |
 
 ---
 
@@ -77,7 +77,11 @@ curl -fsSL https://raw.githubusercontent.com/ddtcorex/govard/master/install.sh |
 curl -fsSL https://raw.githubusercontent.com/ddtcorex/govard/master/install.sh | bash -s -- --source
 ```
 
-By default this installs `govard` to `/usr/local/bin` and uses `sudo` when needed.
+By default this installs both `govard` and `govard-desktop` to `/usr/local/bin` and uses `sudo` when needed.
+On Linux, if a standalone `govard-desktop` archive is missing in a release, the installer falls back to extracting `govard-desktop` from the release `.deb` package.
+
+Do not mix install channels on the same machine (for example: `.deb` + `make install` + `self-update` across different paths).  
+Use one channel only, otherwise you can end up with conflicting binaries in `/usr/bin` and `/usr/local/bin`.
 
 ### Release Installers (CLI + Desktop)
 
@@ -382,7 +386,7 @@ _Note: Once trusted, all `*.test` domains managed by Govard will show a "Green L
 | `govard projects`    | Query known projects from local registry                           |
 | `govard extensions`  | Manage project extension contract in `.govard`                     |
 | `govard desktop`     | Launch the Govard Desktop app (`--background` supported)           |
-| `govard self-update` | Upgrade the Govard binary                                          |
+| `govard self-update` | Upgrade installed Govard binaries (`govard` + detected `govard-desktop`) |
 | `govard upgrade`     | Upgrade the framework version                                      |
 | `govard version`     | Print the version number of Govard                                 |
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -17,6 +18,10 @@ func ResetStateForTest() {
 	prefsMu.Lock()
 	cachedPrefs = nil
 	prefsMu.Unlock()
+	runDesktopSelfUpdate = defaultRunDesktopSelfUpdate
+	restartDesktopBinary = defaultRestartDesktopBinary
+	desktopExecutablePath = os.Executable
+	desktopBinaryLookPath = exec.LookPath
 	runGovardCommandForDesktop = defaultRunGovardCommandForDesktop
 	startGovardCommandForDesktop = defaultStartGovardCommandForDesktop
 	validateGitConnectionForDesktop = defaultValidateGitConnectionForDesktop
@@ -348,6 +353,58 @@ func SetStartGovardCommandForDesktopForTest(fn func(root string, args []string) 
 	}
 	return func() {
 		startGovardCommandForDesktop = previous
+	}
+}
+
+// SetRunDesktopSelfUpdateForTest overrides desktop self-update execution.
+func SetRunDesktopSelfUpdateForTest(fn func() (string, error)) func() {
+	previous := runDesktopSelfUpdate
+	if fn == nil {
+		runDesktopSelfUpdate = defaultRunDesktopSelfUpdate
+	} else {
+		runDesktopSelfUpdate = fn
+	}
+	return func() {
+		runDesktopSelfUpdate = previous
+	}
+}
+
+// SetRestartDesktopBinaryForTest overrides desktop relaunch command execution.
+func SetRestartDesktopBinaryForTest(fn func(binaryPath string) error) func() {
+	previous := restartDesktopBinary
+	if fn == nil {
+		restartDesktopBinary = defaultRestartDesktopBinary
+	} else {
+		restartDesktopBinary = fn
+	}
+	return func() {
+		restartDesktopBinary = previous
+	}
+}
+
+// SetDesktopExecutablePathForRestartForTest overrides os.Executable usage in desktop restart flow.
+func SetDesktopExecutablePathForRestartForTest(fn func() (string, error)) func() {
+	previous := desktopExecutablePath
+	if fn == nil {
+		desktopExecutablePath = os.Executable
+	} else {
+		desktopExecutablePath = fn
+	}
+	return func() {
+		desktopExecutablePath = previous
+	}
+}
+
+// SetDesktopBinaryLookPathForRestartForTest overrides desktop binary lookup in restart flow.
+func SetDesktopBinaryLookPathForRestartForTest(fn func(file string) (string, error)) func() {
+	previous := desktopBinaryLookPath
+	if fn == nil {
+		desktopBinaryLookPath = exec.LookPath
+	} else {
+		desktopBinaryLookPath = fn
+	}
+	return func() {
+		desktopBinaryLookPath = previous
 	}
 }
 

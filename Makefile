@@ -8,13 +8,16 @@ VERSION_RAW ?= $(shell git describe --tags --dirty --always 2>/dev/null || echo 
 VERSION ?= $(patsubst v%,%,$(VERSION_RAW))
 LDFLAGS ?= -s -w -X govard/internal/cmd.Version=$(VERSION) -X govard/internal/desktop.Version=$(VERSION)
 
-.PHONY: help install build-test-binary build clean test test-fast test-unit test-coverage test-integration test-integration-ci test-frontend lint fmt fmt-check vet push test-realenv-setup test-realenv test-realenv-clean
+.PHONY: help install install-release build-test-binary build clean test test-fast test-unit test-coverage test-integration test-integration-ci test-frontend lint fmt fmt-check vet push test-realenv-setup test-realenv test-realenv-clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-install: ## Build and install Govard binary to system (via install.sh)
-	./install.sh --source -y
+install: ## Build and install Govard CLI + Desktop binaries from current source tree
+	./install.sh --source --source-dir "$(CURDIR)" -y
+
+install-release: ## Install latest release Govard CLI + Desktop binaries to system
+	./install.sh -y
 
 build-frontend:
 	@echo "Building frontend assets..."

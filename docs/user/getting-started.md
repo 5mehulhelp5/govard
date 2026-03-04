@@ -16,7 +16,12 @@ This will automatically:
 
 1. Detect your OS and architecture.
 2. Check for Docker and Git dependencies.
-3. Download and install the latest binary to `/usr/local/bin`.
+3. Download and install the latest CLI + Desktop binaries (`govard`, `govard-desktop`) to `/usr/local/bin`.
+
+On Linux, if the release does not include a standalone `govard-desktop` archive, the installer automatically extracts `govard-desktop` from the release `.deb` package.
+
+> Avoid mixing install channels (`.deb`, `make install`, `govard self-update` from different binary paths) on the same machine.
+> Pick one channel to prevent conflicting binaries between `/usr/bin` and `/usr/local/bin`.
 
 ### 2. Source Installation (with Go Bootstrap)
 

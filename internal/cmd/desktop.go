@@ -16,6 +16,16 @@ import (
 
 var desktopDev bool
 var desktopBackground bool
+var desktopExecutablePath = os.Executable
+var desktopBinaryLookPath = exec.LookPath
+
+func desktopProductionBuildTags() string {
+	tags := []string{"desktop", "production"}
+	if runtime.GOOS == "linux" {
+		tags = append(tags, "webkit2_41")
+	}
+	return strings.Join(tags, " ")
+}
 
 var desktopCmd = &cobra.Command{
 	Use:   "desktop",
@@ -57,13 +67,14 @@ func runDesktopDev() {
 		return
 	}
 
-	pterm.Warning.Println("Wails CLI not found; falling back to `go run -tags desktop ./cmd/govard-desktop`.")
+	productionTags := desktopProductionBuildTags()
+	pterm.Warning.Printf("Wails CLI not found; falling back to `go run -tags %q ./cmd/govard-desktop`.\n", productionTags)
 	root, err := desktop.FindRepoRoot()
 	if err != nil {
 		pterm.Error.Printf("Failed to locate repo root: %v\n", err)
 		return
 	}
-	args := []string{"run", "-tags", "desktop", "./cmd/govard-desktop"}
+	args := []string{"run", "-tags", productionTags, "./cmd/govard-desktop"}
 	if desktopBackground {
 		args = append(args, desktop.DesktopBackgroundFlag)
 	}
@@ -93,13 +104,26 @@ func buildDesktopBinaryArgs(background bool) []string {
 }
 
 func findDesktopBinary() (string, error) {
-	if path, err := exec.LookPath("govard-desktop"); err == nil {
+	if executablePath, err := desktopExecutablePath(); err == nil {
+		if resolved, resolveErr := filepath.EvalSymlinks(executablePath); resolveErr == nil {
+			executablePath = resolved
+		}
+		sibling := filepath.Join(filepath.Dir(executablePath), "govard-desktop")
+		if runtime.GOOS == "windows" {
+			sibling = sibling + ".exe"
+		}
+		if _, err := os.Stat(sibling); err == nil {
+			return sibling, nil
+		}
+	}
+
+	if path, err := desktopBinaryLookPath("govard-desktop"); err == nil {
 		return path, nil
 	}
 
 	root, err := desktop.FindRepoRoot()
 	if err != nil {
-		return "", fmt.Errorf("govard-desktop binary not found in PATH. Build it from a Govard source checkout with `go build -tags desktop -o bin/govard-desktop ./cmd/govard-desktop`")
+		return "", fmt.Errorf("govard-desktop binary not found in PATH. Build it from a Govard source checkout with `go build -tags %q -o bin/govard-desktop ./cmd/govard-desktop`", desktopProductionBuildTags())
 	}
 
 	candidates := []string{
@@ -122,7 +146,7 @@ func findDesktopBinary() (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("govard-desktop binary not found. Build it with `wails build -tags desktop` (from %s) or `go build -tags desktop -o bin/govard-desktop ./cmd/govard-desktop`", filepath.Join(root, "desktop"))
+	return "", fmt.Errorf("govard-desktop binary not found. Build it with `wails build -tags %q` (from %s) or `go build -tags %q -o bin/govard-desktop ./cmd/govard-desktop`", desktopProductionBuildTags(), filepath.Join(root, "desktop"), desktopProductionBuildTags())
 }
 
 func findDesktopDir() (string, error) {

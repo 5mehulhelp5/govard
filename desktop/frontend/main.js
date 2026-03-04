@@ -35,6 +35,7 @@ import {
   createSettingsController,
   renderSettingsDrawer,
 } from "./modules/settings.js";
+import { createUpdateNotifierController } from "./modules/update-notifier.js";
 import { createShellController } from "./modules/shell.js";
 import { createTerminalController } from "./modules/terminal.js";
 import { desktopBridge } from "./services/bridge.js";
@@ -99,6 +100,15 @@ const getLiveRefs = () => ({
   preferredBrowser: byId("preferredBrowser"),
   codeEditor: byId("codeEditor"),
   dbClientPreference: byId("dbClientPreference"),
+  settingsUpdateStatus: byId("settingsUpdateStatus"),
+  settingsUpdateBadge: byId("settingsUpdateBadge"),
+  checkUpdatesButton: byId("checkUpdatesButton"),
+  installUpdateButton: byId("installUpdateButton"),
+  updatePrompt: byId("updatePrompt"),
+  updatePromptCurrent: byId("updatePromptCurrent"),
+  updatePromptLatest: byId("updatePromptLatest"),
+  updatePromptMessage: byId("updatePromptMessage"),
+  installUpdatePromptButton: byId("installUpdatePromptButton"),
   shellUser: byId("shellUser"),
   userAvatar: byId("userAvatar"),
   userName: byId("userName"),
@@ -169,6 +179,8 @@ const refreshRefs = () => {
   if (metricsController?.updateRefs) metricsController.updateRefs(refs);
   if (remotesController?.updateRefs) remotesController.updateRefs(refs);
   if (settingsController?.updateRefs) settingsController.updateRefs(refs);
+  if (updateNotifierController?.updateRefs)
+    updateNotifierController.updateRefs(refs);
   if (globalServicesController?.updateRefs)
     globalServicesController.updateRefs(refs);
   if (embeddedTerminalController?.updateRefs)
@@ -1133,6 +1145,12 @@ const settingsController = createSettingsController({
   onToast: showToast,
 });
 
+const updateNotifierController = createUpdateNotifierController({
+  refs,
+  settingsController,
+  onStatus: setStatus,
+});
+
 const globalServicesController = createGlobalServicesController({
   bridge: desktopBridge,
   runtime: desktopBridge.runtime,
@@ -1418,6 +1436,22 @@ document.addEventListener("click", async (event) => {
   }
   if (action === "reset-settings") {
     await settingsController.reset();
+    return;
+  }
+  if (action === "check-updates") {
+    await settingsController.checkForUpdates();
+    return;
+  }
+  if (action === "install-update") {
+    await settingsController.installLatestUpdate();
+    return;
+  }
+  if (action === "dismiss-update-prompt") {
+    updateNotifierController.dismissPrompt();
+    return;
+  }
+  if (action === "install-update-from-prompt") {
+    await updateNotifierController.installLatestUpdateFromPrompt();
     return;
   }
   if (action === "switch-tab") {
@@ -1883,6 +1917,7 @@ const bootstrap = async () => {
     }, 1500);
 
     metricsController.startAutoRefresh();
+    updateNotifierController.scheduleBackgroundChecks();
     setStatus("Status: Ready");
   } catch (err) {
     console.error("Bootstrap fatal error:", err);
@@ -1916,6 +1951,7 @@ if (document.readyState === "loading") {
 }
 
 window.addEventListener("beforeunload", () => {
+  updateNotifierController.clearTimers();
   metricsController.stopAutoRefresh();
   globalServicesController.stopLive({ skipBridge: true });
 });

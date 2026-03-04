@@ -46,3 +46,7 @@ func showApplication(ctx context.Context) {
 func hideApplication(ctx context.Context) {
 	_ = ctx
 }
+
+func quitApplication(ctx context.Context) {
+	_ = ctx
+}

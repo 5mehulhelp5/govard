@@ -34,6 +34,22 @@ builds:
     ldflags:
       - -s -w -X govard/internal/cmd.Version={{ .Version }} -X govard/internal/desktop.Version={{ .Version }}
 
+  - id: govard-desktop-darwin
+    main: ./cmd/govard-desktop/main.go
+    binary: govard-desktop
+    tags:
+      - desktop
+      - production
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X govard/internal/cmd.Version={{ .Version }} -X govard/internal/desktop.Version={{ .Version }}
+
 archives:
   - id: govard-archive
     ids:
@@ -47,6 +63,15 @@ archives:
         formats:
           - zip
 
+  - id: govard-desktop-archive
+    ids:
+      - govard-desktop
+      - govard-desktop-darwin
+    name_template: >-
+      govard-desktop_{{ .Version }}_{{- title .Os }}_{{ .Arch }}
+    formats:
+      - tar.gz
+
 checksum:
   name_template: checksums.txt
 
@@ -59,7 +84,7 @@ nfpms:
     formats:
       - deb
     file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-    bindir: /usr/bin
+    bindir: /usr/local/bin
     maintainer: DDTCoreX <kaido4492@gmail.com>
     vendor: DDTCoreX
     homepage: https://github.com/ddtcorex/govard

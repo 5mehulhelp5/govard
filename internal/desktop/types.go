@@ -41,6 +41,13 @@ type DesktopSettings struct {
 	DBClientPreference string `json:"dbClientPreference"`
 }
 
+type UpdateCheckResult struct {
+	CurrentVersion string `json:"currentVersion"`
+	LatestVersion  string `json:"latestVersion"`
+	Outdated       bool   `json:"outdated"`
+	Message        string `json:"message"`
+}
+
 type UserInfo struct {
 	Username string `json:"username"`
 	Name     string `json:"name"`
