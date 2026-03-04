@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  createSettingsController,
   normalizeSettingsPayload,
   renderSettingsDrawer,
 } from "../../desktop/frontend/modules/settings.js";
@@ -45,5 +46,86 @@ test("renderSettingsDrawer includes update controls", () => {
     container.innerHTML.includes('data-action="install-update"'),
     true,
     "expected install-update action in settings drawer",
+  );
+  assert.equal(
+    container.innerHTML.includes('id="settingsUpdateStatus"'),
+    true,
+    "expected settingsUpdateStatus element in settings drawer",
+  );
+  assert.equal(
+    container.innerHTML.includes("update-message-text"),
+    true,
+    "expected shared update message style class in settings drawer",
+  );
+});
+
+const createClassList = () => {
+  const set = new Set();
+  return {
+    add(value) {
+      set.add(value);
+    },
+    remove(value) {
+      set.delete(value);
+    },
+    toggle(value, force) {
+      if (force === undefined) {
+        if (set.has(value)) {
+          set.delete(value);
+        } else {
+          set.add(value);
+        }
+        return;
+      }
+      if (force) {
+        set.add(value);
+      } else {
+        set.delete(value);
+      }
+    },
+    contains(value) {
+      return set.has(value);
+    },
+  };
+};
+
+test("checkForUpdates normalizes redundant update message in settings", async () => {
+  const refs = {
+    settingsUpdateStatus: { textContent: "" },
+    settingsUpdateBadge: { textContent: "", className: "" },
+    checkUpdatesButton: { disabled: false, innerHTML: "" },
+    installUpdateButton: {
+      disabled: false,
+      innerHTML: "",
+      classList: createClassList(),
+    },
+  };
+
+  const bridge = {
+    checkForUpdates: async () => ({
+      outdated: true,
+      currentVersion: "v1.16.0",
+      latestVersion: "v1.15.0",
+      message: "Update available: v1.16.0 -> v1.15.0",
+    }),
+  };
+
+  const controller = createSettingsController({
+    bridge,
+    refs,
+    onStatus: () => {},
+    onToast: () => {},
+  });
+
+  const result = await controller.checkForUpdates({ silent: true });
+
+  assert.equal(result.outdated, true);
+  assert.equal(
+    result.message,
+    "A new Govard Desktop version is ready to install (v1.16.0 -> v1.15.0).",
+  );
+  assert.equal(
+    refs.settingsUpdateStatus.textContent,
+    "A new Govard Desktop version is ready to install (v1.16.0 -> v1.15.0).",
   );
 });

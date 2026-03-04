@@ -1,3 +1,5 @@
+import { formatUpdateMessage } from "./update-message.js";
+
 export const normalizeSettingsPayload = (settings = {}) => ({
   theme: settings.theme || settings.Theme || "system",
   proxyTarget: settings.proxyTarget || settings.ProxyTarget || "",
@@ -232,10 +234,12 @@ export const createSettingsController = ({
       updateState.installCompleted = false;
       updateState.failed = false;
 
-      if (result.message) {
+      if (result.outdated) {
+        updateState.message = formatUpdateMessage(result, {
+          includeVersionTransition: true,
+        });
+      } else if (result.message) {
         updateState.message = result.message;
-      } else if (result.outdated) {
-        updateState.message = `Update available: ${result.currentVersion} -> ${result.latestVersion}`;
       } else {
         updateState.message = `Govard Desktop is up to date (${result.currentVersion}).`;
       }
@@ -450,7 +454,7 @@ export const renderSettingsDrawer = (container) => {
                   </span>
                 </div>
                 <p
-                  class="mt-2 text-xs leading-5 text-slate-300"
+                  class="mt-2 update-message-text"
                   id="settingsUpdateStatus"
                   aria-live="polite"
                 >

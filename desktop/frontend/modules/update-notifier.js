@@ -1,24 +1,8 @@
+import { formatUpdateMessage } from "./update-message.js";
+
 const DEFAULT_STARTUP_DELAY_MS = 12000;
 const DEFAULT_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const DEFAULT_INTERVAL_JITTER_RATIO = 0.15;
-
-const formatUpdateMessage = ({ message, currentVersion, latestVersion }) => {
-  const normalizedMessage = String(message || "").trim();
-  if (normalizedMessage) {
-    return normalizedMessage;
-  }
-
-  const fromVersion = String(currentVersion || "").trim();
-  const toVersion = String(latestVersion || "").trim();
-  if (fromVersion && toVersion) {
-    return `A new version is ready (${fromVersion} -> ${toVersion}).`;
-  }
-  if (toVersion) {
-    return `A new version is ready (${toVersion}).`;
-  }
-
-  return "A new Govard Desktop version is available.";
-};
 
 export const createUpdateNotifierController = ({
   refs,
@@ -35,6 +19,22 @@ export const createUpdateNotifierController = ({
     dismissedVersion: "",
     startupTimerID: null,
     intervalTimerID: null,
+  };
+
+  const isSettingsDrawerOpen = () => {
+    const drawer = refs.settingsDrawer;
+    if (!drawer || !drawer.classList || typeof drawer.classList.contains !== "function") {
+      return false;
+    }
+    return !drawer.classList.contains("hidden");
+  };
+
+  const hasUndismissedUpdate = () => {
+    const latestVersion = String(state.latestVersion || "").trim();
+    if (!latestVersion) {
+      return false;
+    }
+    return latestVersion !== state.dismissedVersion;
   };
 
   const render = () => {
@@ -69,9 +69,15 @@ export const createUpdateNotifierController = ({
     render();
   };
 
+  const syncWithSettingsDrawer = () => {
+    const shouldShowPrompt = hasUndismissedUpdate() && !isSettingsDrawerOpen();
+    setPromptVisibility(shouldShowPrompt);
+    return shouldShowPrompt;
+  };
+
   const updateRefs = (nextRefs) => {
     refs = nextRefs;
-    render();
+    syncWithSettingsDrawer();
   };
 
   const clearTimers = () => {
@@ -101,6 +107,9 @@ export const createUpdateNotifierController = ({
     try {
       const result = await settingsController.checkForUpdates({ silent: true });
       if (!result || result.skipped || result.failed || !result.outdated) {
+        if (result && result.outdated === false) {
+          setPromptVisibility(false);
+        }
         return result;
       }
 
@@ -112,9 +121,14 @@ export const createUpdateNotifierController = ({
       state.currentVersion = String(result.currentVersion || "").trim();
       state.latestVersion = latestVersion;
       state.message = formatUpdateMessage(result);
-      setPromptVisibility(true);
-      onStatus("Update available.");
-      return result;
+      const promptVisible = syncWithSettingsDrawer();
+      if (promptVisible) {
+        onStatus("Update available.");
+      }
+      return {
+        ...result,
+        promptVisible,
+      };
     } finally {
       state.checking = false;
       render();
@@ -182,6 +196,7 @@ export const createUpdateNotifierController = ({
   return {
     updateRefs,
     dismissPrompt,
+    syncWithSettingsDrawer,
     checkForUpdatesInBackground,
     installLatestUpdateFromPrompt,
     scheduleBackgroundChecks,

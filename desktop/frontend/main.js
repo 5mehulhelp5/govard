@@ -1151,6 +1151,13 @@ const updateNotifierController = createUpdateNotifierController({
   onStatus: setStatus,
 });
 
+const setSettingsDrawerOpen = (open) => {
+  settingsController.toggleDrawer(open);
+  if (updateNotifierController?.syncWithSettingsDrawer) {
+    updateNotifierController.syncWithSettingsDrawer();
+  }
+};
+
 const globalServicesController = createGlobalServicesController({
   bridge: desktopBridge,
   runtime: desktopBridge.runtime,
@@ -1427,11 +1434,11 @@ document.addEventListener("click", async (event) => {
     return;
   }
   if (action === "open-settings") {
-    settingsController.toggleDrawer(true);
+    setSettingsDrawerOpen(true);
     return;
   }
   if (action === "close-settings") {
-    settingsController.toggleDrawer(false);
+    setSettingsDrawerOpen(false);
     return;
   }
   if (action === "reset-settings") {
@@ -1718,21 +1725,17 @@ const bindRuntimeListeners = () => {
   }
 
   if (refs.openSettings) {
-    refs.openSettings.addEventListener("click", () =>
-      settingsController.toggleDrawer(true),
-    );
+    refs.openSettings.addEventListener("click", () => setSettingsDrawerOpen(true));
   }
 
   if (refs.closeSettings) {
-    refs.closeSettings.addEventListener("click", () =>
-      settingsController.toggleDrawer(false),
-    );
+    refs.closeSettings.addEventListener("click", () => setSettingsDrawerOpen(false));
   }
 
   if (refs.settingsDrawer) {
     refs.settingsDrawer.addEventListener("click", (event) => {
       if (event.target === refs.settingsDrawer) {
-        settingsController.toggleDrawer(false);
+        setSettingsDrawerOpen(false);
       }
     });
   }
@@ -1755,11 +1758,11 @@ document.addEventListener("keydown", (event) => {
   }
 
   if (event.key === "Escape") {
-    settingsController.toggleDrawer(false);
+    setSettingsDrawerOpen(false);
   }
   if ((event.ctrlKey || event.metaKey) && event.key === ",") {
     event.preventDefault();
-    settingsController.toggleDrawer(true);
+    setSettingsDrawerOpen(true);
   }
 });
 

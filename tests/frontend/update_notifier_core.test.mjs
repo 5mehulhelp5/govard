@@ -45,6 +45,7 @@ const createElement = (initialClasses = []) => ({
 });
 
 const createRefs = () => ({
+  settingsDrawer: createElement(["hidden"]),
   updatePrompt: createElement(["hidden"]),
   updatePromptCurrent: createElement(),
   updatePromptLatest: createElement(),
@@ -83,10 +84,42 @@ test("checkForUpdatesInBackground shows prompt when update is available", async 
   assert.equal(refs.updatePromptCurrent.textContent, "v1.0.0");
   assert.equal(refs.updatePromptLatest.textContent, "v1.1.0");
   assert.equal(
-    refs.updatePromptMessage.textContent.includes("v1.0.0 -> v1.1.0"),
-    true,
+    refs.updatePromptMessage.textContent,
+    "A new Govard Desktop version is ready to install.",
   );
   assert.deepEqual(statuses, ["Update available."]);
+});
+
+test("checkForUpdatesInBackground preserves custom non-redundant prompt message", async () => {
+  const refs = createRefs();
+  const settingsController = {
+    async checkForUpdates() {
+      return {
+        skipped: false,
+        failed: false,
+        outdated: true,
+        currentVersion: "v1.0.0",
+        latestVersion: "v1.1.0",
+        message: "Security fixes and performance improvements are included.",
+      };
+    },
+    async installLatestUpdate() {
+      return { ok: true };
+    },
+  };
+
+  const controller = createUpdateNotifierController({
+    refs,
+    settingsController,
+    onStatus: () => {},
+  });
+
+  await controller.checkForUpdatesInBackground();
+
+  assert.equal(
+    refs.updatePromptMessage.textContent,
+    "Security fixes and performance improvements are included.",
+  );
 });
 
 test("checkForUpdatesInBackground keeps prompt hidden when no update", async () => {
@@ -187,6 +220,39 @@ test("installLatestUpdateFromPrompt delegates to settings installer and hides pr
   assert.equal(refs.updatePrompt.classList.contains("hidden"), true);
 });
 
+test("checkForUpdatesInBackground suppresses prompt while settings drawer is open", async () => {
+  const refs = createRefs();
+  refs.settingsDrawer.classList.remove("hidden");
+  const settingsController = {
+    async checkForUpdates() {
+      return {
+        skipped: false,
+        failed: false,
+        outdated: true,
+        currentVersion: "v1.6.0",
+        latestVersion: "v1.7.0",
+        message: "Update available: v1.6.0 -> v1.7.0",
+      };
+    },
+    async installLatestUpdate() {
+      return { ok: true };
+    },
+  };
+
+  const controller = createUpdateNotifierController({
+    refs,
+    settingsController,
+    onStatus: () => {},
+  });
+
+  await controller.checkForUpdatesInBackground();
+  assert.equal(refs.updatePrompt.classList.contains("hidden"), true);
+
+  refs.settingsDrawer.classList.add("hidden");
+  controller.syncWithSettingsDrawer();
+  assert.equal(refs.updatePrompt.classList.contains("hidden"), false);
+});
+
 test("desktop shell contains update prompt actions", async () => {
   const html = await readFile(
     new URL("../../desktop/frontend/index.html", import.meta.url),
@@ -207,5 +273,15 @@ test("desktop shell contains update prompt actions", async () => {
     html.includes('data-action="dismiss-update-prompt"'),
     true,
     "missing dismiss-update-prompt action",
+  );
+  assert.equal(
+    html.includes('id="updatePromptMessage"'),
+    true,
+    "missing updatePromptMessage element",
+  );
+  assert.equal(
+    html.includes("update-message-text"),
+    true,
+    "missing shared update message style class in update prompt",
   );
 });
