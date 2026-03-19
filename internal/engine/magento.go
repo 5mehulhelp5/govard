@@ -36,6 +36,15 @@ func ConfigureMagento(projectName string, config Config) error {
 		pterm.Info.Println("Applied Magento XML schema compatibility patch for newer libxml2.")
 	}
 
+	// Proactively unblock search index (safe via curl, not a DB query)
+	if config.Stack.Features.Elasticsearch || config.Stack.Services.Search != "none" {
+		if err := FixElasticsearchIndexBlock(projectName, config); err != nil {
+			pterm.Warning.Printf("Could not unblock search index proactively (continuing): %v\n", err)
+		} else {
+			pterm.Success.Println("Proactively unblocked search index via curl.")
+		}
+	}
+
 	containerName := fmt.Sprintf("%s-php-1", projectName)
 	if err := ensureMagentoLocalWritableDirs(containerName, config); err != nil {
 		pterm.Warning.Printf("Could not prepare Magento writable dirs (continuing): %v\n", err)
@@ -250,7 +259,7 @@ func ensureMagentoLocalWritableDirs(containerName string, config Config) error {
 
 func buildMagentoCommands(projectName string, config Config) []magentoCommand {
 	containerName := fmt.Sprintf("%s-php-1", projectName)
-	searchEngine := resolveMagentoSearchEngine(config)
+	searchEngine := ResolveMagentoSearchEngine(config)
 
 	configSetArgs := []string{
 		"bin/magento",
@@ -263,13 +272,11 @@ func buildMagentoCommands(projectName string, config Config) []magentoCommand {
 	configSetArgs = append(configSetArgs, "--no-interaction")
 
 	commands := []magentoCommand{{
-		Desc: "Enable Developer Mode",
-		Args: magentoDockerExecArgs(containerName, config, "bin/magento", "deploy:mode:set", "developer", "--no-interaction"),
-	}, {
 		Desc: "Setting Database connection",
 		Args: magentoDockerExecArgs(containerName, config, configSetArgs...),
 	}}
 
+	// Pre-fix search host in DB via CLI is handled in cmd layer
 	if searchEngine != "" {
 		commands = append(commands, magentoCommand{
 			Desc: "Setting Search Engine",
@@ -279,6 +286,11 @@ func buildMagentoCommands(projectName string, config Config) []magentoCommand {
 		})
 		commands = append(commands, buildMagentoSearchConfigSetCommands(containerName, config, searchEngine)...)
 	}
+
+	commands = append(commands, magentoCommand{
+		Desc: "Enable Developer Mode",
+		Args: magentoDockerExecArgs(containerName, config, "bin/magento", "deploy:mode:set", "developer", "--no-interaction"),
+	})
 
 	if config.Stack.Services.Cache == "redis" || config.Stack.Services.Cache == "valkey" {
 		commands = append(commands, magentoCommand{
@@ -398,7 +410,7 @@ func resolveMagentoSearchConfigPrefix(engineName string) string {
 	}
 }
 
-func resolveMagentoSearchEngine(config Config) string {
+func ResolveMagentoSearchEngine(config Config) string {
 	// ElasticSuite must remain the selected engine when the module is present.
 	// Forcing elasticsearch7/opensearch breaks Smile query objects on Magento 2.4.7 stacks.
 	if isMagentoElasticsuiteProject() {
@@ -484,6 +496,40 @@ func patchMagentoElasticsearchSchemaForLibxml() (bool, error) {
 
 func isMagentoVersionAtLeast(raw string, minimum string) bool {
 	return isNumericDotVersionAtLeast(raw, minimum)
+}
+
+// BuildMagentoSearchHostFixSQL returns the SQL query needed to fix the search host in the database.
+// It is used by the CLI (govard db query) during bootstrap or auto-configuration.
+func BuildMagentoSearchHostFixSQL(host string, searchEngine string) string {
+	if host == "" {
+		host = "elasticsearch"
+	}
+	// Query information_schema to handle potential table prefixes
+	sql := "SET @table_name = (SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE '%core_config_data' LIMIT 1); "
+
+	// 1. Fix Hostname
+	sql += fmt.Sprintf("SET @sql = CONCAT('UPDATE ', @table_name, ' SET value = \"%s\" WHERE path IN (\"catalog/search/elasticsearch_server_hostname\", \"catalog/search/elasticsearch5_server_hostname\", \"catalog/search/elasticsearch6_server_hostname\", \"catalog/search/elasticsearch7_server_hostname\", \"catalog/search/opensearch_server_hostname\")'); ", host)
+	sql += "PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt; "
+
+	// 2. Fix Port (Default to 9200 for local containers)
+	sql += "SET @sql_port = CONCAT('UPDATE ', @table_name, ' SET value = \"9200\" WHERE path IN (\"catalog/search/elasticsearch5_server_port\", \"catalog/search/elasticsearch6_server_port\", \"catalog/search/elasticsearch7_server_port\", \"catalog/search/opensearch_server_port\")'); "
+	sql += "PREPARE stmt_port FROM @sql_port; EXECUTE stmt_port; DEALLOCATE PREPARE stmt_port; "
+
+	// 3. Disable Authentication (Prevent issues if remote uses auth)
+	sql += "SET @sql_auth = CONCAT('UPDATE ', @table_name, ' SET value = \"0\" WHERE path IN (\"catalog/search/elasticsearch5_enable_auth\", \"catalog/search/elasticsearch6_enable_auth\", \"catalog/search/elasticsearch7_enable_auth\", \"catalog/search/opensearch_enable_auth\", \"smile_elasticsuite_core_base_settings/es_client/enable_auth\")'); "
+	sql += "PREPARE stmt_auth FROM @sql_auth; EXECUTE stmt_auth; DEALLOCATE PREPARE stmt_auth; "
+
+	// 4. Smile_Elasticsuite specific fix (uses host:port format)
+	sql += fmt.Sprintf("SET @sql2 = CONCAT('UPDATE ', @table_name, ' SET value = \"%s:9200\" WHERE path = \"smile_elasticsuite_core_base_settings/es_client/servers\"'); ", host)
+	sql += "PREPARE stmt2 FROM @sql2; EXECUTE stmt2; DEALLOCATE PREPARE stmt2;"
+
+	// 5. Fix Engine Type
+	if searchEngine != "" {
+		sql += fmt.Sprintf("SET @sql_engine = CONCAT('INSERT INTO ', @table_name, ' (scope, scope_id, path, value) VALUES (''default'', 0, ''catalog/search/engine'', ''%s'') ON DUPLICATE KEY UPDATE value = ''%s'''); ", searchEngine, searchEngine)
+		sql += "PREPARE stmt_engine FROM @sql_engine; EXECUTE stmt_engine; DEALLOCATE PREPARE stmt_engine;"
+	}
+
+	return sql
 }
 
 func magentoDockerExecArgs(containerName string, config Config, args ...string) []string {

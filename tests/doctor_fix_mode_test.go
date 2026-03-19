@@ -73,6 +73,8 @@ func TestDoctorCommandFixModeRepairsGovardHomeWarning(t *testing.T) {
 		CheckDiskScratch:         func() error { return nil },
 		CheckGovardHomeWritable:  engine.CheckGovardHomeWritable,
 		CheckNetworkConnectivity: func() error { return nil },
+		CheckSearchIndexBlock:    func() error { return nil },
+		CheckSSHAgentStatus:      func() (string, error) { return "ok", nil },
 	})
 	defer restoreDeps()
 

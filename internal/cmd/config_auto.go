@@ -18,16 +18,20 @@ var configAutoCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		if err := applyFrameworkAutoConfiguration(config); err != nil {
+		if err := applyFrameworkAutoConfiguration(cmd, config); err != nil {
 			return fmt.Errorf("configuration failed: %w", err)
 		}
 		return nil
 	},
 }
 
-func applyFrameworkAutoConfiguration(config engine.Config) error {
+func applyFrameworkAutoConfiguration(cmd *cobra.Command, config engine.Config) error {
 	switch config.Framework {
 	case "magento2":
+		// Proactively fix search host in DB via CLI (using govard db query)
+		if config.Stack.Features.Elasticsearch || config.Stack.Services.Search != "none" {
+			_ = runMagentoSearchHostFixViaCLI(cmd, config)
+		}
 		return engine.ConfigureMagento(config.ProjectName, config)
 	default:
 		pterm.Warning.Printf(

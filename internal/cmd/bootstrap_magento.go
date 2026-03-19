@@ -12,6 +12,7 @@ import (
 	"govard/internal/engine/remote"
 
 	"github.com/pterm/pterm"
+	"github.com/spf13/cobra"
 )
 
 func ensureBootstrapMagentoEnvPHP(config engine.Config, opts bootstrapRuntimeOptions) error {
@@ -144,4 +145,19 @@ func bootstrapMagentoMediaSyncArgs(opts bootstrapRuntimeOptions) []string {
 		args = append(args, "--exclude", pattern)
 	}
 	return args
+}
+
+func runMagentoSearchHostFixViaCLI(cmd *cobra.Command, config engine.Config) error {
+	host := "elasticsearch"
+	if s := strings.ToLower(strings.TrimSpace(config.Stack.Services.Search)); s != "" && s != "none" {
+		host = s
+	}
+	searchEngine := engine.ResolveMagentoSearchEngine(config)
+	sql := engine.BuildMagentoSearchHostFixSQL(host, searchEngine)
+	// Skip the --environment flag implicitly because we're running it locally
+	err := runGovardSubcommand(cmd, "db", "query", sql)
+	if err != nil {
+		pterm.Warning.Printf("Could not fix search host via 'govard db query' (continuing): %v\n", err)
+	}
+	return err
 }

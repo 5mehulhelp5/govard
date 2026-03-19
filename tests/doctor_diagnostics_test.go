@@ -15,6 +15,8 @@ func TestRunDoctorDiagnosticsAllPass(t *testing.T) {
 		CheckDiskScratch:         func() error { return nil },
 		CheckGovardHomeWritable:  func() error { return nil },
 		CheckNetworkConnectivity: func() error { return nil },
+		CheckSearchIndexBlock:    func() error { return nil },
+		CheckSSHAgentStatus:      func() (string, error) { return "ok", nil },
 	})
 
 	if report.Failures != 0 {
@@ -39,6 +41,8 @@ func TestRunDoctorDiagnosticsComposeFailure(t *testing.T) {
 		CheckDiskScratch:         func() error { return nil },
 		CheckGovardHomeWritable:  func() error { return nil },
 		CheckNetworkConnectivity: func() error { return nil },
+		CheckSearchIndexBlock:    func() error { return nil },
+		CheckSSHAgentStatus:      func() (string, error) { return "ok", nil },
 	})
 
 	if report.Failures != 1 {
@@ -79,6 +83,8 @@ func TestRunDoctorDiagnosticsPortAndNetworkWarnings(t *testing.T) {
 		CheckDiskScratch:         func() error { return nil },
 		CheckGovardHomeWritable:  func() error { return nil },
 		CheckNetworkConnectivity: func() error { return errors.New("timeout") },
+		CheckSearchIndexBlock:    func() error { return nil },
+		CheckSSHAgentStatus:      func() (string, error) { return "ok", nil },
 	})
 
 	if report.Failures != 0 {

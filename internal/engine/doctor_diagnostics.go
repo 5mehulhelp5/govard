@@ -57,6 +57,7 @@ type DoctorDependencies struct {
 	CheckGovardHomeWritable  func() error
 	CheckNetworkConnectivity func() error
 	CheckSearchIndexBlock    func() error
+	CheckSSHAgentStatus      func() (string, error)
 }
 
 func RunDoctorDiagnostics(dependencies DoctorDependencies) DoctorReport {
@@ -81,9 +82,12 @@ func RunDoctorDiagnostics(dependencies DoctorDependencies) DoctorReport {
 	if dependencies.CheckSearchIndexBlock == nil {
 		dependencies.CheckSearchIndexBlock = CheckSearchIndexBlock
 	}
+	if dependencies.CheckSSHAgentStatus == nil {
+		dependencies.CheckSSHAgentStatus = CheckSSHAgentStatus
+	}
 
 	report := DoctorReport{
-		Checks: make([]DoctorCheck, 0, 7),
+		Checks: make([]DoctorCheck, 0, 8),
 	}
 
 	if err := dependencies.CheckDockerStatus(); err != nil {
@@ -230,6 +234,24 @@ func RunDoctorDiagnostics(dependencies DoctorDependencies) DoctorReport {
 		})
 	}
 
+	if msg, err := dependencies.CheckSSHAgentStatus(); err != nil {
+		report.Checks = append(report.Checks, DoctorCheck{
+			ID:               "host.ssh.agent",
+			Title:            "SSH Agent forwarding",
+			Status:           DoctorStatusWarn,
+			Message:          msg,
+			Hint:             "Ensure your SSH agent is running (ssh-add -l) and SSH_AUTH_SOCK is exported.",
+			SuggestedCommand: "ssh-add",
+		})
+	} else {
+		report.Checks = append(report.Checks, DoctorCheck{
+			ID:      "host.ssh.agent",
+			Title:   "SSH Agent forwarding",
+			Status:  DoctorStatusPass,
+			Message: msg,
+		})
+	}
+
 	for _, check := range report.Checks {
 		switch check.Status {
 		case DoctorStatusPass:
@@ -320,6 +342,41 @@ func CheckNetworkConnectivity() error {
 		return err
 	}
 	return conn.Close()
+}
+
+func CheckSSHAgentStatus() (string, error) {
+	// 1. Check host environment
+	sock := os.Getenv("SSH_AUTH_SOCK")
+	if sock == "" {
+		return "SSH_AUTH_SOCK is not set on the host machine.", fmt.Errorf("missing SSH_AUTH_SOCK")
+	}
+
+	if _, err := os.Stat(sock); err != nil {
+		return fmt.Sprintf("SSH_AUTH_SOCK is set but socket file is missing or inaccessible: %v", err), err
+	}
+
+	// 2. Check responsiveness on host
+	hostCheck := exec.Command("ssh-add", "-l")
+	if out, err := hostCheck.CombinedOutput(); err != nil {
+		return fmt.Sprintf("SSH agent is not responding on host: %s", strings.TrimSpace(string(out))), err
+	}
+
+	// 3. Optional: Check inside the PHP container if running
+	config := loadConfig()
+	if config.ProjectName != "" {
+		containerName := fmt.Sprintf("%s-php-1", config.ProjectName)
+		// Only check if container is running
+		inspect := exec.Command("docker", "inspect", "-f", "{{.State.Running}}", containerName)
+		if output, err := inspect.Output(); err == nil && strings.TrimSpace(string(output)) == "true" {
+			containerCheck := exec.Command("docker", "exec", "-i", containerName, "ssh-add", "-l")
+			if out, err := containerCheck.CombinedOutput(); err != nil {
+				return fmt.Sprintf("SSH agent is working on host but NOT inside container %s: %s", containerName, strings.TrimSpace(string(out))), err
+			}
+			return "SSH agent is healthy on host and forwarded to container.", nil
+		}
+	}
+
+	return "SSH agent is healthy on host.", nil
 }
 
 func CheckSearchIndexBlock() error {

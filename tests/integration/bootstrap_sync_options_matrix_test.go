@@ -239,7 +239,7 @@ func TestSyncOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 		result.AssertSuccess(t)
 
 		out := result.Stdout
-		assertMatrixContains(t, out, "Source:      staging (Env: staging, Target: deploy@staging.example.com")
+		assertMatrixContains(t, out, "Source:      staging (Target: deploy@staging.example.com")
 		assertMatrixContains(t, out, "Destination: local (local project:")
 		assertMatrixContains(t, out, "Scopes:      files")
 		assertMatrixContains(t, out, "Resume Mode: Enabled")
