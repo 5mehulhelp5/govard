@@ -33,7 +33,7 @@ func runDBDump(cmd *cobra.Command, config engine.Config, options dbCommandOption
 			pterm.Info.Println("Dumping database to stdout...")
 		}
 
-		if err := runDumpToWriter(dumpCommand, writer, options.ExcludeSensitiveData, cmd.ErrOrStderr()); err != nil {
+		if err := runDumpToWriter(dumpCommand, writer, true, cmd.ErrOrStderr()); err != nil {
 			return fmt.Errorf("db dump failed: %w", err)
 		}
 

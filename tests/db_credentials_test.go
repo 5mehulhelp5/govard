@@ -112,3 +112,52 @@ func TestBuildLocalDBResetScriptRejectsUnsafeDatabaseName(t *testing.T) {
 		t.Fatalf("expected invalid database name error, got: %v", err)
 	}
 }
+
+func TestBuildIgnoredTableArgsNoFlags(t *testing.T) {
+	args := cmd.BuildIgnoredTableArgsForTest("magento", "", false, false)
+	if len(args) != 0 {
+		t.Fatalf("expected no ignore-table args when no flags set, got %d args", len(args))
+	}
+}
+
+func TestBuildIgnoredTableArgsNoNoise(t *testing.T) {
+	args := cmd.BuildIgnoredTableArgsForTest("magento", "", true, false)
+	if len(args) == 0 {
+		t.Fatal("expected ignore-table args when --no-noise is set")
+	}
+	joined := strings.Join(args, " ")
+	// cron_schedule is an archetypal noise table
+	if !strings.Contains(joined, "--ignore-table=magento.cron_schedule") {
+		t.Fatalf("expected cron_schedule to be in ignore-table args, got: %s", joined)
+	}
+	// PII table (sales_order) should NOT appear when only --no-noise
+	if strings.Contains(joined, "--ignore-table=magento.sales_order ") {
+		t.Fatalf("did not expect sales_order in --no-noise only args, got: %s", joined)
+	}
+}
+
+func TestBuildIgnoredTableArgsNoPII(t *testing.T) {
+	args := cmd.BuildIgnoredTableArgsForTest("mydb", "", true, true)
+	if len(args) == 0 {
+		t.Fatal("expected ignore-table args when --no-pii is set")
+	}
+	joined := strings.Join(args, " ")
+	// Both noise table and PII table should appear
+	if !strings.Contains(joined, "--ignore-table=mydb.cron_schedule") {
+		t.Fatalf("expected noise table cron_schedule in --no-pii args, got: %s", joined)
+	}
+	if !strings.Contains(joined, "--ignore-table=mydb.customer_entity") {
+		t.Fatalf("expected PII table customer_entity in --no-pii args, got: %s", joined)
+	}
+	if !strings.Contains(joined, "--ignore-table=mydb.sales_order") {
+		t.Fatalf("expected PII table sales_order in --no-pii args, got: %s", joined)
+	}
+}
+
+func TestBuildIgnoredTableArgsWithPrefix(t *testing.T) {
+	args := cmd.BuildIgnoredTableArgsForTest("mage", "m2_", true, false)
+	joined := strings.Join(args, " ")
+	if !strings.Contains(joined, "--ignore-table=mage.m2_cron_schedule") {
+		t.Fatalf("expected prefixed table name, got: %s", joined)
+	}
+}

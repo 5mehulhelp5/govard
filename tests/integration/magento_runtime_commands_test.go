@@ -19,7 +19,7 @@ func TestDBCommandValidationAndRuntime(t *testing.T) {
 		if result.Success() {
 			t.Fatal("expected db connect --stream-db to fail")
 		}
-		assertContains(t, result.Stderr, "connect does not support --file, --stream-db, --full, or --exclude-sensitive-data")
+		assertContains(t, result.Stderr, "connect does not support --file, --stream-db, --full, --no-noise, or --no-pii")
 	})
 
 	t.Run("ImportStreamDBRequiresRemoteEnv", func(t *testing.T) {

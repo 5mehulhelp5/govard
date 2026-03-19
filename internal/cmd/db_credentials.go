@@ -185,24 +185,261 @@ func buildLocalDBImportCommand(containerName string, credentials dbCredentials) 
 	return exec.Command("docker", args...)
 }
 
-func buildLocalDBDumpCommand(containerName string, credentials dbCredentials, full bool) *exec.Cmd {
+func buildLocalDBDumpCommand(containerName string, credentials dbCredentials, full bool, noNoise bool, noPII bool) *exec.Cmd {
 	credentials = credentials.withDefaults()
 	args := []string{"exec", "-i"}
 	if strings.TrimSpace(credentials.Password) != "" {
 		args = append(args, "-e", "MYSQL_PWD="+credentials.Password)
 	}
 	args = append(args, containerName)
-	args = append(args, buildMySQLDumpCommandArgsWithCredentials(credentials, full)...)
+	args = append(args, buildMySQLDumpCommandArgsWithCredentials(credentials, full, noNoise, noPII)...)
 	return exec.Command("docker", args...)
 }
 
-func buildMySQLDumpCommandArgsWithCredentials(credentials dbCredentials, full bool) []string {
+func buildMySQLDumpCommandArgsWithCredentials(credentials dbCredentials, full bool, noNoise bool, noPII bool) []string {
 	credentials = credentials.withDefaults()
 	args := []string{"mysqldump", "--max-allowed-packet=512M", "--no-tablespaces", "-u", credentials.Username}
 	if full {
 		args = append(args, "--routines", "--events", "--triggers")
 	}
+	ignoreArgs := buildIgnoredTableArgs(credentials.Database, "", noNoise, noPII)
+	args = append(args, ignoreArgs...)
 	args = append(args, credentials.Database)
+	return args
+}
+
+// magentoIgnoredTables is the list of ephemeral/noise tables excluded when --no-noise is specified.
+// Ported from warden-custom-commands v2.7.0 IGNORED_TABLES (env-adapters/magento2/utils.sh).
+var magentoIgnoredTables = []string{
+	"admin_system_messages",
+	"admin_user_expiration",
+	"admin_user_session",
+	"adminnotification_inbox",
+	"amasty_fpc_activity",
+	"amasty_fpc_context_debug",
+	"amasty_fpc_flushes_log",
+	"amasty_fpc_job_queue",
+	"amasty_fpc_log",
+	"amasty_fpc_pages_to_flush",
+	"amasty_fpc_queue_page",
+	"amasty_fpc_reports",
+	"amasty_mostviewed_product_index",
+	"amasty_mostviewed_product_viewed_index",
+	"amasty_mostviewed_product_viewed_index_replica",
+	"amasty_reports_abandoned_cart",
+	"amasty_xsearch_users_search",
+	"cache_tag",
+	"catalog_category_product_cl",
+	"catalog_category_product_index_replica",
+	"catalog_category_product_index_tmp",
+	"catalog_product_attribute_cl",
+	"catalog_product_category_cl",
+	"catalog_product_index_eav_decimal_idx",
+	"catalog_product_index_eav_decimal_tmp",
+	"catalog_product_index_eav_idx",
+	"catalog_product_index_eav_replica",
+	"catalog_product_index_eav_tmp",
+	"catalog_product_index_price_bundle_idx",
+	"catalog_product_index_price_bundle_opt_idx",
+	"catalog_product_index_price_bundle_opt_tmp",
+	"catalog_product_index_price_bundle_sel_idx",
+	"catalog_product_index_price_bundle_sel_tmp",
+	"catalog_product_index_price_bundle_tmp",
+	"catalog_product_index_price_cfg_opt_agr_idx",
+	"catalog_product_index_price_cfg_opt_agr_tmp",
+	"catalog_product_index_price_cfg_opt_idx",
+	"catalog_product_index_price_cfg_opt_tmp",
+	"catalog_product_index_price_downlod_idx",
+	"catalog_product_index_price_downlod_tmp",
+	"catalog_product_index_price_final_idx",
+	"catalog_product_index_price_final_tmp",
+	"catalog_product_index_price_idx",
+	"catalog_product_index_price_opt_agr_idx",
+	"catalog_product_index_price_opt_agr_tmp",
+	"catalog_product_index_price_opt_idx",
+	"catalog_product_index_price_opt_tmp",
+	"catalog_product_index_price_replica",
+	"catalog_product_index_price_tmp",
+	"catalog_product_price_cl",
+	"cataloginventory_stock_cl",
+	"cataloginventory_stock_status_idx",
+	"cataloginventory_stock_status_tmp",
+	"catalogsearch_fulltext_cl",
+	"catalogsearch_fulltext_scope1",
+	"catalogsearch_fulltext_scope2",
+	"cron_schedule",
+	"customer_grid_flat_cl",
+	"customer_log",
+	"customer_visitor",
+	"design_config_grid_flat_cl",
+	"elasticsuite_tracker_log_customer_link",
+	"elasticsuite_tracker_log_event",
+	"import_history",
+	"inventory_cl",
+	"inventory_stock_sales_channel_cl",
+	"kiwicommerce_activity",
+	"kiwicommerce_activity_detail",
+	"kiwicommerce_activity_log",
+	"klaviyo_sync_queue",
+	"login_as_customer",
+	"magento_bulk",
+	"magento_logging_event",
+	"magento_logging_event_changes",
+	"magento_login_as_customer_log",
+	"mageplaza_smtp_log",
+	"mailchimp_errors",
+	"mailchimp_sync_batches",
+	"mailchimp_sync_ecommerce",
+	"mailchimp_webhook_request",
+	"mst_cache_warmer_job",
+	"mst_cache_warmer_page",
+	"mst_cache_warmer_trace",
+	"mst_search_index_store",
+	"mst_seo_audit_check_result_aggregated",
+	"oauth_nonce",
+	"oauth_token_request_log",
+	"password_reset_request_event",
+	"persistent_session",
+	"queue_message",
+	"queue_message_status",
+	"report_compared_product_index",
+	"report_event",
+	"report_viewed_product_aggregated_daily",
+	"report_viewed_product_aggregated_monthly",
+	"report_viewed_product_aggregated_yearly",
+	"report_viewed_product_index",
+	"reporting_module_status",
+	"reporting_system_updates",
+	"reporting_users",
+	"sales_bestsellers_aggregated_daily",
+	"sales_bestsellers_aggregated_monthly",
+	"sales_bestsellers_aggregated_yearly",
+	"sales_invoiced_aggregated",
+	"sales_invoiced_aggregated_order",
+	"sales_order_aggregated_created",
+	"sales_order_aggregated_updated",
+	"sales_refunded_aggregated",
+	"sales_refunded_aggregated_order",
+	"sales_shipping_aggregated",
+	"sales_shipping_aggregated_order",
+	"search_query",
+	"session",
+	"sutunam_activity",
+	"sutunam_activity_detail",
+	"sutunam_activity_log",
+	"ui_bookmark",
+	"yotpo_order_sync",
+	"yotpo_sync_queue",
+}
+
+// magentoSensitiveTables is the list of PII/sensitive tables excluded when --no-pii is specified.
+// Ported from warden-custom-commands v2.7.0 SENSITIVE_TABLES (env-adapters/magento2/utils.sh).
+var magentoSensitiveTables = []string{
+	"admin_passwords",
+	"admin_user",
+	"aw_ca_company",
+	"aw_ca_company_domain",
+	"aw_ca_company_payments",
+	"aw_ca_company_user",
+	"company",
+	"company_advanced_customer_entity",
+	"company_credit",
+	"company_credit_history",
+	"company_order_entity",
+	"company_payment",
+	"company_permissions",
+	"company_roles",
+	"company_shipping",
+	"company_structure",
+	"company_team",
+	"company_user_roles",
+	"customer_address_entity",
+	"customer_address_entity_datetime",
+	"customer_address_entity_decimal",
+	"customer_address_entity_int",
+	"customer_address_entity_text",
+	"customer_address_entity_varchar",
+	"customer_entity",
+	"customer_entity_datetime",
+	"customer_entity_decimal",
+	"customer_entity_int",
+	"customer_entity_text",
+	"customer_entity_varchar",
+	"customer_grid_flat",
+	"downloadable_link_purchased",
+	"downloadable_link_purchased_item",
+	"email_automation",
+	"email_contact",
+	"magento_customerbalance",
+	"magento_customerbalance_history",
+	"magento_customersegment_customer",
+	"magento_giftcardaccount",
+	"magento_reward",
+	"magento_reward_history",
+	"magento_rma",
+	"magento_rma_grid",
+	"magento_rma_item_entity",
+	"magento_rma_shipping_label",
+	"magento_rma_status_history",
+	"newsletter_subscriber",
+	"paypal_billing_agreement",
+	"paypal_billing_agreement_order",
+	"paypal_payment_transaction",
+	"paypal_settlement_report",
+	"paypal_settlement_report_row",
+	"product_alert_price",
+	"product_alert_stock",
+	"quote",
+	"quote_address",
+	"quote_address_item",
+	"quote_id_mask",
+	"quote_item",
+	"quote_item_option",
+	"quote_payment",
+	"quote_shipping_rate",
+	"sales_creditmemo",
+	"sales_creditmemo_comment",
+	"sales_creditmemo_grid",
+	"sales_creditmemo_item",
+	"sales_invoice",
+	"sales_invoice_comment",
+	"sales_invoice_grid",
+	"sales_invoice_item",
+	"sales_order",
+	"sales_order_address",
+	"sales_order_grid",
+	"sales_order_item",
+	"sales_order_payment",
+	"sales_order_status_history",
+	"sales_order_tax",
+	"sales_order_tax_item",
+	"sales_payment_transaction",
+	"sales_shipment",
+	"sales_shipment_comment",
+	"sales_shipment_grid",
+	"sales_shipment_item",
+	"sales_shipment_track",
+	"vault_payment_token",
+	"vault_payment_token_order_payment_link",
+	"wishlist",
+	"wishlist_item",
+	"wishlist_item_option",
+}
+
+// buildIgnoredTableArgs returns docker exec --ignore-table flags for the given credentials and filter flags.
+func buildIgnoredTableArgs(dbName string, dbPrefix string, noNoise bool, noPII bool) []string {
+	if !noNoise && !noPII {
+		return nil
+	}
+	tables := make([]string, 0)
+	tables = append(tables, magentoIgnoredTables...)
+	if noPII {
+		tables = append(tables, magentoSensitiveTables...)
+	}
+	args := make([]string, 0, len(tables))
+	for _, t := range tables {
+		args = append(args, "--ignore-table="+dbName+"."+dbPrefix+t)
+	}
 	return args
 }
 
@@ -256,6 +493,11 @@ func BuildLocalDBImportCommandForTest(containerName string, username string, pas
 
 func ParseEnvMapForTest(raw string) map[string]string {
 	return parseEnvMap(raw)
+}
+
+// BuildIgnoredTableArgsForTest exposes buildIgnoredTableArgs for tests.
+func BuildIgnoredTableArgsForTest(dbName string, dbPrefix string, noNoise bool, noPII bool) []string {
+	return buildIgnoredTableArgs(dbName, dbPrefix, noNoise, noPII)
 }
 
 func buildLocalDBQueryCommand(containerName string, credentials dbCredentials, query string) *exec.Cmd {

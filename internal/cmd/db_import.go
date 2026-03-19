@@ -48,7 +48,7 @@ func runStreamDBImport(cmd *cobra.Command, config engine.Config, options dbComma
 
 	sourceDumpCmd := remote.BuildSSHExecCommand(options.Environment, remoteCfg, true, buildRemoteMySQLDumpCommandString(remoteCredentials, options.Full))
 	destinationImportCmd := buildLocalDBImportCommand(containerName, localCredentials)
-	sanitizeStreamDump := options.ExcludeSensitiveData || options.StreamDB
+	sanitizeStreamDump := options.StreamDB
 
 	if options.File != "" {
 		targetPath := filepath.Clean(options.File)
@@ -168,7 +168,7 @@ func runDirectDBImport(cmd *cobra.Command, config engine.Config, options dbComma
 		pterm.Description.Println("Tip: cat backup.sql | govard db import")
 	}
 
-	if err := RunImportFromReader(importCommand, reader, options.ExcludeSensitiveData, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
+	if err := RunImportFromReader(importCommand, reader, false, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
 		return fmt.Errorf("db import failed: %w", err)
 	}
 	pterm.Success.Println("Database import completed.")

@@ -82,7 +82,7 @@ func buildDatabaseSyncAction(config engine.Config, source syncEndpoint, destinat
 	case source.IsLocal && !destination.IsLocal:
 		desc := fmt.Sprintf("docker exec -i %s mysqldump ... | ssh %s \"mysql ...\"", localDBContainer, remote.RemoteTarget(destination.RemoteCfg))
 		return desc, func() error {
-			dumpCmd := buildLocalDBDumpCommand(localDBContainer, localCredentials, false)
+			dumpCmd := buildLocalDBDumpCommand(localDBContainer, localCredentials, false, false, false)
 			remoteCredentials, probeErr := resolveRemoteDBCredentials(config, destination.Name, destination.RemoteCfg)
 			if probeErr != nil {
 				pterm.Warning.Println(formatRemoteDBProbeWarning(destination.Name, probeErr))
