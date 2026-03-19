@@ -216,9 +216,9 @@ func generateMagento1CryptKey() (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
-// runMagento1SetConfigSQL executes Magento 1 base URL configuration SQL against the local DB container.
+// RunMagento1SetConfigSQL executes Magento 1 base URL configuration SQL against the local DB container.
 // containerName is the docker container (e.g. "myproject-db-1"), baseURL is https://host.test/.
-func runMagento1SetConfigSQL(containerName string, baseURL string, dbUser string, dbPassword string, dbName string, dbPrefix string) error {
+func RunMagento1SetConfigSQL(containerName string, baseURL string, dbUser string, dbPassword string, dbName string, dbPrefix string) error {
 	sqls := []string{
 		fmt.Sprintf("UPDATE %score_config_data SET value = '%s' WHERE path = 'web/secure/base_url'", dbPrefix, baseURL),
 		fmt.Sprintf("UPDATE %score_config_data SET value = '%s' WHERE path = 'web/unsecure/base_url'", dbPrefix, baseURL),
@@ -232,18 +232,18 @@ func runMagento1SetConfigSQL(containerName string, baseURL string, dbUser string
 	}
 
 	for _, sql := range sqls {
-		if err := runMagento1SQL(containerName, dbUser, dbPassword, dbName, sql); err != nil {
+		if err := RunMagento1SQL(containerName, dbUser, dbPassword, dbName, sql); err != nil {
 			pterm.Warning.Printf("set-config SQL failed (continuing): %v\n", err)
 		}
 	}
 	return nil
 }
 
-// runMagento1AdminUserSQL inserts/updates the admin user in the local DB using a salted MD5 hash.
+// RunMagento1AdminUserSQL inserts/updates the admin user in the local DB using a salted MD5 hash.
 // This matches the approach in warden-custom-commands bootstrap.cmd for maximum M1 compatibility.
-func runMagento1AdminUserSQL(containerName string, dbUser string, dbPassword string, dbName string, dbPrefix string, adminEmail string) error {
+func RunMagento1AdminUserSQL(containerName string, dbUser string, dbPassword string, dbName string, dbPrefix string, adminEmail string) error {
 	// Salted MD5: md5("admin" + "Admin123$") + ":admin"
-	passHash := md5SaltedHash("admin", "Admin123$")
+	passHash := Md5SaltedHash("admin", "Admin123$")
 	saltedPass := passHash + ":admin"
 
 	insertSQL := fmt.Sprintf(`
@@ -268,14 +268,14 @@ ON DUPLICATE KEY UPDATE parent_id = VALUES(parent_id);
 		dbPrefix, adminEmail, saltedPass, saltedPass,
 		dbPrefix, dbPrefix, dbPrefix, dbPrefix, dbPrefix, dbPrefix)
 
-	return runMagento1SQL(containerName, dbUser, dbPassword, dbName, insertSQL)
+	return RunMagento1SQL(containerName, dbUser, dbPassword, dbName, insertSQL)
 }
 
-// runMagento1SQL executes a SQL statement via docker exec on the given DB container.
-func runMagento1SQL(containerName string, dbUser string, dbPassword string, dbName string, sql string) error {
+// RunMagento1SQL executes a SQL statement via docker exec on the given DB container.
+func RunMagento1SQL(containerName string, dbUser string, dbPassword string, dbName string, sql string) error {
 	script := fmt.Sprintf(
 		`if command -v mysql >/dev/null 2>&1; then DB_CLI=mysql; elif command -v mariadb >/dev/null 2>&1; then DB_CLI=mariadb; else exit 1; fi && echo %s | "$DB_CLI" -u %s %s -f`,
-		shellEscape(sql), shellEscape(dbUser), shellEscape(dbName),
+		ShellEscape(sql), ShellEscape(dbUser), ShellEscape(dbName),
 	)
 
 	args := []string{"exec", "-i"}
