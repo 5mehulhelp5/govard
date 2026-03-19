@@ -14,16 +14,16 @@ Use it together with `govard config profile` when validating project compatibili
 
 | Framework | Web Root | PHP | Node | DB | Cache | Search | Queue |
 |---|---|---:|---:|---|---|---|---|
-| magento2 | `/pub` | 8.4 | 24 | mariadb 11.4 | valkey 8.0.0 | opensearch 2.19.0 | none |
-| magento1 | project root | 8.1 | - | mariadb 10.11 | none | none | none |
-| laravel | `/public` | 8.4 | - | mariadb 11.4 | none | none | none |
-| nextjs | project root | - | 24 | none | none | none | none |
-| drupal | `/web` | 8.4 | - | mariadb 11.4 | none | none | none |
-| symfony | `/public` | 8.4 | - | mariadb 11.4 | none | none | none |
-| shopware | `/public` | 8.4 | - | mariadb 11.4 | none | none | none |
-| cakephp | `/webroot` | 8.4 | - | mariadb 11.4 | none | none | none |
-| wordpress | `/wordpress` | 8.3 | - | mariadb 11.4 | none | none | none |
-| custom | project root | 8.4 | - | mariadb 11.4 | none | none | none |
+| [magento2](./magento2.md) | `/pub` | 8.4 | 24 | mariadb 11.4 | valkey 8.0.0 | opensearch 2.19.0 | none |
+| [magento1](./magento1.md) | project root | 8.1 | - | mariadb 10.11 | none | none | none |
+| [laravel](./laravel.md) | `/public` | 8.4 | - | mariadb 11.4 | none | none | none |
+| [nextjs](./nextjs.md) | project root | - | 24 | none | none | none | none |
+| [drupal](./drupal.md) | `/web` | 8.4 | - | mariadb 11.4 | none | none | none |
+| [symfony](./symfony.md) | `/public` | 8.4 | - | mariadb 11.4 | none | none | none |
+| [shopware](./shopware.md) | `/public` | 8.4 | - | mariadb 11.4 | none | none | none |
+| [cakephp](./cakephp.md) | `/webroot` | 8.4 | - | mariadb 11.4 | none | none | none |
+| [wordpress](./wordpress.md) | `/wordpress` | 8.3 | - | mariadb 11.4 | none | none | none |
+| [custom](./custom.md) | project root | 8.4 | - | mariadb 11.4 | none | none | none |
 
 `-` means no default value is forced for that stack component.
 

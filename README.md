@@ -407,6 +407,13 @@ Documentation is organized by audience:
 
 - [Magento 1 (OpenMage)](./docs/frameworks/magento1.md) - Magento 1/OpenMage support
 - [Magento 2](./docs/frameworks/magento2.md) - Magento-specific features
+- [Laravel](./docs/frameworks/laravel.md) - PHP framework support
+- [Symfony](./docs/frameworks/symfony.md) - PHP framework support
+- [Drupal](./docs/frameworks/drupal.md) - CMS support
+- [WordPress](./docs/frameworks/wordpress.md) - CMS support
+- [Shopware](./docs/frameworks/shopware.md) - E-commerce support
+- [CakePHP](./docs/frameworks/cakephp.md) - PHP framework support
+- [Next.js](./docs/frameworks/nextjs.md) - Frontend framework support
 - [Custom](./docs/frameworks/custom.md) - Build your own service mix
 
 **For Developers:**
