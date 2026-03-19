@@ -426,30 +426,38 @@ Documentation is organized by audience:
 
 ## ✅ Quality Gates
 
-Govard CI runs the following checks on push/PR:
+Govard CI runs the following checks on every push and pull request to ensure stability and code quality.
 
-| Gate                          | Command                      |
-| :---------------------------- | :--------------------------- |
-| Quality Checks (Vet + Format) | `make vet` + `gofmt -s -l .` |
-| Fast Tests (Frontend + Unit)  | `make test-fast`             |
-| Integration Tests             | `make test-integration-ci`   |
-| Build Binaries                | `make build`                 |
+| Pipeline Job | Local Command | Description |
+| :--- | :--- | :--- |
+| **Quality Checks** | `make lint fmt-check vet` | Runs `golangci-lint`, checks `gofmt -s` compliance, and `go vet`. |
+| **Fast Tests** | `make test-unit test-frontend` | Executes Go unit tests (short mode) and Node.js frontend tests. |
+| **Integration Tests** | `make test-integration` | Builds a test binary and runs end-to-end framework tests in Docker. |
+| **Build Binaries** | `make build` | Verifies that the project compiles for the current platform. |
 
-Recommended local pre-push sequence:
+### Recommended Local Workflow
 
+To ensure your contribution passes the GitHub CI pipeline, run the following sequence before pushing:
+
+#### 1. Fast Validation (caught ~95% of issues)
+Runs linting, formatting, vet, and all unit tests (approx. 20-30 seconds):
 ```bash
 make test-fast
 ```
 
-If CI fails and you want to reproduce locally, run:
-
+#### 2. Full Validation (requires Docker)
+Runs all the above plus the full integration test suite (approx. 2-5 minutes):
 ```bash
-make vet
-gofmt -s -l .
-make test-fast
-make test-integration-ci
-make build
+make test
 ```
+
+If the CI pipeline fails and you want to reproduce the exact check that failed locally, you can use these granular commands:
+- `make lint` — Checks code style and static analysis (synchronized with CI version).
+- `make fmt-check` — Checks if any files need `go fmt -s`.
+- `make vet` — Runs `go vet`.
+- `make test-unit` — Runs only Go unit tests.
+- `make test-frontend` — Runs only Node.js frontend tests.
+- `make test-integration-ci` — Runs integration tests in parallel (CI behavior).
 
 ---
 
