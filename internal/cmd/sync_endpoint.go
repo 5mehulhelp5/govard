@@ -79,9 +79,8 @@ func describeSyncEndpoint(endpoint syncEndpoint) string {
 		writePolicy = "Write-blocked (" + reason + ")"
 	}
 	return fmt.Sprintf(
-		"%s (Env: %s, Target: %s, Path: %s, Policy: %s)",
+		"%s (Target: %s, Path: %s, Policy: %s)",
 		endpoint.Name,
-		engine.NormalizeRemoteEnvironment(endpoint.Name),
 		remote.RemoteTarget(endpoint.RemoteCfg),
 		endpoint.RootPath,
 		writePolicy,

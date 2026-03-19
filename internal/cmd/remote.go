@@ -157,9 +157,8 @@ var remoteAddCmd = &cobra.Command{
 		configForObservability = config
 		effectiveProtected, _ := engine.RemoteWriteBlocked(name, config.Remotes[name])
 		pterm.Success.Printf(
-			"Remote '%s' saved (environment=%s, capabilities=%s, auth=%s, protected=%t, strict_host_key=%t).\n",
+			"Remote '%s' saved (capabilities=%s, auth=%s, protected=%t, strict_host_key=%t).\n",
 			name,
-			engine.NormalizeRemoteEnvironment(name),
 			strings.Join(engine.RemoteCapabilityList(config.Remotes[name]), ","),
 			authMethod,
 			effectiveProtected,
@@ -329,8 +328,7 @@ var remoteTestCmd = &cobra.Command{
 		}
 		effectiveProtected, _ := engine.RemoteWriteBlocked(remoteName, remoteCfg)
 		pterm.Info.Printf(
-			"Remote profile: environment=%s, capabilities=%s, auth=%s, protected=%t, strict_host_key=%t\n",
-			engine.NormalizeRemoteEnvironment(remoteName),
+			"Remote profile: capabilities=%s, auth=%s, protected=%t, strict_host_key=%t\n",
 			strings.Join(engine.RemoteCapabilityList(remoteCfg), ","),
 			remote.NormalizeAuthMethod(remoteCfg.Auth.Method),
 			effectiveProtected,
