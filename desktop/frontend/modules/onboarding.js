@@ -853,10 +853,10 @@ export const renderOnboardingModal = (container) => {
   container.innerHTML = `
       <div
         id="onboardingModal"
-        class="hidden fixed inset-0 z-[100] bg-slate-900/40 dark:bg-background-primary/95 backdrop-blur-md flex items-center justify-center p-4 md:p-8 transition-all duration-500"
+        class="hidden fixed inset-0 z-[100] bg-slate-900/60 dark:bg-background-primary/95 backdrop-blur-md flex items-center justify-center p-4 md:p-8 transition-all duration-500"
       >
         <div
-          class="bg-white dark:bg-surface-secondary w-full max-w-6xl h-[85vh] rounded-3xl flex flex-col overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)] relative border border-slate-200 dark:border-white/10"
+          class="dark:bg-surface-secondary w-full max-w-6xl h-[85vh] rounded-3xl flex flex-col overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)] relative border border-slate-200 dark:border-white/10 bg-white"
         >
           <header
             class="flex items-center justify-between border-b border-slate-200 dark:border-white/10 px-8 py-6 bg-slate-50 dark:bg-surface-primary shrink-0 relative z-20"
@@ -883,63 +883,63 @@ export const renderOnboardingModal = (container) => {
             </button>
           </header>
 
-          <main class="flex-1 overflow-hidden relative flex flex-col lg:grid lg:grid-cols-[380px_1fr] bg-white dark:bg-surface-secondary/50">
+          <main class="flex-1 overflow-hidden relative flex flex-col lg:grid lg:grid-cols-[380px_1fr] dark:bg-surface-secondary bg-white">
             <!-- Sidebar: Source & Summary -->
-            <aside class="min-w-0 border-r border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-surface-primary/40 overflow-y-auto custom-scrollbar relative z-10">
+            <aside class="min-w-0 border-r border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-black/40 overflow-y-auto custom-scrollbar relative z-10">
               <div class="p-8 flex flex-col gap-8">
                 <section class="flex flex-col gap-4">
                   <div class="flex items-center gap-2.5">
                     <span class="material-symbols-outlined text-primary/60 text-[20px]">source</span>
-                    <h3 class="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Project Source</h3>
+                    <h3 class="text-xs font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-300/60">Project Source</h3>
                   </div>
 
                   <div class="rounded-2xl bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 p-5 shadow-sm">
                     <label class="flex items-start justify-between gap-4 cursor-pointer group">
                       <div class="flex-1">
                         <div class="text-sm font-bold text-slate-800 dark:text-slate-100 group-hover:text-primary transition-colors">Clone from Git</div>
-                        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed font-medium">
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400/90 mt-1 leading-relaxed font-medium">
                           Fetch repository contents before initialization.
                         </p>
                       </div>
-                      <input id="onboardFromGit" type="checkbox" class="mt-1 size-5 accent-primary rounded-md border-slate-300 dark:border-white/20 transition-all cursor-pointer" />
+                      <input id="onboardFromGit" type="checkbox" class="mt-1 size-5 accent-primary rounded-md border-slate-300 dark:border-white/20 bg-white dark:bg-transparent transition-all cursor-pointer" />
                     </label>
                     
                     <div id="gitCloneFields" class="hidden mt-6 space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
                       <div class="flex flex-col gap-1.5">
-                        <label for="gitProtocol" class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Protocol</label>
+                        <label for="gitProtocol" class="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-400/80 ml-1">Protocol</label>
                         <div class="relative">
                           <select
                             id="gitProtocol"
-                            class="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#1f3a28] text-xs font-bold text-slate-900 dark:text-slate-100 px-4 py-2.5 appearance-none cursor-pointer focus:ring-2 focus:ring-primary/20 outline-none"
+                            class="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-slate-100 px-4 py-2.5 appearance-none cursor-pointer focus:ring-2 focus:ring-primary/20 outline-none"
                           >
                             <option value="ssh">SSH</option>
                             <option value="https">HTTPS</option>
                           </select>
-                          <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-lg">unfold_more</span>
+                          <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none text-lg">unfold_more</span>
                         </div>
                       </div>
                       
                       <div class="flex flex-col gap-1.5">
-                        <label for="gitUrl" class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Repository URL</label>
+                        <label for="gitUrl" class="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-400/80 ml-1">Repository URL</label>
                         <input
                           id="gitUrl"
                           type="text"
                           placeholder="git@github.com:org/repo.git"
-                          class="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#1f3a28] text-xs font-mono text-slate-900 dark:text-slate-100 px-4 py-2.5 focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-slate-400/50"
+                          class="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-xs font-mono text-slate-900 dark:text-slate-100 px-4 py-2.5 focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-slate-400/50"
                         />
                       </div>
                       
                       <div id="gitConfirmContainer" class="hidden pt-2">
                         <label class="flex items-center gap-3 cursor-pointer group">
-                          <input id="gitConfirmOverride" type="checkbox" class="size-4 accent-red-500 rounded border-slate-300 transition-all" />
-                          <span class="text-[10px] text-slate-500 dark:text-slate-400 font-bold leading-tight group-hover:text-red-400 transition-colors">
+                          <input id="gitConfirmOverride" type="checkbox" class="size-4 accent-red-500 rounded border-slate-300 dark:border-white/20 bg-white dark:bg-transparent transition-all" />
+                          <span class="text-[10px] text-slate-500 dark:text-slate-400/80 font-bold leading-tight group-hover:text-red-400 transition-colors">
                             Wipe folder contents before cloning
                           </span>
                         </label>
                       </div>
                     </div>
-                    <p id="gitUrlHint" class="text-[10px] text-slate-400 mt-3 font-medium px-1"></p>
-                    <p id="gitConfirmHint" class="text-[10px] text-slate-400 mt-1 font-medium px-1"></p>
+                    <p id="gitUrlHint" class="text-[10px] text-slate-400 dark:text-slate-400/60 mt-3 font-medium px-1"></p>
+                    <p id="gitConfirmHint" class="text-[10px] text-slate-400 dark:text-slate-400/60 mt-1 font-medium px-1"></p>
                   </div>
 
                   <div
@@ -952,7 +952,7 @@ export const renderOnboardingModal = (container) => {
                   >
                     <div class="flex items-center justify-between mb-4">
                       <div class="flex items-center gap-3">
-                        <div class="size-10 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 group-hover:text-primary group-hover:bg-primary/10 transition-all">
+                        <div class="size-10 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 dark:text-slate-400 group-hover:text-primary group-hover:bg-primary/10 transition-all">
                           <span class="material-symbols-outlined text-[22px]">folder_open</span>
                         </div>
                         <span class="text-sm font-black text-slate-700 dark:text-slate-200">Local Path</span>
@@ -962,26 +962,26 @@ export const renderOnboardingModal = (container) => {
                       <div id="displayProjectPath" class="font-mono text-xs text-slate-600 dark:text-slate-300 break-all leading-relaxed line-clamp-2">No folder selected</div>
                     </div>
                     <input type="hidden" id="projectPath" />
-                    <p id="projectPathHint" class="text-[10px] text-slate-400 mt-4 px-1 font-medium italic"></p>
+                    <p id="projectPathHint" class="text-[10px] text-slate-400 dark:text-slate-400/60 mt-4 px-1 font-medium italic"></p>
                   </div>
                 </section>
 
                 <section class="flex flex-col gap-4 mt-2">
                   <div class="flex items-center gap-2.5">
                     <span class="material-symbols-outlined text-primary/60 text-[20px]">assignment_turned_in</span>
-                    <h3 class="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Environment Summary</h3>
+                    <h3 class="text-xs font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-300/60">Environment Summary</h3>
                   </div>
                   
                   <div class="rounded-2xl bg-primary/5 border border-primary/10 p-6 flex flex-col gap-4 shadow-sm relative overflow-hidden">
                     <div class="absolute -right-4 -bottom-4 size-24 bg-primary/5 rounded-full blur-2xl pointer-events-none"></div>
                     <div class="grid grid-cols-[100px_1fr] gap-x-4 gap-y-3 relative z-10">
-                      <div class="text-[10px] font-black uppercase tracking-widest text-slate-500">Project</div>
+                      <div class="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400/60">Project</div>
                       <div id="onboardingSummaryProject" class="text-xs font-black text-slate-800 dark:text-white truncate">Not selected</div>
                       
-                      <div class="text-[10px] font-black uppercase tracking-widest text-slate-500">Framework</div>
+                      <div class="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500">Framework</div>
                       <div id="onboardingSummaryFramework" class="text-xs font-black text-primary">Auto-detect</div>
                       
-                      <div class="text-[10px] font-black uppercase tracking-widest text-slate-500">Domain</div>
+                      <div class="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400/60">Domain</div>
                       <div id="onboardingSummaryDomain" class="font-mono text-[11px] font-black text-slate-800 dark:text-white truncate">-</div>
                     </div>
                   </div>
@@ -995,7 +995,7 @@ export const renderOnboardingModal = (container) => {
             </aside>
 
             <!-- Main Content: Settings -->
-            <div class="min-w-0 overflow-y-auto custom-scrollbar bg-white dark:bg-transparent">
+            <div class="min-w-0 overflow-y-auto custom-scrollbar dark:bg-transparent">
               <div class="p-8 lg:p-12 max-w-4xl mx-auto w-full flex flex-col gap-12 pb-32">
                 <header class="flex flex-col gap-2">
                   <h3 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Configuration</h3>
@@ -1004,11 +1004,11 @@ export const renderOnboardingModal = (container) => {
 
                 <section class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-slate-100 dark:border-white/5">
                   <div class="flex flex-col gap-3 group">
-                    <label class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1 group-focus-within:text-primary transition-colors">Local Domain</label>
+                    <label class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1 group-focus-within:text-primary transition-colors">Local Domain</label>
                     <div class="relative">
                       <input
                         id="projectDomain"
-                        class="w-full bg-slate-50 dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-slate-900 dark:text-white font-bold focus:ring-4 focus:ring-primary/15 transition-all text-sm outline-none"
+                        class="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-slate-900 dark:text-white font-bold focus:ring-4 focus:ring-primary/15 transition-all text-sm outline-none"
                         placeholder="e.g. project-name"
                         type="text"
                       />
@@ -1018,11 +1018,11 @@ export const renderOnboardingModal = (container) => {
                   </div>
 
                   <div class="flex flex-col gap-3 group">
-                    <label class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1 group-focus-within:text-primary transition-colors">Framework Type</label>
+                    <label class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1 group-focus-within:text-primary transition-colors">Framework Type</label>
                     <div class="relative">
                       <select
                         id="projectFramework"
-                        class="w-full bg-slate-50 dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-slate-900 dark:text-white font-bold focus:ring-4 focus:ring-primary/15 transition-all text-sm outline-none appearance-none cursor-pointer"
+                        class="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-slate-900 dark:text-white font-bold focus:ring-4 focus:ring-primary/15 transition-all text-sm outline-none appearance-none cursor-pointer"
                       >
                         <option value="auto">🔍 Auto-detect</option>
                         <option value="magento2">Magento 2</option>
@@ -1033,9 +1033,9 @@ export const renderOnboardingModal = (container) => {
                         <option value="nextjs">Next.js</option>
                         <option value="custom">Custom System</option>
                       </select>
-                      <span class="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xl">expand_more</span>
+                      <span class="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none text-xl">expand_more</span>
                     </div>
-                    <p class="text-[10px] font-medium text-slate-400/80 ml-1">Govard optimizes settings based on framework.</p>
+                    <p class="text-[10px] font-medium text-slate-400/80 dark:text-slate-500 ml-1">Govard optimizes settings based on framework.</p>
                   </div>
                 </section>
 
@@ -1043,9 +1043,9 @@ export const renderOnboardingModal = (container) => {
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
                       <div class="size-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                      <h4 class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Optional Stack Components</h4>
+                      <h4 class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Optional Stack Components</h4>
                     </div>
-                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest bg-slate-100 dark:bg-white/5 px-2 py-1 rounded">Scale as needed</span>
+                    <span class="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest bg-slate-100 dark:bg-white/5 px-2 py-1 rounded">Scale as needed</span>
                   </div>
                   
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1096,12 +1096,12 @@ export const renderOnboardingModal = (container) => {
             </div>
           </main>
 
-          <footer class="shrink-0 px-8 py-6 bg-slate-50 dark:bg-background-dark border-t border-slate-200 dark:border-white/10 flex flex-col sm:flex-row justify-between items-center gap-6 relative z-20">
+          <footer class="shrink-0 px-8 py-6 bg-slate-50 dark:bg-surface-primary border-t border-slate-200 dark:border-white/10 flex flex-col sm:flex-row justify-between items-center gap-6 relative z-20">
             <div class="flex items-center gap-4 flex-1">
               <div id="onboardingSubmitSpinner" class="hidden relative">
                 <div class="size-5 rounded-full border-2 border-primary/20 border-t-primary animate-spin"></div>
               </div>
-              <p id="onboardingSubmitHint" class="text-xs font-bold text-slate-400 uppercase tracking-[0.05em]">Select a project path to continue.</p>
+              <p id="onboardingSubmitHint" class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.05em]">Select a project path to continue.</p>
             </div>
             <div class="flex items-center gap-4">
               <button
@@ -1126,7 +1126,7 @@ export const renderOnboardingModal = (container) => {
             id="onboardingBootstrapPrompt"
             class="hidden absolute inset-0 z-[120] bg-black/60 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in"
           >
-            <div class="w-full max-w-xl rounded-[2.5rem] border border-white/10 bg-white dark:bg-[#152a1b] shadow-2xl overflow-hidden shadow-black/80">
+            <div class="w-full max-w-xl rounded-[2.5rem] border border-white/10 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden shadow-black/80">
               <div class="px-10 py-8 border-b border-slate-100 dark:border-white/5 relative bg-primary/5">
                 <h3 class="text-slate-900 dark:text-white text-2xl font-black tracking-tight">Sync Services Now?</h3>
                 <p class="text-xs text-slate-500 dark:text-primary/60 mt-1 font-bold uppercase tracking-widest">
@@ -1137,18 +1137,18 @@ export const renderOnboardingModal = (container) => {
                 <p id="onboardingBootstrapSummary" class="text-sm font-medium text-slate-500 dark:text-slate-300 leading-relaxed"></p>
                 
                 <div class="flex flex-col gap-3">
-                  <label for="onboardingBootstrapRemote" class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Select Remote Target</label>
+                  <label for="onboardingBootstrapRemote" class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Select Remote Target</label>
                   <div class="relative">
                     <select
                       id="onboardingBootstrapRemote"
-                      class="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-slate-900 dark:text-white font-black text-sm outline-none focus:ring-4 focus:ring-primary/15 transition-all appearance-none cursor-pointer"
+                      class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-slate-900 dark:text-white font-black text-sm outline-none focus:ring-4 focus:ring-primary/15 transition-all appearance-none cursor-pointer"
                     ></select>
-                    <span class="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xl font-light">database</span>
+                    <span class="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none text-xl font-light">database</span>
                   </div>
                 </div>
 
                 <div class="flex flex-col gap-4">
-                  <div class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Bootstrap Options</div>
+                  <div class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Bootstrap Options</div>
                   <div id="onboardingBootstrapOptions" class="grid grid-cols-1 gap-3"></div>
                 </div>
               </div>

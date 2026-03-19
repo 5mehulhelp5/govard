@@ -33,7 +33,7 @@ Guide for contributing to Govard development.
 
 ### Prerequisites
 
-- **Go 1.24+**: The core language.
+- **Go 1.25+**: The core language.
 - **Node.js 20+**: Required for frontend assets and tests.
 - **Yarn (v1.x)**: Required for building frontend CSS/JS.
 - **golangci-lint (v1.64+)**: Required for code quality checks.
@@ -378,7 +378,7 @@ make build
 
 Expected toolchain:
 
-- Go: `1.24.x`
+- Go: `1.25.x`
 - Node.js: `20.x`
 
 Quick environment verification:
