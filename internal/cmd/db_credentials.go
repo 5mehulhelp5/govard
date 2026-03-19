@@ -60,6 +60,18 @@ func resolveRemoteDBCredentials(config engine.Config, remoteName string, remoteC
 			Password: metadata.DB.Password,
 			Database: metadata.DB.Database,
 		}.withDefaults(), nil
+	case "magento1", "openmage":
+		metadata, err := remote.ProbeMagento1Environment(remoteName, remoteCfg)
+		if err != nil {
+			return fallback, err
+		}
+		return dbCredentials{
+			Host:     metadata.DB.Host,
+			Port:     metadata.DB.Port,
+			Username: metadata.DB.Username,
+			Password: metadata.DB.Password,
+			Database: metadata.DB.Database,
+		}.withDefaults(), nil
 	case "symfony", "laravel", "drupal", "wordpress", "shopware", "cakephp":
 		metadata, err := remote.ProbeDotenvEnvironment(remoteName, remoteCfg)
 		if err != nil {
