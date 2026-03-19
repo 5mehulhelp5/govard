@@ -407,6 +407,32 @@ func TestSyncOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 			assertMatrixContains(t, logs, "ssh|")
 			assertMatrixContains(t, logs, "deploy@staging.example.com")
 		})
+
+		t.Run("RemoteToLocalWithNoPII", func(t *testing.T) {
+			projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "sync-options-runtime-db-remote-local-nopii")
+			shim := env.SetupRuntimeShims(t, map[string]int{
+				"docker": 0,
+				"ssh":    0,
+				"rsync":  0,
+			})
+
+			result := env.RunGovardWithEnv(
+				t,
+				projectDir,
+				append(shim.Env(), isolatedHomeEnv(t)...),
+				"sync",
+				"--source", "dev",
+				"--destination", "local",
+				"--db",
+				"--no-pii",
+			)
+			result.AssertSuccess(t)
+
+			logs := shim.ReadLog(t)
+			assertMatrixContains(t, logs, "ssh|")
+			assertMatrixContains(t, logs, "--ignore-table=magento.cron_schedule")
+			assertMatrixContains(t, logs, "--ignore-table=magento.customer_entity")
+		})
 	})
 }
 

@@ -114,14 +114,14 @@ func TestBuildLocalDBResetScriptRejectsUnsafeDatabaseName(t *testing.T) {
 }
 
 func TestBuildIgnoredTableArgsNoFlags(t *testing.T) {
-	args := cmd.BuildIgnoredTableArgsForTest("magento", "", false, false)
+	args := cmd.BuildIgnoredTableArgsForTest("magento", "", false, false, "magento2")
 	if len(args) != 0 {
 		t.Fatalf("expected no ignore-table args when no flags set, got %d args", len(args))
 	}
 }
 
 func TestBuildIgnoredTableArgsNoNoise(t *testing.T) {
-	args := cmd.BuildIgnoredTableArgsForTest("magento", "", true, false)
+	args := cmd.BuildIgnoredTableArgsForTest("magento", "", true, false, "magento2")
 	if len(args) == 0 {
 		t.Fatal("expected ignore-table args when --no-noise is set")
 	}
@@ -137,7 +137,7 @@ func TestBuildIgnoredTableArgsNoNoise(t *testing.T) {
 }
 
 func TestBuildIgnoredTableArgsNoPII(t *testing.T) {
-	args := cmd.BuildIgnoredTableArgsForTest("mydb", "", true, true)
+	args := cmd.BuildIgnoredTableArgsForTest("mydb", "", true, true, "magento2")
 	if len(args) == 0 {
 		t.Fatal("expected ignore-table args when --no-pii is set")
 	}
@@ -155,7 +155,7 @@ func TestBuildIgnoredTableArgsNoPII(t *testing.T) {
 }
 
 func TestBuildIgnoredTableArgsWithPrefix(t *testing.T) {
-	args := cmd.BuildIgnoredTableArgsForTest("mage", "m2_", true, false)
+	args := cmd.BuildIgnoredTableArgsForTest("mage", "m2_", true, false, "magento2")
 	joined := strings.Join(args, " ")
 	if !strings.Contains(joined, "--ignore-table=mage.m2_cron_schedule") {
 		t.Fatalf("expected prefixed table name, got: %s", joined)

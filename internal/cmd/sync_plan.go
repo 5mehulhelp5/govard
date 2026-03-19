@@ -20,6 +20,8 @@ type syncExecutionOptions struct {
 	Delete     bool
 	Resume     bool
 	NoCompress bool
+	NoNoise    bool
+	NoPII      bool
 	Path       string
 	Include    []string
 	Exclude    []string
@@ -86,7 +88,7 @@ func buildSyncExecutionPlan(config engine.Config, endpoints resolvedSyncEndpoint
 	}
 
 	if opts.DB {
-		_, action, err := buildDatabaseSyncAction(config, endpoints.Source, endpoints.Destination)
+		_, action, err := buildDatabaseSyncAction(config, endpoints.Source, endpoints.Destination, opts.NoNoise, opts.NoPII)
 		if err != nil {
 			return syncExecutionPlan{}, err
 		}

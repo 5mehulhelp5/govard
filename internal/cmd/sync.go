@@ -68,6 +68,8 @@ Case Studies:
 		resume, _ := cmd.Flags().GetBool("resume")
 		noResume, _ := cmd.Flags().GetBool("no-resume")
 		noCompress, _ := cmd.Flags().GetBool("no-compress")
+		noNoise, _ := cmd.Flags().GetBool("no-noise")
+		noPII, _ := cmd.Flags().GetBool("no-pii")
 		includePatternsRaw, _ := cmd.Flags().GetStringArray("include")
 		excludePatternsRaw, _ := cmd.Flags().GetStringArray("exclude")
 		includePatterns := normalizeSyncPatterns(includePatternsRaw)
@@ -147,6 +149,8 @@ Case Studies:
 			Delete:      deleteFiles,
 			Resume:      resumeTransfers,
 			NoCompress:  noCompress,
+			NoNoise:     noNoise,
+			NoPII:       noPII || noNoise,
 			Path:        path,
 			Include:     includePatterns,
 			Exclude:     excludePatterns,
@@ -158,6 +162,8 @@ Case Studies:
 			Delete:     deleteFiles,
 			Resume:     resumeTransfers,
 			NoCompress: noCompress,
+			NoNoise:    noNoise,
+			NoPII:      noPII || noNoise,
 			Path:       path,
 			Include:    includePatterns,
 			Exclude:    excludePatterns,
@@ -238,8 +244,8 @@ Case Studies:
 }
 
 func init() {
-	syncCmd.Flags().String("source", "staging", "Source environment")
-	syncCmd.Flags().String("destination", "local", "Destination environment")
+	syncCmd.Flags().StringP("source", "s", "staging", "Source environment")
+	syncCmd.Flags().StringP("destination", "d", "local", "Destination environment")
 	syncCmd.Flags().Bool("file", false, "Sync source code/files")
 	syncCmd.Flags().Bool("media", false, "Sync media files")
 	syncCmd.Flags().Bool("db", false, "Sync database")
@@ -252,6 +258,8 @@ func init() {
 	syncCmd.Flags().StringArray("include", nil, "Rsync include pattern (repeatable)")
 	syncCmd.Flags().StringArray("exclude", nil, "Rsync exclude pattern (repeatable)")
 	syncCmd.Flags().Bool("plan", false, "Print the sync plan and exit")
+	syncCmd.Flags().BoolP("no-noise", "N", false, "Exclude ephemeral/noise tables from database sync (logs, caches, etc)")
+	syncCmd.Flags().BoolP("no-pii", "S", false, "Exclude PII/sensitive tables from database sync (users, orders, passwords, etc)")
 
 	rootCmd.AddCommand(syncCmd)
 }

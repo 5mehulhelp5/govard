@@ -127,7 +127,7 @@ func parseEnvMap(raw string) map[string]string {
 	return result
 }
 
-func buildRemoteMySQLDumpCommandString(credentials dbCredentials, full bool) string {
+func buildRemoteMySQLDumpCommandString(credentials dbCredentials, full bool, noNoise bool, noPII bool, framework string) string {
 	credentials = credentials.withDefaults()
 
 	args := []string{"mysqldump", "--max-allowed-packet=512M", "--no-tablespaces"}
@@ -142,6 +142,8 @@ func buildRemoteMySQLDumpCommandString(credentials dbCredentials, full bool) str
 	if full {
 		args = append(args, "--routines", "--events", "--triggers")
 	}
+	ignoreArgs := buildIgnoredTableArgs(credentials.Database, "", noNoise, noPII, framework)
+	args = append(args, ignoreArgs...)
 	args = append(args, shellQuote(credentials.Database))
 
 	return mysqlPasswordExportPrefix(credentials.Password) + strings.Join(args, " ")
@@ -197,24 +199,24 @@ func buildLocalDBImportCommand(containerName string, credentials dbCredentials) 
 	return exec.Command("docker", args...)
 }
 
-func buildLocalDBDumpCommand(containerName string, credentials dbCredentials, full bool, noNoise bool, noPII bool) *exec.Cmd {
+func buildLocalDBDumpCommand(containerName string, credentials dbCredentials, full bool, noNoise bool, noPII bool, framework string) *exec.Cmd {
 	credentials = credentials.withDefaults()
 	args := []string{"exec", "-i"}
 	if strings.TrimSpace(credentials.Password) != "" {
 		args = append(args, "-e", "MYSQL_PWD="+credentials.Password)
 	}
 	args = append(args, containerName)
-	args = append(args, buildMySQLDumpCommandArgsWithCredentials(credentials, full, noNoise, noPII)...)
+	args = append(args, buildMySQLDumpCommandArgsWithCredentials(credentials, full, noNoise, noPII, framework)...)
 	return exec.Command("docker", args...)
 }
 
-func buildMySQLDumpCommandArgsWithCredentials(credentials dbCredentials, full bool, noNoise bool, noPII bool) []string {
+func buildMySQLDumpCommandArgsWithCredentials(credentials dbCredentials, full bool, noNoise bool, noPII bool, framework string) []string {
 	credentials = credentials.withDefaults()
 	args := []string{"mysqldump", "--max-allowed-packet=512M", "--no-tablespaces", "-u", credentials.Username}
 	if full {
 		args = append(args, "--routines", "--events", "--triggers")
 	}
-	ignoreArgs := buildIgnoredTableArgs(credentials.Database, "", noNoise, noPII)
+	ignoreArgs := buildIgnoredTableArgs(credentials.Database, "", noNoise, noPII, framework)
 	args = append(args, ignoreArgs...)
 	args = append(args, credentials.Database)
 	return args
@@ -438,16 +440,68 @@ var magentoSensitiveTables = []string{
 	"wishlist_item_option",
 }
 
+var laravelIgnoredTables = []string{
+	"cache",
+	"cache_locks",
+	"failed_jobs",
+	"job_batches",
+	"jobs",
+	"sessions",
+	"telescope_entries",
+	"telescope_entries_tags",
+	"telescope_monitoring",
+}
+
+var laravelSensitiveTables = []string{
+	"password_reset_tokens",
+	"password_resets",
+	"personal_access_tokens",
+	"users",
+}
+
+var wordpressIgnoredTables = []string{
+	"options_bak",
+	"options_replica",
+	"options_tmp",
+	"redirection_404",
+	"wflogs",
+}
+
+var wordpressSensitiveTables = []string{
+	"commentmeta",
+	"comments",
+	"usermeta",
+	"users",
+}
+
 // buildIgnoredTableArgs returns docker exec --ignore-table flags for the given credentials and filter flags.
-func buildIgnoredTableArgs(dbName string, dbPrefix string, noNoise bool, noPII bool) []string {
+func buildIgnoredTableArgs(dbName string, dbPrefix string, noNoise bool, noPII bool, framework string) []string {
 	if !noNoise && !noPII {
 		return nil
 	}
-	tables := make([]string, 0)
-	tables = append(tables, magentoIgnoredTables...)
-	if noPII {
-		tables = append(tables, magentoSensitiveTables...)
+
+	var ignored []string
+	var sensitive []string
+
+	switch strings.TrimSpace(framework) {
+	case "laravel":
+		ignored = laravelIgnoredTables
+		sensitive = laravelSensitiveTables
+	case "wordpress":
+		ignored = wordpressIgnoredTables
+		sensitive = wordpressSensitiveTables
+	default:
+		// Default to magento behavior
+		ignored = magentoIgnoredTables
+		sensitive = magentoSensitiveTables
 	}
+
+	tables := make([]string, 0)
+	tables = append(tables, ignored...)
+	if noPII {
+		tables = append(tables, sensitive...)
+	}
+
 	args := make([]string, 0, len(tables))
 	for _, t := range tables {
 		args = append(args, "--ignore-table="+dbName+"."+dbPrefix+t)
@@ -491,7 +545,7 @@ func BuildRemoteMySQLDumpCommandForTest(host string, port int, username string, 
 		Username: username,
 		Password: password,
 		Database: database,
-	}, full)
+	}, full, false, false, "magento2")
 }
 
 func BuildLocalDBImportCommandForTest(containerName string, username string, password string, database string) []string {
@@ -508,8 +562,8 @@ func ParseEnvMapForTest(raw string) map[string]string {
 }
 
 // BuildIgnoredTableArgsForTest exposes buildIgnoredTableArgs for tests.
-func BuildIgnoredTableArgsForTest(dbName string, dbPrefix string, noNoise bool, noPII bool) []string {
-	return buildIgnoredTableArgs(dbName, dbPrefix, noNoise, noPII)
+func BuildIgnoredTableArgsForTest(dbName string, dbPrefix string, noNoise bool, noPII bool, framework string) []string {
+	return buildIgnoredTableArgs(dbName, dbPrefix, noNoise, noPII, framework)
 }
 
 func buildLocalDBQueryCommand(containerName string, credentials dbCredentials, query string) *exec.Cmd {

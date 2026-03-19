@@ -33,6 +33,8 @@ type bootstrapRuntimeOptions struct {
 	AssumeYes       bool
 	IncludeProduct  bool
 	Plan            bool
+	NoNoise         bool
+	NoPII           bool
 }
 
 func resolveBootstrapOptions(cmd *cobra.Command) (bootstrapRuntimeOptions, error) {
@@ -59,6 +61,8 @@ func resolveBootstrapOptions(cmd *cobra.Command) (bootstrapRuntimeOptions, error
 		AssumeYes:       bootstrapAssumeYes,
 		IncludeProduct:  bootstrapIncludeProduct,
 		Plan:            bootstrapPlan,
+		NoNoise:         bootstrapNoNoise,
+		NoPII:           bootstrapNoPII || bootstrapNoNoise,
 	}
 
 	if opts.MetaPackage == "" {
@@ -144,6 +148,8 @@ func ResetBootstrapFlags() {
 	bootstrapAssumeYes = false
 	bootstrapIncludeProduct = false
 	bootstrapPlan = false
+	bootstrapNoNoise = false
+	bootstrapNoPII = false
 
 	bootstrapCmd.Flags().VisitAll(func(flag *pflag.Flag) {
 		_ = flag.Value.Set(flag.DefValue)

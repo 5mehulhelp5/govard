@@ -158,7 +158,14 @@ func runBootstrapDatabaseSync(cmd *cobra.Command, opts bootstrapRuntimeOptions) 
 		return nil
 	}
 
-	if err := runGovardSubcommand(cmd, "sync", "--source", opts.Source, "--db"); err != nil {
+	args := []string{"sync", "--source", opts.Source, "--db"}
+	if opts.NoNoise {
+		args = append(args, "--no-noise")
+	}
+	if opts.NoPII {
+		args = append(args, "--no-pii")
+	}
+	if err := runGovardSubcommand(cmd, args...); err != nil {
 		return fmt.Errorf("database sync failed: %w", err)
 	}
 	return nil

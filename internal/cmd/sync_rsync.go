@@ -63,7 +63,7 @@ func ensureTrailingSlash(path string) string {
 	return path + "/"
 }
 
-func buildDatabaseSyncAction(config engine.Config, source syncEndpoint, destination syncEndpoint) (string, func() error, error) {
+func buildDatabaseSyncAction(config engine.Config, source syncEndpoint, destination syncEndpoint, noNoise bool, noPII bool) (string, func() error, error) {
 	localDBContainer := fmt.Sprintf("%s-db-1", config.ProjectName)
 	localCredentials := resolveLocalDBCredentials(localDBContainer)
 
@@ -75,14 +75,14 @@ func buildDatabaseSyncAction(config engine.Config, source syncEndpoint, destinat
 			if probeErr != nil {
 				pterm.Warning.Println(formatRemoteDBProbeWarning(source.Name, probeErr))
 			}
-			dumpCmd := remote.BuildSSHExecCommand(source.Name, source.RemoteCfg, true, buildRemoteMySQLDumpCommandString(remoteCredentials, false))
+			dumpCmd := remote.BuildSSHExecCommand(source.Name, source.RemoteCfg, true, buildRemoteMySQLDumpCommandString(remoteCredentials, false, noNoise, noPII, config.Framework))
 			importCmd := buildLocalDBImportCommand(localDBContainer, localCredentials)
 			return RunDumpToImport(dumpCmd, importCmd, true, os.Stdout, os.Stderr)
 		}, nil
 	case source.IsLocal && !destination.IsLocal:
 		desc := fmt.Sprintf("docker exec -i %s mysqldump ... | ssh %s \"mysql ...\"", localDBContainer, remote.RemoteTarget(destination.RemoteCfg))
 		return desc, func() error {
-			dumpCmd := buildLocalDBDumpCommand(localDBContainer, localCredentials, false, false, false)
+			dumpCmd := buildLocalDBDumpCommand(localDBContainer, localCredentials, false, noNoise, noPII, config.Framework)
 			remoteCredentials, probeErr := resolveRemoteDBCredentials(config, destination.Name, destination.RemoteCfg)
 			if probeErr != nil {
 				pterm.Warning.Println(formatRemoteDBProbeWarning(destination.Name, probeErr))

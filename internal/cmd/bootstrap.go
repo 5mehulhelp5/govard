@@ -44,6 +44,8 @@ var (
 	bootstrapAssumeYes        bool
 	bootstrapIncludeProduct   bool
 	bootstrapPlan             bool
+	bootstrapNoNoise          bool
+	bootstrapNoPII            bool
 )
 
 var bootstrapCmd = &cobra.Command{
@@ -409,4 +411,6 @@ func init() {
 	bootstrapCmd.Flags().BoolVarP(&bootstrapAssumeYes, "yes", "y", false, "Assume yes for non-critical bootstrap prompts")
 	bootstrapCmd.Flags().BoolVar(&bootstrapIncludeProduct, "include-product", false, "Include catalog product images during media sync (Magento only)")
 	bootstrapCmd.Flags().BoolVar(&bootstrapPlan, "plan", false, "Print the bootstrap plan and exit")
+	bootstrapCmd.Flags().BoolVarP(&bootstrapNoNoise, "no-noise", "N", false, "Exclude ephemeral/noise tables from database sync (logs, caches, etc)")
+	bootstrapCmd.Flags().BoolVarP(&bootstrapNoPII, "no-pii", "S", false, "Exclude PII/sensitive tables from database sync (users, orders, passwords, etc)")
 }

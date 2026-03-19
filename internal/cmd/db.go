@@ -375,7 +375,7 @@ func buildDBDumpCommand(config engine.Config, options dbCommandOptions) (*exec.C
 			return nil, err
 		}
 		credentials := resolveLocalDBCredentials(containerName)
-		return buildLocalDBDumpCommand(containerName, credentials, options.Full, options.NoNoise, options.NoPII), nil
+		return buildLocalDBDumpCommand(containerName, credentials, options.Full, options.NoNoise, options.NoPII, config.Framework), nil
 	}
 
 	remoteCfg, err := resolveDBRemote(config, options.Environment, false)
@@ -386,7 +386,7 @@ func buildDBDumpCommand(config engine.Config, options dbCommandOptions) (*exec.C
 	if probeErr != nil {
 		pterm.Warning.Println(formatRemoteDBProbeWarning(options.Environment, probeErr))
 	}
-	return remote.BuildSSHExecCommand(options.Environment, remoteCfg, true, buildRemoteMySQLDumpCommandString(credentials, options.Full)), nil
+	return remote.BuildSSHExecCommand(options.Environment, remoteCfg, true, buildRemoteMySQLDumpCommandString(credentials, options.Full, options.NoNoise, options.NoPII, config.Framework)), nil
 }
 
 func buildDBImportCommand(config engine.Config, options dbCommandOptions) (*exec.Cmd, error) {

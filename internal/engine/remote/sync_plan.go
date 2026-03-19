@@ -14,6 +14,8 @@ type SyncOptions struct {
 	Delete      bool
 	Resume      bool
 	NoCompress  bool
+	NoNoise     bool
+	NoPII       bool
 	Path        string
 	Include     []string
 	Exclude     []string
