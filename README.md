@@ -384,9 +384,9 @@ _Note: Once trusted, all `*.test` domains managed by Govard will show a "Green L
 | `govard tunnel`      | Start a public tunnel to a local project URL                       |
 | `govard custom`      | Run project custom commands from `.govard/commands`                |
 | `govard projects`    | Query known projects from local registry                           |
-| `govard&nbsp;extensions`  | Manage project extension contract in `.govard`                     |
+| <code>govard&nbsp;extensions</code> | Manage project extension contract in `.govard`                     |
 | `govard desktop`     | Launch the Govard Desktop app (`--background` supported)           |
-| `govard&nbsp;self&#8209;update` | Upgrade installed Govard binaries (`govard` + detected `govard-desktop`) |
+| <code>govard&nbsp;self&#8209;update</code> | Upgrade installed Govard binaries (`govard` + detected `govard-desktop`) |
 | `govard upgrade`     | Upgrade the framework version                                      |
 | `govard version`     | Print the version number of Govard                                 |
 
