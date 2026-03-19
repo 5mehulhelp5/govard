@@ -56,6 +56,9 @@ services:
       {{ if .HostSSHDir }}
       - "{{ .HostSSHDir }}:/home/www-data/.ssh:ro"
       {{ end }}
+      {{ if .SafeSSHConfig }}
+      - "{{ .SafeSSHConfig }}:/home/www-data/.ssh/config:ro"
+      {{ end }}
       {{ if .SSHAuthSock }}
       - "{{ .SSHAuthSock }}:/ssh-agent"
       {{ end }}
@@ -80,6 +83,9 @@ services:
       - .:/var/www/html
       {{ if .HostSSHDir }}
       - "{{ .HostSSHDir }}:/home/www-data/.ssh:ro"
+      {{ end }}
+      {{ if .SafeSSHConfig }}
+      - "{{ .SafeSSHConfig }}:/home/www-data/.ssh/config:ro"
       {{ end }}
       {{ if .SSHAuthSock }}
       - "{{ .SSHAuthSock }}:/ssh-agent"

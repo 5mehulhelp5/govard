@@ -29,6 +29,7 @@ type RenderData struct {
 	XdebugSessionPattern string
 	SSHAuthSock          string
 	HostSSHDir           string
+	SafeSSHConfig        string
 	HostComposerCacheDir string
 }
 
@@ -160,6 +161,7 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 		sshDir := filepath.Join(home, ".ssh")
 		if info, err := os.Stat(sshDir); err == nil && info.IsDir() {
 			renderData.HostSSHDir = sshDir
+			renderData.SafeSSHConfig = prepareSafeSSHConfig(sshDir)
 		}
 
 		// Detect Composer cache directory
@@ -321,6 +323,37 @@ func buildXdebugSessionPattern(raw string) string {
 // BuildXdebugSessionPatternForTest exposes the session pattern builder for tests.
 func BuildXdebugSessionPatternForTest(raw string) string {
 	return buildXdebugSessionPattern(raw)
+}
+
+func prepareSafeSSHConfig(hostSSHDir string) string {
+	configPath := filepath.Join(hostSSHDir, "config")
+	info, err := os.Stat(configPath)
+	if err != nil {
+		return ""
+	}
+
+	// If permissions are too broad (group/world writable), create a safe copy
+	if info.Mode().Perm()&0o022 != 0 {
+		safeDir := filepath.Join(GovardHomeDir(), "ssh")
+		if err := os.MkdirAll(safeDir, 0700); err != nil {
+			return ""
+		}
+
+		safePath := filepath.Join(safeDir, "config")
+		data, err := os.ReadFile(configPath)
+		if err != nil {
+			return ""
+		}
+
+		// Write with 600 permissions
+		if err := os.WriteFile(safePath, data, 0600); err != nil {
+			return ""
+		}
+
+		return safePath
+	}
+
+	return ""
 }
 
 // renderLegacyBlueprint renders using the old single-file approach
