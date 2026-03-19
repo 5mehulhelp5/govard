@@ -135,6 +135,12 @@ Case Studies:
 			return err
 		}
 		configForObservability = config
+
+		if remoteName, ok := findRemoteByNameOrEnvironment(config, opts.Source); ok {
+			opts.Source = remoteName
+			operationSource = opts.Source
+		}
+
 		supportedFrameworks := []string{"magento2", "laravel", "symfony"}
 		if opts.Fresh {
 			supportedFrameworks = []string{"magento2", "laravel", "symfony", "openmage", "drupal", "wordpress", "nextjs", "shopware", "cakephp"}

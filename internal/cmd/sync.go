@@ -82,6 +82,18 @@ Case Studies:
 		if destination == "" {
 			destination = "local"
 		}
+
+		if source != "local" {
+			if remoteName, ok := findRemoteByNameOrEnvironment(config, source); ok {
+				source = remoteName
+			}
+		}
+		if destination != "local" {
+			if remoteName, ok := findRemoteByNameOrEnvironment(config, destination); ok {
+				destination = remoteName
+			}
+		}
+
 		defer func() {
 			if err != nil && operationMessage == "" {
 				operationMessage = err.Error()
