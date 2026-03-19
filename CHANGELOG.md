@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.20.0] - 2026-03-19
+
+### Added
+
+- **Enhanced Database Dump Flags**: Replaced `--exclude-sensitive-data` with `--no-noise` (`-N`) and `--no-pii` (`-S`) flags for `govard db dump`.
+  - `--no-noise`: Excludes ephemeral tables (cron, cache, session, logs, etc.).
+  - `--no-pii`: Excludes PII/sensitive tables (customers, orders, etc.) and implies `--no-noise`.
+- **Locale Auto-detection**: Implemented automatic locale detection for `govard deploy` in Magento 2 projects when the `--locales` flag is omitted.
+- **Magento 1 / OpenMage Improvements**:
+  - Secure bootstrap with randomly generated 32-hex crypt keys in `local.xml`.
+  - Automated post-clone setup (base URL configuration and admin user creation).
+  - Remote database credential probing from `local.xml` via SSH.
+- **Desktop Application Enhancements**:
+  - New theme support with **Dark Mode**.
+  - Added "Run in Background" preference and standard Quit functionality.
+  - Refactored service action buttons to be icon-only with detailed tooltips.
+- **Comprehensive Documentation**: Added dedicated documentation files for all supported frameworks (Laravel, Symfony, Drupal, WordPress, Shopware, CakePHP, Next.js).
+- **SVG Logo**: Updated project logo to a modern SVG format.
+
+### Changed
+
+- **Go Version Upgrade**: Updated project Go requirement to **1.25.0**.
+- **Linter Evolution**: Upgraded `golangci-lint` to **v2.11.3** and modernized configuration.
+- **Refined Documentation**: Major updates to `README.md` and CLI command references.
+
+### Improved
+
+- **Database Reliability**: Enhanced local DB operations with larger max packet size and foreign key check safeguards.
+- **Remote Stability**: Improved SSH connection handling and remote probe accuracy.
+
+### Fixed
+
+- **Elasticsearch Safety**: Fixed "read-only" index block issues during post-install operations.
+- **Code Quality**: Fixed various linter warnings and improved code structure across the bootstrap engine.
+
 ## [1.19.0] - 2026-03-04
 
 ### Added
