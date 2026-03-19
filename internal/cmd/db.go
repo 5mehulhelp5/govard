@@ -29,7 +29,7 @@ Case Studies:
 - Remote Debugging: Connect directly to the staging database to inspect live data.
 - Quick Backup: Create a local SQL dump before performing risky operations.
 - Data Refresh: Stream a database dump from production directly into your local DB.
-- Sanitized Backup: Use --exclude-sensitive-data to remove DEFINER and GTID from dumps.`,
+- Filtered Dump: Use --no-noise to skip ephemeral tables, --no-pii to also skip PII/sensitive tables.`,
 	Example: `  # Open an interactive MySQL shell locally
   govard db connect
 
@@ -44,6 +44,12 @@ Case Studies:
 
   # Create a database dump with routines and triggers
   govard db dump --full --file my_backup.sql
+
+  # Dump excluding noise tables (cron, cache, logs...)
+  govard db dump --no-noise --file my_backup.sql
+
+  # Dump excluding noise + PII tables (customers, orders...)
+  govard db dump --no-noise --no-pii --file my_backup.sql
 
   # Execute a SQL query
   govard db query "SELECT * FROM core_config_data LIMIT 5"
@@ -75,16 +81,18 @@ func init() {
 	dbCmd.Flags().String("profile", "", "Environment scope (profile) to use")
 	dbCmd.Flags().Bool("stream-db", false, "For import: stream dump from remote environment into local database")
 	dbCmd.Flags().Bool("full", false, "For dump: include routines, events, and triggers")
-	dbCmd.Flags().Bool("exclude-sensitive-data", false, "Apply SQL sanitization pipeline (DEFINER/GTID cleanup)")
+	dbCmd.Flags().BoolP("no-noise", "N", false, "For dump: exclude ephemeral tables (cron, cache, session, logs...)")
+	dbCmd.Flags().BoolP("no-pii", "S", false, "For dump: exclude PII/sensitive tables (customers, orders...) — implies --no-noise")
 }
 
 type DBCommandOptions struct {
-	Environment          string
-	File                 string
-	Profile              string
-	StreamDB             bool
-	Full                 bool
-	ExcludeSensitiveData bool
+	Environment string
+	File        string
+	Profile     string
+	StreamDB    bool
+	Full        bool
+	NoNoise     bool
+	NoPII       bool
 }
 
 type dbCommandOptions = DBCommandOptions
@@ -276,18 +284,23 @@ func readDBCommandOptions(cmd *cobra.Command) (dbCommandOptions, error) {
 	if err != nil {
 		return dbCommandOptions{}, err
 	}
-	excludeSensitiveData, err := cmd.Flags().GetBool("exclude-sensitive-data")
+	noNoise, err := cmd.Flags().GetBool("no-noise")
+	if err != nil {
+		return dbCommandOptions{}, err
+	}
+	noPII, err := cmd.Flags().GetBool("no-pii")
 	if err != nil {
 		return dbCommandOptions{}, err
 	}
 	profile, _ := cmd.Flags().GetString("profile")
 	return dbCommandOptions{
-		Environment:          strings.ToLower(strings.TrimSpace(environment)),
-		File:                 strings.TrimSpace(file),
-		Profile:              profile,
-		StreamDB:             streamDB,
-		Full:                 full,
-		ExcludeSensitiveData: excludeSensitiveData,
+		Environment: strings.ToLower(strings.TrimSpace(environment)),
+		File:        strings.TrimSpace(file),
+		Profile:     profile,
+		StreamDB:    streamDB,
+		Full:        full,
+		NoNoise:     noNoise,
+		NoPII:       noPII || noNoise, // --no-pii implies --no-noise; also honour explicit --no-noise
 	}, nil
 }
 
@@ -298,8 +311,8 @@ func validateDBCommandOptions(subcommand string, options dbCommandOptions) error
 
 	switch subcommand {
 	case "connect":
-		if options.File != "" || options.StreamDB || options.Full || options.ExcludeSensitiveData {
-			return errors.New("connect does not support --file, --stream-db, --full, or --exclude-sensitive-data")
+		if options.File != "" || options.StreamDB || options.Full || options.NoNoise || options.NoPII {
+			return errors.New("connect does not support --file, --stream-db, --full, --no-noise, or --no-pii")
 		}
 	case "dump":
 		if options.StreamDB {
@@ -313,8 +326,8 @@ func validateDBCommandOptions(subcommand string, options dbCommandOptions) error
 			return errors.New("--stream-db requires a remote --environment source")
 		}
 	case "query", "info":
-		if options.File != "" || options.StreamDB || options.Full || options.ExcludeSensitiveData {
-			return errors.New("query and info do not support --file, --stream-db, --full, or --exclude-sensitive-data")
+		if options.File != "" || options.StreamDB || options.Full || options.NoNoise || options.NoPII {
+			return errors.New("query and info do not support --file, --stream-db, --full, --no-noise, or --no-pii")
 		}
 	default:
 		return fmt.Errorf("unknown db subcommand: %s", subcommand)
@@ -362,7 +375,7 @@ func buildDBDumpCommand(config engine.Config, options dbCommandOptions) (*exec.C
 			return nil, err
 		}
 		credentials := resolveLocalDBCredentials(containerName)
-		return buildLocalDBDumpCommand(containerName, credentials, options.Full), nil
+		return buildLocalDBDumpCommand(containerName, credentials, options.Full, options.NoNoise, options.NoPII), nil
 	}
 
 	remoteCfg, err := resolveDBRemote(config, options.Environment, false)

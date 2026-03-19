@@ -59,13 +59,84 @@ func (m *Magento1Bootstrap) PostClone(projectDir string) error {
 
 	varPath := filepath.Join(projectDir, "var")
 	_ = os.MkdirAll(varPath, 0777)
+	_ = os.MkdirAll(filepath.Join(varPath, "cache"), 0777)
+	_ = os.MkdirAll(filepath.Join(varPath, "session"), 0777)
 
-	cachePath := filepath.Join(varPath, "cache")
-	_ = os.MkdirAll(cachePath, 0777)
+	mediaPath := filepath.Join(projectDir, "media")
+	_ = os.MkdirAll(mediaPath, 0777)
 
-	sessionPath := filepath.Join(varPath, "session")
-	_ = os.MkdirAll(sessionPath, 0777)
+	localXmlPath := filepath.Join(projectDir, "app", "etc", "local.xml")
+	if _, err := os.Stat(localXmlPath); os.IsNotExist(err) {
+		if err := m.createLocalXml(projectDir); err != nil {
+			pterm.Warning.Printf("Failed to create local.xml: %v\n", err)
+		}
+	}
 
 	pterm.Success.Println("Post-clone setup completed")
+	return nil
+}
+
+// createLocalXml generates app/etc/local.xml with a random 32-hex crypt key and
+// the default local Warden database credentials.
+func (m *Magento1Bootstrap) createLocalXml(projectDir string) error {
+	cryptKey, err := generateMagento1CryptKey()
+	if err != nil {
+		return fmt.Errorf("failed to generate crypt key: %w", err)
+	}
+
+	localXmlContent := fmt.Sprintf(`<?xml version="1.0"?>
+<config>
+    <global>
+        <install>
+            <date><![CDATA[Wed, 01 Jan 2025 00:00:00 +0000]]></date>
+        </install>
+        <crypt>
+            <key><![CDATA[%s]]></key>
+        </crypt>
+        <disable_local_modules>false</disable_local_modules>
+        <resources>
+            <db>
+                <table_prefix><![CDATA[]]></table_prefix>
+            </db>
+            <default_setup>
+                <connection>
+                    <host><![CDATA[db]]></host>
+                    <username><![CDATA[magento]]></username>
+                    <password><![CDATA[magento]]></password>
+                    <dbname><![CDATA[magento]]></dbname>
+                    <initStatements><![CDATA[SET NAMES utf8]]></initStatements>
+                    <model><![CDATA[mysql4]]></model>
+                    <type><![CDATA[pdo_mysql]]></type>
+                    <pdoType></pdoType>
+                    <active>1</active>
+                </connection>
+            </default_setup>
+        </resources>
+        <session_save><![CDATA[files]]></session_save>
+        <session_save_path><![CDATA[var/session]]></session_save_path>
+    </global>
+    <admin>
+        <routers>
+            <adminhtml>
+                <args>
+                    <frontName><![CDATA[admin]]></frontName>
+                </args>
+            </adminhtml>
+        </routers>
+    </admin>
+</config>
+`, cryptKey)
+
+	etcPath := filepath.Join(projectDir, "app", "etc")
+	if err := os.MkdirAll(etcPath, 0755); err != nil {
+		return fmt.Errorf("failed to create app/etc directory: %w", err)
+	}
+
+	localXmlPath := filepath.Join(etcPath, "local.xml")
+	if err := os.WriteFile(localXmlPath, []byte(localXmlContent), 0644); err != nil {
+		return fmt.Errorf("failed to write local.xml: %w", err)
+	}
+
+	pterm.Success.Println("Created local.xml with random crypt key")
 	return nil
 }
