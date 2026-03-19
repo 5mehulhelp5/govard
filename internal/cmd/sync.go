@@ -32,19 +32,25 @@ Case Studies:
 - Media Sync Only: Sync product images from production without affecting your local code or DB.
 - Full Onboarding: Use --full to get code, media, and DB in one command.`,
 	Example: `  # Sync everything from staging to local (default behavior)
-  govard sync --source staging --full
+  govard sync -s staging --full
 
-  # Sync only the database from production
-  govard sync --source prod --db
+  # Sync only the database from dev
+  govard sync -s dev --db
+
+  # Sync DB, excluding noise tables (logs, caches, cron)
+  govard sync -s dev --db --no-noise
+
+  # Sync DB, excluding PII data (implies --no-noise)
+  govard sync -s dev --db --no-pii
 
   # Sync media from dev, but exclude specific folders
-  govard sync --source dev --media --exclude "catalog/product/cache/*"
+  govard sync -s dev --media --exclude "catalog/product/cache/*"
 
-  # Sync a specific path (e.g., a theme folder) from local to dev
-  govard sync --destination dev --file --path "app/design/frontend/MyTheme"
+  # Push a specific path to a dev remote
+  govard sync -d dev --file --path "app/design/frontend/MyTheme"
 
   # Dry-run: Show what would be synced without actually doing it
-  govard sync --source staging --full --plan`,
+  govard sync -s staging --full --plan`,
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		startedAt := time.Now()
 		config, err := loadFullConfig()

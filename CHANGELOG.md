@@ -5,7 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.21.0] - 2026-03-20
+
+### Added
+
+- **Sync Data Obfuscation Flags**: Implemented `--no-noise` (`-N`) and `--no-pii` (`-S`) flags for `govard sync` and `govard bootstrap`.
+  - `--no-noise`: Excludes ephemeral/noise tables (cron schedules, caches, sessions, logs) from `mysqldump`.
+  - `--no-pii`: Excludes sensitive/PII tables (customers, orders, passwords, etc.) and implies `--no-noise`.
+  - Supports framework-specific table lists: Magento 2, Laravel, and WordPress.
+- **Sync Shortcut Flags**: Added `-s` / `-d` as short aliases for `--source` / `--destination` in `govard sync`.
+- **Smart Remote Name Resolution**: `--source`, `--destination` (sync) and `--environment` (bootstrap) now resolve remote name aliases automatically (e.g. `-s dev` → matches a remote named `development`, or any remote whose name normalizes to `dev`).
+- **SSH Agent Diagnostics**: `govard doctor` now checks SSH agent connectivity and reports the number of loaded keys with remediation guidance.
+- **Secure SSH Config Mounting**: SSH config files with overly broad permissions are now copied to a safe temporary file with restricted permissions (`0600`) before mounting into containers, preventing SSH warnings in remote operations.
+- **Magento Search Auto-fix**: Bootstrap now automatically configures the search engine host and port (`es`, `opensearch`) from container labels, and unblocks read-only Elasticsearch/OpenSearch indices to prevent post-install search failures.
+
+### Changed
+
+- **Sync Endpoint Display**: Removed redundant "environment" field from remote/sync endpoint summaries. Environment context is now derived from the remote name itself.
+- **Bootstrap Examples Updated**: Updated `-e` flag description in help text to clarify it accepts remote name aliases.
+
+### Fixed
+
+- **GoReleaser Changelog Grouping**: Refined changelog group configuration in `.goreleaser.yml` for cleaner release notes.
+
 ## [1.20.0] - 2026-03-19
+
 
 ### Added
 

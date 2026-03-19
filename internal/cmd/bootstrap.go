@@ -68,24 +68,30 @@ Framework Specifics:
 
 Case Studies:
 - Day-to-day refresh: 'govard bootstrap -e staging' — syncs DB and media, keeps your local git tree.
+- Refresh without PII tables: 'govard bootstrap -e staging --no-pii' — syncs DB excluding sensitive tables.
 - First-time onboarding (no git clone): 'govard bootstrap --clone -e staging' — pulls all source files.
-- Fresh Start: 'govard bootstrap --framework magento2 --fresh --framework-version 2.4.7' — clean Magento install from Composer.
+- Fresh Start: 'govard bootstrap --framework magento2 --fresh --framework-version 2.4.8' — clean Magento install from Composer.
 - Code only: 'govard bootstrap --clone --code-only -e dev' — files only, skip DB and media.
-- Specify Framework: 'govard bootstrap --framework magento2' — Ensures Magento 2 environment if initialization is required.`,
+- Specify Framework: 'govard bootstrap --framework magento2' — Ensures Magento 2 environment if initialization is required.
+
+Note: -e/--environment accepts remote name aliases (e.g. 'dev' matches a remote named 'development').`,
 	Example: `  # Refresh DB + media from dev (default — does NOT overwrite source files)
-  govard bootstrap --environment dev
+  govard bootstrap -e dev
 
   # Full clone (source files + DB + media) from staging
-  govard bootstrap --clone --environment staging
+  govard bootstrap --clone -e staging
 
-  # Fresh Magento 2.4.7 install with sample data
-  govard bootstrap --framework magento2 --fresh --framework-version 2.4.7 --include-sample
+  # Clone DB excluding noise and PII tables
+  govard bootstrap -e staging --no-pii
+
+  # Fresh Magento 2.4.8 install with sample data
+  govard bootstrap --framework magento2 --fresh --framework-version 2.4.8 --include-sample
 
   # Clone from dev but skip media sync
-  govard bootstrap --clone --environment dev --no-media
+  govard bootstrap --clone -e dev --no-media
 
   # Clone source code only (skip DB and media)
-  govard bootstrap --clone --code-only --environment dev
+  govard bootstrap --clone --code-only -e dev
 
   # Bootstrap and ensure Magento 2 if init runs
   govard bootstrap --framework magento2`,
