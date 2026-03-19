@@ -97,8 +97,28 @@ nfpms:
         dst: /usr/share/icons/hicolor/256x256/apps/govard.svg
 
 changelog:
-  use: github
   sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^chore:"
+      - "Merge branch"
+      - "Merge pull request"
+  groups:
+    - title: ✨ New Features
+      regexp: "^feat[(\\w)]*!?: "
+      order: 0
+    - title: 🛠 Improvements
+      regexp: "^perf[(\\w)]*!?: "
+      order: 1
+    - title: 🐛 Bug Fixes
+      regexp: "^fix[(\\w)]*!?: "
+      order: 2
+    - title: 📚 Documentation
+      regexp: "^docs[(\\w)]*!?: "
+      order: 3
+    - title: 📦 Others
+      order: 99
 
 release:
   footer: |
