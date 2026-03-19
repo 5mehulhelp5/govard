@@ -184,8 +184,7 @@ export const renderRemotes = (container, remotes = []) => {
 
       return `
       <div class="glass-card rounded-xl p-0 overflow-hidden group mb-6 border ${borderColor} dark:bg-card-bg">
-        <div class="p-6 border-b border-border-primary dark:border-[var(--bg-secondary)] bg-gradient-to-r from-surface-primary to-surface-primary/50 dark:from-[var(--surface-primary)] dark:to-[var(--surface-primary)]/50 relative overflow-hidden">
-          ${isProtected ? `<div class="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-amber-500/10 to-transparent pointer-events-none"></div>` : ""}
+        <div class="p-6 pb-4 border-b border-border-primary dark:border-[var(--bg-secondary)] bg-gradient-to-r from-surface-primary to-surface-primary/50 dark:from-[var(--surface-primary)] dark:to-[var(--surface-primary)]/50 relative overflow-hidden">
           <div class="relative z-10 flex flex-col gap-4">
             <div class="flex items-start justify-between gap-4">
               <div class="min-w-0 flex items-center gap-4">
@@ -226,36 +225,36 @@ export const renderRemotes = (container, remotes = []) => {
 
           </div>
         </div>
-        <div class="p-6">
+        <div class="p-6 pt-4">
           <div class="flex flex-col gap-3">
             <div class="flex flex-wrap gap-3">
                 ${renderSyncPresetButton({
-                  remoteName: remote.name,
-                  preset: "full",
-                  icon: "all_inclusive",
-                  label: "Pull Everything",
-                  iconHoverClass: "group-hover/btn:text-purple-400",
-                  enabled: true,
-                  disabledReason: "",
-                })}
+        remoteName: remote.name,
+        preset: "full",
+        icon: "all_inclusive",
+        label: "Pull Everything",
+        iconHoverClass: "group-hover/btn:text-purple-400",
+        enabled: true,
+        disabledReason: "",
+      })}
                 ${renderSyncPresetButton({
-                  remoteName: remote.name,
-                  preset: "db",
-                  icon: "database",
-                  label: "Pull Database",
-                  iconHoverClass: "group-hover/btn:text-primary",
-                  enabled: canPullDB,
-                  disabledReason: dbDisabledReason,
-                })}
+        remoteName: remote.name,
+        preset: "db",
+        icon: "database",
+        label: "Pull Database",
+        iconHoverClass: "group-hover/btn:text-primary",
+        enabled: canPullDB,
+        disabledReason: dbDisabledReason,
+      })}
                 ${renderSyncPresetButton({
-                  remoteName: remote.name,
-                  preset: "media",
-                  icon: "perm_media",
-                  label: "Pull Media",
-                  iconHoverClass: "group-hover/btn:text-blue-400",
-                  enabled: canPullMedia,
-                  disabledReason: mediaDisabledReason,
-                })}
+        remoteName: remote.name,
+        preset: "media",
+        icon: "perm_media",
+        label: "Pull Media",
+        iconHoverClass: "group-hover/btn:text-blue-400",
+        enabled: canPullMedia,
+        disabledReason: mediaDisabledReason,
+      })}
             </div>
             <div class="flex flex-wrap gap-3">
                 <button data-action="open-remote-shell" data-remote="${escapeHTML(remote.name)}" data-loading-label="Opening SSH..." class="flex-1 min-h-[42px] px-4 py-2.5 bg-background-secondary hover:bg-surface-primary border border-border-primary rounded-lg text-sm text-text-secondary dark:text-slate-300 hover:text-text-primary dark:hover:text-white font-medium transition-all flex items-center justify-center gap-2 group/btn">
@@ -318,7 +317,7 @@ export const renderRemotes = (container, remotes = []) => {
             </div>
             <div class="relative z-10 w-full max-w-[200px]">
               <div class="bg-background-secondary border border-primary/40 rounded-lg p-4 shadow-lg shadow-primary/10 relative">
-                <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-600 dark:bg-primary px-3 py-0.5 text-[10px] text-white border border-emerald-400 rounded-full uppercase font-black tracking-wider shadow-sm">Destination</div>
+                <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 dark:bg-primary px-3 py-0.5 text-[10px] text-slate-900 border border-emerald-400 dark:border-transparent rounded-full uppercase font-black tracking-wider shadow-sm">Destination</div>
                 <div class="flex items-center justify-center gap-3">
                   <span class="material-symbols-outlined text-primary text-3xl">laptop_mac</span>
                   <div class="text-left">

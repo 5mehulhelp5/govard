@@ -51,9 +51,9 @@ export const createSettingsController = ({
   const UPDATE_BADGE_AVAILABLE_CLASS =
     "border-amber-500/35 bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-200";
   const UPDATE_BADGE_CURRENT_CLASS =
-    "border-primary/35 bg-emerald-50 dark:bg-primary/15 text-primary";
+    "border-emerald-500/30 bg-emerald-50 dark:bg-[#1a3a29] text-emerald-700 dark:text-[#0df259]";
   const UPDATE_BADGE_INSTALLED_CLASS =
-    "border-primary/45 bg-emerald-100 dark:bg-primary/20 text-primary";
+    "border-emerald-500/40 bg-emerald-100 dark:bg-[#1e4631] text-emerald-700 dark:text-[#0df259]";
   const UPDATE_BADGE_ERROR_CLASS =
     "border-red-500/35 bg-red-50 dark:bg-red-500/15 text-red-600 dark:text-red-200";
 
@@ -561,7 +561,7 @@ export const renderSettingsDrawer = (container) => {
                       <span>Scan for updates</span>
                     </button>
                     <button
-                      class="hidden w-full items-center justify-center gap-2.5 rounded-xl bg-primary px-4 py-3 text-[13px] font-black text-background-dark shadow-[0_12px_24px_rgba(13,242,89,0.2)] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                      class="hidden w-full items-center justify-center gap-2.5 rounded-xl bg-primary px-4 py-3 text-[13px] font-black text-slate-900 shadow-[0_12px_24px_rgba(13,242,89,0.2)] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
                       data-action="install-update"
                       id="installUpdateButton"
                       type="button"

@@ -1113,7 +1113,7 @@ export const renderOnboardingModal = (container) => {
               <button
                 id="onboardingSubmit"
                 data-action="add-project"
-                class="group flex items-center gap-3 bg-primary hover:bg-primary/90 text-background-dark px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-[0_15px_30px_rgba(13,242,89,0.2)] transition-all transform active:scale-95 disabled:scale-100 disabled:opacity-30 disabled:grayscale disabled:shadow-none"
+                class="group flex items-center gap-3 bg-primary hover:bg-primary/90 text-slate-900 px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-[0_15px_30px_rgba(13,242,89,0.2)] transition-all transform active:scale-95 disabled:scale-100 disabled:opacity-30 disabled:grayscale disabled:shadow-none"
               >
                 <span>Initialize Environment</span>
                 <span class="material-symbols-outlined text-[20px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
@@ -1162,7 +1162,7 @@ export const renderOnboardingModal = (container) => {
                 </button>
                 <button
                   data-action="confirm-onboarding-bootstrap"
-                  class="px-10 py-3.5 bg-primary hover:bg-primary/90 border border-primary/20 rounded-2xl text-xs text-background-dark font-black uppercase tracking-widest shadow-xl shadow-primary/10 transition-all hover:scale-[1.02] active:scale-95"
+                  class="px-10 py-3.5 bg-primary hover:bg-primary/90 border border-primary/20 rounded-2xl text-xs text-slate-900 font-black uppercase tracking-widest shadow-xl shadow-primary/10 transition-all hover:scale-[1.02] active:scale-95"
                 >
                   Sync Now
                 </button>

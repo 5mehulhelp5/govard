@@ -25,11 +25,11 @@ const ACTIVE_STATUSES = new Set([
 const PORT_CONFLICT_WARNING_PREFIX = "port conflict ";
 
 const BULK_START_ENABLED_CLASS =
-  "h-10 min-w-[118px] px-3 bg-primary text-background-dark rounded-xl text-xs font-bold uppercase tracking-[0.08em] hover:bg-primary/90 transition-all active:scale-95 inline-flex items-center justify-center gap-1.5 shadow-[0_8px_22px_rgba(13,242,89,0.18)] ring-1 ring-primary/30 whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100";
+  "h-10 min-w-[118px] px-3 bg-primary text-slate-900 rounded-xl text-xs font-bold uppercase tracking-[0.08em] hover:bg-primary/90 transition-all active:scale-95 inline-flex items-center justify-center gap-1.5 shadow-[0_8px_22px_rgba(13,242,89,0.18)] ring-1 ring-primary/30 whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100";
 const BULK_START_DISABLED_CLASS =
   "h-10 min-w-[118px] px-3 bg-background-secondary text-slate-500 dark:text-text-tertiary/70 border border-border-primary rounded-xl text-xs font-bold uppercase tracking-[0.08em] transition-all inline-flex items-center justify-center gap-1.5 whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed";
 const BULK_RESTART_ENABLED_CLASS =
-  "h-10 min-w-[118px] px-3 bg-primary text-background-dark rounded-xl text-xs font-bold uppercase tracking-[0.08em] hover:bg-primary/90 transition-all active:scale-95 inline-flex items-center justify-center gap-1.5 shadow-[0_8px_22px_rgba(13,242,89,0.18)] ring-1 ring-primary/30 whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100";
+  "h-10 min-w-[118px] px-3 bg-primary text-slate-900 rounded-xl text-xs font-bold uppercase tracking-[0.08em] hover:bg-primary/90 transition-all active:scale-95 inline-flex items-center justify-center gap-1.5 shadow-[0_8px_22px_rgba(13,242,89,0.18)] ring-1 ring-primary/30 whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100";
 const BULK_RESTART_DISABLED_CLASS =
   "h-10 min-w-[118px] px-3 bg-background-secondary text-slate-500 dark:text-text-tertiary/70 border border-border-primary rounded-xl text-xs font-bold uppercase tracking-[0.08em] transition-all inline-flex items-center justify-center gap-1.5 whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed";
 const BULK_STOP_ENABLED_CLASS =
@@ -442,36 +442,39 @@ const renderServiceCard = (service, selectedService) => {
         </span>
       </div>
       ${routingWarning}
-      <div class="mt-3 grid grid-cols-3 gap-1.5">
+      <div class="mt-3 flex items-center gap-2">
         <button
           data-action="global-service-primary"
           data-service="${service.id}"
           data-operation="${primaryAction}"
           data-loading-label="${primaryAction === "restart" ? "Restarting..." : "Starting..."}"
-          class="h-9 rounded-lg text-[10px] font-bold bg-primary text-background-secondary hover:bg-primary-hover transition-all active:scale-95 flex items-center justify-center gap-1 disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100 shadow-sm"
+          data-loading-icon-only="true"
+          class="h-8 w-8 rounded-lg bg-primary text-background-secondary hover:bg-primary-hover transition-all active:scale-95 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100 shadow-sm"
+          title="${primaryLabel}"
         >
-          <span class="material-symbols-outlined text-[14px]">${primaryIcon}</span>
-          ${primaryLabel}
+          <span class="material-symbols-outlined text-[18px]">${primaryIcon}</span>
         </button>
         <button
           data-action="global-service-stop"
           data-service="${service.id}"
           data-loading-label="Stopping..."
-          class="${isActive ? "h-9 rounded-lg text-[10px] font-bold bg-red-600 text-white border border-red-500 hover:bg-red-500 transition-all active:scale-95 flex items-center justify-center gap-1 disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100 shadow-sm" : "h-9 rounded-lg text-[10px] font-bold bg-background-secondary text-slate-500 dark:text-text-tertiary border border-border-primary opacity-90 dark:opacity-60 flex items-center justify-center gap-1"}"
+          data-loading-icon-only="true"
+          class="${isActive ? "h-8 w-8 rounded-lg bg-red-600 text-white border border-red-500 hover:bg-red-500 transition-all active:scale-95 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100 shadow-sm" : "h-8 w-8 rounded-lg bg-background-secondary text-slate-500 dark:text-text-tertiary border border-border-primary opacity-90 dark:opacity-60 flex items-center justify-center"}"
+          title="Stop"
           ${isActive ? "" : "disabled"}
         >
-          <span class="material-symbols-outlined text-[14px] fill-1" style="font-variation-settings: &quot;FILL&quot; 1">stop</span>
-          Stop
+          <span class="material-symbols-outlined text-[18px] fill-1" style="font-variation-settings: &quot;FILL&quot; 1">stop</span>
         </button>
         <button
           data-action="global-service-open"
           data-service="${service.id}"
           data-loading-label="Opening..."
-          class="${service.openable ? "h-9 rounded-lg text-[10px] font-bold bg-background-primary text-text-primary border border-border-primary hover:bg-background-secondary transition-all active:scale-95 flex items-center justify-center gap-1 disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100 shadow-sm" : "h-9 rounded-lg text-[10px] font-bold border border-border-primary text-slate-500 dark:text-text-tertiary bg-background-secondary opacity-90 dark:opacity-60 flex items-center justify-center gap-1"}"
+          data-loading-icon-only="true"
+          class="${service.openable ? "h-8 w-8 rounded-lg bg-background-primary text-text-primary border border-border-primary hover:bg-background-secondary transition-all active:scale-95 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100 shadow-sm" : "h-8 w-8 rounded-lg border border-border-primary text-slate-500 dark:text-text-tertiary bg-background-secondary opacity-90 dark:opacity-60 flex items-center justify-center"}"
+          title="Open"
           ${service.openable ? "" : "disabled"}
         >
-          <span class="material-symbols-outlined text-[14px]">open_in_new</span>
-          Open
+          <span class="material-symbols-outlined text-[18px]">open_in_new</span>
         </button>
       </div>
     </article>
@@ -592,7 +595,8 @@ const withButtonLoading = async (buttonLike, fallbackLabel, operation) => {
   button.dataset.busy = "true";
   button.disabled = true;
   button.setAttribute("aria-busy", "true");
-  button.innerHTML = `<span class="material-symbols-outlined text-[14px] animate-spin">progress_activity</span>${loadingLabel}`;
+  const iconOnly = button.dataset.loadingIconOnly === "true";
+  button.innerHTML = `<span class="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>${iconOnly ? "" : loadingLabel}`;
 
   try {
     return await operation();
@@ -810,10 +814,10 @@ export const createGlobalServicesController = ({
       refs.globalServiceHealthBar.style.width = `${percent}%`;
       refs.globalServiceHealthBar.className =
         hasRoutingWarning || percent < 35
-          ? "h-full rounded-full bg-gradient-to-r from-red-500 via-red-400 to-amber-300 transition-all duration-500"
+          ? "h-full rounded-full bg-gradient-to-r from-red-500 via-red-400 to-amber-300 transition-all duration-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]"
           : percent < 100
             ? "h-full rounded-full bg-gradient-to-r from-amber-500 via-amber-300 to-primary transition-all duration-500"
-            : "h-full rounded-full bg-gradient-to-r from-primary/70 via-primary to-[#7dffad] transition-all duration-500";
+            : "h-full rounded-full bg-gradient-to-r from-primary via-[#9cffc4] to-primary shadow-[0_0_20px_rgba(13,242,89,0.7)] brightness-110 transition-all duration-500";
     }
 
     if (refs.globalServiceHealthLabel instanceof HTMLElement) {

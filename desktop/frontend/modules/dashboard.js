@@ -293,10 +293,10 @@ const renderEnvironmentItem = (env, { selectedProject, sidebarMode }) => {
   const meta = classifyEnvironmentStatus(env);
   const isSelected = sidebarMode === "environments" && key === selectedProject;
 
-  const baseClass = `group flex items-center justify-start gap-4 py-2.5 px-3 rounded-lg cursor-pointer relative overflow-hidden transition-all ${isSelected
-      ? "active-env bg-primary/10 border border-primary/20 text-slate-900 shadow-[0_2px_8px_rgba(var(--primary-rgb),0.08)]"
-      : "text-slate-600 hover:bg-background-primary/80"
-    } ${env.Status !== "running" ? "dark:opacity-60" : ""}`;
+  const baseClass = `group flex items-center justify-start gap-2 py-2.5 px-3 rounded-lg cursor-pointer relative overflow-hidden transition-all ${isSelected
+    ? "active-env bg-primary/10 border border-primary/20 text-slate-900 shadow-[0_2px_8px_rgba(var(--primary-rgb),0.08)]"
+    : "text-slate-600 dark:text-slate-200 hover:bg-background-primary/80 dark:hover:text-white"
+    } ${!meta.active ? "dark:opacity-50" : "opacity-100"}`;
 
   const selectionIndicator = isSelected
     ? `<div class="absolute inset-y-0 left-0 w-1 bg-primary"></div>`

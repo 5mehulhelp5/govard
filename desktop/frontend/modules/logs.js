@@ -520,7 +520,7 @@ export const renderLogsTab = (container) => {
                   <button
                     id="toggleLive"
                     data-action="toggle-live"
-                    class="h-8 px-3 rounded-md text-xs font-semibold bg-primary text-background-dark hover:bg-primary/90 transition-colors"
+                    class="h-8 px-3 rounded-md text-xs font-semibold bg-primary text-slate-900 hover:bg-primary/90 transition-colors"
                   >
                     Live: Off
                   </button>
@@ -566,26 +566,26 @@ export const renderLogsTab = (container) => {
               <div class="flex items-center gap-2">
                 <button
                   data-action="start-embedded-terminal"
-                  class="px-2.5 py-1 rounded text-xs font-medium bg-primary text-background-dark hover:bg-primary/90 transition-colors border border-primary/30"
+                  class="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
                   title="Open Shell"
                 >
-                  Open Shell
+                  <span class="material-symbols-outlined text-[18px]">terminal</span>
                 </button>
                 <button
                   data-action="restart-terminal-session"
-                  class="px-2.5 py-1 rounded text-xs font-medium bg-slate-100 dark:bg-surface-secondary text-slate-800 dark:text-slate-100 hover:bg-slate-200 dark:hover:bg-background-secondary transition-colors border border-slate-200 dark:border-border-primary"
-                  title="Terminate current session and open a new one"
+                  class="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+                  title="Restart Session"
                 >
-                  Restart Session
+                  <span class="material-symbols-outlined text-[18px]">restart_alt</span>
                 </button>
                 <button
                   data-action="toggle-terminal-modal"
-                  class="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+                  class="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
                   title="Expand Terminal"
                 >
                   <span
                     id="terminalExpandIcon"
-                    class="material-symbols-outlined text-sm"
+                    class="material-symbols-outlined text-[18px]"
                     >open_in_full</span
                   >
                 </button>
