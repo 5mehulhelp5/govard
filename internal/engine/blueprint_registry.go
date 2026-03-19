@@ -245,7 +245,7 @@ func extractTarGzArchive(payload []byte, dest string) error {
 	if err != nil {
 		return err
 	}
-	defer gzReader.Close()
+	defer func() { _ = gzReader.Close() }()
 
 	reader := tar.NewReader(gzReader)
 	for {

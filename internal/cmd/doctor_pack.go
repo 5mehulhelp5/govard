@@ -232,7 +232,7 @@ func zipDirectory(sourceDir string, zipPath string) error {
 	defer zipFile.Close()
 
 	archive := zip.NewWriter(zipFile)
-	defer archive.Close()
+	defer func() { _ = archive.Close() }()
 
 	err = filepath.WalkDir(sourceDir, func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {

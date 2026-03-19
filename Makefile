@@ -6,9 +6,11 @@ UNIT_PACKAGES=$(shell go list ./... | grep -v '^govard/tests/integration$$')
 COVER_PACKAGES=$(shell go list ./internal/... | tr '\n' ',' | sed 's/,$$//')
 VERSION_RAW ?= $(shell git describe --tags --dirty --always 2>/dev/null || echo 1.0.0)
 VERSION ?= $(patsubst v%,%,$(VERSION_RAW))
+GOLANGCI_LINT_VERSION ?= v2.11.3
+GOLANGCI_LINT_BIN ?= $(shell go env GOPATH)/bin/golangci-lint
 LDFLAGS ?= -s -w -X govard/internal/cmd.Version=$(VERSION) -X govard/internal/desktop.Version=$(VERSION)
 
-.PHONY: help install install-release build-test-binary build clean test test-fast test-unit test-coverage test-integration test-integration-ci test-frontend lint fmt fmt-check vet push test-realenv-setup test-realenv test-realenv-clean
+.PHONY: help install install-release build-test-binary build clean test test-fast test-unit test-coverage test-integration test-integration-ci test-frontend lint lint-install fmt fmt-check vet push test-realenv-setup test-realenv test-realenv-clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
@@ -68,13 +70,15 @@ test-frontend:
 	@echo "Running frontend unit tests..."
 	node --test tests/frontend/*.test.mjs
 
-lint:
-	@echo "Running linter..."
-	@if command -v golangci-lint >/dev/null 2>&1; then \
-		golangci-lint run ./...; \
-	else \
-		$$(go env GOPATH)/bin/golangci-lint run ./...; \
+lint-install: ## Install golangci-lint if missing
+	@if ! command -v $(GOLANGCI_LINT_BIN) >/dev/null 2>&1 || ! $(GOLANGCI_LINT_BIN) version | grep -q $(GOLANGCI_LINT_VERSION); then \
+		echo "Installing golangci-lint $(GOLANGCI_LINT_VERSION)..."; \
+		go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION); \
 	fi
+
+lint: lint-install ## Run linter (synchronized with CI)
+	@echo "Running linter..."
+	$(GOLANGCI_LINT_BIN) run ./...
 
 fmt:
 	@echo "Formatting code..."

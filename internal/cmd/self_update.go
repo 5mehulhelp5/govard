@@ -386,7 +386,7 @@ func extractBinaryFromTarGz(archivePath, workDir, binaryName string) (string, er
 	if err != nil {
 		return "", fmt.Errorf("open gzip stream: %w", err)
 	}
-	defer gzReader.Close()
+	defer func() { _ = gzReader.Close() }()
 
 	tarReader := tar.NewReader(gzReader)
 	for {
@@ -433,7 +433,7 @@ func extractBinaryFromZip(archivePath, workDir, binaryName string) (string, erro
 	if err != nil {
 		return "", fmt.Errorf("open zip archive: %w", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	for _, file := range reader.File {
 		if file.FileInfo().IsDir() {

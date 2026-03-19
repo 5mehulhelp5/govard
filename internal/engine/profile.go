@@ -663,12 +663,12 @@ func resolveWordPressOverride(version string) (runtimeProfileOverride, string, b
 		}
 	}
 	if major == 5 {
-		switch {
-		case minor == 9:
+		switch minor {
+		case 9:
 			return runtimeProfileOverride{PHPVersion: "7.4", DBType: "mariadb", DBVersion: "10.4"}, "version-specific:wordpress@5.9", true
-		case minor == 8:
+		case 8:
 			return runtimeProfileOverride{PHPVersion: "7.4", DBType: "mariadb", DBVersion: "10.4"}, "version-specific:wordpress@5.8", true
-		case minor == 7:
+		case 7:
 			return runtimeProfileOverride{PHPVersion: "7.4", DBType: "mariadb", DBVersion: "10.3"}, "version-specific:wordpress@5.7", true
 		}
 	}

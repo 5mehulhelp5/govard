@@ -60,7 +60,7 @@ func TestCreateDoctorDiagnosticsPack(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open zip: %v", err)
 	}
-	defer archive.Close()
+	defer func() { _ = archive.Close() }()
 
 	files := map[string]*zip.File{}
 	for _, file := range archive.File {

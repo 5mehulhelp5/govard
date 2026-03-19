@@ -6,9 +6,30 @@ linters:
   disable-all: true
   enable:
     - errcheck
-    - gosimple
     - govet
     - ineffassign
     - staticcheck
     - unconvert
     - unused
+  settings:
+    errcheck:
+      exclude-functions:
+        - (fmt.State).Write
+        - (io.Writer).Write
+        - (*os.File).Sync
+        - fmt.Fprintf
+        - fmt.Fprint
+        - fmt.Fprintln
+        - fmt.Printf
+        - fmt.Print
+        - fmt.Println
+        - fmt.Sprintf
+        - fmt.Sprintln
+        - fmt.Sprint
+        - (io.Closer).Close
+        - (*os.File).Close
+        - (*net/http.Response).Body.Close
+        - (net.Conn).Close
+        - (*os.Process).Release
+        - os.Remove
+        - os.RemoveAll

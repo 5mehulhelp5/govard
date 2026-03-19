@@ -302,7 +302,7 @@ func DetectDockerComposeVersionForLock() (string, error) {
 			continue
 		}
 		if strings.Count(trimmed, ".") >= 1 && strings.IndexFunc(trimmed, func(r rune) bool {
-			return !(r >= '0' && r <= '9' || r == '.')
+			return (r < '0' || r > '9') && r != '.'
 		}) == -1 {
 			return strings.TrimPrefix(token, "v"), nil
 		}

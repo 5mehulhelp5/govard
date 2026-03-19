@@ -64,14 +64,14 @@ func runDesktopSelfUpdateCommand(govardBinary, desktopTarget string, elevated bo
 	if elevated {
 		pkexecPath, lookupErr := desktopPrivilegedCommandLookPath("pkexec")
 		if lookupErr != nil {
-			return "", errors.New(`Update requires elevated privileges. Run "sudo govard self-update --yes" in Terminal, then reopen Govard Desktop.`)
+			return "", errors.New(`update requires elevated privileges. Run "sudo govard self-update --yes" in Terminal, then reopen Govard Desktop`)
 		}
 
 		envBinary := "/usr/bin/env"
 		if _, err := os.Stat(envBinary); err != nil {
 			lookedUpEnv, lookupErr := desktopPrivilegedCommandLookPath("env")
 			if lookupErr != nil {
-				return "", errors.New(`Update requires elevated privileges. Run "sudo govard self-update --yes" in Terminal, then reopen Govard Desktop.`)
+				return "", errors.New(`update requires elevated privileges. Run "sudo govard self-update --yes" in Terminal, then reopen Govard Desktop`)
 			}
 			envBinary = lookedUpEnv
 		}

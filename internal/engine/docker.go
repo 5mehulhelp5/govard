@@ -30,7 +30,7 @@ func CheckPort(port string) error {
 	if err != nil {
 		return err
 	}
-	ln.Close()
+	_ = ln.Close()
 	return nil
 }
 

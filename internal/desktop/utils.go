@@ -146,11 +146,12 @@ func formatDatabase(dbType, dbVersion string) string {
 	}
 	label := titleCase(dbType)
 	lower := strings.ToLower(label)
-	if lower == "mariadb" {
+	switch lower {
+	case "mariadb":
 		label = "MariaDB"
-	} else if lower == "mysql" {
+	case "mysql":
 		label = "MySQL"
-	} else if lower == "postgres" || lower == "postgresql" {
+	case "postgres", "postgresql":
 		label = "PostgreSQL"
 	}
 
@@ -213,11 +214,12 @@ func deriveServices(config engine.Config, states map[string]string) []Service {
 	if config.Stack.DBType != "" && config.Stack.DBType != "none" {
 		label := titleCase(config.Stack.DBType)
 		lower := strings.ToLower(label)
-		if lower == "mariadb" {
+		switch lower {
+		case "mariadb":
 			label = "MariaDB"
-		} else if lower == "mysql" {
+		case "mysql":
 			label = "MySQL"
-		} else if lower == "postgres" || lower == "postgresql" {
+		case "postgres", "postgresql":
 			label = "PostgreSQL"
 		}
 		services = append(services, Service{
