@@ -372,7 +372,7 @@ _Note: Once trusted, all `*.test` domains managed by Govard will show a "Green L
 | `govard shell`       | Enter the application container                                    |
 | `govard db`          | Database operations (`connect`, `dump`, `import`, `query`, `info`) |
 | `govard debug`       | Toggle Xdebug for the current environment                          |
-| `govard open`        | Open common service URLs (Admin, DB, Mail, Portainer). `db` opens PMA by default, use `--client` for protocol URLs. |
+| `govard open`        | Open service URLs (Admin, DB, Mail, Portainer). `db` opens PMA; use `--client` for protocol URLs. |
 | `govard remote`      | Manage remote environments                                         |
 | `govard sync`        | Synchronize files, media, and databases between environments       |
 | `govard status`      | List running project environments across workspace                 |
@@ -384,9 +384,9 @@ _Note: Once trusted, all `*.test` domains managed by Govard will show a "Green L
 | `govard tunnel`      | Start a public tunnel to a local project URL                       |
 | `govard custom`      | Run project custom commands from `.govard/commands`                |
 | `govard projects`    | Query known projects from local registry                           |
-| `govard extensions`  | Manage project extension contract in `.govard`                     |
+| `govard&nbsp;extensions`  | Manage project extension contract in `.govard`                     |
 | `govard desktop`     | Launch the Govard Desktop app (`--background` supported)           |
-| `govard self-update` | Upgrade installed Govard binaries (`govard` + detected `govard-desktop`) |
+| `govard&nbsp;self&#8209;update` | Upgrade installed Govard binaries (`govard` + detected `govard-desktop`) |
 | `govard upgrade`     | Upgrade the framework version                                      |
 | `govard version`     | Print the version number of Govard                                 |
 
