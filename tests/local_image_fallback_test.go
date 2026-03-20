@@ -74,3 +74,23 @@ func TestLocalBuildSpecUnsupportedService(t *testing.T) {
 		t.Fatal("expected unsupported service to return error")
 	}
 }
+
+func TestLocalBuildSpecPHPMagento2Debug(t *testing.T) {
+	spec, err := cmd.ResolveLocalBuildSpecForTest("php-magento2", "8.3-debug", "ddtcorex/govard-")
+	if err != nil {
+		t.Fatalf("local build spec: %v", err)
+	}
+
+	if spec.ContextRel != "php" {
+		t.Fatalf("unexpected context %q", spec.ContextRel)
+	}
+	if spec.DockerfileRel != "php/debug/Dockerfile" {
+		t.Fatalf("unexpected dockerfile %q, expected php/debug/Dockerfile", spec.DockerfileRel)
+	}
+	if spec.BuildArgs["BASE_IMAGE"] != "ddtcorex/govard-php-magento2:8.3" {
+		t.Fatalf("expected BASE_IMAGE=ddtcorex/govard-php-magento2:8.3, got %q", spec.BuildArgs["BASE_IMAGE"])
+	}
+	if len(spec.Dependencies) == 0 || spec.Dependencies[0] != "ddtcorex/govard-php-magento2:8.3" {
+		t.Fatalf("expected dependency on base image, got %v", spec.Dependencies)
+	}
+}

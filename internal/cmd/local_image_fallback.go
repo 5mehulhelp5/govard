@@ -8,7 +8,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 	"sync"
 
@@ -36,6 +35,7 @@ type localImageBuildSpec struct {
 	ContextRel    string
 	DockerfileRel string
 	BuildArgs     []localImageBuildArg
+	Dependencies  []string
 }
 
 // LocalBuildSpecForTest exposes resolved local build spec details for tests.
@@ -43,6 +43,7 @@ type LocalBuildSpecForTest struct {
 	ContextRel    string
 	DockerfileRel string
 	BuildArgs     map[string]string
+	Dependencies  []string
 }
 
 func fallbackBuildMissingGovardImagesFromCompose(composePath string, out io.Writer, errOut io.Writer) ([]string, error) {
@@ -64,28 +65,44 @@ func fallbackBuildMissingGovardImagesFromCompose(composePath string, out io.Writ
 		seen[trimmed] = struct{}{}
 		uniqueImages = append(uniqueImages, trimmed)
 	}
-	sort.Strings(uniqueImages)
 
-	buildableMissing := make([]string, 0, len(uniqueImages))
+	queue := append([]string{}, uniqueImages...)
+	buildSpecs := make(map[string]localImageBuildSpec)
 	nonBuildableMissing := make([]string, 0)
-	for _, image := range uniqueImages {
+	resolved := make(map[string]struct{})
+
+	for len(queue) > 0 {
+		image := queue[0]
+		queue = queue[1:]
+
+		if _, exists := resolved[image]; exists {
+			continue
+		}
 		if imageExistsLocally(image) {
+			resolved[image] = struct{}{}
 			continue
 		}
 
 		repoPrefix, service, tag, ok := parseGovardImageReference(image)
 		if !ok {
 			nonBuildableMissing = append(nonBuildableMissing, image)
+			resolved[image] = struct{}{}
 			continue
 		}
-		if _, specErr := localBuildSpecForGovardService(service, tag, repoPrefix); specErr != nil {
+
+		spec, specErr := localBuildSpecForGovardService(service, tag, repoPrefix)
+		if specErr != nil {
 			nonBuildableMissing = append(nonBuildableMissing, image)
+			resolved[image] = struct{}{}
 			continue
 		}
-		buildableMissing = append(buildableMissing, image)
+
+		buildSpecs[image] = spec
+		queue = append(queue, spec.Dependencies...)
+		resolved[image] = struct{}{}
 	}
 
-	if len(buildableMissing) == 0 {
+	if len(buildSpecs) == 0 {
 		if len(nonBuildableMissing) > 0 {
 			return nil, fmt.Errorf(
 				"missing images are not eligible for Govard local fallback build: %s",
@@ -100,12 +117,43 @@ func fallbackBuildMissingGovardImagesFromCompose(composePath string, out io.Writ
 		return nil, fmt.Errorf("resolve docker build contexts: %w", err)
 	}
 
-	built := make([]string, 0, len(buildableMissing))
-	for _, image := range buildableMissing {
-		if err := buildGovardImageLocally(image, dockerRoot, out, errOut); err != nil {
-			return built, err
+	// Simple greedy build: keep building images whose dependencies are met until none left or no progress
+	built := make([]string, 0, len(buildSpecs))
+	remaining := make(map[string]localImageBuildSpec)
+	for k, v := range buildSpecs {
+		remaining[k] = v
+	}
+
+	for len(remaining) > 0 {
+		progress := false
+		for image, spec := range remaining {
+			depsMet := true
+			for _, dep := range spec.Dependencies {
+				if _, isMissing := remaining[dep]; isMissing {
+					depsMet = false
+					break
+				}
+			}
+
+			if depsMet {
+				if err := buildGovardImageLocally(image, dockerRoot, out, errOut); err != nil {
+					return built, err
+				}
+				built = append(built, image)
+				delete(remaining, image)
+				progress = true
+				break // Start over to check for newly unlocked dependencies
+			}
 		}
-		built = append(built, image)
+
+		if !progress {
+			// Circular dependency or unbuildable dependency
+			unmetStrings := make([]string, 0, len(remaining))
+			for image := range remaining {
+				unmetStrings = append(unmetStrings, image)
+			}
+			return built, fmt.Errorf("failed to resolve build order for images: %s", strings.Join(unmetStrings, ", "))
+		}
 	}
 
 	if len(nonBuildableMissing) > 0 {
@@ -169,6 +217,9 @@ func localBuildSpecForGovardService(service string, tag string, repoPrefix strin
 		repoPrefix = defaultGovardImageRepository
 	}
 
+	isDebug := strings.HasSuffix(tag, "-debug")
+	baseTag := strings.TrimSuffix(tag, "-debug")
+
 	switch service {
 	case "apache":
 		return localImageBuildSpec{
@@ -185,6 +236,16 @@ func localBuildSpecForGovardService(service string, tag string, repoPrefix strin
 			},
 		}, nil
 	case "php":
+		if isDebug {
+			return localImageBuildSpec{
+				ContextRel:    "php",
+				DockerfileRel: filepath.Join("php", "debug", "Dockerfile"),
+				BuildArgs: []localImageBuildArg{
+					{Name: "BASE_IMAGE", Value: repoPrefix + "php:" + baseTag},
+				},
+				Dependencies: []string{repoPrefix + "php:" + baseTag},
+			}, nil
+		}
 		return localImageBuildSpec{
 			ContextRel: "php",
 			BuildArgs: []localImageBuildArg{
@@ -192,6 +253,16 @@ func localBuildSpecForGovardService(service string, tag string, repoPrefix strin
 			},
 		}, nil
 	case "php-magento2":
+		if isDebug {
+			return localImageBuildSpec{
+				ContextRel:    "php",
+				DockerfileRel: filepath.Join("php", "debug", "Dockerfile"),
+				BuildArgs: []localImageBuildArg{
+					{Name: "BASE_IMAGE", Value: repoPrefix + "php-magento2:" + baseTag},
+				},
+				Dependencies: []string{repoPrefix + "php-magento2:" + baseTag},
+			}, nil
+		}
 		return localImageBuildSpec{
 			ContextRel:    "php",
 			DockerfileRel: filepath.Join("php", "magento2", "Dockerfile"),
@@ -199,6 +270,7 @@ func localBuildSpecForGovardService(service string, tag string, repoPrefix strin
 				{Name: "PHP_VERSION", Value: tag},
 				{Name: "GOVARD_IMAGE_REPOSITORY", Value: repoPrefix},
 			},
+			Dependencies: []string{repoPrefix + "php:" + tag},
 		}, nil
 	case "mariadb":
 		return localImageBuildSpec{
@@ -493,5 +565,6 @@ func ResolveLocalBuildSpecForTest(service string, tag string, repositoryPrefix s
 		ContextRel:    spec.ContextRel,
 		DockerfileRel: spec.DockerfileRel,
 		BuildArgs:     buildArgs,
+		Dependencies:  spec.Dependencies,
 	}, nil
 }
