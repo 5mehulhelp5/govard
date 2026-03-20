@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Proxy Networking**: Remedied an issue where framework-specific compose overrides (such as `magento2/services.yml`) accidentally detached the `web` service from the `govard-proxy` network, resulting in 502 Bad Gateway errors.
 - **Undefined References**: Fixed multiple lint errors and unreachable code in `bootstrap`, `debug`, and `open` commands by exporting and unifying container execution helpers.
 
 ## [1.21.1] - 2026-03-20
