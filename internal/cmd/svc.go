@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -24,358 +23,229 @@ var errGlobalServicesNotInitialized = errors.New("global services are not initia
 var svcCmd = &cobra.Command{
 	Use:   "svc",
 	Short: "Manage global services and workspace sleep state",
-}
+	Long: `Manage global shared services (Proxy, Mailpit, PHPMyAdmin) and control the workspace state.
+Global services are shared across all projects.
 
-var svcUpCmd = &cobra.Command{
-	Use:   "up",
-	Short: "Start global services (proxy, mailpit, pma, portainer)",
-	Args:  cobra.NoArgs,
-	RunE:  runSvcUp,
-}
+Govard intelligently proxies global Docker Compose commands to the shared service stack.
 
-var svcDownCmd = &cobra.Command{
-	Use:   "down",
-	Short: "Stop global services (proxy, mailpit, pma, portainer)",
-	Args:  cobra.NoArgs,
-	RunE:  runSvcDown,
-}
+Case Studies:
+- Setup: Use 'govard svc up' to start the global proxy and shared utilities.
+- Troubleshooting: Use 'govard svc logs' or 'govard svc ps' to check global service health.
+- Optimization: Use 'govard svc sleep' to pause all running project containers at once.`,
+	Example: `  # Start global services (Proxy, Mail, etc.)
+  govard svc up
 
-var svcRestartCmd = &cobra.Command{
-	Use:   "restart",
-	Short: "Restart global services (proxy, mailpit, pma, portainer)",
-	Args:  cobra.NoArgs,
-	RunE:  runSvcRestart,
-}
+  # Stop all global services
+  govard svc down
 
-var svcPullCmd = &cobra.Command{
-	Use:   "pull",
-	Short: "Pull latest images for global services",
-	Args:  cobra.NoArgs,
-	RunE:  runSvcPull,
-}
+  # Pause all active project environments
+  govard svc sleep
 
-var svcPsCmd = &cobra.Command{
-	Use:   "ps",
-	Short: "List running global service containers",
-	Args:  cobra.NoArgs,
-	RunE:  runSvcPs,
-}
-
-var svcLogsCmd = &cobra.Command{
-	Use:   "logs",
-	Short: "Tail logs for global services",
-	Args:  cobra.NoArgs,
-	RunE:  runSvcLogs,
+  # View help for all supported global compose commands
+  govard svc --help`,
+	Args:  cobra.ArbitraryArgs,
+	FParseErrWhitelist: cobra.FParseErrWhitelist{
+		UnknownFlags: true,
+	},
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) > 0 {
+			proxyArgs := []string{}
+			for i, arg := range os.Args {
+				if arg == "svc" && i+1 < len(os.Args) {
+					proxyArgs = os.Args[i+1:]
+					break
+				}
+			}
+			if len(proxyArgs) > 0 {
+				return runGlobalProxyCompose(cmd, proxyArgs...)
+			}
+		}
+		return cmd.Help()
+	},
 }
 
 var svcSleepCmd = &cobra.Command{
 	Use:   "sleep",
 	Short: "Stop all running Govard projects and persist wake state",
 	Args:  cobra.NoArgs,
-	RunE:  runSvcSleep,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runSleep()
+	},
 }
 
 var svcWakeCmd = &cobra.Command{
 	Use:   "wake",
 	Short: "Start all projects recorded in sleep state",
 	Args:  cobra.NoArgs,
-	RunE:  runSvcWake,
-}
-
-var svcLogsTailCount int
-
-func runSvcUp(cmd *cobra.Command, args []string) error {
-	pterm.DefaultHeader.Println("Starting Govard Global Services")
-	fallbackLocalBuild := boolFlagOrDefault(cmd, "fallback-local-build", true)
-
-	// Check for port conflicts before starting
-	if !engine.CheckPortForGovardProxy(cmd.Context(), "80") {
-		pterm.Warning.Println("Port 80 is already in use by another process. Govard Proxy might fail to start or route traffic.")
-		pterm.Info.Println("Tip: Run `sudo lsof -i :80` to find the conflicting process.")
-	}
-	if !engine.CheckPortForGovardProxy(cmd.Context(), "443") {
-		pterm.Warning.Println("Port 443 is already in use by another process. Govard HTTPS Proxy might fail to start.")
-		pterm.Info.Println("Tip: Run `sudo lsof -i :443` to find the conflicting process.")
-	}
-
-	if err := engine.EnsureGlobalProxy(); err != nil {
-		return fmt.Errorf("ensure global proxy: %w", err)
-	}
-
-	pull := boolFlagOrDefault(cmd, "pull", false)
-	if pull {
-		pterm.Info.Println("Pulling latest images...")
-		if err := runGlobalProxyCompose(cmd, "pull"); err != nil {
-			if !fallbackLocalBuild {
-				return fmt.Errorf("pull global services: %w", err)
-			}
-
-			pterm.Warning.Printf("Pull global services failed: %v\n", err)
-			pterm.Info.Println("Attempting local Govard image build fallback...")
-
-			built, fallbackErr := fallbackBuildMissingGovardImagesFromCompose(
-				globalProxyComposeFilePath(),
-				cmd.OutOrStdout(),
-				cmd.ErrOrStderr(),
-			)
-			if fallbackErr != nil {
-				return fmt.Errorf("pull global services: %w (local fallback failed: %v)", err, fallbackErr)
-			}
-			if len(built) == 0 {
-				pterm.Warning.Println("No missing Govard-managed global images required local build. Continuing with current local cache.")
-			} else {
-				pterm.Success.Printf("Local fallback built %d image(s): %s\n", len(built), strings.Join(built, ", "))
-			}
-		}
-	}
-
-	removeOrphans := boolFlagOrDefault(cmd, "remove-orphans", false)
-	upArgs := []string{"up", "-d"}
-	if removeOrphans {
-		upArgs = append(upArgs, "--remove-orphans")
-	}
-
-	if err := runGlobalProxyCompose(cmd, upArgs...); err != nil {
-		if !fallbackLocalBuild {
-			return fmt.Errorf("start global services: %w", err)
-		}
-
-		pterm.Warning.Printf("Start global services failed: %v\n", err)
-		pterm.Info.Println("Attempting local Govard image build fallback...")
-
-		built, fallbackErr := fallbackBuildMissingGovardImagesFromCompose(
-			globalProxyComposeFilePath(),
-			cmd.OutOrStdout(),
-			cmd.ErrOrStderr(),
-		)
-		if fallbackErr != nil {
-			return fmt.Errorf("start global services: %w (local fallback failed: %v)", err, fallbackErr)
-		}
-		if len(built) == 0 {
-			return fmt.Errorf("start global services: %w", err)
-		}
-
-		pterm.Success.Printf("Local fallback built %d image(s): %s\n", len(built), strings.Join(built, ", "))
-		pterm.Info.Println("Retrying global services startup after local fallback build...")
-		if retryErr := runGlobalProxyCompose(cmd, upArgs...); retryErr != nil {
-			return fmt.Errorf("start global services after local fallback retry: %w", retryErr)
-		}
-	}
-
-	if !waitForGlobalProxyReady(cmd.Context(), 8*time.Second) {
-		return fmt.Errorf("global proxy caddy is not ready (check conflicts on ports 80/443)")
-	}
-
-	if err := registerGlobalServiceRoutes(); err != nil {
-		pterm.Warning.Printf("Could not refresh global proxy routes: %v\n", err)
-	}
-
-	// Deep revival: re-register routes for all currently running projects
-	if err := reviveRunningProjectRoutes(); err != nil {
-		pterm.Warning.Printf("Could not fully revive all running project routes: %v\n", err)
-	}
-
-	autoTrust := boolFlagOrDefault(cmd, "auto-trust", true)
-	if autoTrust {
-		trustBrowsers := boolFlagOrDefault(cmd, "trust-browsers", true)
-		if err := engine.TrustCAWithOptions(engine.TrustOptions{
-			ImportBrowsers:         trustBrowsers,
-			ContinueOnBrowserError: true,
-		}); err != nil {
-			pterm.Warning.Printf("Could not automatically trust Govard Root CA: %v\n", err)
-			pterm.Info.Println("You can retry manually with `govard doctor trust`.")
-		}
-	}
-
-	pterm.Success.Println("✅ Global services are running.")
-	return nil
-}
-
-func reviveRunningProjectRoutes() error {
-	running, err := engine.GetRunningProjectNames(context.Background())
-	if err != nil {
-		return fmt.Errorf("get running projects: %w", err)
-	}
-
-	if len(running) == 0 {
-		return nil
-	}
-
-	pterm.Debug.Printf("Found %d running projects to revive routes for...\n", len(running))
-
-	entries, err := engine.ReadProjectRegistryEntries()
-	if err != nil {
-		return fmt.Errorf("read registry: %w", err)
-	}
-
-	for _, projectName := range running {
-		var matchedEntry *engine.ProjectRegistryEntry
-		for _, entry := range entries {
-			if entry.ProjectName == projectName {
-				matchedEntry = &entry
-				break
-			}
-		}
-
-		if matchedEntry == nil {
-			pterm.Debug.Printf("Project %s is running but not found in registry, skipping route revival\n", projectName)
-			continue
-		}
-
-		// Try to load full config to get the correct proxy target (web vs varnish)
-		config, _, err := engine.LoadConfigFromDir(matchedEntry.Path, false)
-		if err != nil {
-			// Fallback to basic domain from registry if config load fails
-			if matchedEntry.Domain != "" {
-				target := projectName + "-web-1"
-				pterm.Debug.Printf("Reviving basic route for %s -> %s\n", matchedEntry.Domain, target)
-				_ = proxy.RegisterDomain(matchedEntry.Domain, target)
-			}
-			continue
-		}
-
-		target := ResolveUpProxyTarget(config)
-		for _, domain := range config.AllDomains() {
-			pterm.Info.Printf("Reviving route for %s -> %s\n", domain, target)
-			if err := proxy.RegisterDomain(domain, target); err != nil {
-				pterm.Warning.Printf("Failed to revive route for %s: %v\n", domain, err)
-			}
-		}
-	}
-
-	return nil
-}
-
-func runSvcDown(cmd *cobra.Command, args []string) error {
-	pterm.DefaultHeader.Println("Stopping Govard Global Services")
-
-	removeOrphans := boolFlagOrDefault(cmd, "remove-orphans", false)
-	downArgs := []string{"down"}
-	if removeOrphans {
-		downArgs = append(downArgs, "--remove-orphans")
-	}
-
-	if err := runGlobalProxyCompose(cmd, downArgs...); err != nil {
-		if errors.Is(err, errGlobalServicesNotInitialized) {
-			pterm.Warning.Println("Global services are not initialized yet. Run `govard svc up` first.")
-			return nil
-		}
-		return fmt.Errorf("stop global services: %w", err)
-	}
-
-	pterm.Success.Println("✅ Global services stopped.")
-	return nil
-}
-
-func runSvcRestart(cmd *cobra.Command, args []string) error {
-	pterm.DefaultHeader.Println("Restarting Govard Global Services")
-
-	if err := runSvcDown(cmd, args); err != nil {
-		return err
-	}
-
-	return runSvcUp(cmd, args)
-}
-
-func runSvcPull(cmd *cobra.Command, args []string) error {
-	pterm.DefaultHeader.Println("Pulling Govard Global Services Images")
-
-	if err := runGlobalProxyCompose(cmd, "pull"); err != nil {
-		if errors.Is(err, errGlobalServicesNotInitialized) {
-			pterm.Warning.Println("Global services are not initialized yet. Run `govard svc up` first.")
-			return nil
-		}
-		return fmt.Errorf("pull global services: %w", err)
-	}
-
-	pterm.Success.Println("✅ Global services images pulled.")
-	return nil
-}
-
-func runSvcPs(cmd *cobra.Command, args []string) error {
-	if err := runGlobalProxyCompose(cmd, "ps"); err != nil {
-		if errors.Is(err, errGlobalServicesNotInitialized) {
-			pterm.Warning.Println("Global services are not initialized yet. Run `govard svc up` first.")
-			return nil
-		}
-		return fmt.Errorf("list global services: %w", err)
-	}
-	return nil
-}
-
-func runSvcLogs(cmd *cobra.Command, args []string) error {
-	if err := runGlobalProxyCompose(cmd, "logs", "-f", fmt.Sprintf("--tail=%d", svcLogsTailCount)); err != nil {
-		if errors.Is(err, errGlobalServicesNotInitialized) {
-			return fmt.Errorf("global services are not initialized yet, run `govard svc up` first")
-		}
-		return fmt.Errorf("stream global service logs: %w", err)
-	}
-	return nil
-}
-
-func runSvcSleep(cmd *cobra.Command, args []string) error {
-	return runSleep()
-}
-
-func runSvcWake(cmd *cobra.Command, args []string) error {
-	return runWake()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runWake()
+	},
 }
 
 func runGlobalProxyCompose(cmd *cobra.Command, args ...string) error {
+	subcommand := args[0]
 	composeFile := globalProxyComposeFilePath()
 	composeDir := globalProxyComposeDirPath()
 
 	if _, err := os.Stat(composeFile); err != nil {
-		if errors.Is(err, os.ErrNotExist) {
+		if errors.Is(err, os.ErrNotExist) && subcommand == "up" {
+			if err := engine.EnsureGlobalProxy(); err != nil {
+				return fmt.Errorf("ensure global proxy: %w", err)
+			}
+		} else if errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("%w: %s", errGlobalServicesNotInitialized, composeFile)
+		} else {
+			return fmt.Errorf("stat global compose file: %w", err)
 		}
-		return fmt.Errorf("stat global compose file: %w", err)
 	}
 
-	dockerArgs := []string{
-		"compose",
-		"--project-directory",
-		composeDir,
-		"-p",
-		globalProxyProjectName,
-		"-f",
-		composeFile,
+	switch subcommand {
+	case "up":
+		return handleSvcUp(cmd, args)
+	case "down":
+		return handleSvcDown(cmd, args)
+	case "restart":
+		pterm.DefaultHeader.Println("Restarting Govard Global Services")
+		_ = handleSvcDown(cmd, []string{"down"})
+		return handleSvcUp(cmd, append([]string{"up"}, args[1:]...))
 	}
-	dockerArgs = append(dockerArgs, args...)
 
-	command := exec.Command("docker", dockerArgs...)
-	command.Stdout = cmd.OutOrStdout()
-	command.Stderr = cmd.ErrOrStderr()
-	return command.Run()
+	return engine.RunCompose(cmd.Context(), engine.ComposeOptions{
+		ProjectDir:  composeDir,
+		ProjectName: globalProxyProjectName,
+		ComposeFile: composeFile,
+		Args:        args,
+		Stdout:      cmd.OutOrStdout(),
+		Stderr:      cmd.ErrOrStderr(),
+		Stdin:       os.Stdin,
+	})
+}
+
+func handleSvcUp(cmd *cobra.Command, args []string) error {
+	pterm.DefaultHeader.Println("Starting Govard Global Services")
+	
+	ctx := cmd.Context()
+	if !engine.CheckPortForGovardProxy(ctx, "80") {
+		pterm.Warning.Println("Port 80 is in use. Govard Proxy might fail.")
+	}
+	if !engine.CheckPortForGovardProxy(ctx, "443") {
+		pterm.Warning.Println("Port 443 is in use. Govard HTTPS Proxy might fail.")
+	}
+
+	// Always ensure proxy files are there
+	if err := engine.EnsureGlobalProxy(); err != nil {
+		return err
+	}
+
+	// Extract Govard-specific flags from os.Args if they exist
+	pull := hasFlag("--pull")
+	fallback := !hasFlag("--no-fallback")
+
+	composeFile := globalProxyComposeFilePath()
+	composeDir := globalProxyComposeDirPath()
+
+	if pull {
+		pterm.Info.Println("Pulling latest images...")
+		_ = engine.RunCompose(ctx, engine.ComposeOptions{
+			ProjectDir: composeDir, ProjectName: globalProxyProjectName, ComposeFile: composeFile,
+			Args: []string{"pull"}, Stdout: cmd.OutOrStdout(), Stderr: cmd.ErrOrStderr(),
+		})
+	}
+
+	// Prepare standard 'up' args if it's just 'up'
+	upArgs := args
+	if len(args) == 1 && args[0] == "up" {
+		upArgs = []string{"up", "-d"}
+	}
+
+	err := engine.RunCompose(ctx, engine.ComposeOptions{
+		ProjectDir: composeDir, ProjectName: globalProxyProjectName, ComposeFile: composeFile,
+		Args: upArgs, Stdout: cmd.OutOrStdout(), Stderr: cmd.ErrOrStderr(), Stdin: os.Stdin,
+	})
+
+	if err != nil && fallback {
+		pterm.Warning.Printf("Start failed: %v. Attempting local build fallback...\n", err)
+		built, _ := fallbackBuildMissingGovardImagesFromCompose(composeFile, cmd.OutOrStdout(), cmd.ErrOrStderr())
+		if len(built) > 0 {
+			pterm.Info.Println("Retrying start...")
+			err = engine.RunCompose(ctx, engine.ComposeOptions{
+				ProjectDir: composeDir, ProjectName: globalProxyProjectName, ComposeFile: composeFile,
+				Args: upArgs, Stdout: cmd.OutOrStdout(), Stderr: cmd.ErrOrStderr(),
+			})
+		}
+	}
+
+	if err != nil { return err }
+
+	if waitForGlobalProxyReady(ctx, 8*time.Second) {
+		_ = registerGlobalServiceRoutes()
+		_ = reviveRunningProjectRoutes()
+		if !hasFlag("--no-trust") {
+			_ = engine.TrustCAWithOptions(engine.TrustOptions{ImportBrowsers: true, ContinueOnBrowserError: true})
+		}
+		pterm.Success.Println("✅ Global services are running.")
+	} else {
+		return fmt.Errorf("global proxy not ready")
+	}
+	return nil
+}
+
+func handleSvcDown(cmd *cobra.Command, args []string) error {
+	pterm.DefaultHeader.Println("Stopping Govard Global Services")
+	err := engine.RunCompose(cmd.Context(), engine.ComposeOptions{
+		ProjectDir:  globalProxyComposeDirPath(),
+		ProjectName: globalProxyProjectName,
+		ComposeFile: globalProxyComposeFilePath(),
+		Args:        args,
+		Stdout:      cmd.OutOrStdout(),
+		Stderr:      cmd.ErrOrStderr(),
+	})
+	if err == nil {
+		pterm.Success.Println("✅ Global services stopped.")
+	}
+	return err
+}
+
+func reviveRunningProjectRoutes() error {
+	running, err := engine.GetRunningProjectNames(context.Background())
+	if err != nil || len(running) == 0 { return err }
+
+	entries, _ := engine.ReadProjectRegistryEntries()
+	for _, projectName := range running {
+		for _, entry := range entries {
+			if entry.ProjectName == projectName {
+				config, _, err := engine.LoadConfigFromDir(entry.Path, false)
+				if err == nil {
+					target := ResolveUpProxyTarget(config)
+					for _, domain := range config.AllDomains() {
+						_ = proxy.RegisterDomain(domain, target)
+					}
+				}
+				break
+			}
+		}
+	}
+	return nil
 }
 
 func waitForGlobalProxyReady(ctx context.Context, timeout time.Duration) bool {
 	deadline := time.Now().Add(timeout)
-	for {
+	for time.Now().Before(deadline) {
 		if engine.IsContainerRunning(ctx, "govard-proxy-caddy") || engine.IsContainerRunning(ctx, "proxy-caddy-1") {
 			return true
 		}
-		if time.Now().After(deadline) {
-			return false
-		}
 		select {
-		case <-ctx.Done():
-			return false
+		case <-ctx.Done(): return false
 		case <-time.After(250 * time.Millisecond):
 		}
 	}
+	return false
 }
 
 func registerGlobalServiceRoutes() error {
-	if err := proxy.RegisterDomain("mail.govard.test", "govard-proxy-mail:8025"); err != nil {
-		return fmt.Errorf("register mail route: %w", err)
-	}
-	if err := proxy.RegisterDomain("pma.govard.test", "govard-proxy-pma:80"); err != nil {
-		return fmt.Errorf("register pma route: %w", err)
-	}
-	if err := proxy.RegisterDomain("portainer.govard.test", "govard-proxy-portainer:9000"); err != nil {
-		return fmt.Errorf("register portainer route: %w", err)
-	}
+	_ = proxy.RegisterDomain("mail.govard.test", "govard-proxy-mail:8025")
+	_ = proxy.RegisterDomain("pma.govard.test", "govard-proxy-pma:80")
+	_ = proxy.RegisterDomain("portainer.govard.test", "govard-proxy-portainer:9000")
 	return nil
 }
 
@@ -387,43 +257,20 @@ func globalProxyComposeFilePath() string {
 	return filepath.Join(globalProxyComposeDirPath(), "docker-compose.yml")
 }
 
-func init() {
-	svcUpCmd.Flags().Bool("pull", false, "Pull latest images before starting")
-	svcUpCmd.Flags().Bool("fallback-local-build", true, "When pull/start fails due missing Govard images, build missing Govard-managed images locally and retry")
-	svcUpCmd.Flags().Bool("remove-orphans", false, "Remove containers for services not defined in the compose file")
-	svcUpCmd.Flags().Bool("auto-trust", true, "Automatically trust Govard Root CA after services start")
-	svcUpCmd.Flags().Bool("trust-browsers", true, "When auto-trust is enabled, also import CA into browser NSS stores (best effort)")
-
-	svcDownCmd.Flags().Bool("remove-orphans", false, "Remove containers for services not defined in the compose file")
-	svcRestartCmd.Flags().Bool("pull", false, "Pull latest images before starting")
-	svcRestartCmd.Flags().Bool("fallback-local-build", true, "When pull/start fails due missing Govard images, build missing Govard-managed images locally and retry")
-	svcRestartCmd.Flags().Bool("remove-orphans", false, "Remove containers for services not defined in the compose file")
-	svcRestartCmd.Flags().Bool("auto-trust", true, "Automatically trust Govard Root CA after services restart")
-	svcRestartCmd.Flags().Bool("trust-browsers", true, "When auto-trust is enabled, also import CA into browser NSS stores (best effort)")
-
-	svcLogsCmd.Flags().IntVar(&svcLogsTailCount, "tail", 100, "Number of lines to show from the end of the logs")
-
-	svcCmd.AddCommand(svcUpCmd)
-	svcCmd.AddCommand(svcDownCmd)
-	svcCmd.AddCommand(svcRestartCmd)
-	svcCmd.AddCommand(svcPullCmd)
-	svcCmd.AddCommand(svcPsCmd)
-	svcCmd.AddCommand(svcLogsCmd)
-	svcCmd.AddCommand(svcSleepCmd)
-	svcCmd.AddCommand(svcWakeCmd)
+func hasFlag(name string) bool {
+	for _, arg := range os.Args {
+		if arg == name || strings.HasPrefix(arg, name+"=") {
+			return true
+		}
+	}
+	return false
 }
 
-func boolFlagOrDefault(cmd *cobra.Command, name string, fallback bool) bool {
-	if cmd == nil {
-		return fallback
-	}
-	flag := cmd.Flags().Lookup(name)
-	if flag == nil {
-		return fallback
-	}
-	value, err := cmd.Flags().GetBool(name)
-	if err != nil {
-		return fallback
-	}
-	return value
+func init() {
+	svcCmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
+		rebrandComposeHelp(cmd, "svc")
+	})
+
+	svcCmd.AddCommand(svcSleepCmd)
+	svcCmd.AddCommand(svcWakeCmd)
 }

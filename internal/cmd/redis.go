@@ -14,11 +14,30 @@ import (
 )
 
 var redisCmd = &cobra.Command{
-	Use:   "redis [flush|info|cli]",
-	Short: "Manage Redis/Valkey cache",
-	Long:  `Interact with the Redis or Valkey cache service. Supports flushing all keys, displaying info, or opening an interactive CLI.`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Use:   "redis [command]",
+	Short: "Control the redis cache service",
+	Long: `Interact with the Redis or Valkey cache service. 
+Supports both custom utility commands (flush, info, cli) and standard Docker Compose maintenance commands (ps, logs, stop, start, etc.).`,
+	Example: `  # Open a redis CLI
+  govard env redis cli
+
+  # Flush all keys
+  govard env redis flush
+
+  # View redis logs
+  govard env redis logs -f
+
+  # Check redis status
+  govard v redis ps`,
+	DisableFlagParsing: true,
+	RunE:               func(cmd *cobra.Command, args []string) error {
 		if len(args) > 0 {
+			if args[0] == "-h" || args[0] == "--help" || args[0] == "help" {
+				return cmd.Help()
+			}
+			if isComposeMaintenanceCommand(args[0]) {
+				return proxyServiceToCompose(cmd, "redis", args)
+			}
 			// Fallback to direct command execution (e.g. "govard env redis PING")
 			return runRedisCommand(cmd, args)
 		}

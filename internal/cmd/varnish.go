@@ -10,12 +10,35 @@ import (
 )
 
 var varnishCmd = &cobra.Command{
-	Use:   "varnish [log|ban|stats]",
-	Short: "Varnish utility commands",
-	Args:  cobra.MinimumNArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Use:   "varnish [command]",
+	Short: "Control the varnish service",
+	Long: `Interact with the Varnish service. 
+Supports custom utility commands (log, ban, stats) and standard Docker Compose maintenance commands (ps, logs, stop, start, etc.).`,
+	Example: `  # View varnish logs
+  govard env varnish log
+
+  # Ban a pattern
+  govard env varnish ban /.*
+
+  # Check varnish status
+  govard env varnish ps`,
+	DisableFlagParsing: true,
+	RunE:               func(cmd *cobra.Command, args []string) error {
+		if len(args) > 0 {
+			if args[0] == "-h" || args[0] == "--help" || args[0] == "help" {
+				return cmd.Help()
+			}
+			if isComposeMaintenanceCommand(args[0]) {
+				return proxyServiceToCompose(cmd, "varnish", args)
+			}
+		}
+
 		config := loadConfig()
 		containerName := fmt.Sprintf("%s-varnish-1", config.ProjectName)
+
+		if len(args) == 0 {
+			return cmd.Help()
+		}
 
 		subcommand := args[0]
 		switch subcommand {

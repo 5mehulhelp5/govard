@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	"govard/internal/engine"
+	"govard/internal/proxy"
 
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
@@ -16,189 +18,197 @@ var envCmd = &cobra.Command{
 	Short: "Control project environment via docker compose",
 	Long: `Manage the lifecycle and services of your project's development environment.
 All commands are scoped to the project in the current working directory.
-It provides wrappers around common Docker Compose operations and specialized service interactions.
+It provides smart wrappers around Docker Compose operations and specialized service interactions.
+
+Govard intelligently proxies almost all Docker Compose commands. If a command is not
+explicitly handled by Govard, it is passed through to 'docker compose' with the 
+correct project context.
+
+Aliases: project
 
 Case Studies:
 - Maintenance: Use 'govard env stop' to pause work and 'govard env start' to resume later.
 - Troubleshooting: Check 'govard env ps' and 'govard env logs' to identify failing services.
-- Cache Management: Run 'govard env redis-cli flushall' to clear local cache.
+- Cache Management: Run 'govard redis flush' to clear local cache.
 - Cleanup: Run 'govard env down -v' to completely remove the environment and its data.`,
 	Example: `  # Start the project environment
   govard env up
+
+  # View help for all supported compose commands
+  govard env --help
 
   # List running containers for this project
   govard env ps
 
   # View real-time logs for all services
-  govard env logs
+  govard env logs -f
 
   # Enter a Redis shell for the current project
-  govard env redis`,
-}
-
-var envStartCmd = &cobra.Command{
-	Use:   "start",
-	Short: "Start existing project containers",
-	Args:  cobra.NoArgs,
-	RunE:  runEnvStart,
-}
-
-var envRestartCmd = &cobra.Command{
-	Use:   "restart",
-	Short: "Restart the project environment",
-	Args:  cobra.NoArgs,
-	RunE:  runEnvRestart,
-}
-
-var envPsCmd = &cobra.Command{
-	Use:   "ps",
-	Short: "List project containers",
-	Args:  cobra.NoArgs,
-	RunE:  runEnvPs,
-}
-
-var envPullCmd = &cobra.Command{
-	Use:   "pull",
-	Short: "Pull latest project images",
-	Args:  cobra.NoArgs,
-	RunE:  runEnvPull,
-}
-
-func runEnvStart(cmd *cobra.Command, args []string) error {
-	config := loadConfig()
-	cwd, _ := os.Getwd()
-	composePath := engine.ComposeFilePath(cwd, config.ProjectName)
-
-	// Use "up -d" instead of "start" to reconcile stale container definitions
-	// and recover services that require recreation.
-	command := exec.Command(
-		"docker",
-		"compose",
-		"--project-directory",
-		cwd,
-		"-p",
-		config.ProjectName,
-		"-f",
-		composePath,
-		"up",
-		"-d",
-	)
-	command.Stdout = cmd.OutOrStdout()
-	command.Stderr = cmd.ErrOrStderr()
-	if err := command.Run(); err != nil {
-		pterm.Warning.Printf("docker compose up failed: %v\n", err)
-		pterm.Info.Println("Attempting local Govard image build fallback...")
-
-		built, fallbackErr := fallbackBuildMissingGovardImagesFromCompose(composePath, cmd.OutOrStdout(), cmd.ErrOrStderr())
-		if fallbackErr != nil {
-			return fmt.Errorf("start project containers: %w (local fallback failed: %v)", err, fallbackErr)
-		}
-
-		if len(built) > 0 {
-			pterm.Success.Printf("Local fallback built %d image(s): %v\n", len(built), built)
-			pterm.Info.Println("Retrying docker compose up after local fallback build...")
-			retryCommand := exec.Command(
-				"docker",
-				"compose",
-				"--project-directory",
-				cwd,
-				"-p",
-				config.ProjectName,
-				"-f",
-				composePath,
-				"up",
-				"-d",
-			)
-			retryCommand.Stdout = cmd.OutOrStdout()
-			retryCommand.Stderr = cmd.ErrOrStderr()
-			if retryErr := retryCommand.Run(); retryErr != nil {
-				return fmt.Errorf("start project containers after fallback: %w", retryErr)
+  govard redis cli`,
+	Args:    cobra.ArbitraryArgs,
+	Aliases: []string{"project"},
+	FParseErrWhitelist: cobra.FParseErrWhitelist{
+		UnknownFlags: true,
+	},
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) > 0 {
+			proxyArgs := []string{}
+			for i, arg := range os.Args {
+				if (arg == "env" || arg == "project") && i+1 < len(os.Args) {
+					proxyArgs = os.Args[i+1:]
+					break
+				}
 			}
-		} else {
-			pterm.Info.Println("No missing Govard-managed images required local build. Containers may be started with current local images.")
+			if len(proxyArgs) > 0 {
+				return proxyEnvToCompose(cmd, proxyArgs)
+			}
 		}
-	}
-	pterm.Success.Println("✅ Environment started.")
-	return nil
+		return cmd.Help()
+	},
 }
 
-func runEnvRestart(cmd *cobra.Command, args []string) error {
-	if err := stopCmd.RunE(cmd, args); err != nil {
-		return err
-	}
-	return upCmd.RunE(cmd, args)
-}
-
-func runEnvPs(cmd *cobra.Command, args []string) error {
+func proxyEnvToCompose(cmd *cobra.Command, args []string) error {
+	subcommand := args[0]
 	config := loadConfig()
 	cwd, _ := os.Getwd()
 	composePath := engine.ComposeFilePath(cwd, config.ProjectName)
 
-	command := exec.Command(
-		"docker",
-		"compose",
-		"--project-directory",
-		cwd,
-		"-p",
-		config.ProjectName,
-		"-f",
-		composePath,
-		"ps",
-	)
-	command.Stdout = cmd.OutOrStdout()
-	command.Stderr = cmd.ErrOrStderr()
-	if err := command.Run(); err != nil {
-		return fmt.Errorf("list project containers: %w", err)
-	}
-	return nil
-}
+	switch subcommand {
+	case "start":
+		pterm.DefaultHeader.Println("Starting Govard Project")
+		args = append([]string{"up", "-d"}, args[1:]...)
+	case "restart":
+		pterm.DefaultHeader.Println("Restarting Govard Project")
+		if err := proxyEnvToCompose(cmd, []string{"stop"}); err != nil {
+			return err
+		}
+		return proxyEnvToCompose(cmd, append([]string{"up", "-d"}, args[1:]...))
+	case "stop", "down":
+		action := "Stopping"
+		if subcommand == "down" {
+			action = "Tearing Down"
+		}
+		pterm.DefaultHeader.Printf("%s Govard Environment\n", action)
 
-func runEnvPull(cmd *cobra.Command, args []string) error {
-	config := loadConfig()
-	cwd, _ := os.Getwd()
-	composePath := engine.ComposeFilePath(cwd, config.ProjectName)
-
-	command := exec.Command(
-		"docker",
-		"compose",
-		"--project-directory",
-		cwd,
-		"-p",
-		config.ProjectName,
-		"-f",
-		composePath,
-		"pull",
-	)
-	command.Stdout = cmd.OutOrStdout()
-	command.Stderr = cmd.ErrOrStderr()
-	if err := command.Run(); err != nil {
-		pterm.Warning.Printf("docker compose pull failed: %v\n", err)
-		pterm.Info.Println("Attempting local Govard image build fallback...")
-
-		built, fallbackErr := fallbackBuildMissingGovardImagesFromCompose(composePath, cmd.OutOrStdout(), cmd.ErrOrStderr())
-		if fallbackErr != nil {
-			return fmt.Errorf("pull project images: %w (local fallback failed: %v)", err, fallbackErr)
+		if err := engine.RunHooks(config, engine.HookPreStop, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
+			return fmt.Errorf("pre-stop hooks failed: %w", err)
 		}
 
-		if len(built) > 0 {
-			pterm.Success.Printf("Local fallback built %d image(s): %v\n", len(built), built)
-		} else {
-			pterm.Info.Println("No missing Govard-managed images required local build. Images are already present locally.")
+		err := engine.RunCompose(cmd.Context(), engine.ComposeOptions{
+			ProjectDir:  cwd,
+			ProjectName: config.ProjectName,
+			ComposeFile: composePath,
+			Args:        args,
+			Stdout:      cmd.OutOrStdout(),
+			Stderr:      cmd.ErrOrStderr(),
+			Stdin:       os.Stdin,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to %s containers: %w", strings.ToLower(subcommand), err)
 		}
+
+		for _, domain := range config.AllDomains() {
+			if err := proxy.UnregisterDomain(domain); err != nil {
+				pterm.Warning.Printf("Could not remove proxy route for %s: %v\n", domain, err)
+			}
+			if err := engine.RemoveHostsEntry(domain); err != nil {
+				pterm.Warning.Printf("Could not remove hosts entry for %s: %v\n", domain, err)
+			}
+		}
+
+		if err := engine.RunHooks(config, engine.HookPostStop, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
+			return fmt.Errorf("post-stop hooks failed: %w", err)
+		}
+
+		pterm.Success.Printf("✅ Environment %s.\n", strings.ToLower(action))
+		return nil
+
+	case "logs":
+		// Check for --errors flag
+		hasErrorFilter := false
+		for _, arg := range args {
+			if arg == "--errors" {
+				hasErrorFilter = true
+				break
+			}
+		}
+
+		if hasErrorFilter {
+			pterm.DefaultHeader.Println("Govard Log Stream (Errors Only)")
+			pterm.Info.Println("Filtering for errors...")
+			
+			// Rebuild args without --errors
+			filteredArgs := []string{}
+			for _, arg := range args {
+				if arg != "--errors" {
+					filteredArgs = append(filteredArgs, arg)
+				}
+			}
+
+			// Construct manual grep command
+			composeCmd := fmt.Sprintf("docker compose --project-directory %s -p %s -f %s", 
+				shellQuote(cwd), shellQuote(config.ProjectName), shellQuote(composePath))
+			
+			logArgs := strings.Join(filteredArgs, " ")
+			if !strings.Contains(logArgs, "-f") && !strings.Contains(logArgs, "--follow") {
+				logArgs += " -f --tail=100"
+			}
+			
+			filterCommand := fmt.Sprintf("%s %s | grep -iE 'error|critical|fail|exception'", composeCmd, logArgs)
+			c := exec.Command("sh", "-c", filterCommand)
+			c.Stdout, c.Stderr = os.Stdout, os.Stderr
+			return c.Run()
+		}
+
+	case "pull":
+		pterm.DefaultHeader.Println("Pulling Project Images")
+		err := engine.RunCompose(cmd.Context(), engine.ComposeOptions{
+			ProjectDir:  cwd,
+			ProjectName: config.ProjectName,
+			ComposeFile: composePath,
+			Args:        args,
+			Stdout:      cmd.OutOrStdout(),
+			Stderr:      cmd.ErrOrStderr(),
+			Stdin:       os.Stdin,
+		})
+		if err != nil {
+			pterm.Warning.Printf("docker compose pull failed: %v\n", err)
+			pterm.Info.Println("Attempting local Govard image build fallback...")
+
+			built, fallbackErr := fallbackBuildMissingGovardImagesFromCompose(composePath, cmd.OutOrStdout(), cmd.ErrOrStderr())
+			if fallbackErr != nil {
+				return fmt.Errorf("pull project images: %w (local fallback failed: %v)", err, fallbackErr)
+			}
+
+			if len(built) > 0 {
+				pterm.Success.Printf("Local fallback built %d image(s): %v\n", len(built), built)
+			} else {
+				pterm.Info.Println("No missing Govard-managed images required local build.")
+			}
+		}
+		pterm.Success.Println("✅ Images pulled.")
+		return nil
 	}
-	pterm.Success.Println("✅ Images pulled.")
-	return nil
+
+	// Default proxy for everything else
+	return engine.RunCompose(cmd.Context(), engine.ComposeOptions{
+		ProjectDir:  cwd,
+		ProjectName: config.ProjectName,
+		ComposeFile: composePath,
+		Args:        args,
+		Stdout:      cmd.OutOrStdout(),
+		Stderr:      cmd.ErrOrStderr(),
+		Stdin:       os.Stdin,
+	})
 }
 
 func init() {
+	envCmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
+		rebrandComposeHelp(cmd, "env")
+	})
+
+	// Non-standard shortcuts
 	envCmd.AddCommand(upCmd)
-	envCmd.AddCommand(envStartCmd)
-	envCmd.AddCommand(stopCmd)
-	envCmd.AddCommand(downCmd)
-	envCmd.AddCommand(envRestartCmd)
-	envCmd.AddCommand(envPsCmd)
-	envCmd.AddCommand(envPullCmd)
-	envCmd.AddCommand(logsCmd)
 	envCmd.AddCommand(redisCmd)
 	envCmd.AddCommand(valkeyCmd)
 	envCmd.AddCommand(elasticsearchCmd)

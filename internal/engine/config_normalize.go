@@ -238,7 +238,9 @@ func NormalizeConfig(config *Config) {
 	}
 
 	if len(config.Stack.ChownDirList) == 0 {
-		config.Stack.ChownDirList = []string{"/bash_history", "/home/www-data/.ssh"}
+		// Note: /home/www-data/.ssh is intentionally NOT included here.
+		// The SSH directory is always mounted :ro, so chown would fail.
+		config.Stack.ChownDirList = []string{"/bash_history"}
 		if config.Framework == "magento2" {
 			config.Stack.ChownDirList = append(config.Stack.ChownDirList, "/var/www/html", "/home/www-data/.cache/composer")
 		}

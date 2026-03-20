@@ -75,6 +75,13 @@ func init() {
 	rootCmd.AddCommand(bootstrapCmd)
 	rootCmd.AddCommand(envCmd)
 	rootCmd.AddCommand(svcCmd)
+
+	// Direct service shortcuts (alias for 'env <service>')
+	rootCmd.AddCommand(redisCmd)
+	rootCmd.AddCommand(valkeyCmd)
+	rootCmd.AddCommand(elasticsearchCmd)
+	rootCmd.AddCommand(opensearchCmd)
+	rootCmd.AddCommand(varnishCmd)
 	rootCmd.AddCommand(shellCmd)
 	rootCmd.AddCommand(statusCmd)
 	rootCmd.AddCommand(doctorCmd)

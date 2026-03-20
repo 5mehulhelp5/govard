@@ -7,7 +7,6 @@ import (
 	"govard/internal/updater"
 	"io"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -204,19 +203,15 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 				if !context.Pull {
 					return nil
 				}
-				command := exec.Command(
-					"docker",
-					"compose",
-					"--project-directory",
-					context.Cwd,
-					"-p",
-					context.Config.ProjectName,
-					"-f",
-					context.Compose,
-					"pull",
-				)
-				command.Stdout, command.Stderr = context.Out, context.Err
-				if err := command.Run(); err != nil {
+				err := engine.RunCompose(cmd.Context(), engine.ComposeOptions{
+					ProjectDir:  context.Cwd,
+					ProjectName: context.Config.ProjectName,
+					ComposeFile: context.Compose,
+					Args:        []string{"pull"},
+					Stdout:      context.Out,
+					Stderr:      context.Err,
+				})
+				if err != nil {
 					if !context.FallbackLocal {
 						return fmt.Errorf("docker compose pull failed: %w", err)
 					}
@@ -242,23 +237,20 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 			Name:         "Start",
 			OnFailureTip: "govard doctor fix-deps",
 			Run: func() error {
-				command := exec.Command(
-					"docker",
-					"compose",
-					"--project-directory",
-					context.Cwd,
-					"-p",
-					context.Config.ProjectName,
-					"-f",
-					context.Compose,
-					"up",
-					"-d",
-				)
+				upArgs := []string{"up", "-d"}
 				if context.RemoveOrphans {
-					command.Args = append(command.Args, "--remove-orphans")
+					upArgs = append(upArgs, "--remove-orphans")
 				}
-				command.Stdout, command.Stderr = context.Out, context.Err
-				if err := command.Run(); err != nil {
+
+				err := engine.RunCompose(cmd.Context(), engine.ComposeOptions{
+					ProjectDir:  context.Cwd,
+					ProjectName: context.Config.ProjectName,
+					ComposeFile: context.Compose,
+					Args:        upArgs,
+					Stdout:      context.Out,
+					Stderr:      context.Err,
+				})
+				if err != nil {
 					if !context.FallbackLocal {
 						return fmt.Errorf("docker compose up failed: %w", err)
 					}
@@ -277,23 +269,15 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 					pterm.Success.Printf("Local fallback built %d image(s): %s\n", len(built), strings.Join(built, ", "))
 					pterm.Info.Println("Retrying docker compose up after local fallback build...")
 
-					retryCommand := exec.Command(
-						"docker",
-						"compose",
-						"--project-directory",
-						context.Cwd,
-						"-p",
-						context.Config.ProjectName,
-						"-f",
-						context.Compose,
-						"up",
-						"-d",
-					)
-					if context.RemoveOrphans {
-						retryCommand.Args = append(retryCommand.Args, "--remove-orphans")
-					}
-					retryCommand.Stdout, retryCommand.Stderr = context.Out, context.Err
-					if retryErr := retryCommand.Run(); retryErr != nil {
+					retryErr := engine.RunCompose(cmd.Context(), engine.ComposeOptions{
+						ProjectDir:  context.Cwd,
+						ProjectName: context.Config.ProjectName,
+						ComposeFile: context.Compose,
+						Args:        upArgs,
+						Stdout:      context.Out,
+						Stderr:      context.Err,
+					})
+					if retryErr != nil {
 						return fmt.Errorf("docker compose up failed after local fallback retry: %w", retryErr)
 					}
 				}

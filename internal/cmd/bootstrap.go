@@ -239,24 +239,6 @@ func ensureBootstrapInit(cmd *cobra.Command, cwd string) error {
 	return runGovardSubcommand(cmd, initArgs...)
 }
 
-var govardSubcommandRunner = func(cmd *cobra.Command, args ...string) error {
-	executablePath, err := os.Executable()
-	commandPath := "govard"
-	if err == nil && strings.TrimSpace(executablePath) != "" {
-		commandPath = executablePath
-	}
-
-	command := exec.Command(commandPath, args...)
-	command.Dir, _ = os.Getwd()
-	command.Stdin = os.Stdin
-	command.Stdout = cmd.OutOrStdout()
-	command.Stderr = cmd.ErrOrStderr()
-	return command.Run()
-}
-
-func runGovardSubcommand(cmd *cobra.Command, args ...string) error {
-	return govardSubcommandRunner(cmd, args...)
-}
 
 var phpContainerShellRunner = func(config engine.Config, commandLine string) error {
 	containerName := fmt.Sprintf("%s-php-1", config.ProjectName)

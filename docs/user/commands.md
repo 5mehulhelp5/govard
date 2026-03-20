@@ -48,7 +48,7 @@ Highlights:
 - Fresh flow: create-project, setup install, optional sample data, optional Hyva install
 - Fresh mode does not require `--clone=false`; use `govard bootstrap --fresh ...` directly
 
-See `docs/commands/bootstrap.md`.
+See [env.md](file:///home/kai/Work/htdocs/ddtcorex/govard/docs/commands/env.md).
 
 ### `govard env up`
 
@@ -79,7 +79,7 @@ On failure, `govard env up` prints a suggested next command such as `govard doct
 - `--remove-orphans` Remove containers for services not defined in the compose file.
 - `--quickstart` applies a minimal runtime profile for the current startup (disables optional cache/search/queue/varnish/xdebug services) to reduce first-run time.
 
-### `govard env`
+### `govard env` (alias: `project`)
 
 Project-scoped lifecycle and service wrapper command.
 
@@ -91,17 +91,19 @@ govard env pull
 govard env down
 govard env restart
 govard env ps
-govard env logs [service] -e
+govard env logs [service] [-f]
 ```
 
-Service access under project scope:
+Govard intelligently proxies almost all Docker Compose maintenance commands (ps, logs, stop, start, restart, pull, build, etc.) to the current project context.
+
+Service access under project scope (now with smart proxying):
 
 ```bash
-govard env redis
-govard env valkey
-govard env elasticsearch
-govard env opensearch
-govard env varnish log
+govard redis [command]
+govard valkey [command]
+govard elasticsearch [path|command]
+govard opensearch [path|command]
+govard varnish [log|ban|stats|command]
 ```
 
 ### `govard env stop`
@@ -130,7 +132,7 @@ govard env down --volumes
 govard env down --rmi local --timeout 20
 ```
 
-See `docs/commands/down.md`.
+See [env.md](file:///home/kai/Work/htdocs/ddtcorex/govard/docs/commands/env.md).
 
 ### `govard domain`
 
@@ -459,17 +461,19 @@ govard tool grunt [command]       # Run grunt
 govard db                    # Database utilities (connect, dump, import)
 ```
 
-### Redis
+### Redis & Valkey
 
-Manage Redis or Valkey cache.
+Manage Redis or Valkey cache. Supports custom utilities and smart maintenance proxy.
 
 ```bash
-govard redis flush
-govard redis info
-govard redis cli
+govard redis cli      # Open CLI
+govard redis flush    # Flush all keys
+govard redis info     # Show info
+govard redis ps       # Check status (smart proxy)
+govard redis logs -f  # Tail logs (smart proxy)
 ```
 
-See `docs/commands/redis.md`.
+See [env.md](file:///home/kai/Work/htdocs/ddtcorex/govard/docs/commands/env.md).
 
 ### Search
 

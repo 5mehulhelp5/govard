@@ -370,9 +370,9 @@ _Note: Once trusted, all `*.test` domains managed by Govard will show a "Green L
 | :------------------- | :----------------------------------------------------------------- |
 | `govard init`        | Initialize a new project configuration                             |
 | `govard bootstrap`   | Bootstrap local project setup and clone a remote environment       |
-| `govard env`         | Project-scoped lifecycle and service wrapper                       |
-| `govard domain`      | Manage additional domains for the project                          |
-| `govard svc`         | Manage global services and workspace sleep state                   |
+| `govard env`        | Project-scoped lifecycle; intelligently proxies Docker Compose commands |
+| `govard domain`     | Manage additional domains for the project                          |
+| `govard svc`        | Manage global services (`proxy`, `mail`, `pma`, `portainer`)       |
 | `govard tool`        | Run framework/tooling CLIs inside project containers               |
 | `govard shell`       | Enter the application container                                    |
 | `govard db`          | Database operations (`connect`, `dump`, `import`, `query`, `info`) |
@@ -394,6 +394,8 @@ _Note: Once trusted, all `*.test` domains managed by Govard will show a "Green L
 | <code>govard&nbsp;self&#8209;update</code> | Upgrade installed Govard binaries (`govard` + detected `govard-desktop`) |
 | `govard upgrade`     | Upgrade the framework version                                      |
 | `govard version`     | Print the version number of Govard                                 |
+| `govard redis`       | Smart shortcut for project Redis Management                        |
+| `govard varnish`     | Smart shortcut for project Varnish Management                      |
 
 ---
 

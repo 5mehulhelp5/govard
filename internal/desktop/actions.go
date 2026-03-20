@@ -27,10 +27,10 @@ var defaultOpenExternalURLForDesktop = browser.OpenURL
 var openExternalURLForDesktop = defaultOpenExternalURLForDesktop
 
 var defaultRunEnvironmentComposeForDesktop = func(dir string, args []string) error {
-	cmd := exec.Command("docker", args...)
-	cmd.Dir = filepath.Clean(dir)
-	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
-	return cmd.Run()
+	return engine.RunCompose(context.Background(), engine.ComposeOptions{
+		ProjectDir: dir,
+		Args:       args[1:], // Skip "compose" as RunCompose adds it
+	})
 }
 
 var runEnvironmentComposeForDesktop = defaultRunEnvironmentComposeForDesktop
@@ -606,6 +606,26 @@ func stopEnvironment(project string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	if info.configLoaded && strings.TrimSpace(info.workingDir) != "" {
+		config := info.config
+		if strings.TrimSpace(config.ProjectName) == "" {
+			config.ProjectName = info.name
+		}
+		composePath := engine.ComposeFilePath(info.workingDir, config.ProjectName)
+		
+		err := engine.RunCompose(context.Background(), engine.ComposeOptions{
+			ProjectDir:  info.workingDir,
+			ProjectName: config.ProjectName,
+			ComposeFile: composePath,
+			Args:        []string{"stop"},
+		})
+		if err != nil {
+			return "", err
+		}
+		return "Stopped environment " + info.name, nil
+	}
+
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
@@ -674,32 +694,18 @@ func selectProject(project string) (*projectInfo, error) {
 }
 
 func runCompose(dir, project, composeFile string, removeOrphans bool) error {
-	args := []string{"compose", "--project-directory", filepath.Clean(dir)}
-	if project != "" {
-		args = append(args, "-p", project)
-	}
-	if composeFile != "" {
-		args = append(args, "-f", composeFile)
-	}
-	args = append(args, "up", "-d")
+	args := []string{"up", "-d"}
 	if removeOrphans {
 		args = append(args, "--remove-orphans")
 	}
 
-	return runEnvironmentComposeForDesktop(dir, args)
+	fullArgs := engine.BuildComposeArgs(dir, project, composeFile, args)
+	return runEnvironmentComposeForDesktop(dir, fullArgs)
 }
 
 func runComposePull(dir, project, composeFile string) error {
-	args := []string{"compose", "--project-directory", filepath.Clean(dir)}
-	if project != "" {
-		args = append(args, "-p", project)
-	}
-	if composeFile != "" {
-		args = append(args, "-f", composeFile)
-	}
-	args = append(args, "pull")
-
-	return runEnvironmentComposeForDesktop(dir, args)
+	fullArgs := engine.BuildComposeArgs(dir, project, composeFile, []string{"pull"})
+	return runEnvironmentComposeForDesktop(dir, fullArgs)
 }
 
 func openDestination(ctx context.Context, url string, message string) (string, error) {
