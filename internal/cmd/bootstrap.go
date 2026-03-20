@@ -271,7 +271,7 @@ var phpContainerShellRunner = func(config engine.Config, commandLine string) err
 		dockerArgs = append(dockerArgs, "-e", "COMPOSER_AUTH="+string(data))
 	}
 
-	if user := resolveProjectExecUser(config, "www-data"); strings.TrimSpace(user) != "" {
+	if user := ResolveProjectExecUser(config, "www-data"); strings.TrimSpace(user) != "" {
 		dockerArgs = append(dockerArgs, "-u", user)
 	}
 	dockerArgs = append(dockerArgs, "-w", "/var/www/html", containerName, "sh", "-lc", commandLine)

@@ -61,5 +61,5 @@ func saveConfig(config engine.Config) {
 
 func runUp() {
 	// Call up command logic
-	upCmd.Run(upCmd, []string{})
+	_ = upCmd.RunE(upCmd, []string{})
 }

@@ -164,12 +164,12 @@ func detectLocalAdminURL(config engine.Config) string {
 
 func runOpenLocalShell(config engine.Config) error {
 	containerName := fmt.Sprintf("%s-php-1", config.ProjectName)
-	user := resolveProjectExecUser(config, "www-data")
+	user := ResolveProjectExecUser(config, "www-data")
 
-	if err := runInContainer(containerName, user, "bash", []string{}); err == nil {
+	if err := RunInContainer(containerName, user, "bash", []string{}); err == nil {
 		return nil
 	}
-	return runInContainer(containerName, user, "sh", []string{})
+	return RunInContainer(containerName, user, "sh", []string{})
 }
 
 func buildRemoteShellCommand(projectPath string) string {

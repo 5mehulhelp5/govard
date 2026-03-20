@@ -13,6 +13,7 @@ const (
 	RemoteCapabilityFiles  = "files"
 	RemoteCapabilityMedia  = "media"
 	RemoteCapabilityDB     = "db"
+	RemoteCapabilityCache  = "cache"
 	RemoteCapabilityDeploy = "deploy"
 )
 
@@ -42,7 +43,7 @@ func IsValidRemoteEnvironment(value string) bool {
 }
 
 func normalizeRemoteCapabilities(capabilities RemoteCapabilities) RemoteCapabilities {
-	if !capabilities.Files && !capabilities.Media && !capabilities.DB && !capabilities.Deploy {
+	if !capabilities.Files && !capabilities.Media && !capabilities.DB && !capabilities.Cache && !capabilities.Deploy {
 		return defaultRemoteCapabilities()
 	}
 	return capabilities
@@ -53,6 +54,7 @@ func defaultRemoteCapabilities() RemoteCapabilities {
 		Files:  true,
 		Media:  true,
 		DB:     true,
+		Cache:  true,
 		Deploy: true,
 	}
 }
@@ -65,6 +67,8 @@ func RemoteCapabilityEnabled(remoteCfg RemoteConfig, capability string) bool {
 		return remoteCfg.Capabilities.Media
 	case RemoteCapabilityDB:
 		return remoteCfg.Capabilities.DB
+	case RemoteCapabilityCache:
+		return remoteCfg.Capabilities.Cache
 	case RemoteCapabilityDeploy:
 		return remoteCfg.Capabilities.Deploy
 	default:
@@ -73,11 +77,12 @@ func RemoteCapabilityEnabled(remoteCfg RemoteConfig, capability string) bool {
 }
 
 func RemoteCapabilityList(remoteCfg RemoteConfig) []string {
-	names := make([]string, 0, 4)
+	names := make([]string, 0, 5)
 	for _, name := range []string{
 		RemoteCapabilityFiles,
 		RemoteCapabilityMedia,
 		RemoteCapabilityDB,
+		RemoteCapabilityCache,
 		RemoteCapabilityDeploy,
 	} {
 		if RemoteCapabilityEnabled(remoteCfg, name) {
@@ -112,6 +117,8 @@ func ParseRemoteCapabilitiesCSV(raw string) (RemoteCapabilities, error) {
 			parsed.Media = true
 		case RemoteCapabilityDB:
 			parsed.DB = true
+		case RemoteCapabilityCache:
+			parsed.Cache = true
 		case RemoteCapabilityDeploy:
 			parsed.Deploy = true
 		default:
@@ -119,7 +126,7 @@ func ParseRemoteCapabilitiesCSV(raw string) (RemoteCapabilities, error) {
 		}
 	}
 
-	if !parsed.Files && !parsed.Media && !parsed.DB && !parsed.Deploy {
+	if !parsed.Files && !parsed.Media && !parsed.DB && !parsed.Cache && !parsed.Deploy {
 		return RemoteCapabilities{}, fmt.Errorf("at least one remote capability is required")
 	}
 	return parsed, nil

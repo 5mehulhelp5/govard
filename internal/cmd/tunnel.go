@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
@@ -117,14 +118,62 @@ var tunnelStartCmd = &cobra.Command{
 			return nil
 		}
 
+		pterm.Info.Printf("Starting tunnel provider '%s' to %s. Press Ctrl+C to stop.\n", provider.Name(), targetURL)
+
+		mgr := tunnel.NewBaseURLManager(config.Framework)
+		if err := mgr.Backup(cwd, config); err != nil {
+			pterm.Warning.Printf("Failed to backup base URL: %v\n", err)
+		}
+
 		process := exec.Command(plan.Binary, plan.Args...)
 		process.Env = append(os.Environ(), plan.Env...)
 		process.Stdin = cmd.InOrStdin()
-		process.Stdout = cmd.OutOrStdout()
-		process.Stderr = cmd.ErrOrStderr()
 
-		pterm.Info.Printf("Starting tunnel provider '%s' to %s. Press Ctrl+C to stop.\n", provider.Name(), targetURL)
-		if err := tunnelDeps.RunCommand(process); err != nil {
+		// Capture stderr to find the tunnel URL
+		stderr, _ := process.StderrPipe()
+		process.Stdout = cmd.OutOrStdout()
+
+		if err := process.Start(); err != nil {
+			return fmt.Errorf("failed to start tunnel provider %s: %w", provider.Name(), err)
+		}
+
+		// Handle Revert on exit
+		defer func() {
+			pterm.Info.Println("Reverting base URL...")
+			if rerr := mgr.Revert(cwd, config); rerr != nil {
+				pterm.Warning.Printf("Failed to revert base URL: %v\n", rerr)
+			}
+		}()
+
+		// Monitor stderr for the tunnel URL
+		go func() {
+			scanner := bufio.NewScanner(stderr)
+			for scanner.Scan() {
+				line := scanner.Text()
+				fmt.Fprintln(cmd.ErrOrStderr(), line)
+
+				if strings.Contains(line, ".trycloudflare.com") {
+					// Extract URL
+					parts := strings.Fields(line)
+					for _, p := range parts {
+						if strings.HasPrefix(p, "https://") && strings.Contains(p, ".trycloudflare.com") {
+							pterm.Success.Printf("Tunnel URL detected: %s\n", p)
+							pterm.Info.Println("Updating application base URL...")
+							if uerr := mgr.Update(cwd, config, p); uerr != nil {
+								pterm.Warning.Printf("Failed to update base URL: %v\n", uerr)
+							}
+							break
+						}
+					}
+				}
+			}
+		}()
+
+		if err := process.Wait(); err != nil {
+			// If it was killed by user (SIGINT), it's not a failure
+			if strings.Contains(err.Error(), "signal: interrupt") {
+				return nil
+			}
 			return fmt.Errorf("tunnel provider %s failed: %w", provider.Name(), err)
 		}
 
@@ -135,12 +184,51 @@ var tunnelStartCmd = &cobra.Command{
 	},
 }
 
+var tunnelStopCmd = &cobra.Command{
+	Use:   "stop",
+	Short: "Stop the running tunnel provider",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// cloudflared doesn't usually run in background unless told,
+		// but we can try to find and kill it.
+		// For now, let's just use pkill since we don't save PID yet.
+		pterm.Info.Println("Stopping tunnel provider...")
+		_ = exec.Command("pkill", "cloudflared").Run()
+
+		config, err := loadFullConfig()
+		if err == nil {
+			cwd, _ := os.Getwd()
+			mgr := tunnel.NewBaseURLManager(config.Framework)
+			pterm.Info.Println("Reverting base URL...")
+			_ = mgr.Revert(cwd, config)
+		}
+
+		pterm.Success.Println("Tunnel stopped.")
+		return nil
+	},
+}
+
+var tunnelStatusCmd = &cobra.Command{
+	Use:   "status",
+	Short: "Check tunnel status",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		output, err := exec.Command("pgrep", "cloudflared").Output()
+		if err == nil && len(output) > 0 {
+			pterm.Success.Println("Tunnel is ACTIVE (cloudflared is running).")
+		} else {
+			pterm.Info.Println("Tunnel is INACTIVE.")
+		}
+		return nil
+	},
+}
+
 func init() {
 	tunnelStartCmd.Flags().String("provider", "cloudflare", "Tunnel provider (cloudflare)")
 	tunnelStartCmd.Flags().String("url", "", "Target URL to expose (defaults to https://<domain> from config)")
 	tunnelStartCmd.Flags().Bool("no-tls-verify", true, "Disable TLS verification against target URL")
 	tunnelStartCmd.Flags().Bool("plan", false, "Print tunnel execution plan and exit")
 	tunnelCmd.AddCommand(tunnelStartCmd)
+	tunnelCmd.AddCommand(tunnelStopCmd)
+	tunnelCmd.AddCommand(tunnelStatusCmd)
 }
 
 func resolveTunnelTarget(config engine.Config, targetFlag string, args []string) (string, error) {

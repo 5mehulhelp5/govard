@@ -37,6 +37,7 @@ type Stack struct {
 	GroupID        int      `yaml:"group_id,omitempty"`
 	Services       Services `yaml:"services"`
 	Features       Features `yaml:"features"`
+	ChownDirList   []string `yaml:"chown_dir_list,omitempty"`
 }
 
 type Config struct {

@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.22.0] - 2026-03-20
+
+### Added
+
+- **Snapshot Compression**: Database snapshots are now automatically compressed using Gzip, reducing disk usage by 70-90%.
+- **Enhanced Tunnel Management**:
+  - Added `tunnel stop` and `tunnel status` commands.
+  - Automatic base URL update/revert for all frameworks when a tunnel starts or stops.
+- **Database Operations**:
+  - New `db top` command for real-time database process monitoring.
+  - Real-time progress bar for database imports (`db import`, `bootstrap`) and `sync` operations.
+- **Project Testing Integration**:
+  - New `test` command with subcommands for `phpunit`, `phpstan`, `mftf`, and `integration` tests.
+  - Standardized container execution and user resolution across all test types.
+- **Log Service Filtering**: `govard env logs` now supports an optional `<service>` argument to stream logs from a specific service only.
+- **Capability Scopes**: Added `cache` capability for remote environments to explicitly allow/deny Redis operations.
+
+### Changed
+
+- **Redis Command Refactoring**: Migrated `redis` command to a structured subcommand pattern: `redis cli`, `redis flush`, and `redis info`.
+  - Added support for both Redis and Valkey providers.
+  - Added remote execution support for Redis commands via SSH.
+- **Debug Command Refactoring**: Migrated `debug` command to a structured subcommand pattern: `debug on`, `debug off`, `debug status`, and `debug shell` (inspired by Warden).
+
+### Fixed
+
+- **Undefined References**: Fixed multiple lint errors and unreachable code in `bootstrap`, `debug`, and `open` commands by exporting and unifying container execution helpers.
+
 ## [1.21.1] - 2026-03-20
 
 ### Fixed
@@ -12,7 +40,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Visual Assets**: Updated the desktop application icon to use the new branding logo in the Linux package.
 
 ## [1.21.0] - 2026-03-20
-
 
 ### Added
 

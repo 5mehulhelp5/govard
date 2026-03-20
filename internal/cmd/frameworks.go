@@ -181,10 +181,10 @@ func initFrameworkCommands() {
 				if config.Framework == "magento2" && (target.Binary == "php" || target.Binary == "composer" ||
 					target.Binary == "npm" || target.Binary == "yarn" || target.Binary == "npx" ||
 					target.Binary == "pnpm" || target.Binary == "grunt") {
-					user = resolveProjectExecUser(config, "www-data")
+					user = ResolveProjectExecUser(config, "www-data")
 				}
 
-				return runInContainer(containerName, user, target.Binary, append(target.PrependArgs, args...))
+				return RunInContainer(containerName, user, target.Binary, append(target.PrependArgs, args...))
 			},
 		}
 		toolCmd.AddCommand(cmd)
@@ -192,7 +192,7 @@ func initFrameworkCommands() {
 	rootCmd.AddCommand(toolCmd)
 }
 
-func runInContainer(containerName string, user string, binary string, args []string) error {
+func RunInContainer(containerName string, user string, binary string, args []string) error {
 	dockerArgs := []string{"exec"}
 	if stdinIsTerminal() {
 		dockerArgs = append(dockerArgs, "-it")
@@ -210,7 +210,7 @@ func runInContainer(containerName string, user string, binary string, args []str
 	return c.Run()
 }
 
-func resolveProjectExecUser(config engine.Config, fallback string) string {
+func ResolveProjectExecUser(config engine.Config, fallback string) string {
 	if config.Stack.UserID > 0 && config.Stack.GroupID > 0 {
 		return fmt.Sprintf("%d:%d", config.Stack.UserID, config.Stack.GroupID)
 	}

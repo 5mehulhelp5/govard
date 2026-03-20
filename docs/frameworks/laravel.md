@@ -46,4 +46,18 @@ govard tool artisan migrate
 
 # Clear cache
 govard tool artisan cache:clear
+
+## Testing Integration
+
+Govard provides a unified interface for running Laravel tests:
+
+```bash
+# Run unit and feature tests
+govard test phpunit
+
+# Run static analysis
+govard test phpstan
+```
+
+Tests run as the web user inside the PHP container.
 ```

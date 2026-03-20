@@ -23,6 +23,7 @@ type RemoteCapabilities struct {
 	Files  bool `yaml:"files"`
 	Media  bool `yaml:"media"`
 	DB     bool `yaml:"db"`
+	Cache  bool `yaml:"cache"`
 	Deploy bool `yaml:"deploy"`
 }
 

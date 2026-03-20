@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"govard/internal/engine"
+
+	"gopkg.in/yaml.v3"
 )
 
 func TestRenderMagento2Blueprint(t *testing.T) {
@@ -18,6 +20,53 @@ func TestRenderMagento2Blueprint(t *testing.T) {
 		"image: ddtcorex/govard-mariadb:",
 		"MYSQL_DATABASE: magento",
 	})
+
+	// Regression: web service must be connected to govard-proxy so Caddy can route to it.
+	// Without this, `govard env up` succeeds but the site returns 502 Bad Gateway.
+	tempDir := t.TempDir()
+	setTestGovardHome(t, tempDir)
+	t.Setenv("GOVARD_BLUEPRINTS_DIR", func() string {
+		_, filename, _, _ := runtime.Caller(0)
+		return filepath.Join(filepath.Dir(filename), "..", "internal", "blueprints", "files")
+	}())
+
+	config := engine.Config{
+		ProjectName: "sample-project",
+		Framework:   "magento2",
+		Domain:      "sample-project.test",
+		Stack:       engine.Stack{PHPVersion: "8.3"},
+	}
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("render failed: %v", err)
+	}
+	content, err := os.ReadFile(engine.ComposeFilePath(tempDir, config.ProjectName))
+	if err != nil {
+		t.Fatalf("read compose file: %v", err)
+	}
+
+	var composeStruct struct {
+		Services map[string]struct {
+			Networks []string `yaml:"networks"`
+		} `yaml:"services"`
+	}
+	if err := yaml.Unmarshal(content, &composeStruct); err != nil {
+		t.Fatalf("failed to parse yaml: %v", err)
+	}
+	webSvc, ok := composeStruct.Services["web"]
+	if !ok {
+		t.Fatal("web service not found in parsed compose file")
+	}
+
+	hasProxy := false
+	for _, n := range webSvc.Networks {
+		if n == "govard-proxy" {
+			hasProxy = true
+			break
+		}
+	}
+	if !hasProxy {
+		t.Errorf("web service must be connected to govard-proxy network (required for Caddy routing). Networks: %v", webSvc.Networks)
+	}
 }
 
 func TestRenderLaravelBlueprint(t *testing.T) {

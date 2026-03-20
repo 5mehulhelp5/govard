@@ -146,6 +146,30 @@ When enabled:
 - Use `govard open mftf` to open the VNC viewer in your browser.
 - The Selenium container is connected to both `govard-net` and `govard-proxy` networks.
 
+## Testing Integration
+
+Govard provides a unified interface for running various Magento 2 test suites:
+
+```bash
+# Run unit tests
+govard test phpunit
+
+# Run static analysis
+govard test phpstan
+
+# Run functional tests (MFTF)
+govard test mftf
+
+# Run integration tests
+govard test integration
+```
+
+### Notes
+
+- **User Context:** All tests are executed as the project runtime user (e.g., `www-data`), ensuring correct file permissions for generated artifacts.
+- **Arguments:** You can pass additional arguments directly to the underlying test runners (e.g., `govard test phpunit --testsuite unit`).
+- **MFTF:** Requires `mftf: true` in your `.govard.yml` features.
+
 MFTF configuration in `dev/tests/acceptance/.env`:
 
 ```env

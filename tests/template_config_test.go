@@ -58,6 +58,17 @@ func TestHybridTemplateProxiesToApache(t *testing.T) {
 	}
 }
 
+func TestBaseBlueprintIncludesXdebugFixes(t *testing.T) {
+	content := readBlueprintFile(t, "includes/base.yml")
+
+	if !strings.Contains(content, "host.docker.internal:host-gateway") {
+		t.Fatalf("Expected host.docker.internal mapping in base.yml")
+	}
+	if !strings.Contains(content, "start_with_request=yes") {
+		t.Fatalf("Expected start_with_request=yes in base.yml")
+	}
+}
+
 func readTemplateFile(t *testing.T, name string) string {
 	t.Helper()
 
@@ -68,6 +79,21 @@ func readTemplateFile(t *testing.T, name string) string {
 	content, err := os.ReadFile(templatePath)
 	if err != nil {
 		t.Fatalf("Failed to read template %s: %v", name, err)
+	}
+
+	return string(content)
+}
+
+func readBlueprintFile(t *testing.T, name string) string {
+	t.Helper()
+
+	_, filename, _, _ := runtime.Caller(0)
+	projectRoot := filepath.Join(filepath.Dir(filename), "..")
+	blueprintPath := filepath.Join(projectRoot, "internal", "blueprints", "files", name)
+
+	content, err := os.ReadFile(blueprintPath)
+	if err != nil {
+		t.Fatalf("Failed to read blueprint %s: %v", name, err)
 	}
 
 	return string(content)

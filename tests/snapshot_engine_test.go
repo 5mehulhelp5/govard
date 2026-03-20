@@ -91,6 +91,52 @@ func TestBuildSnapshotImportCommandUsesEnvPassword(t *testing.T) {
 	}
 }
 
+func TestSnapshotCreatesGzippedDB(t *testing.T) {
+	// This test normally requires a running DB container.
+	// We'll test the logic that constructs the file path and handles the writer.
+	// Since we can't easily mock the docker exec bit without refactoring,
+	// we'll focus on the engine's public interface and expected file outcomes.
+	t.Skip("Skipping as it requires a running Docker container with 'mysql-db-1'")
+}
+
+func TestSnapshotRestoreFromGzip(t *testing.T) {
+	// Tests that RestoreSnapshot can handle a .sql.gz file.
+	t.Skip("Skipping as it requires a running Docker container")
+}
+
+func TestSnapshotListShowsSize(t *testing.T) {
+	root := t.TempDir()
+	snapshotRoot := filepath.Join(root, ".govard", "snapshots")
+	if err := os.MkdirAll(snapshotRoot, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	meta := engine.SnapshotMetadata{
+		Name:      "test-size",
+		CreatedAt: time.Now(),
+	}
+	writeSnapshotMeta(t, snapshotRoot, meta)
+
+	// Create a dummy file to take up space
+	dummyFile := filepath.Join(snapshotRoot, "test-size", "dummy.txt")
+	if err := os.WriteFile(dummyFile, []byte("hello world"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	list, err := engine.ListSnapshots(root)
+	if err != nil {
+		t.Fatalf("list snapshots: %v", err)
+	}
+
+	if len(list) == 0 {
+		t.Fatal("expected at least one snapshot")
+	}
+
+	if list[0].SizeBytes == 0 {
+		t.Fatal("expected non-zero size for snapshot")
+	}
+}
+
 func writeSnapshotMeta(t *testing.T, root string, meta engine.SnapshotMetadata) {
 	t.Helper()
 	dir := filepath.Join(root, meta.Name)

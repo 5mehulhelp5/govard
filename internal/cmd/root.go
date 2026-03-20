@@ -80,6 +80,7 @@ func init() {
 	rootCmd.AddCommand(doctorCmd)
 	rootCmd.AddCommand(dbCmd)
 	rootCmd.AddCommand(debugCmd)
+	rootCmd.AddCommand(testCmd)
 	rootCmd.AddCommand(desktopCmd)
 	rootCmd.AddCommand(domainCmd)
 

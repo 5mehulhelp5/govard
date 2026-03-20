@@ -75,9 +75,14 @@ func buildDatabaseSyncAction(config engine.Config, source syncEndpoint, destinat
 			if probeErr != nil {
 				pterm.Warning.Println(formatRemoteDBProbeWarning(source.Name, probeErr))
 			}
+
+			spinner, _ := pterm.DefaultSpinner.Start("Fetching remote database size...")
+			totalSize, _ := GetDatabaseSize(config, source.Name, source.RemoteCfg, remoteCredentials)
+			spinner.Success()
+
 			dumpCmd := remote.BuildSSHExecCommand(source.Name, source.RemoteCfg, true, buildRemoteMySQLDumpCommandString(remoteCredentials, false, noNoise, noPII, config.Framework))
 			importCmd := buildLocalDBImportCommand(localDBContainer, localCredentials)
-			return RunDumpToImport(dumpCmd, importCmd, true, os.Stdout, os.Stderr)
+			return RunDumpToImportWithProgress(dumpCmd, importCmd, totalSize, true, os.Stdout, os.Stderr)
 		}, nil
 	case source.IsLocal && !destination.IsLocal:
 		desc := fmt.Sprintf("docker exec -i %s mysqldump ... | ssh %s \"mysql ...\"", localDBContainer, remote.RemoteTarget(destination.RemoteCfg))
@@ -87,8 +92,13 @@ func buildDatabaseSyncAction(config engine.Config, source syncEndpoint, destinat
 			if probeErr != nil {
 				pterm.Warning.Println(formatRemoteDBProbeWarning(destination.Name, probeErr))
 			}
+
+			spinner, _ := pterm.DefaultSpinner.Start("Fetching local database size...")
+			totalSize, _ := GetDatabaseSize(config, "local", engine.RemoteConfig{}, localCredentials)
+			spinner.Success()
+
 			importCmd := remote.BuildSSHExecCommand(destination.Name, destination.RemoteCfg, true, buildRemoteMySQLImportCommandString(remoteCredentials))
-			return RunDumpToImport(dumpCmd, importCmd, true, os.Stdout, os.Stderr)
+			return RunDumpToImportWithProgress(dumpCmd, importCmd, totalSize, true, os.Stdout, os.Stderr)
 		}, nil
 	default:
 		return "", nil, fmt.Errorf("database synchronization only supports transfers between local and remote environments")

@@ -237,6 +237,13 @@ func NormalizeConfig(config *Config) {
 		config.Stack.GroupID = gid
 	}
 
+	if len(config.Stack.ChownDirList) == 0 {
+		config.Stack.ChownDirList = []string{"/bash_history", "/home/www-data/.ssh"}
+		if config.Framework == "magento2" {
+			config.Stack.ChownDirList = append(config.Stack.ChownDirList, "/var/www/html", "/home/www-data/.cache/composer")
+		}
+	}
+
 	if config.Stack.WebRoot != "" && !strings.HasPrefix(config.Stack.WebRoot, "/") {
 		config.Stack.WebRoot = "/" + config.Stack.WebRoot
 	}

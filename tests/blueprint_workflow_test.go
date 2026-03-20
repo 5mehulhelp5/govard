@@ -59,3 +59,46 @@ func TestFullSetupLogic(t *testing.T) {
 		t.Error("govard-proxy network should be marked as external")
 	}
 }
+
+// TestRenderBlueprintReRendersWhenComposeFileMissing is a regression test for the bug where
+// RenderBlueprintWithProfile would skip rendering (due to a matching hash) even when the
+// rendered compose file had been deleted from disk — causing `govard env up` to fail with
+// "no such file or directory" in the Start stage.
+func TestRenderBlueprintReRendersWhenComposeFileMissing(t *testing.T) {
+	tempDir, _ := os.MkdirTemp("", "render-missing-compose-*")
+	defer os.RemoveAll(tempDir)
+
+	config := engine.Config{
+		ProjectName: "sample-project",
+		Framework:   "magento2",
+		Domain:      "sample-project.test",
+		Stack: engine.Stack{
+			PHPVersion: "8.3",
+		},
+	}
+
+	// First render — produces compose file + hash.
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("first render failed: %v", err)
+	}
+
+	composePath := engine.ComposeFilePath(tempDir, config.ProjectName)
+	if _, err := os.Stat(composePath); err != nil {
+		t.Fatalf("compose file missing after first render: %v", err)
+	}
+
+	// Simulate the compose file being deleted (e.g. manual cleanup, tmp-dir wipe).
+	if err := os.Remove(composePath); err != nil {
+		t.Fatalf("could not remove compose file: %v", err)
+	}
+
+	// Second render — config unchanged, so hash would normally cause a skip.
+	// This must NOT skip, because the compose file is gone.
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("second render failed: %v", err)
+	}
+
+	if _, err := os.Stat(composePath); err != nil {
+		t.Errorf("compose file still missing after second render (hash-skip regression): %v", err)
+	}
+}

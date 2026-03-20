@@ -2,12 +2,30 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 )
 
 func dockerExecBaseArgs() []string {
-	return []string{"exec", "-it"}
+	// If we are running in an integration test, always use non-interactive mode
+	if os.Getenv("GOVARD_TEST_RUNTIME") == "true" {
+		return []string{"exec", "-i"}
+	}
+
+	// Check if we have a TTY for stdin/stdout
+	if isTerminal(os.Stdin) && isTerminal(os.Stdout) {
+		return []string{"exec", "-it"}
+	}
+	return []string{"exec", "-i"}
+}
+
+func isTerminal(f *os.File) bool {
+	stat, err := f.Stat()
+	if err != nil {
+		return false
+	}
+	return (stat.Mode() & os.ModeCharDevice) != 0
 }
 
 func ensureContainerReadyForExec(containerName string, serviceLabel string) error {

@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"compress/gzip"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -20,7 +22,7 @@ import (
 )
 
 var dbCmd = &cobra.Command{
-	Use:   "db [connect|import|dump|query|info]",
+	Use:   "db [connect|import|dump|query|info|top]",
 	Short: "Interact with the database container",
 	Long: `Manage your project's database. Supports connecting to the container shell,
 importing SQL dumps, and creating backups. Works for both local and remote environments.
@@ -244,6 +246,15 @@ func runDBSubcommand(cmd *cobra.Command, subcommand string, extraArgs []string) 
 			operationStatus = engine.OperationStatusSuccess
 		}
 		return err
+	case "top":
+		err = runDBTop(cmd, config, options)
+		if err == nil {
+			auditStatus = remote.RemoteAuditStatusSuccess
+			auditMessage = "db top completed"
+			operationStatus = engine.OperationStatusSuccess
+			operationMessage = "db top completed"
+		}
+		return err
 	case "query":
 		err = runDBQuery(cmd, config, options, extraArgs)
 		if err == nil {
@@ -348,20 +359,21 @@ func runDBHooks(config engine.Config, pre string, post string, cmd *cobra.Comman
 	return nil
 }
 
-func resolveDBImportReader(options dbCommandOptions) (io.Reader, io.Closer, error) {
+func resolveDBImportReader(options dbCommandOptions) (io.Reader, io.Closer, int64, error) {
 	if options.File != "" {
 		path := filepath.Clean(options.File)
 		file, err := os.Open(path)
 		if err != nil {
-			return nil, nil, fmt.Errorf("open import file: %w", err)
+			return nil, nil, 0, fmt.Errorf("open import file: %w", err)
 		}
-		return file, file, nil
+		info, _ := file.Stat()
+		return file, file, info.Size(), nil
 	}
 
 	if stdinIsTerminal() {
-		return nil, nil, errors.New("no import input provided; use --file or pipe SQL via stdin")
+		return nil, nil, 0, errors.New("no import input provided; use --file or pipe SQL via stdin")
 	}
-	return os.Stdin, nil, nil
+	return os.Stdin, nil, 0, nil
 }
 
 func stdinIsTerminal() bool {
@@ -467,21 +479,57 @@ func runDumpToWriter(dumpCmd *exec.Cmd, writer io.Writer, sanitize bool, stderr 
 }
 
 func RunImportFromReader(importCmd *exec.Cmd, reader io.Reader, sanitize bool, stdout io.Writer, stderr io.Writer) error {
+	return RunImportFromReaderWithProgress(importCmd, reader, 0, sanitize, stdout, stderr)
+}
+
+func RunImportFromReaderWithProgress(importCmd *exec.Cmd, reader io.Reader, totalSize int64, sanitize bool, stdout io.Writer, stderr io.Writer) error {
 	stdin, err := importCmd.StdinPipe()
 	if err != nil {
 		return err
 	}
 	importCmd.Stdout = stdout
 	importCmd.Stderr = stderr
+
+	// Handle decompression if needed
+	var progressReader = reader
+	var bar *pterm.ProgressbarPrinter
+
+	if totalSize > 0 {
+		bar, _ = pterm.DefaultProgressbar.WithTotal(int(totalSize)).WithTitle("Importing DB").Start()
+		progressReader = engine.NewProgressReader(reader, bar)
+	}
+
+	// Check for gzip
+	isGzip := false
+	if r, ok := reader.(*os.File); ok {
+		if strings.HasSuffix(strings.ToLower(r.Name()), ".gz") {
+			isGzip = true
+		}
+	}
+
+	var finalReader = progressReader
+	if isGzip {
+		gzReader, err := gzip.NewReader(progressReader)
+		if err != nil {
+			return fmt.Errorf("create gzip reader: %w", err)
+		}
+		defer func() { _ = gzReader.Close() }()
+		finalReader = gzReader
+	}
+
 	if err := importCmd.Start(); err != nil {
 		return err
 	}
 
 	var copyErr error
 	if sanitize {
-		copyErr = engine.SanitizeSQLDump(reader, stdin)
+		copyErr = engine.SanitizeSQLDump(finalReader, stdin)
 	} else {
-		_, copyErr = io.Copy(stdin, reader)
+		_, copyErr = io.Copy(stdin, finalReader)
+	}
+
+	if bar != nil {
+		_, _ = bar.Stop()
 	}
 
 	closeErr := stdin.Close()
@@ -496,6 +544,10 @@ func RunImportFromReader(importCmd *exec.Cmd, reader io.Reader, sanitize bool, s
 }
 
 func RunDumpToImport(dumpCmd *exec.Cmd, importCmd *exec.Cmd, sanitize bool, stdout io.Writer, stderr io.Writer) error {
+	return RunDumpToImportWithProgress(dumpCmd, importCmd, 0, sanitize, stdout, stderr)
+}
+
+func RunDumpToImportWithProgress(dumpCmd *exec.Cmd, importCmd *exec.Cmd, totalSize int64, sanitize bool, stdout io.Writer, stderr io.Writer) error {
 	dumpStdout, err := dumpCmd.StdoutPipe()
 	if err != nil {
 		return err
@@ -520,11 +572,22 @@ func RunDumpToImport(dumpCmd *exec.Cmd, importCmd *exec.Cmd, sanitize bool, stdo
 		return err
 	}
 
+	var bar *pterm.ProgressbarPrinter
+	var reader io.Reader = dumpStdout
+	if totalSize > 0 {
+		bar, _ = pterm.DefaultProgressbar.WithTotal(int(totalSize)).WithTitle("Syncing DB").Start()
+		reader = engine.NewProgressReader(dumpStdout, bar)
+	}
+
 	var copyErr error
 	if sanitize {
-		copyErr = engine.SanitizeSQLDump(dumpStdout, importStdin)
+		copyErr = engine.SanitizeSQLDump(reader, importStdin)
 	} else {
-		_, copyErr = io.Copy(importStdin, dumpStdout)
+		_, copyErr = io.Copy(importStdin, reader)
+	}
+
+	if bar != nil {
+		_, _ = bar.Stop()
 	}
 
 	closeErr := importStdin.Close()
@@ -555,7 +618,7 @@ func SetStdinIsTerminalForTest(fn func() bool) func() {
 }
 
 // ResolveDBImportReaderForTest exposes resolveDBImportReader for tests in /tests.
-func ResolveDBImportReaderForTest(options DBCommandOptions) (io.Reader, io.Closer, error) {
+func ResolveDBImportReaderForTest(options DBCommandOptions) (io.Reader, io.Closer, int64, error) {
 	return resolveDBImportReader(options)
 }
 
@@ -599,4 +662,101 @@ func classifyCommandError(err error) string {
 	default:
 		return remote.ClassifyFailure(err, message).Category
 	}
+}
+
+func runDBTop(cmd *cobra.Command, config engine.Config, options dbCommandOptions) error {
+	var remoteCfg engine.RemoteConfig
+	var credentials dbCredentials
+	var err error
+
+	if options.Environment == "local" {
+		containerName := dbContainerName(config)
+		if err := ensureLocalDBRunning(containerName); err != nil {
+			return err
+		}
+		credentials = resolveLocalDBCredentials(containerName)
+	} else {
+		remoteCfg, err = resolveDBRemote(config, options.Environment, false)
+		if err != nil {
+			return err
+		}
+		credentials, err = resolveRemoteDBCredentials(config, options.Environment, remoteCfg)
+		if err != nil {
+			return err
+		}
+	}
+
+	pterm.Info.Println("Starting db top. Press Ctrl+C to exit.")
+	area, _ := pterm.DefaultArea.Start()
+	defer func() { _ = area.Stop() }()
+
+	// Handle graceful exit on Ctrl+C
+	ctx := cmd.Context()
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-ticker.C:
+			query := "SHOW FULL PROCESSLIST"
+			var out []byte
+			var cmdErr error
+
+			// Build command string
+			var cmdStr string
+			if credentials.Password != "" {
+				cmdStr = fmt.Sprintf("mysql -u%s -p%s -BN -e %s", shellQuote(credentials.Username), shellQuote(credentials.Password), shellQuote(query))
+			} else {
+				cmdStr = fmt.Sprintf("mysql -u%s -BN -e %s", shellQuote(credentials.Username), shellQuote(query))
+			}
+
+			if options.Environment == "local" {
+				containerName := dbContainerName(config)
+				out, cmdErr = exec.Command("docker", "exec", containerName, "sh", "-c", cmdStr).CombinedOutput()
+			} else {
+				sshCmd := remote.BuildSSHExecCommand(options.Environment, remoteCfg, true, cmdStr)
+				out, cmdErr = sshCmd.CombinedOutput()
+			}
+
+			if cmdErr != nil {
+				area.Update(pterm.Red(fmt.Sprintf("Error fetching processlist: %v\nOutput: %s", cmdErr, string(out))))
+			} else {
+				tableStr, err := formatProcessListTable(string(out))
+				if err != nil {
+					area.Update(pterm.Red(fmt.Sprintf("Error formatting table: %v", err)))
+				} else {
+					area.Update(tableStr)
+				}
+			}
+		}
+	}
+}
+
+func formatProcessListTable(raw string) (string, error) {
+	lines := strings.Split(strings.TrimSpace(raw), "\n")
+	if len(lines) == 0 {
+		return "No processes found.", nil
+	}
+
+	data := [][]string{}
+	// Headers for SHOW FULL PROCESSLIST are: Id, User, Host, db, Command, Time, State, Info
+	data = append(data, []string{"ID", "User", "Host", "DB", "Command", "Time", "State", "Info"})
+
+	for _, line := range lines {
+		// mysql -BN output is tab-separated
+		parts := strings.Split(line, "\t")
+		data = append(data, parts)
+	}
+
+	table, err := pterm.DefaultTable.WithHasHeader().WithData(data).Srender()
+	if err != nil {
+		return "", err
+	}
+	return table, nil
 }

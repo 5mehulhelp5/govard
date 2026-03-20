@@ -22,10 +22,10 @@ services:
     networks:
       - govard-net
     volumes:
-      - search-data:{{ if eq $search "elasticsearch" }}/usr/share/elasticsearch/data{{ else }}/usr/share/opensearch/data{{ end }}
+      - search-data{{ if .Config.Profile }}-{{ .Config.Profile }}{{ end }}:{{ if eq $search "elasticsearch" }}/usr/share/elasticsearch/data{{ else }}/usr/share/opensearch/data{{ end }}
   {{ end }}
 
 volumes:
   {{ if or (eq $search "elasticsearch") (eq $search "opensearch") }}
-  search-data:
+  search-data{{ if .Config.Profile }}-{{ .Config.Profile }}{{ end }}:
   {{ end }}

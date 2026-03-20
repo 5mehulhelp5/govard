@@ -99,7 +99,7 @@ func renderComposeWithConfig(t *testing.T, config engine.Config) string {
 		t.Fatalf("Failed to render blueprint: %v", err)
 	}
 
-	content, err := os.ReadFile(engine.ComposeFilePath(tempDir, config.ProjectName))
+	content, err := os.ReadFile(engine.ComposeFilePathWithProfile(tempDir, config.ProjectName, config.Profile))
 	if err != nil {
 		t.Fatalf("Failed to read generated compose file: %v", err)
 	}

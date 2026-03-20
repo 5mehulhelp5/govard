@@ -156,7 +156,7 @@ func runDirectDBImport(cmd *cobra.Command, config engine.Config, options dbComma
 		return err
 	}
 
-	reader, closer, err := resolveDBImportReader(options)
+	reader, closer, totalSize, err := resolveDBImportReader(options)
 	if err != nil {
 		return err
 	}
@@ -168,7 +168,7 @@ func runDirectDBImport(cmd *cobra.Command, config engine.Config, options dbComma
 		pterm.Description.Println("Tip: cat backup.sql | govard db import")
 	}
 
-	if err := RunImportFromReader(importCommand, reader, false, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
+	if err := RunImportFromReaderWithProgress(importCommand, reader, totalSize, false, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
 		return fmt.Errorf("db import failed: %w", err)
 	}
 	pterm.Success.Println("Database import completed.")

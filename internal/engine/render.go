@@ -107,8 +107,12 @@ func findBlueprintsFS(startDir string) (fs.FS, error) {
 
 // RenderBlueprint renders layered blueprints into a single docker-compose file
 func RenderBlueprint(root string, config Config) error {
-	return RenderBlueprintWithProfile(root, config, "")
+	return RenderBlueprintWithProfile(root, config, config.Profile)
 }
+
+// BlueprintVersion should be incremented whenever architectural changes are made to the embedded blueprints
+// to ensure that 'govard env up' re-renders existing environments.
+const BlueprintVersion = "1.2"
 
 func RenderBlueprintWithProfile(root string, config Config, profile string) error {
 	blueprintsFS, err := resolveBlueprintsDirForConfig(root, config)
@@ -117,17 +121,21 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 	}
 
 	NormalizeConfig(&config)
+	config.Profile = profile
 
 	outputPath := ComposeFilePathWithProfile(root, config.ProjectName, profile)
 	hashPath := outputPath + ".hash"
 
 	hashData, _ := json.Marshal(config)
-	hashSum := sha256.Sum256(append(hashData, []byte(profile)...))
+	hashSum := sha256.Sum256(append(hashData, []byte(profile+BlueprintVersion)...))
 	currentHash := hex.EncodeToString(hashSum[:])
 
 	if existingHash, err := os.ReadFile(hashPath); err == nil && string(existingHash) == currentHash {
-		pterm.Info.Println("Blueprint unchanged, skipping render")
-		return nil
+		if _, statErr := os.Stat(outputPath); statErr == nil {
+			pterm.Info.Println("Blueprint unchanged, skipping render")
+			return nil
+		}
+		// Hash matches but the compose file is missing — fall through to re-render.
 	}
 
 	// Get framework configuration
@@ -230,7 +238,6 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 	}
 
 	// Merge all parts into final output
-	config.Profile = profile
 	outputPath = ComposeFilePathWithProfile(root, config.ProjectName, profile)
 	if err := EnsureComposePathReady(outputPath); err != nil {
 		return fmt.Errorf("failed to prepare compose output path: %w", err)

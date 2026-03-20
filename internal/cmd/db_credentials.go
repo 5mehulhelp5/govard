@@ -602,3 +602,36 @@ func buildRemoteMySQLQueryCommandString(credentials dbCredentials, query string)
 
 	return mysqlPasswordExportPrefix(credentials.Password) + strings.Join(args, " ")
 }
+func GetDatabaseSize(config engine.Config, remoteName string, remoteCfg engine.RemoteConfig, credentials dbCredentials) (int64, error) {
+	query := fmt.Sprintf("SELECT SUM(data_length + index_length) FROM information_schema.tables WHERE table_schema = '%s'", strings.ReplaceAll(credentials.Database, "'", "''"))
+
+	var cmdStr string
+	if credentials.Password != "" {
+		cmdStr = fmt.Sprintf("mysql -u%s -p%s -BN -e %s", shellQuote(credentials.Username), shellQuote(credentials.Password), shellQuote(query))
+	} else {
+		cmdStr = fmt.Sprintf("mysql -u%s -BN -e %s", shellQuote(credentials.Username), shellQuote(query))
+	}
+
+	var output []byte
+	var err error
+	if remoteName == "local" {
+		containerName := fmt.Sprintf("%s-db-1", config.ProjectName)
+		output, err = exec.Command("docker", "exec", containerName, "sh", "-c", cmdStr).CombinedOutput()
+	} else {
+		sshCmd := remote.BuildSSHExecCommand(remoteName, remoteCfg, true, cmdStr)
+		output, err = sshCmd.CombinedOutput()
+	}
+
+	if err != nil {
+		return 0, err
+	}
+
+	sizeStr := strings.TrimSpace(string(output))
+	if sizeStr == "" || sizeStr == "NULL" {
+		return 0, nil
+	}
+
+	var size int64
+	_, _ = fmt.Sscanf(sizeStr, "%d", &size)
+	return size, nil
+}

@@ -59,17 +59,31 @@ var snapshotListCmd = &cobra.Command{
 		}
 
 		w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 2, 2, ' ', 0)
-		_, _ = fmt.Fprintln(w, "NAME\tCREATED_AT\tDB\tMEDIA")
+		_, _ = fmt.Fprintln(w, "NAME\tCREATED_AT\tSIZE\tDB\tMEDIA")
 		for _, snapshot := range snapshots {
 			created := "-"
 			if !snapshot.CreatedAt.IsZero() {
 				created = snapshot.CreatedAt.Format("2006-01-02 15:04:05")
 			}
-			_, _ = fmt.Fprintf(w, "%s\t%s\t%t\t%t\n", snapshot.Name, created, snapshot.DB, snapshot.Media)
+			sizeStr := formatBytes(snapshot.SizeBytes)
+			_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%t\t%t\n", snapshot.Name, created, sizeStr, snapshot.DB, snapshot.Media)
 		}
 		_ = w.Flush()
 		return nil
 	},
+}
+
+func formatBytes(b int64) string {
+	const unit = 1024
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "KMGTPE"[exp])
 }
 
 var snapshotRestoreCmd = &cobra.Command{

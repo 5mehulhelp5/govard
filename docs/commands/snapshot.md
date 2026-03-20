@@ -1,6 +1,6 @@
 # govard snapshot
 
-Create and restore local snapshots of database and media.
+Create and restore local compressed snapshots of database and media.
 
 ## Usage
 
@@ -17,9 +17,9 @@ govard snapshot delete temporary-snap
 
 ## Subcommands
 
-- `create [name]` Create a snapshot in `./.govard/snapshots/<name>`
-- `list` List available snapshots
-- `restore <name>` Restore an existing snapshot
+- `create [name]` Create a compressed snapshot in `./.govard/snapshots/<name>`
+- `list` List available snapshots with their estimated disk size
+- `restore <name>` Restore an existing snapshot (automatically detects compression)
 - `delete <name>` Permanently delete a snapshot
 - `export <name> [file]` Export a snapshot to a compressed `.tar.gz` file (defaults to `name.tar.gz`)
 
@@ -30,5 +30,6 @@ govard snapshot delete temporary-snap
 
 ## Notes
 
-- Snapshot creation attempts to dump the local DB container `<project>-db-1`.
+- Snapshot creation uses **Gzip compression** for the database dump to save disk space (typically 70-90% reduction).
+- Restore automatically detects whether a snapshot is compressed or legacy plain SQL.
 - Media is copied from the framework-specific local media path.

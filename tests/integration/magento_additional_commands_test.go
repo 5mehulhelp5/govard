@@ -119,8 +119,8 @@ func TestDebugStatusAndShellDisabled(t *testing.T) {
 	assertContains(t, strings.ToLower(statusResult.Stdout+statusResult.Stderr), "xdebug is currently")
 
 	shellResult := env.RunGovard(t, projectDir, "debug", "shell")
-	shellResult.AssertSuccess(t)
-	assertContains(t, shellResult.Stdout+shellResult.Stderr, "Xdebug is disabled")
+	shellResult.AssertExitCode(t, 1)
+	assertContains(t, strings.ToLower(shellResult.Stdout+shellResult.Stderr), "xdebug is disabled")
 }
 
 func TestStopCommandRunsHooksWithShims(t *testing.T) {
@@ -185,7 +185,7 @@ func TestServiceWrapperCommandsWithShims(t *testing.T) {
 
 		logs := shim.ReadLog(t)
 		assertContains(t, logs, "docker|inspect -f {{.State.Running}} m2-clone-basic-redis-1")
-		assertContains(t, logs, "docker|exec -it m2-clone-basic-redis-1 redis-cli PING")
+		assertContains(t, logs, "docker|exec -i m2-clone-basic-redis-1 redis-cli PING")
 	})
 
 	t.Run("RedisSwitchesToValkeyCLI", func(t *testing.T) {
@@ -200,7 +200,7 @@ func TestServiceWrapperCommandsWithShims(t *testing.T) {
 		result.AssertSuccess(t)
 
 		logs := shim.ReadLog(t)
-		assertContains(t, logs, "docker|exec -it m2-clone-basic-redis-1 valkey-cli PING")
+		assertContains(t, logs, "docker|exec -i m2-clone-basic-redis-1 valkey-cli PING")
 	})
 
 	t.Run("ValkeyGuardAndRuntime", func(t *testing.T) {
@@ -223,7 +223,7 @@ func TestServiceWrapperCommandsWithShims(t *testing.T) {
 		result.AssertSuccess(t)
 
 		logs := shim.ReadLog(t)
-		assertContains(t, logs, "docker|exec -it m2-clone-basic-redis-1 valkey-cli PING")
+		assertContains(t, logs, "docker|exec -i m2-clone-basic-redis-1 valkey-cli PING")
 	})
 
 	t.Run("SearchServiceCommandsUseCurl", func(t *testing.T) {
@@ -249,7 +249,7 @@ func TestServiceWrapperCommandsWithShims(t *testing.T) {
 		result.AssertSuccess(t)
 
 		logs := shim.ReadLog(t)
-		assertContains(t, logs, "docker|exec -it m2-clone-basic-varnish-1 varnishadm ban req.url ~ /.*")
+		assertContains(t, logs, "docker|exec -i m2-clone-basic-varnish-1 varnishadm ban req.url ~ /.*")
 	})
 }
 

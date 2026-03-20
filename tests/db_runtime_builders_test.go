@@ -19,7 +19,7 @@ func TestResolveDBImportReaderForTestFromFile(t *testing.T) {
 		t.Fatalf("write dump file: %v", err)
 	}
 
-	reader, closer, err := cmd.ResolveDBImportReaderForTest(cmd.DBCommandOptions{File: dumpPath})
+	reader, closer, _, err := cmd.ResolveDBImportReaderForTest(cmd.DBCommandOptions{File: dumpPath})
 	if err != nil {
 		t.Fatalf("ResolveDBImportReaderForTest() error = %v", err)
 	}
@@ -42,7 +42,7 @@ func TestResolveDBImportReaderForTestFromFile(t *testing.T) {
 func TestResolveDBImportReaderForTestRejectsMissingInputOnTerminal(t *testing.T) {
 	defer cmd.SetStdinIsTerminalForTest(func() bool { return true })()
 
-	_, _, err := cmd.ResolveDBImportReaderForTest(cmd.DBCommandOptions{})
+	_, _, _, err := cmd.ResolveDBImportReaderForTest(cmd.DBCommandOptions{})
 	if err == nil {
 		t.Fatal("expected missing input error")
 	}
@@ -54,7 +54,7 @@ func TestResolveDBImportReaderForTestRejectsMissingInputOnTerminal(t *testing.T)
 func TestResolveDBImportReaderForTestUsesStdinWhenPiped(t *testing.T) {
 	defer cmd.SetStdinIsTerminalForTest(func() bool { return false })()
 
-	reader, closer, err := cmd.ResolveDBImportReaderForTest(cmd.DBCommandOptions{})
+	reader, closer, _, err := cmd.ResolveDBImportReaderForTest(cmd.DBCommandOptions{})
 	if err != nil {
 		t.Fatalf("ResolveDBImportReaderForTest() error = %v", err)
 	}

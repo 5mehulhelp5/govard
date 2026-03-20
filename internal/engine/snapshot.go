@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"compress/gzip"
 	"fmt"
 	"io"
 	"os"
@@ -22,6 +23,7 @@ type SnapshotMetadata struct {
 	ExtraDomains []string  `yaml:"extra_domains,omitempty"`
 	DB           bool      `yaml:"db"`
 	Media        bool      `yaml:"media"`
+	SizeBytes    int64     `yaml:"size_bytes"`
 }
 
 type snapshotDBCredentials struct {
@@ -61,14 +63,18 @@ func CreateSnapshot(projectRoot string, config Config, name string) (string, err
 
 	containerName := fmt.Sprintf("%s-db-1", config.ProjectName)
 	credentials := resolveSnapshotDBCredentials(containerName)
-	dbPath := filepath.Join(snapshotDir, "db.sql")
+	dbPath := filepath.Join(snapshotDir, "db.sql.gz")
 	dbFile, err := os.Create(dbPath)
 	if err == nil {
+		gzipWriter := gzip.NewWriter(dbFile)
 		dumpCmd := buildSnapshotDumpCommand(containerName, credentials)
-		dumpCmd.Stdout = dbFile
+		dumpCmd.Stdout = gzipWriter
 		dumpCmd.Stderr = os.Stderr
 		if err := dumpCmd.Run(); err == nil {
+			_ = gzipWriter.Close()
 			meta.DB = true
+		} else {
+			_ = gzipWriter.Close()
 		}
 		_ = dbFile.Close()
 	}
@@ -105,21 +111,24 @@ func ListSnapshots(projectRoot string) ([]SnapshotMetadata, error) {
 			continue
 		}
 		name := entry.Name()
-		metaPath := filepath.Join(root, name, "metadata.yml")
+		snapshotDir := filepath.Join(root, name)
+		metaPath := filepath.Join(snapshotDir, "metadata.yml")
 		payload, err := os.ReadFile(metaPath)
-		if err != nil {
-			snapshots = append(snapshots, SnapshotMetadata{Name: name})
-			continue
-		}
 
 		var meta SnapshotMetadata
-		if err := yaml.Unmarshal(payload, &meta); err != nil {
-			snapshots = append(snapshots, SnapshotMetadata{Name: name})
-			continue
+		if err != nil {
+			meta = SnapshotMetadata{Name: name}
+		} else if err := yaml.Unmarshal(payload, &meta); err != nil {
+			meta = SnapshotMetadata{Name: name}
 		}
+
 		if meta.Name == "" {
 			meta.Name = name
 		}
+
+		// Calculate size
+		meta.SizeBytes = calculateDirSize(snapshotDir)
+
 		snapshots = append(snapshots, meta)
 	}
 
@@ -130,6 +139,20 @@ func ListSnapshots(projectRoot string) ([]SnapshotMetadata, error) {
 	return snapshots, nil
 }
 
+func calculateDirSize(path string) int64 {
+	var size int64
+	_ = filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			size += info.Size()
+		}
+		return nil
+	})
+	return size
+}
+
 func RestoreSnapshot(projectRoot string, config Config, name string, dbOnly bool, mediaOnly bool) error {
 	snapshotDir := filepath.Join(SnapshotRoot(projectRoot), name)
 	if _, err := os.Stat(snapshotDir); err != nil {
@@ -137,19 +160,44 @@ func RestoreSnapshot(projectRoot string, config Config, name string, dbOnly bool
 	}
 
 	if !mediaOnly {
-		dbPath := filepath.Join(snapshotDir, "db.sql")
-		if file, err := os.Open(dbPath); err == nil {
+		dbPathGzip := filepath.Join(snapshotDir, "db.sql.gz")
+		dbPathRaw := filepath.Join(snapshotDir, "db.sql")
+
+		var dbReader io.ReadCloser
+		var err error
+
+		if _, err = os.Stat(dbPathGzip); err == nil {
+			file, err := os.Open(dbPathGzip)
+			if err != nil {
+				return fmt.Errorf("open gzipped database snapshot %s: %w", name, err)
+			}
+			gzReader, err := gzip.NewReader(file)
+			if err != nil {
+				_ = file.Close()
+				return fmt.Errorf("create gzip reader for %s: %w", name, err)
+			}
+			dbReader = struct {
+				io.Reader
+				io.Closer
+			}{gzReader, file}
+		} else if _, err = os.Stat(dbPathRaw); err == nil {
+			dbReader, err = os.Open(dbPathRaw)
+			if err != nil {
+				return fmt.Errorf("open raw database snapshot %s: %w", name, err)
+			}
+		}
+
+		if dbReader != nil {
+			defer dbReader.Close()
 			containerName := fmt.Sprintf("%s-db-1", config.ProjectName)
 			credentials := resolveSnapshotDBCredentials(containerName)
 			importCmd := buildSnapshotImportCommand(containerName, credentials)
-			importCmd.Stdin = file
+			importCmd.Stdin = dbReader
 			importCmd.Stdout = os.Stdout
 			importCmd.Stderr = os.Stderr
 			if err := importCmd.Run(); err != nil {
-				_ = file.Close()
 				return fmt.Errorf("restore database from snapshot %s: %w", name, err)
 			}
-			_ = file.Close()
 		}
 	}
 

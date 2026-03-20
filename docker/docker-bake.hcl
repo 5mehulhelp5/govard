@@ -135,6 +135,34 @@ target "php-magento2" {
   tags = ["${DOCKER_ORG}php-magento2:${version}"]
 }
 
+# ─── PHP (Debug) ───────────────────────────────────────────────────────────
+target "php-debug" {
+  name       = "php-debug-${replace(version, ".", "-")}"
+  context    = "docker/php"
+  dockerfile = "debug/Dockerfile"
+  matrix = {
+    version = ["8.4", "8.3", "8.2", "8.1", "7.4", "7.3", "7.2", "7.1"]
+  }
+  args = {
+    BASE_IMAGE = "${DOCKER_ORG}php:${version}"
+  }
+  tags = ["${DOCKER_ORG}php:${version}-debug"]
+}
+
+# ─── PHP (Magento 2 - Debug) ───────────────────────────────────────────────
+target "php-magento2-debug" {
+  name       = "php-magento2-debug-${replace(version, ".", "-")}"
+  context    = "docker/php"
+  dockerfile = "debug/Dockerfile"
+  matrix = {
+    version = ["8.4", "8.3", "8.2", "8.1", "7.4", "7.3", "7.2", "7.1"]
+  }
+  args = {
+    BASE_IMAGE = "${DOCKER_ORG}php-magento2:${version}"
+  }
+  tags = ["${DOCKER_ORG}php-magento2:${version}-debug"]
+}
+
 # ─── RabbitMQ ──────────────────────────────────────────────────────────────
 target "rabbitmq" {
   name       = "rabbitmq-${replace(version, ".", "-")}"

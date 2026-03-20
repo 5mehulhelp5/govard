@@ -9,6 +9,7 @@ govard db connect
 govard db dump > backup.sql
 govard db query "SELECT * FROM core_config_data LIMIT 5"
 govard db info
+govard db top
 cat backup.sql | govard db import
 govard db import --stream-db --environment staging
 govard db import --stream-db --environment staging --file staging.sql
@@ -83,8 +84,18 @@ govard db info
 govard db info -e staging
 ```
 
+### `top`
+
+Real-time database process monitoring. Displays a live-updating table of active queries, their IDs, users, hosts, databases, commands, durations, and states.
+
+```bash
+govard db top
+govard db top -e staging
+```
+
 ## Notes
 
+- **Progress Bar:** Database `import` (with `--file` or `--stream-db`) and `sync` operations now include a real-time progress bar to track data transfer.
 - Use `-e <remote>` to run db operations over SSH for a configured remote.
 - Local DB credentials are read from the local DB container (`MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE`) with fallback `magento/magento/magento`.
 - Local DB client fallback:
@@ -106,7 +117,7 @@ govard db info -e staging
 `--no-noise` and `--no-pii` add `--ignore-table` flags per excluded table to the `mysqldump` call. Tables excluded by each flag:
 
 | Flag | Tables excluded |
-|---|---|
+| --- | --- |
 | `--no-noise` (`-N`) | Ephemeral / high-churn tables: `cron_schedule`, `cache_tag`, `session`, index replicas, `report_*`, `queue_message`, `oauth_nonce`, `search_query`, log tables, third-party activity tables, etc. |
 | `--no-pii` (`-S`) | All `--no-noise` tables **plus** PII tables: `customer_entity*`, `sales_order*`, `quote*`, `newsletter_subscriber`, `wishlist*`, `admin_user`, `admin_passwords`, `paypal_*`, `vault_payment_token*`, B2B company tables, etc. |
 

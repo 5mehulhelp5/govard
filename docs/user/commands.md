@@ -91,7 +91,7 @@ govard env pull
 govard env down
 govard env restart
 govard env ps
-govard env logs -e
+govard env logs [service] -e
 ```
 
 Service access under project scope:
@@ -252,13 +252,25 @@ Streams container logs.
 
 ```bash
 govard env logs      # All logs
+govard env logs php  # Stream logs from PHP container only
 govard env logs -e   # Error-only filtering
 govard env logs --tail 200
 ```
 
-### `govard debug`
+### `govard test`
 
-Toggle Xdebug 3.
+Run project testing frameworks within the application container.
+
+```bash
+govard test phpunit
+govard test phpstan
+govard test mftf
+govard test integration
+```
+
+See `docs/commands/test.md`.
+
+Manage Xdebug settings and debugging sessions (status, on, off, shell).
 
 ```bash
 govard debug on      # Enable Xdebug
@@ -330,9 +342,10 @@ See `docs/commands/sync.md`.
 
 ### `govard db`
 
-Database utilities with subcommands `connect`, `dump`, `import`, `query`, and `info`.
+Database utilities with subcommands `connect`, `dump`, `import`, `query`, `info`, and `top`.
 Supports remote-source streaming for local imports (`db import --stream-db -e <remote>`),
-file mode with `--file`, SQL query execution (`db query "SELECT ..."`), and connection info (`db info`).
+file mode with `--file`, SQL query execution (`db query "SELECT ..."`), connection info (`db info`),
+and real-time process monitoring (`db top`).
 
 See `docs/commands/db.md`.
 
@@ -362,8 +375,13 @@ See `docs/commands/open.md`.
 
 ### `govard tunnel`
 
-Create a public tunnel for your local project URL.
-Current provider support: Cloudflare (`cloudflared`) quick tunnels.
+Manage public tunnels and automatic base URL registration.
+
+```bash
+govard tunnel start
+govard tunnel status
+govard tunnel stop
+```
 
 See `docs/commands/tunnel.md`.
 
@@ -443,10 +461,15 @@ govard db                    # Database utilities (connect, dump, import)
 
 ### Redis
 
+Manage Redis or Valkey cache.
+
 ```bash
-govard env redis             # Project-scoped Redis (redis-cli)
-govard env valkey            # Project-scoped Valkey (valkey-cli)
+govard redis flush
+govard redis info
+govard redis cli
 ```
+
+See `docs/commands/redis.md`.
 
 ### Search
 

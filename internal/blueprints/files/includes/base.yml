@@ -32,6 +32,7 @@ services:
       {{ end }}
       - PUID={{ .Config.Stack.UserID }}
       - PGID={{ .Config.Stack.GroupID }}
+      - CHOWN_DIR_LIST="{{ range $i, $dir := .Config.Stack.ChownDirList }}{{ if $i }} {{ end }}{{ $dir }}{{ end }}"
 
   {{ if $isHybrid }}
   apache:
@@ -47,6 +48,7 @@ services:
       - APACHE_XDEBUG_SESSION={{ .XdebugSessionPattern }}
       - PUID={{ .Config.Stack.UserID }}
       - PGID={{ .Config.Stack.GroupID }}
+      - CHOWN_DIR_LIST="{{ range $i, $dir := .Config.Stack.ChownDirList }}{{ if $i }} {{ end }}{{ $dir }}{{ end }}"
   {{ end }}
 
   php:
@@ -75,10 +77,11 @@ services:
       GIT_SSH_COMMAND: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
       PUID: {{ .Config.Stack.UserID }}
       PGID: {{ .Config.Stack.GroupID }}
+      CHOWN_DIR_LIST: "{{ range $i, $dir := .Config.Stack.ChownDirList }}{{ if $i }} {{ end }}{{ $dir }}{{ end }}"
 
   {{ if .Config.Stack.Features.Xdebug }}
   php-debug:
-    image: {{ if eq .Config.Framework "magento2" }}{{ $.ImageRepository }}php-magento2:{{ .Config.Stack.PHPVersion }}{{ else }}{{ $.ImageRepository }}php:{{ .Config.Stack.PHPVersion }}{{ end }}
+    image: {{ if eq .Config.Framework "magento2" }}{{ $.ImageRepository }}php-magento2:{{ .Config.Stack.PHPVersion }}-debug{{ else }}{{ $.ImageRepository }}php:{{ .Config.Stack.PHPVersion }}-debug{{ end }}
     volumes:
       - .:/var/www/html
       {{ if .HostSSHDir }}
@@ -97,13 +100,16 @@ services:
       - govard-net
     environment:
       XDEBUG_MODE: debug
-      XDEBUG_CONFIG: client_host=host.docker.internal
+      XDEBUG_CONFIG: "client_host=host.docker.internal start_with_request=yes"
       {{ if .SSHAuthSock }}
       SSH_AUTH_SOCK: "/ssh-agent"
       {{ end }}
       GIT_SSH_COMMAND: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
       PUID: {{ .Config.Stack.UserID }}
       PGID: {{ .Config.Stack.GroupID }}
+      CHOWN_DIR_LIST: "{{ range $i, $dir := .Config.Stack.ChownDirList }}{{ if $i }} {{ end }}{{ $dir }}{{ end }}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
   {{ end }}
 
   {{ if ne .Config.Stack.DBType "none" }}

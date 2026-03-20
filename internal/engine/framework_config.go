@@ -129,7 +129,6 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 			"includes/base.yml",
 			"includes/redis.yml",
 			"includes/elasticsearch.yml",
-			"drupal/services.yml",
 			"includes/rabbitmq.yml",
 		},
 	},
@@ -254,7 +253,6 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 		Includes: []string{
 			"includes/base.yml",
 			"includes/redis.yml",
-			"cakephp/services.yml",
 			"includes/rabbitmq.yml",
 		},
 	},
@@ -279,7 +277,6 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 		Includes: []string{
 			"includes/base.yml",
 			"includes/redis.yml",
-			"wordpress/services.yml",
 			"includes/rabbitmq.yml",
 		},
 	},
