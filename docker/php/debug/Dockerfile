@@ -5,7 +5,8 @@ USER root
 
 RUN set -eux; \
     apk add --no-cache $PHPIZE_DEPS linux-headers; \
-    pecl install xdebug; \
+    XDEBUG_VERSION=$(php -r 'echo (int)PHP_MAJOR_VERSION >= 8 ? "xdebug" : "xdebug-2.9.8";'); \
+    pecl install "$XDEBUG_VERSION"; \
     docker-php-ext-enable xdebug; \
     apk del $PHPIZE_DEPS linux-headers
 

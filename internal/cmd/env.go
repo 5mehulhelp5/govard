@@ -86,7 +86,37 @@ func runEnvStart(cmd *cobra.Command, args []string) error {
 	command.Stdout = cmd.OutOrStdout()
 	command.Stderr = cmd.ErrOrStderr()
 	if err := command.Run(); err != nil {
-		return fmt.Errorf("start project containers: %w", err)
+		pterm.Warning.Printf("docker compose up failed: %v\n", err)
+		pterm.Info.Println("Attempting local Govard image build fallback...")
+
+		built, fallbackErr := fallbackBuildMissingGovardImagesFromCompose(composePath, cmd.OutOrStdout(), cmd.ErrOrStderr())
+		if fallbackErr != nil {
+			return fmt.Errorf("start project containers: %w (local fallback failed: %v)", err, fallbackErr)
+		}
+
+		if len(built) > 0 {
+			pterm.Success.Printf("Local fallback built %d image(s): %v\n", len(built), built)
+			pterm.Info.Println("Retrying docker compose up after local fallback build...")
+			retryCommand := exec.Command(
+				"docker",
+				"compose",
+				"--project-directory",
+				cwd,
+				"-p",
+				config.ProjectName,
+				"-f",
+				composePath,
+				"up",
+				"-d",
+			)
+			retryCommand.Stdout = cmd.OutOrStdout()
+			retryCommand.Stderr = cmd.ErrOrStderr()
+			if retryErr := retryCommand.Run(); retryErr != nil {
+				return fmt.Errorf("start project containers after fallback: %w", retryErr)
+			}
+		} else {
+			pterm.Info.Println("No missing Govard-managed images required local build. Containers may be started with current local images.")
+		}
 	}
 	pterm.Success.Println("✅ Environment started.")
 	return nil
@@ -142,7 +172,19 @@ func runEnvPull(cmd *cobra.Command, args []string) error {
 	command.Stdout = cmd.OutOrStdout()
 	command.Stderr = cmd.ErrOrStderr()
 	if err := command.Run(); err != nil {
-		return fmt.Errorf("pull project images: %w", err)
+		pterm.Warning.Printf("docker compose pull failed: %v\n", err)
+		pterm.Info.Println("Attempting local Govard image build fallback...")
+
+		built, fallbackErr := fallbackBuildMissingGovardImagesFromCompose(composePath, cmd.OutOrStdout(), cmd.ErrOrStderr())
+		if fallbackErr != nil {
+			return fmt.Errorf("pull project images: %w (local fallback failed: %v)", err, fallbackErr)
+		}
+
+		if len(built) > 0 {
+			pterm.Success.Printf("Local fallback built %d image(s): %v\n", len(built), built)
+		} else {
+			pterm.Info.Println("No missing Govard-managed images required local build. Images are already present locally.")
+		}
 	}
 	pterm.Success.Println("✅ Images pulled.")
 	return nil

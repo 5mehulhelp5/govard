@@ -12,6 +12,8 @@ group "default" {
     "opensearch",
     "php",
     "php-magento2",
+    "php-debug",
+    "php-magento2-debug",
     "rabbitmq",
     "redis",
     "valkey",
