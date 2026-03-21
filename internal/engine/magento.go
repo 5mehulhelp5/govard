@@ -83,6 +83,9 @@ func ConfigureMagento(projectName string, config Config) error {
 					pterm.Warning.Printf("app:config:import failed (%v). Trying autoloader reset and setup:upgrade...\n", repairErr)
 					_ = ensureMagentoLocalWritableDirs(containerName, config)
 
+					// Force clean generated code and caches to break the stale Interceptor/DI crash cycle
+					_ = exec.Command("docker", magentoDockerExecArgs(containerName, config, "sh", "-c", "rm -rf generated/code/* generated/metadata/* var/cache/* var/page_cache/* var/view_preprocessed/*")...).Run()
+
 					// Reset autoloader to clear stale classmap entries that reference missing generated files
 					if dumpErr := runMagentoComposerDumpAutoload(containerName, config); dumpErr != nil {
 						pterm.Warning.Printf("composer dump-autoload failed (%v), continuing with setup:upgrade anyway...\n", dumpErr)
@@ -102,7 +105,7 @@ func ConfigureMagento(projectName string, config Config) error {
 								}
 							}
 						}
-						return fmt.Errorf("command failed: %s %v\nRepair attempt failed (setup:upgrade): %v\nOriginal Output: %s", cmd.Desc, err, upgradeErr, outText)
+						return fmt.Errorf("command failed: %s %v\nRepair attempt failed (setup:upgrade): %v\nOutput: %s\nOriginal Output: %s", cmd.Desc, err, upgradeErr, repairOut, outText)
 					}
 				}
 
@@ -143,7 +146,7 @@ func needsConfigImport(output string) bool {
 	output = strings.ToLower(output)
 
 	// Traditional Magento message about config import/upgrade requirements
-	if strings.Contains(output, "app:config:import") && strings.Contains(output, "setup:upgrade") {
+	if strings.Contains(output, "app:config:import") || strings.Contains(output, "setup:upgrade") {
 		return true
 	}
 
@@ -224,7 +227,7 @@ func runMagentoSetupUpgrade(containerName string, config Config) error {
 }
 
 func runMagentoComposerDumpAutoload(containerName string, config Config) error {
-	args := magentoDockerExecArgs(containerName, config, "composer", "dump-autoload", "--no-dev", "--optimize")
+	args := magentoDockerExecArgs(containerName, config, "composer", "dump-autoload")
 	output, err := exec.Command("docker", args...).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("composer dump-autoload failed: %w\nOutput: %s", err, string(output))
@@ -237,7 +240,6 @@ func ensureMagentoLocalWritableDirs(containerName string, config Config) error {
 		"set -e",
 		`fix_dir() { p="$1"; if [ -L "$p" ]; then rm -f "$p"; fi; mkdir -p "$p"; }`,
 		"mkdir -p generated pub/static pub/media var",
-		"rm -rf generated/*",
 		"fix_dir var/session",
 		"fix_dir var/tmp",
 		"fix_dir var/report",

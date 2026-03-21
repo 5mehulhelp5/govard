@@ -16,7 +16,7 @@ func bootstrapComposerDumpAutoload(cmd *cobra.Command, cwd string) error {
 	if !fileExists(filepath.Join(cwd, "composer.json")) {
 		return nil
 	}
-	if err := runGovardSubcommand(cmd, govardComposerSubcommandArgs("dump-autoload", "-o", "-n")...); err != nil {
+	if err := runGovardSubcommand(cmd, govardComposerSubcommandArgs("dump-autoload", "-n")...); err != nil {
 		autoloadPath := filepath.Join(cwd, "vendor", "autoload.php")
 		if !fileExists(autoloadPath) {
 			return fmt.Errorf("composer autoload generation failed: %w", err)

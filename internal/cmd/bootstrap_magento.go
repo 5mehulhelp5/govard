@@ -94,6 +94,9 @@ return [
     'MAGE_MODE' => 'developer',
     'session' => [
         'save' => 'files'
+    ],
+    'install' => [
+        'date' => 'Mon, 01 May 2023 00:00:00 +0000'
     ]
 ];
 `, cryptKey,
@@ -160,4 +163,8 @@ func runMagentoSearchHostFixViaCLI(cmd *cobra.Command, config engine.Config) err
 		pterm.Warning.Printf("Could not fix search host via 'govard db query' (continuing): %v\n", err)
 	}
 	return err
+}
+
+func EnsureBootstrapMagentoEnvPHPForTest(config engine.Config, source string) error {
+	return ensureBootstrapMagentoEnvPHP(config, bootstrapRuntimeOptions{Source: source})
 }

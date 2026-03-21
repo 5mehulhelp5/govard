@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"govard/internal/engine"
 	"govard/internal/engine/bootstrap"
@@ -52,6 +53,13 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrap
 		installErr := runGovardSubcommand(cmd, govardComposerSubcommandArgs("install", "-n")...)
 		if installErr != nil {
 			autoloadPath := filepath.Join(cwd, "vendor", "autoload.php")
+
+			// If the error specifically mentions that the container is not running, we must stop.
+			errText := installErr.Error()
+			if strings.Contains(errText, "not running") || strings.Contains(errText, "No such container") {
+				return fmt.Errorf("composer install failed because the container is not running. Please check 'govard status' and 'docker ps': %w", installErr)
+			}
+
 			if fileExists(autoloadPath) {
 				pterm.Warning.Printf("composer install failed, but %s exists. Continuing bootstrap (%v).\n", autoloadPath, installErr)
 			} else {
