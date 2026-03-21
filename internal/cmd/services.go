@@ -18,7 +18,7 @@ var valkeyCmd = &cobra.Command{
 	Short:              "Control the valkey cache service",
 	Long:               `Interact with the Valkey cache service. Supports standard Docker Compose maintenance commands (ps, logs, stop, start, etc.).`,
 	DisableFlagParsing: true,
-	RunE:               func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) > 0 && (args[0] == "-h" || args[0] == "--help" || args[0] == "help") {
 			return cmd.Help()
 		}
@@ -39,7 +39,7 @@ var elasticsearchCmd = &cobra.Command{
 	Short:              "Control the elasticsearch service",
 	Long:               `Interact with the Elasticsearch service. Supports custom queries (via path) and standard Docker Compose maintenance commands (ps, logs, stop, start, etc.).`,
 	DisableFlagParsing: true,
-	RunE:               func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) > 0 && (args[0] == "-h" || args[0] == "--help" || args[0] == "help") {
 			return cmd.Help()
 		}
@@ -55,7 +55,7 @@ var opensearchCmd = &cobra.Command{
 	Short:              "Control the opensearch service",
 	Long:               `Interact with the Opensearch service. Supports custom queries (via path) and standard Docker Compose maintenance commands (ps, logs, stop, start, etc.).`,
 	DisableFlagParsing: true,
-	RunE:               func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) > 0 && (args[0] == "-h" || args[0] == "--help" || args[0] == "help") {
 			return cmd.Help()
 		}

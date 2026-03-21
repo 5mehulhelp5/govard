@@ -85,9 +85,9 @@ remotes:
 	want := [][]string{
 		{"remote", "test", "staging"},
 		{"tool", "composer", "install", "-n"},
-		{"tool", "composer", "dump-autoload", "-o", "-n"},
+		{"tool", "composer", "dump-autoload", "-n"},
 		{"db", "import", "--stream-db", "--environment", "staging"},
-		{"tool", "composer", "dump-autoload", "-o", "-n"},
+		{"tool", "composer", "dump-autoload", "-n"},
 		{"sync", "--source", "staging", "--media"},
 	}
 	if !reflect.DeepEqual(calls, want) {

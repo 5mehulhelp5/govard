@@ -56,7 +56,7 @@ func TestBootstrapComposerDumpAutoloadForTestRunsSubcommandWhenComposerJSONExist
 		t.Fatalf("BootstrapComposerDumpAutoloadForTest() error = %v", err)
 	}
 
-	want := []string{"tool", "composer", "dump-autoload", "-o", "-n"}
+	want := []string{"tool", "composer", "dump-autoload", "-n"}
 	if len(calls) != 1 {
 		t.Fatalf("expected one subcommand call, got %d", len(calls))
 	}

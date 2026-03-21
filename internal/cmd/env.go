@@ -136,7 +136,7 @@ func proxyEnvToCompose(cmd *cobra.Command, args []string) error {
 		if hasErrorFilter {
 			pterm.DefaultHeader.Println("Govard Log Stream (Errors Only)")
 			pterm.Info.Println("Filtering for errors...")
-			
+
 			// Rebuild args without --errors
 			filteredArgs := []string{}
 			for _, arg := range args {
@@ -146,14 +146,14 @@ func proxyEnvToCompose(cmd *cobra.Command, args []string) error {
 			}
 
 			// Construct manual grep command
-			composeCmd := fmt.Sprintf("docker compose --project-directory %s -p %s -f %s", 
+			composeCmd := fmt.Sprintf("docker compose --project-directory %s -p %s -f %s",
 				shellQuote(cwd), shellQuote(config.ProjectName), shellQuote(composePath))
-			
+
 			logArgs := strings.Join(filteredArgs, " ")
 			if !strings.Contains(logArgs, "-f") && !strings.Contains(logArgs, "--follow") {
 				logArgs += " -f --tail=100"
 			}
-			
+
 			filterCommand := fmt.Sprintf("%s %s | grep -iE 'error|critical|fail|exception'", composeCmd, logArgs)
 			c := exec.Command("sh", "-c", filterCommand)
 			c.Stdout, c.Stderr = os.Stdout, os.Stderr

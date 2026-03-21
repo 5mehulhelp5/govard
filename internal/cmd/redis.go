@@ -30,7 +30,7 @@ Supports both custom utility commands (flush, info, cli) and standard Docker Com
   # Check redis status
   govard v redis ps`,
 	DisableFlagParsing: true,
-	RunE:               func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) > 0 {
 			if args[0] == "-h" || args[0] == "--help" || args[0] == "help" {
 				return cmd.Help()

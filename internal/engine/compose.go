@@ -26,7 +26,7 @@ func RunCompose(ctx context.Context, opts ComposeOptions) error {
 
 	cmd := exec.CommandContext(ctx, "docker", dockerArgs...)
 	cmd.Dir = opts.ProjectDir
-	
+
 	// Default to standard streams if not provided
 	if opts.Stdout != nil {
 		cmd.Stdout = opts.Stdout

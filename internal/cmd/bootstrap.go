@@ -239,7 +239,6 @@ func ensureBootstrapInit(cmd *cobra.Command, cwd string) error {
 	return runGovardSubcommand(cmd, initArgs...)
 }
 
-
 var phpContainerShellRunner = func(config engine.Config, commandLine string) error {
 	containerName := fmt.Sprintf("%s-php-1", config.ProjectName)
 	dockerArgs := []string{"exec"}

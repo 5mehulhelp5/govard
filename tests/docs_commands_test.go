@@ -9,7 +9,7 @@ import (
 func TestDocsCommandsExist(t *testing.T) {
 	required := []string{
 		"docs/commands/bootstrap.md",
-		"docs/commands/down.md",
+		"docs/commands/env.md",
 		"docs/commands/remote.md",
 		"docs/commands/sync.md",
 		"docs/commands/db.md",

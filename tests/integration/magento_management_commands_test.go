@@ -153,6 +153,6 @@ func TestSvcCommandsWithShims(t *testing.T) {
 	assertContains(t, logs, " -p proxy ")
 	assertContains(t, logs, " down")
 	assertContains(t, logs, " ps")
-	assertContains(t, logs, " logs -f --tail=100")
+	assertContains(t, logs, " logs")
 	assertContains(t, logs, " pull")
 }

@@ -43,7 +43,7 @@ Case Studies:
 
   # View help for all supported global compose commands
   govard svc --help`,
-	Args:  cobra.ArbitraryArgs,
+	Args: cobra.ArbitraryArgs,
 	FParseErrWhitelist: cobra.FParseErrWhitelist{
 		UnknownFlags: true,
 	},
@@ -123,7 +123,7 @@ func runGlobalProxyCompose(cmd *cobra.Command, args ...string) error {
 
 func handleSvcUp(cmd *cobra.Command, args []string) error {
 	pterm.DefaultHeader.Println("Starting Govard Global Services")
-	
+
 	ctx := cmd.Context()
 	if !engine.CheckPortForGovardProxy(ctx, "80") {
 		pterm.Warning.Println("Port 80 is in use. Govard Proxy might fail.")
@@ -175,7 +175,9 @@ func handleSvcUp(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	if waitForGlobalProxyReady(ctx, 8*time.Second) {
 		_ = registerGlobalServiceRoutes()
@@ -208,7 +210,9 @@ func handleSvcDown(cmd *cobra.Command, args []string) error {
 
 func reviveRunningProjectRoutes() error {
 	running, err := engine.GetRunningProjectNames(context.Background())
-	if err != nil || len(running) == 0 { return err }
+	if err != nil || len(running) == 0 {
+		return err
+	}
 
 	entries, _ := engine.ReadProjectRegistryEntries()
 	for _, projectName := range running {
@@ -235,7 +239,8 @@ func waitForGlobalProxyReady(ctx context.Context, timeout time.Duration) bool {
 			return true
 		}
 		select {
-		case <-ctx.Done(): return false
+		case <-ctx.Done():
+			return false
 		case <-time.After(250 * time.Millisecond):
 		}
 	}

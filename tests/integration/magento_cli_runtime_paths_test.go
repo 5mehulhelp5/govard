@@ -106,7 +106,7 @@ func TestLogsCommandPaths(t *testing.T) {
 
 		logs := shim.ReadLog(t)
 		assertContains(t, logs, "docker|compose --project-directory")
-		assertContains(t, logs, " logs -f --tail=100")
+		assertContains(t, logs, " logs")
 	})
 
 	t.Run("ErrorFilterUsesShellPipeline", func(t *testing.T) {

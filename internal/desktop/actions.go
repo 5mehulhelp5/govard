@@ -613,7 +613,7 @@ func stopEnvironment(project string) (string, error) {
 			config.ProjectName = info.name
 		}
 		composePath := engine.ComposeFilePath(info.workingDir, config.ProjectName)
-		
+
 		err := engine.RunCompose(context.Background(), engine.ComposeOptions{
 			ProjectDir:  info.workingDir,
 			ProjectName: config.ProjectName,

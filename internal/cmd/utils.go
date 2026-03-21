@@ -119,7 +119,7 @@ func rebrandComposeHelp(cmd *cobra.Command, govardCmdName string) {
 
 	// Rebrand: replace `docker compose` with `govard [govardCmdName]`
 	helpText = strings.ReplaceAll(helpText, "docker compose", "govard "+govardCmdName)
-	
+
 	// Remove noise (flags that user shouldn't use directly because Govard manages them)
 	noiseLines := []string{
 		"--file",
@@ -128,7 +128,7 @@ func rebrandComposeHelp(cmd *cobra.Command, govardCmdName string) {
 		"-p",
 		"--project-directory",
 	}
-	
+
 	lines := strings.Split(helpText, "\n")
 	var filteredLines []string
 	for _, line := range lines {
@@ -182,20 +182,20 @@ func boolFlagOrDefault(cmd *cobra.Command, name string, fallback bool) bool {
 // that accepts a service name at the end of its arguments.
 func isComposeMaintenanceCommand(cmd string) bool {
 	commands := map[string]bool{
-		"ps":       true,
-		"logs":     true,
-		"top":      true,
-		"stop":     true,
-		"start":    true,
-		"restart":  true,
-		"pause":    true,
-		"unpause":  true,
-		"pull":     true,
-		"build":    true,
-		"port":     true,
-		"images":   true,
-		"rm":       true,
-		"kill":     true,
+		"ps":      true,
+		"logs":    true,
+		"top":     true,
+		"stop":    true,
+		"start":   true,
+		"restart": true,
+		"pause":   true,
+		"unpause": true,
+		"pull":    true,
+		"build":   true,
+		"port":    true,
+		"images":  true,
+		"rm":      true,
+		"kill":    true,
 	}
 	return commands[cmd]
 }
