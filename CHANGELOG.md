@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.22.1] - 2026-03-21
+
+### Added
+
+- **Local Image Build Fallback**: Govard now automatically attempts to build missing Docker images from embedded blueprints if pulling fails.
+- **Dependency-Aware Image Building**: Implemented a resolution algorithm for local image builds that correctly handles parent-child image dependencies.
+
+### Changed
+
+- **Command Refactoring**: Centralized Docker Compose execution logic in the `engine` package for better maintainability and consistency.
+- **Standardized CLI Signature**: Unified `RunE` signatures and context handling across various command implementations.
+- **Bootstrap Stability**: Improved Magento bootstrap reliability by clearing generated code and simplifying autoloader generation.
+- **Log Management**: Refined log tailing and follow logic in `env logs` commands for more predictable behavior.
+
+### Fixed
+
+- **Composer Workflow**: Removed the `-o` (optimize) flag from `composer dump-autoload` in development flows to align with development best practices and resolve test failures.
+- **Documentation Paths**: Corrected documentation links and existence checks in test suites.
+
 ## [1.22.0] - 2026-03-20
 
 ### Added
