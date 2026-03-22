@@ -5,6 +5,7 @@
 services:
   {{ if or (eq $search "elasticsearch") (eq $search "opensearch") }}
   elasticsearch:
+    hostname: {{ .Config.ProjectName }}-elasticsearch
     image: {{ if eq $search "elasticsearch" }}{{ $.ImageRepository }}elasticsearch:{{ $searchVersion }}{{ else }}{{ $.ImageRepository }}opensearch:{{ $searchVersion }}{{ end }}
 
     environment:

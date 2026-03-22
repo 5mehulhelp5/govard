@@ -3,6 +3,7 @@
 services:
   {{ if .Config.Stack.Features.Varnish }}
   varnish:
+    hostname: {{ .Config.ProjectName }}-varnish
     image: {{ $.ImageRepository }}varnish:{{ .Config.Stack.VarnishVersion }}
     volumes:
       - './varnish/default.vcl:/etc/varnish/default.vcl:ro'

@@ -2,6 +2,9 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+	"strings"
 
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
@@ -71,9 +74,14 @@ var debugStatusCmd = &cobra.Command{
 }
 
 var debugShellCmd = &cobra.Command{
-	Use:   "shell",
-	Short: "Open a debug shell",
+	Use:                "shell",
+	Short:              "Open a debug shell",
+	DisableFlagParsing: true,
+	SilenceUsage:       true,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) > 0 && (args[0] == "-h" || args[0] == "--help" || args[0] == "help") {
+			return cmd.Help()
+		}
 		config, err := loadFullConfig()
 		if err != nil {
 			return err
@@ -82,10 +90,43 @@ var debugShellCmd = &cobra.Command{
 			return fmt.Errorf("xdebug is disabled. Enable it with 'govard debug on'")
 		}
 		containerName := fmt.Sprintf("%s-php-debug-1", config.ProjectName)
-		// Set XDEBUG_SESSION and PHP_IDE_CONFIG to trigger debugger in CLI scripts.
-		// We use -c to export variables and then exec bash to keep the shell interactive.
-		bashCmd := "export XDEBUG_SESSION=PHPSTORM; export PHP_IDE_CONFIG=\"serverName=govard\"; exec bash"
-		return RunInContainer(containerName, ResolveProjectExecUser(config, "www-data"), "bash", []string{"-c", bashCmd})
+		user := ResolveProjectExecUser(config, "www-data")
+
+		// If no arguments, we're starting an interactive session.
+		// We set PS1 (cyan) and Xdebug environment variables.
+		if len(args) == 0 {
+			coloredPS1 := "\\[\\033[01;36m\\]\\u@\\h\\[\\033[00m\\]:\\w\\$ "
+			bashCmd := fmt.Sprintf("export XDEBUG_SESSION=PHPSTORM; export PHP_IDE_CONFIG=\"serverName=govard\"; export PS1='%s'; exec bash", coloredPS1)
+			err := RunInContainer(containerName, user, "bash", []string{"-c", bashCmd})
+			if err == nil {
+				return nil
+			}
+
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				code := exitErr.ExitCode()
+				if code == 126 || code == 127 {
+					err = RunInContainer(containerName, user, "sh", args)
+				} else {
+					os.Exit(code)
+				}
+			}
+			return err
+		}
+
+		// Passthrough commands (e.g. govard debug shell -c "...")
+		// We still prefix with Xdebug exports so the command has the debugger active.
+		cmdStr := strings.Join(args, " ")
+		bashCmd := fmt.Sprintf("export XDEBUG_SESSION=PHPSTORM; export PHP_IDE_CONFIG=\"serverName=govard\"; exec bash %s", cmdStr)
+		err = RunInContainer(containerName, user, "bash", []string{"-c", bashCmd})
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			code := exitErr.ExitCode()
+			if code == 126 || code == 127 {
+				err = RunInContainer(containerName, user, "sh", args)
+			} else {
+				os.Exit(code)
+			}
+		}
+		return err
 	},
 }
 
