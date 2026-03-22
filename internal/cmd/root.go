@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 
 	"govard/internal/ui"
-
+	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 )
 
@@ -36,6 +36,7 @@ Documentation: https://github.com/ddtcorex/govard`,
 	},
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		if verbose {
+			pterm.EnableDebugMessages()
 			slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug})))
 		} else {
 			// Write background logs to temp file for audits/diagnostics

@@ -373,6 +373,16 @@ func resolveDBImportReader(options dbCommandOptions) (io.Reader, io.Closer, int6
 	if stdinIsTerminal() {
 		return nil, nil, 0, errors.New("no import input provided; use --file or pipe SQL via stdin")
 	}
+
+	// Try to get size if stdin is redirected from a file
+	if info, err := os.Stdin.Stat(); err == nil {
+		// If it's not a char device (terminal) and not a pipe (S_IFIFO), it might be a regular file.
+		// On Linux, a redirected file has Mode().IsRegular() or just a non-zero size.
+		if (info.Mode() & os.ModeCharDevice) == 0 {
+			return os.Stdin, nil, info.Size(), nil
+		}
+	}
+
 	return os.Stdin, nil, 0, nil
 }
 
@@ -529,6 +539,7 @@ func RunImportFromReaderWithProgress(importCmd *exec.Cmd, reader io.Reader, tota
 	}
 
 	if bar != nil {
+		bar.Add(int(totalSize) - bar.Current)
 		_, _ = bar.Stop()
 	}
 
@@ -587,6 +598,7 @@ func RunDumpToImportWithProgress(dumpCmd *exec.Cmd, importCmd *exec.Cmd, totalSi
 	}
 
 	if bar != nil {
+		bar.Add(int(totalSize) - bar.Current)
 		_, _ = bar.Stop()
 	}
 

@@ -476,6 +476,19 @@ var wordpressSensitiveTables = []string{
 
 // buildIgnoredTableArgs returns docker exec --ignore-table flags for the given credentials and filter flags.
 func buildIgnoredTableArgs(dbName string, dbPrefix string, noNoise bool, noPII bool, framework string) []string {
+	tables := getIgnoredTableList(noNoise, noPII, framework)
+	if len(tables) == 0 {
+		return nil
+	}
+
+	args := make([]string, 0, len(tables))
+	for _, t := range tables {
+		args = append(args, "--ignore-table="+dbName+"."+dbPrefix+t)
+	}
+	return args
+}
+
+func getIgnoredTableList(noNoise bool, noPII bool, framework string) []string {
 	if !noNoise && !noPII {
 		return nil
 	}
@@ -503,12 +516,7 @@ func buildIgnoredTableArgs(dbName string, dbPrefix string, noNoise bool, noPII b
 	if noPII {
 		tables = append(tables, sensitive...)
 	}
-
-	args := make([]string, 0, len(tables))
-	for _, t := range tables {
-		args = append(args, "--ignore-table="+dbName+"."+dbPrefix+t)
-	}
-	return args
+	return tables
 }
 
 func mysqlPasswordExportPrefix(password string) string {
@@ -604,15 +612,33 @@ func buildRemoteMySQLQueryCommandString(credentials dbCredentials, query string)
 
 	return mysqlPasswordExportPrefix(credentials.Password) + strings.Join(args, " ")
 }
-func GetDatabaseSize(config engine.Config, remoteName string, remoteCfg engine.RemoteConfig, credentials dbCredentials) (int64, error) {
-	query := fmt.Sprintf("SELECT SUM(data_length + index_length) FROM information_schema.tables WHERE table_schema = '%s'", strings.ReplaceAll(credentials.Database, "'", "''"))
-
-	var cmdStr string
-	if credentials.Password != "" {
-		cmdStr = fmt.Sprintf("mysql -u%s -p%s -BN -e %s", shellQuote(credentials.Username), shellQuote(credentials.Password), shellQuote(query))
-	} else {
-		cmdStr = fmt.Sprintf("mysql -u%s -BN -e %s", shellQuote(credentials.Username), shellQuote(query))
+func GetDatabaseSize(config engine.Config, remoteName string, remoteCfg engine.RemoteConfig, credentials dbCredentials, noNoise bool, noPII bool) (int64, error) {
+	ignoredTables := getIgnoredTableList(noNoise, noPII, config.Framework)
+	whereClause := fmt.Sprintf("WHERE table_schema = '%s'", strings.ReplaceAll(credentials.Database, "'", "''"))
+	if len(ignoredTables) > 0 {
+		quotedTables := make([]string, len(ignoredTables))
+		for i, t := range ignoredTables {
+			quotedTables[i] = "'" + strings.ReplaceAll(t, "'", "''") + "'"
+		}
+		whereClause += fmt.Sprintf(" AND table_name NOT IN (%s)", strings.Join(quotedTables, ","))
 	}
+
+	// query the total logical size
+	query := fmt.Sprintf("SELECT SUM(table_rows * avg_row_length) FROM information_schema.tables %s", whereClause)
+
+	credentials = credentials.withDefaults()
+	mysqlArgs := []string{"\"$DB_CLI\"", "-BN"}
+	if host := strings.TrimSpace(credentials.Host); host != "" {
+		mysqlArgs = append(mysqlArgs, "-h"+shellQuote(host))
+	}
+	if credentials.Port > 0 {
+		mysqlArgs = append(mysqlArgs, "-P"+strconv.Itoa(credentials.Port))
+	}
+	mysqlArgs = append(mysqlArgs, "-u"+shellQuote(credentials.Username), "-e", shellQuote(query))
+
+	dbCliDetect := `if command -v mysql >/dev/null 2>&1; then DB_CLI=mysql; elif command -v mariadb >/dev/null 2>&1; then DB_CLI=mariadb; else echo "mysql client not found" >&2; exit 127; fi`
+	mysqlCmd := mysqlPasswordExportPrefix(credentials.Password) + strings.Join(mysqlArgs, " ")
+	cmdStr := fmt.Sprintf("%s && %s", dbCliDetect, mysqlCmd)
 
 	var output []byte
 	var err error
@@ -628,12 +654,18 @@ func GetDatabaseSize(config engine.Config, remoteName string, remoteCfg engine.R
 		return 0, err
 	}
 
-	sizeStr := strings.TrimSpace(string(output))
-	if sizeStr == "" || sizeStr == "NULL" {
+	totalSizeStr := strings.TrimSpace(string(output))
+	if totalSizeStr == "" || totalSizeStr == "NULL" {
 		return 0, nil
 	}
 
-	var size int64
-	_, _ = fmt.Sscanf(sizeStr, "%d", &size)
-	return size, nil
+	var logicalSize int64
+	_, _ = fmt.Sscanf(totalSizeStr, "%d", &logicalSize)
+
+	// Since mysqldump generates a compact SQL text file while InnoDB stores data in 16KB pages
+	// (often with significant internal overhead/fragmentation), the logical size is usually
+	// an overestimate. We apply a 0.6 heuristic to bring it closer to actual dump results.
+	targetSize := int64(float64(logicalSize) * 0.6)
+
+	return targetSize, nil
 }

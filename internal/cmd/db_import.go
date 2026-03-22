@@ -49,6 +49,14 @@ func runStreamDBImport(cmd *cobra.Command, config engine.Config, options dbComma
 	sourceDumpCmd := remote.BuildSSHExecCommand(options.Environment, remoteCfg, true, buildRemoteMySQLDumpCommandString(remoteCredentials, options.Full, options.NoNoise, options.NoPII, config.Framework))
 	destinationImportCmd := buildLocalDBImportCommand(containerName, localCredentials)
 	sanitizeStreamDump := options.StreamDB
+	var totalSize int64
+	spinner, _ := pterm.DefaultSpinner.Start(fmt.Sprintf("Fetching remote database size for '%s'...", options.Environment))
+	if size, sizeErr := GetDatabaseSize(config, options.Environment, remoteCfg, remoteCredentials, options.NoNoise, options.NoPII); sizeErr == nil {
+		totalSize = size
+		spinner.Success()
+	} else {
+		spinner.Warning(fmt.Sprintf("could not determine remote database size: %v", sizeErr))
+	}
 
 	if options.File != "" {
 		targetPath := filepath.Clean(options.File)
@@ -70,7 +78,7 @@ func runStreamDBImport(cmd *cobra.Command, config engine.Config, options dbComma
 		}
 		defer fileReader.Close()
 
-		if err := RunImportFromReader(destinationImportCmd, fileReader, false, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
+		if err := RunImportFromReaderWithProgress(destinationImportCmd, fileReader, totalSize, false, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
 			return fmt.Errorf("stream-db local import step failed: %w", err)
 		}
 
@@ -78,7 +86,7 @@ func runStreamDBImport(cmd *cobra.Command, config engine.Config, options dbComma
 		return nil
 	}
 
-	if err := RunDumpToImport(sourceDumpCmd, destinationImportCmd, sanitizeStreamDump, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
+	if err := RunDumpToImportWithProgress(sourceDumpCmd, destinationImportCmd, totalSize, sanitizeStreamDump, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
 		return fmt.Errorf("stream-db import failed: %w", err)
 	}
 	pterm.Success.Printf("stream import completed from remote '%s' into local database.\n", options.Environment)

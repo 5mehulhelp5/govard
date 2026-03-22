@@ -77,7 +77,7 @@ func buildDatabaseSyncAction(config engine.Config, source syncEndpoint, destinat
 			}
 
 			spinner, _ := pterm.DefaultSpinner.Start("Fetching remote database size...")
-			totalSize, _ := GetDatabaseSize(config, source.Name, source.RemoteCfg, remoteCredentials)
+			totalSize, _ := GetDatabaseSize(config, source.Name, source.RemoteCfg, remoteCredentials, noNoise, noPII)
 			spinner.Success()
 
 			dumpCmd := remote.BuildSSHExecCommand(source.Name, source.RemoteCfg, true, buildRemoteMySQLDumpCommandString(remoteCredentials, false, noNoise, noPII, config.Framework))
@@ -94,7 +94,7 @@ func buildDatabaseSyncAction(config engine.Config, source syncEndpoint, destinat
 			}
 
 			spinner, _ := pterm.DefaultSpinner.Start("Fetching local database size...")
-			totalSize, _ := GetDatabaseSize(config, "local", engine.RemoteConfig{}, localCredentials)
+			totalSize, _ := GetDatabaseSize(config, "local", engine.RemoteConfig{}, localCredentials, noNoise, noPII)
 			spinner.Success()
 
 			importCmd := remote.BuildSSHExecCommand(destination.Name, destination.RemoteCfg, true, buildRemoteMySQLImportCommandString(remoteCredentials))
