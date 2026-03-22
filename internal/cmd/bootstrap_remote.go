@@ -160,7 +160,14 @@ func runBootstrapDatabaseSync(cmd *cobra.Command, opts bootstrapRuntimeOptions) 
 	}
 
 	if opts.StreamDB {
-		if err := runGovardSubcommand(cmd, "db", "import", "--stream-db", "--environment", opts.Source); err != nil {
+		importArgs := []string{"db", "import", "--stream-db", "--environment", opts.Source}
+		if opts.NoNoise {
+			importArgs = append(importArgs, "--no-noise")
+		}
+		if opts.NoPII {
+			importArgs = append(importArgs, "--no-pii")
+		}
+		if err := runGovardSubcommand(cmd, importArgs...); err != nil {
 			return fmt.Errorf("stream-db import failed: %w", err)
 		}
 		return nil

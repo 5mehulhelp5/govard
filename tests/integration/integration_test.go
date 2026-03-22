@@ -287,10 +287,24 @@ log="${GOVARD_TEST_RUNTIME_LOG:-}"
 if [ -n "$log" ]; then
   printf '%%s|%%s\n' %q "$*" >> "$log"
 fi
+
+current_exit="${%s:-%d}"
+
+# Support for one-shot failure testing (good for fallbacks)
+if [ "$current_exit" = "127" ] || [ "$current_exit" = "126" ]; then
+  state_file="$(dirname "$log")/.shim_state_%s"
+  if [ ! -f "$state_file" ]; then
+    touch "$state_file"
+    exit "$current_exit"
+  fi
+  # After the first failure, subsequent calls succeed
+  current_exit=0
+fi
+
 %s
 %s
-exit "${%s:-%d}"
-`, name, sshBehavior, dockerBehavior, exitVar, exitCode)
+exit "$current_exit"
+`, name, exitVar, exitCode, name, sshBehavior, dockerBehavior)
 }
 
 // Env returns additional environment variables required to use the runtime shims.

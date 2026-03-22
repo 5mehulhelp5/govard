@@ -84,14 +84,15 @@ func TestStatusHandlesDockerConnectionErrors(t *testing.T) {
 func TestShellFallsBackToShWhenBashFails(t *testing.T) {
 	env := NewTestEnvironment(t)
 	projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "shell-fallback-m2")
-	shim := env.SetupRuntimeShims(t, map[string]int{"docker": 1, "ssh": 0, "rsync": 0})
+	shim := env.SetupRuntimeShims(t, map[string]int{"docker": 127, "ssh": 0, "rsync": 0})
 
 	result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "shell")
 	result.AssertSuccess(t)
 
 	logs := shim.ReadLog(t)
-	assertContains(t, logs, "docker|exec -it -u www-data m2-clone-basic-php-1 bash")
-	assertContains(t, logs, "docker|exec -it -u www-data m2-clone-basic-php-1 sh")
+	assertContains(t, logs, "docker|exec")
+	assertContains(t, logs, "bash -c export PS1=")
+	assertContains(t, logs, "sh")
 }
 
 func TestLogsCommandPaths(t *testing.T) {

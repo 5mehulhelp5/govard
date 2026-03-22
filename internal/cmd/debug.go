@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
 	"strings"
 
@@ -92,41 +91,31 @@ var debugShellCmd = &cobra.Command{
 		containerName := fmt.Sprintf("%s-php-debug-1", config.ProjectName)
 		user := ResolveProjectExecUser(config, "www-data")
 
-		// If no arguments, we're starting an interactive session.
-		// We set PS1 (cyan) and Xdebug environment variables.
 		if len(args) == 0 {
+			// Interactive session with colored PS1 trick and Xdebug exports
 			coloredPS1 := "\\[\\033[01;36m\\]\\u@\\h\\[\\033[00m\\]:\\w\\$ "
 			bashCmd := fmt.Sprintf("export XDEBUG_SESSION=PHPSTORM; export PHP_IDE_CONFIG=\"serverName=govard\"; export PS1='%s'; exec bash", coloredPS1)
-			err := RunInContainer(containerName, user, "bash", []string{"-c", bashCmd})
-			if err == nil {
-				return nil
-			}
-
-			if exitErr, ok := err.(*exec.ExitError); ok {
-				code := exitErr.ExitCode()
-				if code == 126 || code == 127 {
-					err = RunInContainer(containerName, user, "sh", args)
-				} else {
-					os.Exit(code)
-				}
-			}
-			return err
+			err = RunInContainer(containerName, user, "bash", []string{"-c", bashCmd})
+		} else {
+			// Passthrough commands (e.g. govard debug shell -c "...")
+			// We still prefix with Xdebug exports so the command has the debugger active.
+			cmdStr := strings.Join(args, " ")
+			bashCmd := fmt.Sprintf("export XDEBUG_SESSION=PHPSTORM; export PHP_IDE_CONFIG=\"serverName=govard\"; exec bash %s", cmdStr)
+			err = RunInContainer(containerName, user, "bash", []string{"-c", bashCmd})
 		}
 
-		// Passthrough commands (e.g. govard debug shell -c "...")
-		// We still prefix with Xdebug exports so the command has the debugger active.
-		cmdStr := strings.Join(args, " ")
-		bashCmd := fmt.Sprintf("export XDEBUG_SESSION=PHPSTORM; export PHP_IDE_CONFIG=\"serverName=govard\"; exec bash %s", cmdStr)
-		err = RunInContainer(containerName, user, "bash", []string{"-c", bashCmd})
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			code := exitErr.ExitCode()
 			if code == 126 || code == 127 {
+				// Fallback to sh if bash is not available/executable
 				err = RunInContainer(containerName, user, "sh", args)
-			} else {
-				os.Exit(code)
 			}
 		}
-		return err
+
+		if err != nil {
+			return err
+		}
+		return nil
 	},
 }
 

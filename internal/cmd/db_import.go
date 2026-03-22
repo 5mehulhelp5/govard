@@ -46,7 +46,7 @@ func runStreamDBImport(cmd *cobra.Command, config engine.Config, options dbComma
 		return err
 	}
 
-	sourceDumpCmd := remote.BuildSSHExecCommand(options.Environment, remoteCfg, true, buildRemoteMySQLDumpCommandString(remoteCredentials, options.Full, false, false, config.Framework))
+	sourceDumpCmd := remote.BuildSSHExecCommand(options.Environment, remoteCfg, true, buildRemoteMySQLDumpCommandString(remoteCredentials, options.Full, options.NoNoise, options.NoPII, config.Framework))
 	destinationImportCmd := buildLocalDBImportCommand(containerName, localCredentials)
 	sanitizeStreamDump := options.StreamDB
 
