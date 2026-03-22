@@ -40,7 +40,7 @@ func TestValidateDBCommandOptions(t *testing.T) {
 		{
 			name:      "dump allows full mode",
 			sub:       "dump",
-			options:   cmd.DBCommandOptions{Environment: "local", Full: true},
+			options:   cmd.DBCommandOptions{Environment: "local", NoPII: false, Drop: false, Local: false},
 			expectErr: false,
 		},
 	}

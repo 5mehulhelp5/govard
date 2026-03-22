@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 	"time"
 
@@ -471,15 +472,40 @@ func RootCommandForTest() *cobra.Command {
 }
 
 func ensureRemoteKnown(config engine.Config, name string) (engine.RemoteConfig, error) {
-	remote, ok := config.Remotes[name]
+	resolvedName, ok := findRemoteByNameOrEnvironment(config, name)
 	if !ok {
 		return engine.RemoteConfig{}, fmt.Errorf("unknown remote: %s", name)
 	}
-	resolved, err := resolveRemoteConfigSecrets(name, remote)
+	remote := config.Remotes[resolvedName]
+	resolved, err := resolveRemoteConfigSecrets(resolvedName, remote)
 	if err != nil {
 		return engine.RemoteConfig{}, err
 	}
 	return resolved, nil
+}
+
+func findRemoteByNameOrEnvironment(config engine.Config, requested string) (string, bool) {
+	requested = strings.ToLower(strings.TrimSpace(requested))
+	if requested == "" || len(config.Remotes) == 0 {
+		return "", false
+	}
+
+	if _, ok := config.Remotes[requested]; ok {
+		return requested, true
+	}
+
+	names := make([]string, 0, len(config.Remotes))
+	for name := range config.Remotes {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		if strings.EqualFold(engine.NormalizeRemoteEnvironment(name), requested) {
+			return name, true
+		}
+	}
+
+	return "", false
 }
 
 func reportRemoteCommandFailure(step string, err error, output []byte, duration time.Duration, warning bool) remote.FailureDetails {

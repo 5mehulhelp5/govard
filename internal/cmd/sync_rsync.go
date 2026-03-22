@@ -80,14 +80,14 @@ func buildDatabaseSyncAction(config engine.Config, source syncEndpoint, destinat
 			totalSize, _ := GetDatabaseSize(config, source.Name, source.RemoteCfg, remoteCredentials, noNoise, noPII)
 			spinner.Success()
 
-			dumpCmd := remote.BuildSSHExecCommand(source.Name, source.RemoteCfg, true, buildRemoteMySQLDumpCommandString(remoteCredentials, false, noNoise, noPII, config.Framework))
+			dumpCmd := remote.BuildSSHExecCommand(source.Name, source.RemoteCfg, true, buildRemoteMySQLDumpCommandString(remoteCredentials, noNoise, noPII, config.Framework))
 			importCmd := buildLocalDBImportCommand(localDBContainer, localCredentials)
 			return RunDumpToImportWithProgress(dumpCmd, importCmd, totalSize, true, os.Stdout, os.Stderr)
 		}, nil
 	case source.IsLocal && !destination.IsLocal:
 		desc := fmt.Sprintf("docker exec -i %s mysqldump ... | ssh %s \"mysql ...\"", localDBContainer, remote.RemoteTarget(destination.RemoteCfg))
 		return desc, func() error {
-			dumpCmd := buildLocalDBDumpCommand(localDBContainer, localCredentials, false, noNoise, noPII, config.Framework)
+			dumpCmd := buildLocalDBDumpCommand(localDBContainer, localCredentials, noNoise, noPII, config.Framework)
 			remoteCredentials, probeErr := resolveRemoteDBCredentials(config, destination.Name, destination.RemoteCfg)
 			if probeErr != nil {
 				pterm.Warning.Println(formatRemoteDBProbeWarning(destination.Name, probeErr))

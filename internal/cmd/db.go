@@ -27,36 +27,39 @@ var dbCmd = &cobra.Command{
 	Long: `Manage your project's database. Supports connecting to the container shell,
 importing SQL dumps, and creating backups. Works for both local and remote environments.
 
-Case Studies:
-- Remote Debugging: Connect directly to the staging database to inspect live data.
-- Quick Backup: Create a local SQL dump before performing risky operations.
-- Data Refresh: Stream a database dump from production directly into your local DB.
-- Filtered Dump: Use --no-noise to skip ephemeral tables, --no-pii to also skip PII/sensitive tables.`,
+Storage Behavior for Dumps:
+- Local Environment: Dumps are saved to the project's local 'var/' directory.
+- Remote Environment (default): Dumps are stored on the remote server (usually ~/backup/).
+- Remote Environment (+ --local): Dumps are streamed directly to the project's local 'var/' directory.
+
+Dumps are comprehensive (including routines and triggers) by default to ensure full portability.`,
 	Example: `  # Open an interactive MySQL shell locally
   govard db connect
 
   # Connect to the staging database via SSH tunnel
   govard db connect --environment staging
 
-  # Import a local SQL file
-  govard db import --file backup.sql
+  # Import a local SQL file with clean reset (drop/recreate DB)
+  govard db import --file backup.sql --drop
 
-  # Stream a dump from production into your local database (Wipe local DB first)
-  govard db import --stream-db --environment prod
+  # Stream a dump from production into your local database
+  govard db import --stream-db --environment prod --drop
 
-  # Create a database dump with routines and triggers
-  govard db dump --full --file my_backup.sql
+  # Create a database dump on the remote server (saved to ~/backup/ on remote)
+  govard db dump --environment staging
 
-  # Dump excluding noise tables (cron, cache, logs...)
-  govard db dump --no-noise --file my_backup.sql
+  # Create a database dump from remote and save it to local 'var/' directory
+  govard db dump --environment staging --local
 
-  # Dump excluding noise + PII tables (customers, orders...)
-  govard db dump --no-noise --no-pii --file my_backup.sql
+  # Create a local dump excluding noise tables (cron, cache, logs...)
+  govard db dump --no-noise
+
+  # Create a local dump excluding noise + PII tables (customers, orders...)
+  govard db dump --no-pii
 
   # Execute a SQL query
   govard db query "SELECT * FROM core_config_data LIMIT 5"
 
-  # Show database connection info
   govard db info`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) < 1 {
@@ -82,9 +85,10 @@ func init() {
 	dbCmd.Flags().StringP("file", "f", "", "Database dump file (import or dump output)")
 	dbCmd.Flags().String("profile", "", "Environment scope (profile) to use")
 	dbCmd.Flags().Bool("stream-db", false, "For import: stream dump from remote environment into local database")
-	dbCmd.Flags().Bool("full", false, "For dump: include routines, events, and triggers")
 	dbCmd.Flags().BoolP("no-noise", "N", false, "For dump: exclude ephemeral tables (cron, cache, session, logs...)")
 	dbCmd.Flags().BoolP("no-pii", "S", false, "For dump: exclude PII/sensitive tables (customers, orders...) — implies --no-noise")
+	dbCmd.Flags().Bool("drop", false, "For import: drop and recreate the database before importing (Magento only)")
+	dbCmd.Flags().Bool("local", false, "For dump/import: force local file operations for remote environments")
 }
 
 type DBCommandOptions struct {
@@ -92,9 +96,10 @@ type DBCommandOptions struct {
 	File        string
 	Profile     string
 	StreamDB    bool
-	Full        bool
 	NoNoise     bool
 	NoPII       bool
+	Drop        bool
+	Local       bool
 }
 
 type dbCommandOptions = DBCommandOptions
@@ -291,10 +296,8 @@ func readDBCommandOptions(cmd *cobra.Command) (dbCommandOptions, error) {
 	if err != nil {
 		return dbCommandOptions{}, err
 	}
-	full, err := cmd.Flags().GetBool("full")
-	if err != nil {
-		return dbCommandOptions{}, err
-	}
+	drop, _ := cmd.Flags().GetBool("drop")
+	local, _ := cmd.Flags().GetBool("local")
 	noNoise, err := cmd.Flags().GetBool("no-noise")
 	if err != nil {
 		return dbCommandOptions{}, err
@@ -309,9 +312,10 @@ func readDBCommandOptions(cmd *cobra.Command) (dbCommandOptions, error) {
 		File:        strings.TrimSpace(file),
 		Profile:     profile,
 		StreamDB:    streamDB,
-		Full:        full,
 		NoNoise:     noNoise,
 		NoPII:       noPII || noNoise, // --no-pii implies --no-noise; also honour explicit --no-noise
+		Drop:        drop,
+		Local:       local,
 	}, nil
 }
 
@@ -322,23 +326,29 @@ func validateDBCommandOptions(subcommand string, options dbCommandOptions) error
 
 	switch subcommand {
 	case "connect":
-		if options.File != "" || options.StreamDB || options.Full || options.NoNoise || options.NoPII {
-			return errors.New("connect does not support --file, --stream-db, --full, --no-noise, or --no-pii")
+		if options.File != "" || options.StreamDB || options.NoNoise || options.NoPII || options.Drop || options.Local {
+			return errors.New("connect does not support --file, --stream-db, --no-noise, --no-pii, --drop, or --local")
 		}
 	case "dump":
 		if options.StreamDB {
 			return errors.New("--stream-db is only supported by db import")
 		}
+		if options.Local && options.Environment != "local" {
+			return errors.New("--local is only supported for local environment dumps")
+		}
 	case "import":
-		if options.Full {
-			return errors.New("--full is only supported by db dump")
+		if options.Drop {
+			return errors.New("--drop is only supported by db dump")
+		}
+		if options.Local {
+			return errors.New("--local is only supported by db dump")
 		}
 		if options.StreamDB && options.Environment == "local" {
 			return errors.New("--stream-db requires a remote --environment source")
 		}
 	case "query", "info":
-		if options.File != "" || options.StreamDB || options.Full || options.NoNoise || options.NoPII {
-			return errors.New("query and info do not support --file, --stream-db, --full, --no-noise, or --no-pii")
+		if options.File != "" || options.StreamDB || options.NoNoise || options.NoPII || options.Drop || options.Local {
+			return errors.New("query and info do not support --file, --stream-db, --no-noise, --no-pii, --drop, or --local")
 		}
 	default:
 		return fmt.Errorf("unknown db subcommand: %s", subcommand)
@@ -391,13 +401,17 @@ func stdinIsTerminal() bool {
 }
 
 func buildDBDumpCommand(config engine.Config, options dbCommandOptions) (*exec.Cmd, error) {
+	suffix := "sql.gz"
+	timestamp := time.Now().Format("20060102T150405")
+	defaultFilename := fmt.Sprintf("%s_%s-%s.%s", config.ProjectName, options.Environment, timestamp, suffix)
+
 	if options.Environment == "local" {
 		containerName := dbContainerName(config)
 		if err := ensureLocalDBRunning(containerName); err != nil {
 			return nil, err
 		}
 		credentials := resolveLocalDBCredentials(containerName)
-		return buildLocalDBDumpCommand(containerName, credentials, options.Full, options.NoNoise, options.NoPII, config.Framework), nil
+		return buildLocalDBDumpCommand(containerName, credentials, options.NoNoise, options.NoPII, config.Framework), nil
 	}
 
 	remoteCfg, err := resolveDBRemote(config, options.Environment, false)
@@ -408,7 +422,23 @@ func buildDBDumpCommand(config engine.Config, options dbCommandOptions) (*exec.C
 	if probeErr != nil {
 		pterm.Warning.Println(formatRemoteDBProbeWarning(options.Environment, probeErr))
 	}
-	return remote.BuildSSHExecCommand(options.Environment, remoteCfg, true, buildRemoteMySQLDumpCommandString(credentials, options.Full, options.NoNoise, options.NoPII, config.Framework)), nil
+
+	dumpStr := buildRemoteMySQLDumpCommandString(credentials, options.NoNoise, options.NoPII, config.Framework)
+
+	// If not local, we dump to a file on the remote server
+	if !options.Local {
+		remoteFile := options.File
+		if remoteFile == "" {
+			remoteFile = filepath.Join("~/backup", defaultFilename)
+		}
+		// We need to wrap the command to create the directory and redirect output
+		// Note: we use base64 or complex quoting if needed, but here simple redirection should work if we quote the filename
+		// Using sh -c to allow redirects and mkdir -p on the remote
+		remoteCmd := fmt.Sprintf("mkdir -p $(dirname %s) && { %s; } | gzip > %s", shellQuote(remoteFile), dumpStr, shellQuote(remoteFile))
+		return remote.BuildSSHExecCommand(options.Environment, remoteCfg, true, remoteCmd), nil
+	}
+
+	return remote.BuildSSHExecCommand(options.Environment, remoteCfg, true, dumpStr), nil
 }
 
 func buildDBImportCommand(config engine.Config, options dbCommandOptions) (*exec.Cmd, error) {
@@ -531,11 +561,21 @@ func RunImportFromReaderWithProgress(importCmd *exec.Cmd, reader io.Reader, tota
 		return err
 	}
 
+	importPrefix := "SET FOREIGN_KEY_CHECKS=0; SET UNIQUE_CHECKS=0; SET AUTOCOMMIT=0; SET SQL_MODE='NO_AUTO_VALUE_ON_ZERO';\n"
+	importSuffix := "\nCOMMIT; SET FOREIGN_KEY_CHECKS=1; SET UNIQUE_CHECKS=1; SET AUTOCOMMIT=1;\n"
+
+	// Wrap the reader with performance-optimized session variables
+	finalReaderWithWrappers := io.MultiReader(
+		strings.NewReader(importPrefix),
+		finalReader,
+		strings.NewReader(importSuffix),
+	)
+
 	var copyErr error
 	if sanitize {
-		copyErr = engine.SanitizeSQLDump(finalReader, stdin)
+		copyErr = engine.SanitizeSQLDump(finalReaderWithWrappers, stdin)
 	} else {
-		_, copyErr = io.Copy(stdin, finalReader)
+		_, copyErr = io.Copy(stdin, finalReaderWithWrappers)
 	}
 
 	if bar != nil {
@@ -583,6 +623,9 @@ func RunDumpToImportWithProgress(dumpCmd *exec.Cmd, importCmd *exec.Cmd, totalSi
 		return err
 	}
 
+	importPrefix := "SET FOREIGN_KEY_CHECKS=0; SET UNIQUE_CHECKS=0; SET AUTOCOMMIT=0; SET SQL_MODE='NO_AUTO_VALUE_ON_ZERO';\n"
+	importSuffix := "\nCOMMIT; SET FOREIGN_KEY_CHECKS=1; SET UNIQUE_CHECKS=1; SET AUTOCOMMIT=1;\n"
+
 	var bar *pterm.ProgressbarPrinter
 	var reader io.Reader = dumpStdout
 	if totalSize > 0 {
@@ -590,11 +633,18 @@ func RunDumpToImportWithProgress(dumpCmd *exec.Cmd, importCmd *exec.Cmd, totalSi
 		reader = engine.NewProgressReader(dumpStdout, bar)
 	}
 
+	// Wrap the reader with performance-optimized session variables
+	finalReader := io.MultiReader(
+		strings.NewReader(importPrefix),
+		reader,
+		strings.NewReader(importSuffix),
+	)
+
 	var copyErr error
 	if sanitize {
-		copyErr = engine.SanitizeSQLDump(reader, importStdin)
+		copyErr = engine.SanitizeSQLDump(finalReader, importStdin)
 	} else {
-		_, copyErr = io.Copy(importStdin, reader)
+		_, copyErr = io.Copy(importStdin, finalReader)
 	}
 
 	if bar != nil {

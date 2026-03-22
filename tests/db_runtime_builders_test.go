@@ -72,20 +72,23 @@ func TestBuildDBDumpCommandForTestLocalUsesDockerInspectAndCredentials(t *testin
 
 	args, err := cmd.BuildDBDumpCommandForTest(
 		engine.Config{ProjectName: "sample-project"},
-		cmd.DBCommandOptions{Environment: "local", Full: true},
+		cmd.DBCommandOptions{Environment: "local"},
 	)
 	if err != nil {
 		t.Fatalf("BuildDBDumpCommandForTest() error = %v", err)
 	}
 
 	joined := strings.Join(args, " ")
-	if !strings.Contains(joined, "docker exec -i -e MYSQL_PWD=devpass sample-project-db-1 mysqldump") {
-		t.Fatalf("unexpected local dump command: %s", joined)
+	if !strings.Contains(joined, "docker exec -i -e MYSQL_PWD=devpass sample-project-db-1 sh -lc") {
+		t.Fatalf("unexpected local dump command (missing sh -lc): %s", joined)
 	}
-	if !strings.Contains(joined, "--routines --events --triggers") {
-		t.Fatalf("expected full dump flags in command: %s", joined)
+	if !strings.Contains(joined, "DUMP_BIN=mariadb-dump") {
+		t.Fatalf("expected DUMP_BIN detection in command: %s", joined)
 	}
-	if !strings.Contains(joined, " devdb") {
+	if !strings.Contains(joined, "--routines --triggers") {
+		t.Fatalf("expected default dump flags in command: %s", joined)
+	}
+	if !strings.Contains(joined, "'devdb'") {
 		t.Fatalf("expected resolved database name in command: %s", joined)
 	}
 }

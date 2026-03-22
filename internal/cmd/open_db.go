@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -132,30 +131,6 @@ func resolveOpenDBEnvironment(config engine.Config, requestedEnvironment string)
 		return "", false, fmt.Errorf("unknown remote environment %q", requestedEnvironment)
 	}
 	return remoteName, true, nil
-}
-
-func findRemoteByNameOrEnvironment(config engine.Config, requested string) (string, bool) {
-	requested = strings.ToLower(strings.TrimSpace(requested))
-	if requested == "" || len(config.Remotes) == 0 {
-		return "", false
-	}
-
-	if _, ok := config.Remotes[requested]; ok {
-		return requested, true
-	}
-
-	names := make([]string, 0, len(config.Remotes))
-	for name := range config.Remotes {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	for _, name := range names {
-		if strings.EqualFold(engine.NormalizeRemoteEnvironment(name), requested) {
-			return name, true
-		}
-	}
-
-	return "", false
 }
 
 func buildOpenDBConnectionURL(credentials dbCredentials, localPort int) string {

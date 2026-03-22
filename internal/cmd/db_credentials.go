@@ -127,26 +127,37 @@ func parseEnvMap(raw string) map[string]string {
 	return result
 }
 
-func buildRemoteMySQLDumpCommandString(credentials dbCredentials, full bool, noNoise bool, noPII bool, framework string) string {
+func buildRemoteMySQLDumpCommandString(credentials dbCredentials, noNoise bool, noPII bool, framework string) string {
 	credentials = credentials.withDefaults()
 
-	args := []string{"mysqldump", "--max-allowed-packet=512M", "--no-tablespaces"}
+	dbCliDetect := `if command -v mariadb-dump >/dev/null 2>&1; then DUMP_BIN=mariadb-dump; else DUMP_BIN=mysqldump; fi`
+
+	// Common options
+	commonArgs := []string{"\"$DUMP_BIN\"", "--max-allowed-packet=512M", "--force", "--single-transaction", "--no-tablespaces"}
 	if host := strings.TrimSpace(credentials.Host); host != "" {
-		args = append(args, "-h"+shellQuote(host))
+		commonArgs = append(commonArgs, "-h"+shellQuote(host))
 	}
 	if credentials.Port > 0 {
-		args = append(args, "-P"+strconv.Itoa(credentials.Port))
+		commonArgs = append(commonArgs, "-P"+strconv.Itoa(credentials.Port))
 	}
-	args = append(args, "-u"+shellQuote(credentials.Username))
+	commonArgs = append(commonArgs, "-u"+shellQuote(credentials.Username))
 
-	if full {
-		args = append(args, "--routines", "--events", "--triggers")
-	}
+	// Pass 1: Metadata (no data, routines, triggers)
+	metadataArgs := append([]string{}, commonArgs...)
+	metadataArgs = append(metadataArgs, "--no-data", "--routines", "--triggers")
+	metadataArgs = append(metadataArgs, shellQuote(credentials.Database))
+
+	// Pass 2: Data (no create info, skip triggers, exclude noise/PII)
+	dataArgs := append([]string{}, commonArgs...)
+	dataArgs = append(dataArgs, "--no-create-info", "--skip-triggers")
 	ignoreArgs := buildIgnoredTableArgs(credentials.Database, "", noNoise, noPII, framework)
-	args = append(args, ignoreArgs...)
-	args = append(args, shellQuote(credentials.Database))
+	dataArgs = append(dataArgs, ignoreArgs...)
+	dataArgs = append(dataArgs, shellQuote(credentials.Database))
 
-	return mysqlPasswordExportPrefix(credentials.Password) + strings.Join(args, " ")
+	// Combine passes
+	dumpCmd := fmt.Sprintf("{ %s; %s; }", strings.Join(metadataArgs, " "), strings.Join(dataArgs, " "))
+
+	return dbCliDetect + " && " + mysqlPasswordExportPrefix(credentials.Password) + dumpCmd
 }
 
 func buildRemoteMySQLConnectCommandString(credentials dbCredentials) string {
@@ -199,27 +210,39 @@ func buildLocalDBImportCommand(containerName string, credentials dbCredentials) 
 	return exec.Command("docker", args...)
 }
 
-func buildLocalDBDumpCommand(containerName string, credentials dbCredentials, full bool, noNoise bool, noPII bool, framework string) *exec.Cmd {
+func buildLocalDBDumpCommand(containerName string, credentials dbCredentials, noNoise bool, noPII bool, framework string) *exec.Cmd {
 	credentials = credentials.withDefaults()
 	args := []string{"exec", "-i"}
 	if strings.TrimSpace(credentials.Password) != "" {
 		args = append(args, "-e", "MYSQL_PWD="+credentials.Password)
 	}
-	args = append(args, containerName)
-	args = append(args, buildMySQLDumpCommandArgsWithCredentials(credentials, full, noNoise, noPII, framework)...)
+	args = append(args, containerName, "sh", "-lc", buildLocalMySQLDumpCommandScript(credentials, noNoise, noPII, framework))
 	return exec.Command("docker", args...)
 }
 
-func buildMySQLDumpCommandArgsWithCredentials(credentials dbCredentials, full bool, noNoise bool, noPII bool, framework string) []string {
+func buildLocalMySQLDumpCommandScript(credentials dbCredentials, noNoise bool, noPII bool, framework string) string {
 	credentials = credentials.withDefaults()
-	args := []string{"mysqldump", "--max-allowed-packet=512M", "--no-tablespaces", "-u", credentials.Username}
-	if full {
-		args = append(args, "--routines", "--events", "--triggers")
-	}
+
+	dbCliDetect := `if command -v mariadb-dump >/dev/null 2>&1; then DUMP_BIN=mariadb-dump; else DUMP_BIN=mysqldump; fi`
+
+	// Common options
+	commonArgs := []string{"\"$DUMP_BIN\"", "--max-allowed-packet=512M", "--force", "--single-transaction", "--no-tablespaces", "-hdb", "-u" + shellQuote(credentials.Username)}
+
+	// Pass 1: Metadata
+	metadataArgs := append([]string{}, commonArgs...)
+	metadataArgs = append(metadataArgs, "--no-data", "--routines", "--triggers")
+	metadataArgs = append(metadataArgs, shellQuote(credentials.Database))
+
+	// Pass 2: Data
+	dataArgs := append([]string{}, commonArgs...)
+	dataArgs = append(dataArgs, "--no-create-info", "--skip-triggers")
 	ignoreArgs := buildIgnoredTableArgs(credentials.Database, "", noNoise, noPII, framework)
-	args = append(args, ignoreArgs...)
-	args = append(args, credentials.Database)
-	return args
+	dataArgs = append(dataArgs, ignoreArgs...)
+	dataArgs = append(dataArgs, shellQuote(credentials.Database))
+
+	dumpCmd := fmt.Sprintf("{ %s; %s; }", strings.Join(metadataArgs, " "), strings.Join(dataArgs, " "))
+
+	return dbCliDetect + " && " + dumpCmd
 }
 
 // magentoIgnoredTables is the list of ephemeral/noise tables excluded when --no-noise is specified.
@@ -403,6 +426,7 @@ var magentoSensitiveTables = []string{
 	"paypal_settlement_report_row",
 	"product_alert_price",
 	"product_alert_stock",
+	"purchase_order_company_config",
 	"quote",
 	"quote_address",
 	"quote_address_item",
@@ -548,14 +572,14 @@ func formatRemoteDBProbeWarning(remoteName string, err error) string {
 	return fmt.Sprintf("Could not auto-detect DB credentials for '%s' from remote metadata (.env/env.php) (%v). Falling back to default credentials.", remoteName, err)
 }
 
-func BuildRemoteMySQLDumpCommandForTest(host string, port int, username string, password string, database string, full bool) string {
+func BuildRemoteMySQLDumpCommandForTest(host string, port int, username string, password string, database string) string {
 	return buildRemoteMySQLDumpCommandString(dbCredentials{
 		Host:     host,
 		Port:     port,
 		Username: username,
 		Password: password,
 		Database: database,
-	}, full, false, false, "magento2")
+	}, false, false, "magento2")
 }
 
 func BuildLocalDBImportCommandForTest(containerName string, username string, password string, database string) []string {

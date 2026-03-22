@@ -42,11 +42,19 @@ func runStreamDBImport(cmd *cobra.Command, config engine.Config, options dbComma
 		pterm.Warning.Println(formatRemoteDBProbeWarning(options.Environment, probeErr))
 	}
 	localCredentials := resolveLocalDBCredentials(containerName)
-	if err := resetLocalDatabase(containerName, localCredentials.Database); err != nil {
-		return err
+	if options.Drop {
+		confirmed, _ := pterm.DefaultInteractiveConfirm.WithDefaultText("Are you sure you want to drop and recreate the local database?").Show()
+		if !confirmed {
+			return errors.New("stream-db import cancelled by user")
+		}
+
+		if err := resetLocalDatabase(containerName, localCredentials.Database); err != nil {
+			return err
+		}
+		pterm.Success.Println("Local database reset successful.")
 	}
 
-	sourceDumpCmd := remote.BuildSSHExecCommand(options.Environment, remoteCfg, true, buildRemoteMySQLDumpCommandString(remoteCredentials, options.Full, options.NoNoise, options.NoPII, config.Framework))
+	sourceDumpCmd := remote.BuildSSHExecCommand(options.Environment, remoteCfg, true, buildRemoteMySQLDumpCommandString(remoteCredentials, options.NoNoise, options.NoPII, config.Framework))
 	destinationImportCmd := buildLocalDBImportCommand(containerName, localCredentials)
 	sanitizeStreamDump := options.StreamDB
 	var totalSize int64
@@ -159,6 +167,30 @@ func BuildLocalDBResetScriptForTest(database string) (string, error) {
 }
 
 func runDirectDBImport(cmd *cobra.Command, config engine.Config, options dbCommandOptions) error {
+	if options.Drop {
+		confirmed, _ := pterm.DefaultInteractiveConfirm.WithDefaultText("Are you sure you want to drop and recreate the database?").Show()
+		if !confirmed {
+			return errors.New("database import cancelled by user")
+		}
+
+		containerName := dbContainerName(config)
+		if err := ensureLocalDBRunning(containerName); err != nil {
+			return err
+		}
+		credentials := resolveLocalDBCredentials(containerName)
+		script, err := buildLocalDBResetScript(credentials.Database)
+		if err != nil {
+			return err
+		}
+
+		pterm.Info.Printf("Resetting database '%s'...\n", credentials.Database)
+		out, err := exec.Command("docker", "exec", containerName, "sh", "-c", script).CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("database reset failed: %w\nOutput: %s", err, string(out))
+		}
+		pterm.Success.Println("Database reset successful.")
+	}
+
 	importCommand, err := buildDBImportCommand(config, options)
 	if err != nil {
 		return err
