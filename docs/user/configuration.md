@@ -265,7 +265,7 @@ Registry behavior:
 
 | Feature         | Type    | Default | Description                                                           |
 | --------------- | ------- | ------- | --------------------------------------------------------------------- |
-| `xdebug`        | boolean | `false` | Enable Xdebug 3 for debugging                                         |
+| `xdebug`        | boolean | `false` | Enable Xdebug (2 & 3 supported) for debugging                         |
 | `varnish`       | boolean | `false` | Enable Varnish 7.x caching                                            |
 | `isolated`      | boolean | `false` | Enable Network Isolation Mode (block internet access from containers) |
 | `mftf`          | boolean | `false` | Enable Selenium container for MFTF testing (Magento 2)                |
@@ -275,7 +275,7 @@ Registry behavior:
 
 When `xdebug` is enabled, Govard starts a dedicated `php-debug` container and routes
 requests to it only when the `XDEBUG_SESSION` cookie is present (value used by most IDE helpers).
-For CLI debugging, use `govard debug shell` to open a shell in `php-debug`.
+For CLI debugging, use `govard debug` to open a shell in `php-debug`.
 
 When `isolated` is enabled, the primary Docker network (`govard-net`) is set to `internal: true`,
 which prevents containers from making outgoing internet connections. The `web` container remains

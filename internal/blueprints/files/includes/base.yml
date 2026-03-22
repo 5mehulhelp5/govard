@@ -101,8 +101,13 @@ services:
     networks:
       - govard-net
     environment:
+      {{ if (ge .Config.Stack.PHPVersion "7.2") }}
       XDEBUG_MODE: debug
       XDEBUG_CONFIG: "client_host=host.docker.internal start_with_request=yes"
+      {{ else }}
+      XDEBUG_CONFIG: "remote_enable=1 remote_host=host.docker.internal remote_port=9003"
+      {{ end }}
+      PHP_IDE_CONFIG: "serverName={{ .Config.ProjectName }}-docker"
       {{ if .SSHAuthSock }}
       SSH_AUTH_SOCK: "/ssh-agent"
       {{ end }}
