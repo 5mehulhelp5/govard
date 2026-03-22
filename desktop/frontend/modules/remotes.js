@@ -743,10 +743,10 @@ export const renderSyncModal = (container) => {
                 <button
                   data-action="confirm-sync"
                   id="confirmSyncBtn"
-                  class="px-5 py-2 bg-primary hover:bg-primary/80 border border-primary/50 rounded-lg text-sm text-white font-bold transition-all group flex items-center gap-2"
+                  class="px-5 py-2 bg-primary text-slate-900 rounded-lg text-sm font-bold hover:bg-primary/90 transition-all flex items-center gap-2 shadow-lg shadow-primary/10 active:scale-95"
                 >
                   <span
-                    class="material-symbols-outlined text-[16px] group-hover:text-white transition-colors"
+                    class="material-symbols-outlined text-[16px] transition-colors"
                     >play_arrow</span
                   >
                   <span>Execute Sync</span>
