@@ -497,7 +497,9 @@ func buildIgnoredTableArgs(dbName string, dbPrefix string, noNoise bool, noPII b
 	}
 
 	tables := make([]string, 0)
-	tables = append(tables, ignored...)
+	if noNoise {
+		tables = append(tables, ignored...)
+	}
 	if noPII {
 		tables = append(tables, sensitive...)
 	}

@@ -430,7 +430,6 @@ func TestSyncOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 
 			logs := shim.ReadLog(t)
 			assertMatrixContains(t, logs, "ssh|")
-			assertMatrixContains(t, logs, "--ignore-table=magento.cron_schedule")
 			assertMatrixContains(t, logs, "--ignore-table=magento.customer_entity")
 		})
 	})
