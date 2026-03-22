@@ -300,20 +300,64 @@ install_go() {
     fi
 }
 
-install_binary() {
-    info "Installing pre-built binary..."
-    
+resolve_version() {
     if [[ -z "$SPECIFIC_VERSION" ]]; then
         info "Fetching latest version..."
         SPECIFIC_VERSION=$(curl -s "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
     fi
-    
     info "Version: $SPECIFIC_VERSION"
     VERSION_NO_V="${SPECIFIC_VERSION#v}"
-    
+}
+
+install_via_deb() {
+    local deb_name="govard_${VERSION_NO_V}_linux_${ARCH}.deb"
+    local deb_url="https://github.com/${REPO}/releases/download/${SPECIFIC_VERSION}/${deb_name}"
+    local tmp_dir
+    tmp_dir=$(mktemp -d)
+    local deb_path="${tmp_dir}/${deb_name}"
+
+    info "Downloading ${deb_name}..."
+    if ! curl -fsSL "$deb_url" -o "$deb_path"; then
+        warn "Failed to download ${deb_name}."
+        rm -rf "$tmp_dir"
+        return 1
+    fi
+
+    info "Installing via dpkg..."
+    if sudo dpkg -i "$deb_path"; then
+        rm -rf "$tmp_dir"
+        success "Govard $SPECIFIC_VERSION installed via Debian package (CLI + Desktop)!"
+        return 0
+    fi
+
+    warn "dpkg -i failed. Attempting to fix missing dependencies..."
+    if sudo apt-get install -f -y 2>/dev/null; then
+        rm -rf "$tmp_dir"
+        success "Govard $SPECIFIC_VERSION installed via Debian package (CLI + Desktop)!"
+        return 0
+    fi
+
+    warn "Debian package installation failed."
+    rm -rf "$tmp_dir"
+    return 1
+}
+
+install_binary() {
+    info "Installing pre-built binary..."
+    resolve_version
+
+    # On Linux with dpkg available, prefer .deb package
+    if [[ "$OS" == "linux" ]] && command -v dpkg >/dev/null 2>&1; then
+        info "Debian-based system detected — using .deb package."
+        if install_via_deb; then
+            return 0
+        fi
+        warn "Falling back to archive-based installation."
+    fi
+
     # Capitalize OS for archive names
     OS_CAP="$(echo "${OS:0:1}" | tr '[:lower:]' '[:upper:]')${OS:1}"
-    
+
     TMP_DIR=$(mktemp -d)
     binaries=("$CLI_BINARY_NAME" "$DESKTOP_BINARY_NAME")
     extracted_entries=()
