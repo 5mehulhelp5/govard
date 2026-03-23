@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"govard/internal/ui"
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
+	"govard/internal/ui"
 )
 
 var Version = "1.22.1"

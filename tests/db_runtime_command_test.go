@@ -90,7 +90,7 @@ framework: laravel
 	}
 
 	logs := readRuntimeLog(t, logPath)
-	if !strings.Contains(logs, "docker|exec -i -e MYSQL_PWD=dbpass sample-project-db-1 mysqldump") {
+	if !strings.Contains(logs, "docker|exec -i -e MYSQL_PWD=dbpass sample-project-db-1 sh -lc if command -v mariadb-dump") {
 		t.Fatalf("missing dump exec invocation in docker log:\n%s", logs)
 	}
 }

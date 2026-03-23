@@ -13,7 +13,7 @@ func TestSanitizeSQLLineDefinerReplacement(t *testing.T) {
 	if !keep {
 		t.Fatal("expected line to be kept")
 	}
-	if !strings.Contains(sanitized, "DEFINER=CURRENT_USER") {
+	if !strings.Contains(sanitized, "/*!50013 */") {
 		t.Fatalf("expected definer replacement, got: %s", sanitized)
 	}
 }
@@ -44,7 +44,7 @@ func TestSanitizeSQLDumpStream(t *testing.T) {
 	if strings.Contains(result, "@@SESSION.SQL_LOG_BIN") {
 		t.Fatalf("expected SQL_LOG_BIN line removed, got: %s", result)
 	}
-	if !strings.Contains(result, "DEFINER=CURRENT_USER") {
+	if !strings.Contains(result, "/*!50013 */") {
 		t.Fatalf("expected definer replacement, got: %s", result)
 	}
 	if !strings.Contains(result, "INSERT INTO test VALUES (1);") {

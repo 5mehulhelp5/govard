@@ -403,7 +403,7 @@ func TestSyncOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 			result.AssertSuccess(t)
 
 			logs := shim.ReadLog(t)
-			assertMatrixContains(t, logs, "docker|exec -i -e MYSQL_PWD=magento m2-clone-basic-db-1 mysqldump")
+			assertMatrixContains(t, logs, "docker|exec -i -e MYSQL_PWD=magento m2-clone-basic-db-1 sh -lc if command -v mariadb-dump")
 			assertMatrixContains(t, logs, "ssh|")
 			assertMatrixContains(t, logs, "deploy@staging.example.com")
 		})

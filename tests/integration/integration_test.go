@@ -303,6 +303,9 @@ fi
 
 %s
 %s
+if [ ! -t 0 ]; then
+  cat >/dev/null 2>&1 || true
+fi
 exit "$current_exit"
 `, name, exitVar, exitCode, name, sshBehavior, dockerBehavior)
 }

@@ -19,7 +19,7 @@ func TestDBCommandValidationAndRuntime(t *testing.T) {
 		if result.Success() {
 			t.Fatal("expected db connect --stream-db to fail")
 		}
-		assertContains(t, result.Stderr, "connect does not support --file, --stream-db, --full, --no-noise, or --no-pii")
+		assertContains(t, result.Stderr, "connect does not support --file, --stream-db, --no-noise, --no-pii, --drop, or --local")
 	})
 
 	t.Run("ImportStreamDBRequiresRemoteEnv", func(t *testing.T) {
@@ -68,7 +68,7 @@ func TestDBCommandValidationAndRuntime(t *testing.T) {
 
 		logs := shim.ReadLog(t)
 		assertContains(t, logs, "docker|inspect -f {{.State.Running}} m2-clone-basic-db-1")
-		assertContains(t, logs, "docker|exec -i -e MYSQL_PWD=magento m2-clone-basic-db-1 mysqldump")
+		assertContains(t, logs, "docker|exec -i -e MYSQL_PWD=magento m2-clone-basic-db-1 sh -lc if command -v mariadb-dump")
 	})
 }
 

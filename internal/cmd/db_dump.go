@@ -37,7 +37,7 @@ func runDBDump(cmd *cobra.Command, config engine.Config, options dbCommandOption
 			return nil
 		}
 
-		var writer io.Writer = cmd.OutOrStdout()
+		var writer io.Writer
 		var fileWriter *os.File
 
 		targetFile := options.File
