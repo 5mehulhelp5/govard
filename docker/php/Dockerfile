@@ -22,6 +22,8 @@ RUN set -eux; \
     if [ "$PHP_VERSION_INT" -ge 81 ]; then ICU_DATA_FULL="icu-data-full"; fi; \
     ONIGURUMA=""; \
     if [ "$PHP_VERSION_INT" -ge 74 ]; then ONIGURUMA="oniguruma-dev"; fi; \
+    SSL_LIB="openssl-dev"; \
+    if [ "$PHP_VERSION_INT" -lt 72 ]; then SSL_LIB="libressl-dev"; fi; \
     apk add --no-cache \
     freetype-dev \
     libjpeg-turbo-dev \
@@ -36,7 +38,7 @@ RUN set -eux; \
     gmp-dev \
     bzip2-dev \
     gettext-dev \
-    openssl-dev \
+    $SSL_LIB \
     libsodium-dev \
     rabbitmq-c-dev \
     imagemagick-dev \
@@ -93,7 +95,7 @@ RUN set -eux; \
     AMQP_VERSION="amqp-1.11.0"; \
     fi; \
     pecl install $REDIS_VERSION $IMAGICK_VERSION $AMQP_VERSION; \
-    if [ "$PHP_VERSION_INT" -lt 72 ]; then \
+    if [ "$PHP_VERSION_INT" -ge 70 ] && [ "$PHP_VERSION_INT" -lt 72 ]; then \
     pecl install libsodium; \
     docker-php-ext-enable sodium; \
     fi; \

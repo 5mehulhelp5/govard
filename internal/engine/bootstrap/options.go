@@ -16,7 +16,8 @@ type Options struct {
 	DBName string
 
 	// Environment configuration
-	Domain string
+	Domain      string
+	ProjectName string
 }
 
 func DefaultOptions() Options {

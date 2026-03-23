@@ -124,15 +124,18 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrap
 			Runner: func(command string) error {
 				return runPHPContainerShellCommand(config, command)
 			},
-			DBHost: "db",
-			DBUser: localDB.Username,
-			DBPass: localDB.Password,
-			DBName: localDB.Database,
-			Domain: config.Domain,
+			DBHost:      "db",
+			DBUser:      localDB.Username,
+			DBPass:      localDB.Password,
+			DBName:      localDB.Database,
+			ProjectName: config.ProjectName,
+			Domain:      config.Domain,
 		}
 
 		var frameworkBootstrap bootstrap.FrameworkBootstrap
 		switch config.Framework {
+		case "magento1":
+			frameworkBootstrap = bootstrap.NewMagento1Bootstrap(bootstrapOpts)
 		case "symfony":
 			frameworkBootstrap = bootstrap.NewSymfonyBootstrap(bootstrapOpts)
 		case "laravel":
@@ -150,7 +153,7 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrap
 				}
 			}
 		}
-	} else if config.Framework == "symfony" || config.Framework == "laravel" || config.Framework == "wordpress" {
+	} else if config.Framework == "symfony" || config.Framework == "laravel" || config.Framework == "wordpress" || config.Framework == "magento1" {
 		pterm.Info.Printf("Skipping %s post-clone setup because composer install is disabled.\n", config.Framework)
 	}
 
@@ -227,10 +230,12 @@ func bootstrapFileSyncArgs(opts bootstrapRuntimeOptions) []string {
 		"--exclude", ".idea",
 		"--exclude", "auth.json",
 		"--exclude", "app/etc/env.php",
+		"--exclude", "app/etc/local.xml",
 		"--exclude", "generated",
 		"--exclude", "node_modules",
 		"--exclude", "pub/static",
 		"--exclude", "pub/media",
+		"--exclude", "media",
 		"--exclude", "var",
 	}
 	return args

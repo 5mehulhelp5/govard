@@ -1,9 +1,14 @@
 package bootstrap
 
 import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"time"
 
 	"github.com/pterm/pterm"
 )
@@ -72,8 +77,32 @@ func (m *Magento1Bootstrap) PostClone(projectDir string) error {
 		}
 	}
 
+	if err := m.SetConfig(projectDir); err != nil {
+		pterm.Warning.Printf("Failed to configure base URLs: %v\n", err)
+	}
+
+	if err := m.CreateAdmin(projectDir); err != nil {
+		pterm.Warning.Printf("Failed to create admin user: %v\n", err)
+	}
+
 	pterm.Success.Println("Post-clone setup completed")
 	return nil
+}
+
+func (m *Magento1Bootstrap) SetConfig(projectDir string) error {
+	baseURL := fmt.Sprintf("https://%s/", m.Options.Domain)
+	containerName := fmt.Sprintf("%s-db-1", m.Options.ProjectName)
+
+	pterm.Info.Println("Configuring Magento 1 base URLs...")
+	return RunMagento1SetConfigSQL(containerName, baseURL, m.Options.DBUser, m.Options.DBPass, m.Options.DBName, "")
+}
+
+func (m *Magento1Bootstrap) CreateAdmin(projectDir string) error {
+	adminEmail := fmt.Sprintf("admin@%s", m.Options.Domain)
+	containerName := fmt.Sprintf("%s-db-1", m.Options.ProjectName)
+
+	pterm.Info.Println("Creating Magento 1 admin user...")
+	return RunMagento1AdminUserSQL(containerName, m.Options.DBUser, m.Options.DBPass, m.Options.DBName, "", adminEmail)
 }
 
 // createLocalXml generates app/etc/local.xml with a random 32-hex crypt key and
@@ -138,5 +167,92 @@ func (m *Magento1Bootstrap) createLocalXml(projectDir string) error {
 	}
 
 	pterm.Success.Println("Created local.xml with random crypt key")
+	return nil
+}
+
+// generateMagento1CryptKey returns a random 32-character hex string for use as an encryption key.
+func generateMagento1CryptKey() (string, error) {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
+}
+
+// RunMagento1SetConfigSQL executes Magento 1 base URL configuration SQL against the local DB container.
+// containerName is the docker container (e.g. "myproject-db-1"), baseURL is https://host.test/.
+func RunMagento1SetConfigSQL(containerName string, baseURL string, dbUser string, dbPassword string, dbName string, dbPrefix string) error {
+	sqls := []string{
+		fmt.Sprintf("UPDATE %score_config_data SET value = '%s' WHERE path = 'web/secure/base_url'", dbPrefix, baseURL),
+		fmt.Sprintf("UPDATE %score_config_data SET value = '%s' WHERE path = 'web/unsecure/base_url'", dbPrefix, baseURL),
+		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}' WHERE path = 'web/unsecure/base_link_url'",
+		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}skin/' WHERE path = 'web/unsecure/base_skin_url'",
+		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}media/' WHERE path = 'web/unsecure/base_media_url'",
+		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}js/' WHERE path = 'web/unsecure/base_js_url'",
+		"UPDATE " + dbPrefix + "core_config_data SET value = '1' WHERE path = 'web/secure/use_in_frontend'",
+		"UPDATE " + dbPrefix + "core_config_data SET value = '1' WHERE path = 'web/secure/use_in_adminhtml'",
+		"UPDATE " + dbPrefix + "core_config_data SET value = NULL WHERE path = 'web/cookie/cookie_domain'",
+	}
+
+	for _, sql := range sqls {
+		if err := RunMagento1SQL(containerName, dbUser, dbPassword, dbName, sql); err != nil {
+			pterm.Warning.Printf("set-config SQL failed (continuing): %v\n", err)
+		}
+	}
+	return nil
+}
+
+// RunMagento1AdminUserSQL inserts/updates the admin user in the local DB using a salted MD5 hash.
+// This matches the approach in warden-custom-commands bootstrap.cmd for maximum M1 compatibility.
+func RunMagento1AdminUserSQL(containerName string, dbUser string, dbPassword string, dbName string, dbPrefix string, adminEmail string) error {
+	// Salted MD5: md5("admin" + "Admin123$") + ":admin"
+	passHash := Md5SaltedHash("admin", "Admin123$")
+	saltedPass := passHash + ":admin"
+
+	insertSQL := fmt.Sprintf(`
+INSERT INTO %sadmin_user(username, firstname, lastname, email, password, created, lognum, reload_acl_flag, is_active, extra, rp_token, rp_token_created_at)
+VALUES ("admin", "Admin", "User", %q, %q, NOW(), 0, 0, 1, NULL, NULL, NOW())
+ON DUPLICATE KEY UPDATE password = %q, is_active = 1;
+
+-- Ensure Administrators group exists
+INSERT IGNORE INTO %sadmin_role (parent_id, tree_level, sort_order, role_type, user_id, role_name)
+VALUES (0, 1, 1, 'G', 0, 'Administrators');
+
+-- Ensure full permissions
+INSERT IGNORE INTO %sadmin_rule (role_id, resource_id, privileges, assert_id, role_type, permission)
+SELECT role_id, 'all', NULL, 0, 'G', 'allow' FROM %sadmin_role WHERE role_type = 'G' AND role_name = 'Administrators' LIMIT 1;
+
+-- Assign user to Administrators
+INSERT INTO %sadmin_role (parent_id, tree_level, sort_order, role_type, user_id, role_name)
+SELECT role_id, 2, 0, 'U', (SELECT user_id FROM %sadmin_user WHERE username = 'admin' LIMIT 1), 'admin'
+FROM %sadmin_role WHERE role_type = 'G' AND role_name = 'Administrators' LIMIT 1
+ON DUPLICATE KEY UPDATE parent_id = VALUES(parent_id);
+`,
+		dbPrefix, adminEmail, saltedPass, saltedPass,
+		dbPrefix, dbPrefix, dbPrefix, dbPrefix, dbPrefix, dbPrefix)
+
+	return RunMagento1SQL(containerName, dbUser, dbPassword, dbName, insertSQL)
+}
+
+// RunMagento1SQL executes a SQL statement via docker exec on the given DB container.
+func RunMagento1SQL(containerName string, dbUser string, dbPassword string, dbName string, sql string) error {
+	script := fmt.Sprintf(
+		`if command -v mysql >/dev/null 2>&1; then DB_CLI=mysql; elif command -v mariadb >/dev/null 2>&1; then DB_CLI=mariadb; else exit 1; fi && echo %s | "$DB_CLI" -u %s %s -f`,
+		ShellEscape(sql), ShellEscape(dbUser), ShellEscape(dbName),
+	)
+
+	args := []string{"exec", "-i"}
+	if dbPassword != "" {
+		args = append(args, "-e", "MYSQL_PWD="+dbPassword)
+	}
+	args = append(args, containerName, "sh", "-lc", script)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "docker", args...)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("SQL exec failed: %w: %s", err, out)
+	}
 	return nil
 }

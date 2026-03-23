@@ -292,9 +292,78 @@ func buildLocalMySQLDumpCommandScript(credentials dbCredentials, noNoise bool, n
 	return dbCliDetect + " && " + dumpCmd
 }
 
-// magentoIgnoredTables is the list of ephemeral/noise tables excluded when --no-noise is specified.
+// magento1IgnoredTables is the list of ephemeral/noise tables excluded for Magento 1 when --no-noise is specified.
+// Ported from warden-custom-commands (env-adapters/magento1/utils.sh).
+var magento1IgnoredTables = []string{
+	"catalogsearch_fulltext",
+	"catalogsearch_query",
+	"catalogsearch_result",
+	"core_session",
+	"cron_schedule",
+	"enterprise_logging_event",
+	"enterprise_logging_event_changes",
+	"index_event",
+	"log_customer",
+	"log_quote",
+	"log_summary",
+	"log_summary_type",
+	"log_url",
+	"log_url_info",
+	"log_visitor",
+	"log_visitor_info",
+	"log_visitor_online",
+	"mkp_api_session_vendor",
+	"report_compared_product_index",
+	"report_viewed_product_index",
+	"smtppro_email_log",
+	"udprod_images",
+}
+
+// magento1SensitiveTables is the list of PII/sensitive tables excluded for Magento 1 when --no-pii is specified.
+// Ported from warden-custom-commands (env-adapters/magento1/utils.sh).
+var magento1SensitiveTables = []string{
+	"admin_user",
+	"api_user",
+	"customer_address_entity",
+	"customer_address_entity_datetime",
+	"customer_address_entity_decimal",
+	"customer_address_entity_int",
+	"customer_address_entity_text",
+	"customer_address_entity_varchar",
+	"customer_entity",
+	"customer_entity_datetime",
+	"customer_entity_decimal",
+	"customer_entity_int",
+	"customer_entity_text",
+	"customer_entity_varchar",
+	"newsletter_subscriber",
+	"sales_flat_order",
+	"sales_flat_order_address",
+	"sales_flat_order_grid",
+	"sales_flat_order_item",
+	"sales_flat_order_payment",
+	"sales_flat_order_status_history",
+	"sales_flat_quote",
+	"sales_flat_quote_address",
+	"sales_flat_quote_item",
+	"sales_flat_quote_payment",
+	"sales_flat_shipment",
+	"sales_flat_shipment_grid",
+	"sales_flat_shipment_item",
+	"sales_flat_shipment_track",
+	"sales_flat_invoice",
+	"sales_flat_invoice_grid",
+	"sales_flat_invoice_item",
+	"sales_flat_creditmemo",
+	"sales_flat_creditmemo_grid",
+	"sales_flat_creditmemo_item",
+	"wishlist",
+	"wishlist_item",
+}
+
+// magento2IgnoredTables is the list of ephemeral/noise tables excluded when --no-noise is specified.
 // Ported from warden-custom-commands v2.7.0 IGNORED_TABLES (env-adapters/magento2/utils.sh).
-var magentoIgnoredTables = []string{
+var magento2IgnoredTables = []string{
 	"admin_system_messages",
 	"admin_user_expiration",
 	"admin_user_session",
@@ -416,9 +485,9 @@ var magentoIgnoredTables = []string{
 	"yotpo_sync_queue",
 }
 
-// magentoSensitiveTables is the list of PII/sensitive tables excluded when --no-pii is specified.
+// magento2SensitiveTables is the list of PII/sensitive tables excluded when --no-pii is specified.
 // Ported from warden-custom-commands v2.7.0 SENSITIVE_TABLES (env-adapters/magento2/utils.sh).
-var magentoSensitiveTables = []string{
+var magento2SensitiveTables = []string{
 	"admin_passwords",
 	"admin_user",
 	"aw_ca_company",
@@ -574,10 +643,13 @@ func getIgnoredTableList(noNoise bool, noPII bool, framework string) []string {
 	case "wordpress":
 		ignored = wordpressIgnoredTables
 		sensitive = wordpressSensitiveTables
+	case "magento1", "openmage":
+		ignored = magento1IgnoredTables
+		sensitive = magento1SensitiveTables
 	default:
-		// Default to magento behavior
-		ignored = magentoIgnoredTables
-		sensitive = magentoSensitiveTables
+		// Default to magento2 behavior
+		ignored = magento2IgnoredTables
+		sensitive = magento2SensitiveTables
 	}
 
 	tables := make([]string, 0)

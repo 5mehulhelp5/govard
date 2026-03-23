@@ -42,7 +42,7 @@ var selfUpdateAssumeYes bool
 var selfUpdateCmd = &cobra.Command{
 	Use:   "self-update",
 	Short: "Upgrade installed Govard binaries",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		pterm.DefaultHeader.Println("Govard Self-Update")
 
 		if runtime.GOOS == "windows" {
@@ -54,8 +54,15 @@ var selfUpdateCmd = &cobra.Command{
 			return nil
 		}
 
+		// Re-check assumeYes after potential environment override in shouldProceedWithSelfUpdate
+		// Actually, shouldProceedWithSelfUpdate doesn't modify it. Let's make it consistent.
+		effectiveAssumeYes := selfUpdateAssumeYes
+		if os.Getenv(selfUpdateConfirmOverrideEnvVar) == "true" || os.Getenv(selfUpdateConfirmOverrideEnvVar) == "yes" {
+			effectiveAssumeYes = true
+		}
+
 		if runtime.GOOS == "linux" {
-			checkAndFixSystemDependencies(selfUpdateAssumeYes)
+			checkAndFixSystemDependencies(effectiveAssumeYes)
 		}
 
 		client := &http.Client{Timeout: 300 * time.Second}
@@ -787,9 +794,12 @@ func checkAndFixSystemDependencies(assumeYes bool) {
 
 		if confirm {
 			pterm.Info.Printf("Installing missing dependencies (%s)...\n", strings.Join(missingDeps, ", "))
-			args := append([]string{"apt-get", "update"}, "&&", "apt-get", "install", "-y")
-			args = append(args, missingDeps...)
-			
+
+			if _, err := exec.LookPath("bash"); err != nil {
+				pterm.Error.Printf("Failed to install dependencies: bash not found in PATH\n")
+				return
+			}
+
 			// We use sudo explicitly for apt-get
 			fullCmd := fmt.Sprintf("sudo apt-get update && sudo apt-get install -y %s", strings.Join(missingDeps, " "))
 			cmd := exec.Command("bash", "-c", fullCmd)
@@ -856,7 +866,7 @@ func installViaDeb(client *http.Client, checksumsBody, baseURL, releaseTag, work
 	pterm.Success.Printf("Checksum verified for %s.\n", debAssetName)
 
 	pterm.Info.Println("Installing Debian package (requires sudo)...")
-	
+
 	// Run dpkg -i
 	cmd := exec.Command("sudo", "dpkg", "-i", debPath)
 	cmd.Stdout = os.Stdout
@@ -864,7 +874,7 @@ func installViaDeb(client *http.Client, checksumsBody, baseURL, releaseTag, work
 	cmd.Stdin = os.Stdin
 	if err := cmd.Run(); err != nil {
 		pterm.Warning.Printf("dpkg -i failed: %v. Attempting to fix missing dependencies...\n", err)
-		
+
 		// Run apt-get install -f
 		cmdFix := exec.Command("sudo", "apt-get", "install", "-f", "-y")
 		cmdFix.Stdout = os.Stdout
