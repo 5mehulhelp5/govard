@@ -53,6 +53,14 @@ success() { echo -e "${GREEN}success:${NC} $1"; }
 warn()    { echo -e "${YELLOW}warning:${NC} $1"; }
 error()   { echo -e "${RED}error:${NC} $1"; exit 1; }
 
+run_as_user() {
+    if [[ -n "${SUDO_USER:-}" && "$USER" == "root" ]]; then
+        sudo -u "$SUDO_USER" "$@"
+    else
+        "$@"
+    fi
+}
+
 usage() {
     cat <<EOF
 Usage: install.sh [options]
@@ -113,12 +121,29 @@ check_dependencies() {
     else
         warn "  Docker Compose: Not found (Required to run Govard stacks)"
     fi
-
     # Git (for source mode)
     if command -v git >/dev/null 2>&1; then
         success "  Git: $(git --version | awk '{print $3}')"
     elif [[ "$SOURCE_MODE" == true ]]; then
         error "Git is required for --source mode."
+    fi
+
+    # certutil (for browser trust)
+    if [[ "$OS" == "linux" ]]; then
+        if command -v certutil >/dev/null 2>&1; then
+            success "  certutil: Found"
+        else
+            warn "  certutil: Not found (Required for automatic browser SSL trust)"
+            if [[ "$FORCE_YES" == true ]]; then
+                info "Installing libnss3-tools (provides certutil) automatically..."
+                sudo apt-get update && sudo apt-get install -y libnss3-tools
+            else
+                read -p "Do you want to install libnss3-tools (provides certutil) automatically? (y/N) " confirm
+                if [[ $confirm =~ ^[Yy]$ ]]; then
+                    sudo apt-get update && sudo apt-get install -y libnss3-tools
+                fi
+            fi
+        fi
     fi
 }
 
@@ -475,6 +500,18 @@ main() {
     info "Quick start:"
     echo "  govard --help"
     echo ""
+
+    # Post-installation automation
+    local govard_bin="${INSTALL_DIR%/}/${CLI_BINARY_NAME}"
+    if [[ -x "$govard_bin" ]]; then
+        info "Initializing global services..."
+        run_as_user "$govard_bin" svc up -d --remove-orphans || warn "Failed to start global services automatically."
+
+        info "Configuring SSL trust..."
+        run_as_user "$govard_bin" doctor trust || warn "Failed to configure SSL trust automatically."
+        echo ""
+    fi
+
     warn_if_mixed_install_channels
     success "Installation complete!"
 }
