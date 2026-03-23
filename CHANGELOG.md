@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.24.0] - 2026-03-23
+
+### Added
+
+- **Global HTTP Redirect**: Implemented a global 308 Permanent Redirect from port 80 to 443 in the Caddy proxy. All `.test` and `.govard.test` domains (including Mailpit and phpMyAdmin) now force HTTPS by default.
+- **Zero-Config Installer**:
+    - Automatic detection and installation of `libnss3-tools` (certutil) and `libwebkit2gtk-4.1-0` on Linux.
+    - Post-installation hooks: Automatically starts global services (`svc up`) and configures SSL trust (`doctor trust`) for a "Green Lock" experience immediately after install.
+    - Pipe compatibility: Optimized `install.sh` for `curl | bash` execution with `/dev/tty` redirection for interactive prompts.
+- **WordPress Remote Support**: Added dedicated SSH-based database credential probing and site URL auto-correction for WordPress projects.
+- **Framework Detection**: Added WordPress to the default list of auto-detected frameworks.
+
+### Improved
+
+- **Bootstrap Hygiene**: The `bootstrap` command now defaults to `--remove-orphans`, ensuring a clean environment state without requiring manual flags.
+- **Package Integrity**: Elevated `libwebkit2gtk-4.1-0` and `libnss3-tools` to mandatory dependencies in the `.deb` package for seamless offline installation.
+- **phpMyAdmin Reliability**: Switched to permanent directory-based mounting for the project registry, resolving "stale data" issues in phpMyAdmin.
+- **Remote Shell Robustness**: Improved remote command execution with `bash -l` login shell invocation and `sh` fallback.
+- **Database Tooling**: Added Gzip compression for `db dump` output and removed environment restrictions for the `--local` flag.
+
+### Fixed
+
+- **Installer Path Resolution**: Fixed a `BASH_SOURCE` edge case in `install.sh` when executing via pipes.
+- **PHPMyAdmin Visibility**: Resolved inode-related search failures in phpMyAdmin by using more stable Docker volume configurations.
+
 ## [1.23.0] - 2026-03-23
 
 ### Added

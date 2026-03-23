@@ -18,7 +18,7 @@ At a glance, these are the areas where Govard delivers stronger day-to-day value
 | Core architecture | Native Go binary with direct Docker SDK orchestration (instead of shell-script glue), for more predictable lifecycle behavior. |
 | Framework intelligence | Automatic framework discovery + framework-specific blueprints + custom stack wizard for tailored environments. |
 | Magento depth | First-class Magento 2 workflow (auto `env.php` wiring, optional Varnish/Redis/queue/search, and dedicated `php-debug` routing). |
-| Local HTTPS/DNS | Built-in Caddy + `dnsmasq` + Root CA auto-trust flow for `*.test` domains, reducing manual local proxy/cert setup. |
+| Local HTTPS/DNS | Built-in Caddy + `dnsmasq` + Root CA auto-trust flow for `*.test` domains, with automatic HTTP to HTTPS 308 redirection for all services. |
 | Remote safety | `remote`/`sync` protections for sensitive targets (`prod` write blocking, scoped capabilities, audit logs, resumable transfers). |
 | Team reproducibility | `govard lock` + `lock.strict` to detect environment drift and enforce consistency across machines. |
 | Recovery workflow | `govard snapshot` for quick local DB/media checkpoints before risky operations or upgrades. |
@@ -82,7 +82,7 @@ curl -fsSL https://raw.githubusercontent.com/ddtcorex/govard/master/install.sh |
 curl -fsSL https://raw.githubusercontent.com/ddtcorex/govard/master/install.sh | bash -s -- --source
 ```
 
-By default this installs both `govard` and `govard-desktop` to `/usr/local/bin` and uses `sudo` when needed.
+By default this installs both `govard` and `govard-desktop` to `/usr/local/bin`, automatically detects/installs missing system dependencies (`certutil`, `WebKitGTK`), starts global services, and configures SSL trust.
 On Linux, if a standalone `govard-desktop` archive is missing in a release, the installer falls back to extracting `govard-desktop` from the release `.deb` package.
 
 Do not mix install channels on the same machine (for example: `.deb` + `make install` + `self-update` across different paths).  
