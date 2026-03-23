@@ -164,7 +164,7 @@ Note: -e/--environment accepts remote name aliases (e.g. 'dev' matches a remote 
 		}
 
 		if !opts.SkipUp {
-			if err := runGovardSubcommand(cmd, "env", "up"); err != nil {
+			if err := runGovardSubcommand(cmd, "env", "up", "--remove-orphans"); err != nil {
 				return fmt.Errorf("failed to start local environment: %w", err)
 			}
 		}
