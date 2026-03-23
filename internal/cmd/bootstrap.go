@@ -147,7 +147,7 @@ Note: -e/--environment accepts remote name aliases (e.g. 'dev' matches a remote 
 			operationSource = opts.Source
 		}
 
-		supportedFrameworks := []string{"magento2", "laravel", "symfony"}
+		supportedFrameworks := []string{"magento2", "laravel", "symfony", "wordpress"}
 		if opts.Fresh {
 			supportedFrameworks = []string{"magento2", "laravel", "symfony", "openmage", "drupal", "wordpress", "nextjs", "shopware", "cakephp"}
 		}
