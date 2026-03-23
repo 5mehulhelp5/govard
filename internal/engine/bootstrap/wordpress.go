@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/pterm/pterm"
 )
@@ -206,6 +207,34 @@ func (w *WordPressBootstrap) PostClone(projectDir string) error {
 				}
 			})
 			_ = os.WriteFile(configPath, []byte(content), 0644)
+		}
+	}
+
+	if _, err := os.Stat(configPath); err == nil {
+		if data, err := os.ReadFile(configPath); err == nil {
+			content := string(data)
+			if !strings.Contains(content, "HTTP_X_FORWARDED_PROTO") {
+				pterm.Info.Println("Injecting HTTPS proxy support into wp-config.php...")
+				fix := "\n// Govard: Trust HTTPS proxy\nif (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {\n    $_SERVER['HTTPS'] = 'on';\n}\n\n"
+				if strings.HasPrefix(content, "<?php") {
+					content = strings.Replace(content, "<?php", "<?php"+fix, 1)
+				} else {
+					content = fix + content
+				}
+				if err := os.WriteFile(configPath, []byte(content), 0644); err != nil {
+					pterm.Warning.Printf("Could not inject HTTPS proxy support: %v\n", err)
+				}
+			}
+		}
+	}
+
+	siteURL := fmt.Sprintf("https://%s", w.Options.Domain)
+	updateCommand := fmt.Sprintf(`php -r "require 'wp-load.php'; update_option('siteurl', '%s'); update_option('home', '%s');"`, siteURL, siteURL)
+	if w.Options.Runner != nil {
+		if err := w.Options.Runner(updateCommand); err != nil {
+			pterm.Warning.Printf("Note: Could not automatically update site URLs: %v\n", err)
+		} else {
+			pterm.Success.Printf("WordPress site URLs updated to %s\n", siteURL)
 		}
 	}
 

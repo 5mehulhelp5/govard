@@ -32,8 +32,7 @@ services:
       - PMA_ARBITRARY=1
     volumes:
       - ./config.user.inc.php:/etc/phpmyadmin/config.user.inc.php:ro
-      - ../projects.json:/tmp/projects.json:ro
-      - ../active-projects.json:/tmp/active-projects.json:ro
+      - ../:/govard-registry:ro
     networks:
       - govard-proxy
 

@@ -223,8 +223,8 @@ func extractComposeProjectAndServiceFromContainer(c container.Summary) (string, 
 
 func buildPMAConfigContent() string {
 	return `<?php
-$projectsJson = @file_get_contents('/tmp/projects.json');
-$activeProjectsJson = @file_get_contents('/tmp/active-projects.json');
+$projectsJson = @file_get_contents('/govard-registry/projects.json');
+$activeProjectsJson = @file_get_contents('/govard-registry/active-projects.json');
 
 $dbMap = [
     'magento1' => 'magento',

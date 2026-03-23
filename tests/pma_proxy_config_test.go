@@ -65,7 +65,7 @@ func TestBuildPMAConfigContentForTest_ContainsActiveFilteringAndProjectSelection
 	content := engine.BuildPMAConfigContentForTest()
 
 	requiredSnippets := []string{
-		"/tmp/active-projects.json",
+		"/govard-registry/active-projects.json",
 		"$projectToServer",
 		"$_GET['project']",
 		"legacy links",

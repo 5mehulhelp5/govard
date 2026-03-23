@@ -154,6 +154,7 @@ func runBootstrapWordPressFreshInstall(cmd *cobra.Command, config engine.Config,
 		DBUser: localDB.Username,
 		DBPass: localDB.Password,
 		DBName: localDB.Database,
+		Domain: config.Domain,
 	}
 
 	wpBootstrap := bootstrap.NewWordPressBootstrap(wpOpts)

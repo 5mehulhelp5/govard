@@ -96,7 +96,30 @@ func resolveRemoteDBCredentials(config engine.Config, remoteName string, remoteC
 			Password: metadata.DB.Password,
 			Database: metadata.DB.Database,
 		}.withDefaults(), nil
-	case "symfony", "laravel", "drupal", "wordpress", "shopware", "cakephp":
+	case "wordpress":
+		metadata, err := remote.ProbeWordPressEnvironment(remoteName, remoteCfg)
+		if err != nil {
+			// Fallback to Dotenv for Bedrock-style WordPress sites
+			metadataDotenv, errDotenv := remote.ProbeDotenvEnvironment(remoteName, remoteCfg)
+			if errDotenv == nil {
+				return dbCredentials{
+					Host:     metadataDotenv.DB.Host,
+					Port:     metadataDotenv.DB.Port,
+					Username: metadataDotenv.DB.Username,
+					Password: metadataDotenv.DB.Password,
+					Database: metadataDotenv.DB.Database,
+				}.withDefaults(), nil
+			}
+			return fallback, err
+		}
+		return dbCredentials{
+			Host:     metadata.DB.Host,
+			Port:     metadata.DB.Port,
+			Username: metadata.DB.Username,
+			Password: metadata.DB.Password,
+			Database: metadata.DB.Database,
+		}.withDefaults(), nil
+	case "symfony", "laravel", "drupal", "shopware", "cakephp":
 		metadata, err := remote.ProbeDotenvEnvironment(remoteName, remoteCfg)
 		if err != nil {
 			return fallback, err

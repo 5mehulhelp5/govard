@@ -41,31 +41,36 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrap
 	cwd, _ := os.Getwd()
 
 	if opts.ComposerInstall {
-		if err := ensureBootstrapAuthJSON(config, opts); err != nil {
-			return err
-		}
-		if opts.Clone {
-			if err := runBootstrapComposerPrepare(config); err != nil {
+		composerJSONPath := filepath.Join(cwd, "composer.json")
+		if !fileExists(composerJSONPath) && strings.ToLower(config.Framework) == "wordpress" {
+			pterm.Info.Println("No composer.json found. Skipping composer install for WordPress.")
+		} else {
+			if err := ensureBootstrapAuthJSON(config, opts); err != nil {
 				return err
 			}
-		}
-
-		installErr := runGovardSubcommand(cmd, govardComposerSubcommandArgs("install", "-n")...)
-		if installErr != nil {
-			autoloadPath := filepath.Join(cwd, "vendor", "autoload.php")
-
-			// If the error specifically mentions that the container is not running, we must stop.
-			errText := installErr.Error()
-			if strings.Contains(errText, "not running") || strings.Contains(errText, "No such container") {
-				return fmt.Errorf("composer install failed because the container is not running. Please check 'govard status' and 'docker ps': %w", installErr)
+			if opts.Clone {
+				if err := runBootstrapComposerPrepare(config); err != nil {
+					return err
+				}
 			}
 
-			if fileExists(autoloadPath) {
-				pterm.Warning.Printf("composer install failed, but %s exists. Continuing bootstrap (%v).\n", autoloadPath, installErr)
-			} else {
-				pterm.Warning.Printf("composer install failed (%v). Attempting to sync vendor from remote '%s'...\n", installErr, opts.Source)
-				if err := runGovardSubcommand(cmd, "sync", "--source", opts.Source, "--file", "--path", "vendor"); err != nil {
-					return fmt.Errorf("composer install failed (%v) and vendor sync failed (%v)", installErr, err)
+			installErr := runGovardSubcommand(cmd, govardComposerSubcommandArgs("install", "-n")...)
+			if installErr != nil {
+				autoloadPath := filepath.Join(cwd, "vendor", "autoload.php")
+
+				// If the error specifically mentions that the container is not running, we must stop.
+				errText := installErr.Error()
+				if strings.Contains(errText, "not running") || strings.Contains(errText, "No such container") {
+					return fmt.Errorf("composer install failed because the container is not running. Please check 'govard status' and 'docker ps': %w", installErr)
+				}
+
+				if fileExists(autoloadPath) {
+					pterm.Warning.Printf("composer install failed, but %s exists. Continuing bootstrap (%v).\n", autoloadPath, installErr)
+				} else {
+					pterm.Warning.Printf("composer install failed (%v). Attempting to sync vendor from remote '%s'...\n", installErr, opts.Source)
+					if err := runGovardSubcommand(cmd, "sync", "--source", opts.Source, "--file", "--path", "vendor"); err != nil {
+						return fmt.Errorf("composer install failed (%v) and vendor sync failed (%v)", installErr, err)
+					}
 				}
 			}
 		}
@@ -74,8 +79,11 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrap
 	// Always try to re-generate autoload if a PHP project is present. This avoids runtime issues when vendor came from
 	// a remote sync or when a lock file references a missing VCS commit but the dependency already exists locally.
 	if opts.ComposerInstall {
-		if err := bootstrapComposerDumpAutoload(cmd, cwd); err != nil {
-			return err
+		composerJSONPath := filepath.Join(cwd, "composer.json")
+		if fileExists(composerJSONPath) || strings.ToLower(config.Framework) != "wordpress" {
+			if err := bootstrapComposerDumpAutoload(cmd, cwd); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -120,6 +128,7 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrap
 			DBUser: localDB.Username,
 			DBPass: localDB.Password,
 			DBName: localDB.Database,
+			Domain: config.Domain,
 		}
 
 		var frameworkBootstrap bootstrap.FrameworkBootstrap

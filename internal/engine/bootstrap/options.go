@@ -14,6 +14,9 @@ type Options struct {
 	DBUser string
 	DBPass string
 	DBName string
+
+	// Environment configuration
+	Domain string
 }
 
 func DefaultOptions() Options {

@@ -33,6 +33,8 @@ func applyFrameworkAutoConfiguration(cmd *cobra.Command, config engine.Config) e
 			_ = runMagentoSearchHostFixViaCLI(cmd, config)
 		}
 		return engine.ConfigureMagento(config.ProjectName, config)
+	case "wordpress":
+		return nil
 	default:
 		pterm.Warning.Printf(
 			"Auto configuration is not supported for framework %q yet.\n",
