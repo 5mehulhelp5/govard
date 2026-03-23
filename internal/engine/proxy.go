@@ -74,9 +74,7 @@ func EnsureGlobalProxy() error {
 		return err
 	}
 
-	activeProjectsPath := filepath.Join(tempDir, "..", "active-projects.json")
-	activeProjects := activeProjectNamesFromContainers(containers)
-	if err := writePMAActiveProjectsFile(activeProjectsPath, activeProjects); err != nil {
+	if err := RefreshPMAActiveProjects(); err != nil {
 		return err
 	}
 
@@ -145,6 +143,25 @@ func waitForAnyContainerRunning(ctx context.Context, names []string, timeout tim
 
 type pmaActiveProjectsDocument struct {
 	Projects []string `json:"projects"`
+}
+
+func RefreshPMAActiveProjects() error {
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return err
+	}
+
+	containers, err := cli.ContainerList(ctx, container.ListOptions{All: true})
+	if err != nil {
+		return fmt.Errorf("list containers: %w", err)
+	}
+
+	tempDir := filepath.Join(os.Getenv("HOME"), ".govard", "proxy")
+	activeProjectsPath := filepath.Join(tempDir, "..", "active-projects.json")
+	activeProjects := activeProjectNamesFromContainers(containers)
+
+	return writePMAActiveProjectsFile(activeProjectsPath, activeProjects)
 }
 
 func writePMAActiveProjectsFile(path string, projects []string) error {

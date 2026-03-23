@@ -309,6 +309,10 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 				if err := engine.RunHooks(context.Config, engine.HookPostUp, context.Out, context.Err); err != nil {
 					return fmt.Errorf("post-up hooks failed: %w", err)
 				}
+
+				if err := engine.RefreshPMAActiveProjects(); err != nil {
+					pterm.Warning.Printf("Could not refresh PMA active projects: %v\n", err)
+				}
 				return nil
 			},
 		},
