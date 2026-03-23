@@ -12,7 +12,7 @@ import (
 	"govard/internal/ui"
 )
 
-var Version = "1.22.1"
+var Version = "1.23.0"
 
 var verbose bool
 

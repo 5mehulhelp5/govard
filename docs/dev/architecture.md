@@ -13,7 +13,7 @@ Technical specification and architecture of Govard.
 
 ### 2.1 Core Engine (Go)
 
-- **Language**: Go 1.24+ for cross-platform support (macOS Intel/Silicon, Linux, Windows)
+- **Language**: Go 1.25+ for cross-platform support (macOS Intel/Silicon, Linux, Windows)
 - **CLI Framework**: **Cobra CLI** for robust command structure
 - **Orchestration**: Direct integration with **Docker SDK** to manage container lifecycles
 - **Templating**: **Go `text/template`** engine for dynamic Docker Compose rendering from framework-specific Blueprints

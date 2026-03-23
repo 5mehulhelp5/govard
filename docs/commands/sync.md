@@ -27,7 +27,7 @@ govard sync -s dev --db --no-pii
 - `--exclude` Rsync exclude pattern (repeatable)
 - `--plan` Print a dry-run summary (endpoints, scopes, risk, steps) and exit
 - `-N, --no-noise` Exclude ephemeral/noise tables from DB sync (cron, cache, sessions, logs, etc.)
-- `-S, --no-pii` Exclude PII/sensitive tables from DB sync (users, orders, passwords, etc.). Implies `--no-noise`.
+- `-S, --no-pii` Exclude PII/sensitive tables from DB sync (users, orders, passwords, etc.)
 
 ## Remote Name Resolution
 
@@ -74,8 +74,11 @@ govard sync -s staging -d local --file --include 'app/*' --exclude 'vendor/'
 # Sync DB excluding logs and caches
 govard sync -s dev --db --no-noise
 
-# Sync DB excluding PII (implies --no-noise)
+# Sync DB excluding PII
 govard sync -s dev --db --no-pii
+
+# Sync DB excluding both noise and PII
+govard sync -s dev --db --no-noise --no-pii
 
 # Push code to staging (local → remote)
 govard sync -d staging --file --path app/code

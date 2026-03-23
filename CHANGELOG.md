@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.23.0] - 2026-03-23
+
+### Added
+
+- **Independent Monitoring Flags**: Separated `--no-noise` (`-N`) and `--no-pii` (`-S`) flags. They are now independent and can be used individually or together to fine-tune database synchronization and dumps.
+- **Canonical Remote Name Display**: The CLI now consistently resolves and displays the canonical remote name (from `remotes` config) in all output messages, even when using aliases or environment names.
+
+### Improved
+
+- **Bootstrap & Sync Visibility**: Added clear, immediate `INFO` messages at the start of `bootstrap` and `sync` operations to provide instant feedback on the source, destination, and scope of the action.
+- **Remote DB Dump Feedback**: Database dump operations now explicitly include the target remote file path in the success message for better traceability.
+
+### Fixed
+
+- **Remote Path Expansion**: Fixed an issue where paths starting with `~/` were not expanded on remote servers due to shell quoting. Introduced a `quoteRemotePath` helper to safely handle home-relative paths.
+- **PHPMyAdmin Visibility**: Resolved a race condition where `pma.govard.test` would not show project databases after a fresh `bootstrap` or `env up`. Implemented an explicit active project refresh in the verification stage.
+- **Remote Identity Resolution**: Refactored `ensureRemoteKnown` to consistently resolve and return the confirmed remote name across all CLI commands.
+
 ## [1.22.1] - 2026-03-21
 
 ### Added

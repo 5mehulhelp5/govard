@@ -55,7 +55,7 @@ Dumps are comprehensive (including routines and triggers) by default to ensure f
   govard db dump --no-noise
 
   # Create a local dump excluding noise + PII tables (customers, orders...)
-  govard db dump --no-pii
+  govard db dump --no-noise --no-pii
 
   # Execute a SQL query
   govard db query "SELECT * FROM core_config_data LIMIT 5"

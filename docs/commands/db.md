@@ -24,7 +24,7 @@ govard db import --stream-db --environment staging --drop
 - `--drop` For `db import`: drop and recreate the database before importing
 - `--local` For `db dump/import`: force local file operations for remote environments
 - `-N, --no-noise` For `db dump`: exclude ephemeral/noise tables (cron, cache, session, logs, indexes…)
-- `-S, --no-pii` For `db dump`: exclude PII/sensitive tables (customers, orders, quotes…) — implies `--no-noise`
+- `-S, --no-pii` For `db dump`: exclude PII/sensitive tables (customers, orders, quotes…)
 
 > **Note:** SQL sanitization (DEFINER/GTID cleanup) and tiered dumping (metadata + data) are always applied automatically for Magento 2.
 
@@ -58,7 +58,10 @@ govard db dump -e staging --local
 # Exclude noise tables (cron, cache, session, log tables, indexers…)
 govard db dump --no-noise
 
-# Exclude noise + PII tables (customers, orders, quotes…)
+# Exclude PII tables (customers, orders, quotes…)
+govard db dump --no-pii
+
+# Exclude noise + PII tables
 govard db dump --no-noise --no-pii
 ```
 
@@ -116,7 +119,7 @@ govard db top -e staging
 | Flag | Tables excluded |
 | --- | --- |
 | `--no-noise` (`-N`) | Ephemeral / high-churn tables: `cron_schedule`, `cache_tag`, `session`, index replicas, `report_*`, `queue_message`, `oauth_nonce`, `search_query`, log tables, third-party activity tables (Amasty, ElasticSuite, Klaviyo, Mailchimp, etc.). |
-| `--no-pii` (`-S`) | All `--no-noise` tables **plus** PII tables: `customer_entity*`, `sales_order*`, `quote*`, `newsletter_subscriber`, `wishlist*`, `admin_user`, `admin_passwords`, `paypal_*`, `vault_payment_token*`, B2B company tables, etc. |
+| `--no-pii` (`-S`) | PII tables: `customer_entity*`, `sales_order*`, `quote*`, `newsletter_subscriber`, `wishlist*`, `admin_user`, `admin_passwords`, `paypal_*`, `vault_payment_token*`, B2B company tables, etc. |
 
 ## Examples
 

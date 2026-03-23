@@ -47,7 +47,7 @@ If you don't have `sudo` privileges or want to avoid global installations, you c
 ```bash
 # 1. Install Go locally
 mkdir -p $HOME/go_dist
-GO_TAR="go1.24.0.linux-amd64.tar.gz"
+GO_TAR="go1.25.0.linux-amd64.tar.gz"
 curl -sL "https://go.dev/dl/${GO_TAR}" -o "$HOME/${GO_TAR}"
 tar -C $HOME/go_dist -xzf "$HOME/${GO_TAR}"
 

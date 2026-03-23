@@ -43,7 +43,7 @@ govard bootstrap --framework magento2 --fresh --framework-version 2.4.8
 - `--fix-deps` Run `govard custom fix-deps` before bootstrap (auto-detects remote Magento version when cloning and `--framework-version` is omitted)
 - `--skip-up` Skip `govard env up` stage
 - `-N, --no-noise` Exclude ephemeral/noise tables from DB import (cron, cache, sessions, logs, etc.)
-- `-S, --no-pii` Exclude PII/sensitive tables from DB import (users, orders, passwords, etc.). Implies `--no-noise`.
+- `-S, --no-pii` Exclude PII/sensitive tables from DB import (users, orders, passwords, etc.)
 
 ## Notes
 
