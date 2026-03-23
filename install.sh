@@ -23,7 +23,7 @@ SOURCE_MODE=false
 FORCE_YES=false
 SPECIFIC_VERSION=""
 SOURCE_DIR=""
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${0}}")" && pwd)"
 
 desktop_build_tags() {
     local tags="desktop production"
@@ -138,7 +138,7 @@ check_dependencies() {
                 info "Installing libnss3-tools (provides certutil) automatically..."
                 sudo apt-get update && sudo apt-get install -y libnss3-tools
             else
-                read -p "Do you want to install libnss3-tools (provides certutil) automatically? (y/N) " confirm
+            read -p "Do you want to install libnss3-tools (provides certutil) automatically? (y/N) " confirm </dev/tty
                 if [[ $confirm =~ ^[Yy]$ ]]; then
                     sudo apt-get update && sudo apt-get install -y libnss3-tools
                 fi
@@ -292,7 +292,7 @@ install_go() {
 
     if [[ "$need_go_install" == true ]]; then
         if [[ "$FORCE_YES" == false ]]; then
-            read -p "Do you want to install Go $MIN_GO_VERSION automatically? (y/N) " confirm
+            read -p "Do you want to install Go $MIN_GO_VERSION automatically? (y/N) " confirm </dev/tty
             if [[ ! $confirm =~ ^[Yy]$ ]]; then
                 error "Go $MIN_GO_VERSION+ is required for source builds."
             fi
