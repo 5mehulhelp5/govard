@@ -71,6 +71,7 @@ services:
       {{ end }}
     networks:
       - govard-net
+      - govard-proxy
     environment:
       XDEBUG_MODE: off
       {{ if .SSHAuthSock }}
@@ -100,6 +101,7 @@ services:
       {{ end }}
     networks:
       - govard-net
+      - govard-proxy
     environment:
       {{ if (ge .Config.Stack.PHPVersion "7.2") }}
       XDEBUG_MODE: debug

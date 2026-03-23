@@ -21,6 +21,7 @@ services:
       - .:/var/www/html
     networks:
       - govard-net
+      - govard-proxy
     environment:
       XDEBUG_MODE: off
 
@@ -30,6 +31,7 @@ services:
     volumes:
       - .:/var/www/html
     networks:
+      - govard-proxy
       - govard-net
     environment:
       {{ if (ge .Config.Stack.PHPVersion "7.2") }}
@@ -48,9 +50,9 @@ services:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: magento
       MYSQL_USER: magento
-      MYSQL_PASSWORD: magento
     networks:
       - govard-net
+      - govard-proxy
     volumes:
       - db-data:/var/lib/mysql
   {{ end }}
