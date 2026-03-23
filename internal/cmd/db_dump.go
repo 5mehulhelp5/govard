@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"compress/gzip"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"govard/internal/engine"
@@ -58,7 +60,15 @@ func runDBDump(cmd *cobra.Command, config engine.Config, options dbCommandOption
 			return fmt.Errorf("create dump file: %w", err)
 		}
 		defer fileWriter.Close()
+
 		writer = fileWriter
+
+		var gzWriter *gzip.Writer
+		if strings.HasSuffix(targetPath, ".gz") {
+			gzWriter = gzip.NewWriter(fileWriter)
+			defer func() { _ = gzWriter.Close() }()
+			writer = gzWriter
+		}
 		pterm.Info.Printf("Writing database dump to %s...\n", targetPath)
 		options.File = targetPath // Update for the success message below
 

@@ -339,9 +339,6 @@ func validateDBCommandOptions(subcommand string, options dbCommandOptions) error
 		if options.StreamDB {
 			return errors.New("--stream-db is only supported by db import")
 		}
-		if options.Local && options.Environment != "local" {
-			return errors.New("--local is only supported for local environment dumps")
-		}
 	case "import":
 		if options.Drop {
 			return errors.New("--drop is only supported by db dump")
