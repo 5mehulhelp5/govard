@@ -174,10 +174,11 @@ func runOpenLocalShell(config engine.Config) error {
 
 func buildRemoteShellCommand(projectPath string) string {
 	trimmedPath := strings.TrimSpace(projectPath)
+	cmd := "if command -v bash >/dev/null 2>&1; then exec bash -l; else exec sh; fi"
 	if trimmedPath == "" {
-		return "(bash -l || sh)"
+		return cmd
 	}
-	return "cd " + shellQuote(trimmedPath) + " && (bash -l || sh)"
+	return "cd " + shellQuote(trimmedPath) + " && " + cmd
 }
 
 func resolveOpenEnvironment(config engine.Config, requestedEnvironment string) (string, bool, error) {
