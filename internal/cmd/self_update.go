@@ -54,7 +54,11 @@ var selfUpdateCmd = &cobra.Command{
 			return nil
 		}
 
-		client := &http.Client{Timeout: 30 * time.Second}
+		if runtime.GOOS == "linux" {
+			checkAndFixSystemDependencies(selfUpdateAssumeYes)
+		}
+
+		client := &http.Client{Timeout: 300 * time.Second}
 		releaseTag := normalizeReleaseTag(selfUpdateVersion)
 		repo := selfUpdateRepo()
 
@@ -99,6 +103,22 @@ var selfUpdateCmd = &cobra.Command{
 		checksumsBody, err := downloadText(client, checksumsURL)
 		if err != nil {
 			return err
+		}
+
+		// On Linux with dpkg available, prefer .deb package installation
+		if runtime.GOOS == "linux" {
+			if _, err := exec.LookPath("dpkg"); err == nil {
+				pterm.Info.Println("Debian-based system detected — using .deb package for update.")
+				if err := installViaDeb(client, checksumsBody, baseURL, releaseTag, tmpDir); err != nil {
+					pterm.Warning.Printf("Debian package update failed: %v. Falling back to archive update.\n", err)
+				} else {
+					pterm.Success.Println("Update complete via Debian package.")
+					runPostUpdateHooks(execPath, selfUpdateAssumeYes)
+					reportMixedInstallChannels([]string{selfUpdateBinaryName, selfUpdateDesktopBinaryName})
+					pterm.Info.Println("Run 'govard version' to verify.")
+					return nil
+				}
+			}
 		}
 
 		type updatedTarget struct {
@@ -163,6 +183,9 @@ var selfUpdateCmd = &cobra.Command{
 		for _, updated := range updatedTargets {
 			pterm.Info.Printf("Updated %s at %s\n", updated.binaryName, updated.path)
 		}
+
+		runPostUpdateHooks(execPath, selfUpdateAssumeYes)
+
 		reportMixedInstallChannels([]string{selfUpdateBinaryName, selfUpdateDesktopBinaryName})
 		pterm.Info.Println("Run 'govard version' to verify.")
 		return nil
@@ -714,6 +737,145 @@ func shouldProceedWithSelfUpdate(assumeYes bool) bool {
 
 	msg, _ := pterm.DefaultInteractiveConfirm.Show("Do you want to proceed with the update?")
 	return msg
+}
+
+func checkAndFixSystemDependencies(assumeYes bool) {
+	if runtime.GOOS != "linux" {
+		return
+	}
+
+	pterm.Info.Println("Checking system dependencies...")
+	var missingDeps []string
+
+	// Check certutil
+	if _, err := exec.LookPath("certutil"); err != nil {
+		pterm.Warning.Println("  certutil: Not found (Required for automatic browser SSL trust)")
+		missingDeps = append(missingDeps, "libnss3-tools")
+	} else {
+		pterm.Success.Println("  certutil: Found")
+	}
+
+	// Check WebKitGTK
+	hasWebKit := false
+	if out, err := exec.Command("ldconfig", "-p").Output(); err == nil {
+		if strings.Contains(string(out), "libwebkit2gtk-4.1") {
+			hasWebKit = true
+		}
+	}
+	if !hasWebKit {
+		for _, path := range []string{"/usr/lib/x86_64-linux-gnu/libwebkit2gtk-4.1.so.0", "/usr/lib/libwebkit2gtk-4.1.so.0"} {
+			if _, err := os.Stat(path); err == nil {
+				hasWebKit = true
+				break
+			}
+		}
+	}
+
+	if hasWebKit {
+		pterm.Success.Println("  WebKitGTK: Found")
+	} else {
+		pterm.Warning.Println("  WebKitGTK: Not found (Required for Desktop App)")
+		missingDeps = append(missingDeps, "libwebkit2gtk-4.1-0")
+	}
+
+	if len(missingDeps) > 0 {
+		confirm := assumeYes
+		if !confirm {
+			msg, _ := pterm.DefaultInteractiveConfirm.Show(fmt.Sprintf("Do you want to install missing dependencies (%s) automatically?", strings.Join(missingDeps, ", ")))
+			confirm = msg
+		}
+
+		if confirm {
+			pterm.Info.Printf("Installing missing dependencies (%s)...\n", strings.Join(missingDeps, ", "))
+			args := append([]string{"apt-get", "update"}, "&&", "apt-get", "install", "-y")
+			args = append(args, missingDeps...)
+			
+			// We use sudo explicitly for apt-get
+			fullCmd := fmt.Sprintf("sudo apt-get update && sudo apt-get install -y %s", strings.Join(missingDeps, " "))
+			cmd := exec.Command("bash", "-c", fullCmd)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			cmd.Stdin = os.Stdin
+			if err := cmd.Run(); err != nil {
+				pterm.Error.Printf("Failed to install dependencies: %v\n", err)
+			} else {
+				pterm.Success.Println("Dependencies installed successfully.")
+			}
+		}
+	}
+}
+
+func runPostUpdateHooks(govardBin string, assumeYes bool) {
+	pterm.Info.Println("Running post-update automation...")
+
+	// 1. Refresh global services
+	pterm.Info.Println("Refreshing global services...")
+	cmdSvc := exec.Command(govardBin, "svc", "up", "-d", "--remove-orphans")
+	cmdSvc.Stdout = io.Discard // Keep it clean
+	cmdSvc.Stderr = os.Stderr
+	if err := cmdSvc.Run(); err != nil {
+		pterm.Warning.Printf("Failed to refresh global services: %v\n", err)
+	} else {
+		pterm.Success.Println("Global services refreshed.")
+	}
+
+	// 2. Configure SSL trust
+	pterm.Info.Println("Verifying SSL trust configuration...")
+	cmdTrust := exec.Command(govardBin, "doctor", "trust")
+	cmdTrust.Stdout = io.Discard
+	cmdTrust.Stderr = os.Stderr
+	if err := cmdTrust.Run(); err != nil {
+		pterm.Warning.Printf("Failed to verify SSL trust: %v\n", err)
+	} else {
+		pterm.Success.Println("SSL trust verified.")
+	}
+}
+
+func installViaDeb(client *http.Client, checksumsBody, baseURL, releaseTag, workDir string) error {
+	versionNoPrefix := strings.TrimPrefix(normalizeReleaseTag(releaseTag), "v")
+	if versionNoPrefix == "" {
+		return errors.New("release tag is empty")
+	}
+
+	debAssetName := fmt.Sprintf("%s_%s_linux_%s.deb", selfUpdateBinaryName, versionNoPrefix, runtime.GOARCH)
+	debPath := filepath.Join(workDir, debAssetName)
+	debURL := fmt.Sprintf("%s/%s", baseURL, debAssetName)
+
+	pterm.Info.Printf("Downloading %s...\n", debAssetName)
+	if err := downloadFile(client, debURL, debPath); err != nil {
+		return fmt.Errorf("download deb asset: %w", err)
+	}
+
+	expectedChecksum, err := checksumForAsset(checksumsBody, debAssetName)
+	if err != nil {
+		return err
+	}
+	if err := verifySHA256(debPath, expectedChecksum); err != nil {
+		return err
+	}
+	pterm.Success.Printf("Checksum verified for %s.\n", debAssetName)
+
+	pterm.Info.Println("Installing Debian package (requires sudo)...")
+	
+	// Run dpkg -i
+	cmd := exec.Command("sudo", "dpkg", "-i", debPath)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	if err := cmd.Run(); err != nil {
+		pterm.Warning.Printf("dpkg -i failed: %v. Attempting to fix missing dependencies...\n", err)
+		
+		// Run apt-get install -f
+		cmdFix := exec.Command("sudo", "apt-get", "install", "-f", "-y")
+		cmdFix.Stdout = os.Stdout
+		cmdFix.Stderr = os.Stderr
+		cmdFix.Stdin = os.Stdin
+		if fixErr := cmdFix.Run(); fixErr != nil {
+			return fmt.Errorf("package installation failed even after fixing dependencies: %w", fixErr)
+		}
+	}
+
+	return nil
 }
 
 // NormalizeReleaseTagForTest exposes normalizeReleaseTag for tests in /tests.
