@@ -100,7 +100,7 @@ func TestValidateConfigRejectsInvalidRemoteEnvironment(t *testing.T) {
 			},
 		},
 	}
-	engine.NormalizeConfig(&cfg)
+	engine.NormalizeConfig(&cfg, "")
 	if err := engine.ValidateConfig(cfg); err == nil {
 		t.Fatal("expected invalid environment validation error")
 	}

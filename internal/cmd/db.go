@@ -416,7 +416,7 @@ func buildDBDumpCommand(config engine.Config, options dbCommandOptions) (*exec.C
 		if err := ensureLocalDBRunning(containerName); err != nil {
 			return nil, "", err
 		}
-		credentials := resolveLocalDBCredentials(containerName)
+		credentials := resolveLocalDBCredentials(config, containerName)
 		return buildLocalDBDumpCommand(containerName, credentials, options.NoNoise, options.NoPII, config.Framework), "", nil
 	}
 
@@ -461,7 +461,7 @@ func buildDBImportCommand(config engine.Config, options dbCommandOptions) (*exec
 		if err := ensureLocalDBRunning(containerName); err != nil {
 			return nil, err
 		}
-		return buildLocalDBImportCommand(containerName, resolveLocalDBCredentials(containerName)), nil
+		return buildLocalDBImportCommand(containerName, resolveLocalDBCredentials(config, containerName)), nil
 	}
 
 	remoteCfg, err := resolveDBRemote(config, options.Environment, true)
@@ -750,7 +750,7 @@ func runDBTop(cmd *cobra.Command, config engine.Config, options dbCommandOptions
 		if err := ensureLocalDBRunning(containerName); err != nil {
 			return err
 		}
-		credentials = resolveLocalDBCredentials(containerName)
+		credentials = resolveLocalDBCredentials(config, containerName)
 	} else {
 		remoteCfg, err = resolveDBRemote(config, options.Environment, false)
 		if err != nil {

@@ -77,6 +77,10 @@ func (s *SymfonyBootstrap) CreateProject(projectDir string) error {
 
 	skeleton := s.getSkeletonForVersion(s.Options.Version)
 
+	if s.Options.Runner != nil {
+		return s.Options.Runner("composer create-project " + skeleton + " . --no-interaction")
+	}
+
 	cmd := exec.Command("composer", "create-project", skeleton, ".", "--no-interaction")
 	cmd.Dir = projectDir
 	cmd.Stdout = os.Stdout
@@ -96,11 +100,28 @@ func (s *SymfonyBootstrap) Install(projectDir string) error {
 
 	envLocalPath := filepath.Join(projectDir, ".env.local")
 	if _, err := os.Stat(envLocalPath); os.IsNotExist(err) {
-		content := `APP_ENV=dev
+		dbHost := s.Options.DBHost
+		if dbHost == "" {
+			dbHost = "db"
+		}
+		dbUser := s.Options.DBUser
+		if dbUser == "" {
+			dbUser = "symfony"
+		}
+		dbPass := s.Options.DBPass
+		if dbPass == "" {
+			dbPass = "symfony"
+		}
+		dbName := s.Options.DBName
+		if dbName == "" {
+			dbName = "symfony"
+		}
+
+		content := fmt.Sprintf(`APP_ENV=dev
 APP_SECRET=your-secret-key-here
-DATABASE_URL="mysql://symfony:symfony@db:3306/symfony?serverVersion=11.4.0-MariaDB&charset=utf8mb4"
+DATABASE_URL="mysql://%s:%s@%s:3306/%s?serverVersion=11.4.0-MariaDB&charset=utf8mb4"
 MAILER_DSN=smtp://mailpit:1025
-`
+`, dbUser, dbPass, dbHost, dbName)
 		if err := os.WriteFile(envLocalPath, []byte(content), 0600); err != nil {
 			return fmt.Errorf("failed to create .env.local: %w", err)
 		}
@@ -132,11 +153,29 @@ func (s *SymfonyBootstrap) Configure(projectDir string) error {
 	if _, err := os.Stat(envLocalPath); err == nil {
 		content, err := os.ReadFile(envLocalPath)
 		if err == nil {
+			dbHost := s.Options.DBHost
+			if dbHost == "" {
+				dbHost = "db"
+			}
+			dbUser := s.Options.DBUser
+			if dbUser == "" {
+				dbUser = "symfony"
+			}
+			dbPass := s.Options.DBPass
+			if dbPass == "" {
+				dbPass = "symfony"
+			}
+			dbName := s.Options.DBName
+			if dbName == "" {
+				dbName = "symfony"
+			}
+
 			updated := string(content)
-			if !strings.Contains(updated, "@db:") {
+			if !strings.Contains(updated, "@"+dbHost+":") {
 				updated = strings.ReplaceAll(updated,
 					"DATABASE_URL=",
-					"DATABASE_URL=\"mysql://symfony:symfony@db:3306/symfony?serverVersion=11.4.0-MariaDB&charset=utf8mb4\"")
+					fmt.Sprintf("DATABASE_URL=\"mysql://%s:%s@%s:3306/%s?serverVersion=11.4.0-MariaDB&charset=utf8mb4\"",
+						dbUser, dbPass, dbHost, dbName))
 				_ = os.WriteFile(envLocalPath, []byte(updated), 0600)
 			}
 		}
@@ -198,6 +237,11 @@ func (s *SymfonyBootstrap) getSkeletonForVersion(version string) string {
 }
 
 func (s *SymfonyBootstrap) runComposerCommand(projectDir string, args ...string) error {
+	command := "composer " + strings.Join(args, " ")
+	if s.Options.Runner != nil {
+		return s.Options.Runner(command)
+	}
+
 	cmd := exec.Command("composer", args...)
 	cmd.Dir = projectDir
 	cmd.Stdout = os.Stdout
@@ -216,8 +260,20 @@ func (s *SymfonyBootstrap) runSymfonyConsole(projectDir string, args ...string) 
 		}
 	}
 
-	args = append([]string{consolePath}, args...)
-	cmd := exec.Command("php", args...)
+	// When running in container, we use relative path from /var/www/html
+	// or assume the runner handles the working directory.
+	// Govard's runPHPContainerShellCommand uses -w /var/www/html
+	relConsolePath, err := filepath.Rel(projectDir, consolePath)
+	if err != nil {
+		relConsolePath = consolePath
+	}
+
+	command := "php " + relConsolePath + " " + strings.Join(args, " ")
+	if s.Options.Runner != nil {
+		return s.Options.Runner(command)
+	}
+
+	cmd := exec.Command("php", append([]string{consolePath}, args...)...)
 	cmd.Dir = projectDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

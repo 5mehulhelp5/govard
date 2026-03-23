@@ -420,7 +420,7 @@ func TestNormalizeConfigWithInvalidPHPVersion(t *testing.T) {
 		},
 	}
 
-	engine.NormalizeConfig(&config)
+	engine.NormalizeConfig(&config, "")
 
 	if config.Stack.PHPVersion != "99.99" {
 		t.Logf("NormalizeConfig changed invalid PHP version to: %s", config.Stack.PHPVersion)
@@ -442,7 +442,7 @@ func TestNormalizeConfigDefaultsForUnknownFramework(t *testing.T) {
 		},
 	}
 
-	engine.NormalizeConfig(&config)
+	engine.NormalizeConfig(&config, "")
 
 	if config.Stack.Services.WebServer == "" {
 		t.Error("WebServer should have a default value after normalization")

@@ -120,7 +120,7 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 		return fmt.Errorf("resolve blueprints directory: %w", err)
 	}
 
-	NormalizeConfig(&config)
+	NormalizeConfig(&config, root)
 	config.Profile = profile
 
 	outputPath := ComposeFilePathWithProfile(root, config.ProjectName, profile)

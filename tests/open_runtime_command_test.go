@@ -52,7 +52,7 @@ framework: laravel
 	if !strings.Contains(logs, "https://sample.test/admin") {
 		t.Fatalf("missing admin URL in opener log:\n%s", logs)
 	}
-	if !strings.Contains(logs, "project=sample-project") || !strings.Contains(logs, "db=magento") {
+	if !strings.Contains(logs, "project=sample-project") || !strings.Contains(logs, "db=laravel") {
 		t.Fatalf("missing db/project params in PMA URL in opener log:\n%s", logs)
 	}
 }

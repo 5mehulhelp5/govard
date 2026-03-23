@@ -18,12 +18,36 @@ type dbCredentials struct {
 	Database string
 }
 
-func defaultDBCredentials() dbCredentials {
-	return dbCredentials{
-		Port:     3306,
-		Username: "magento",
-		Password: "magento",
-		Database: "magento",
+func defaultDBCredentialsForFramework(framework string) dbCredentials {
+	switch strings.TrimSpace(framework) {
+	case "symfony":
+		return dbCredentials{
+			Port:     3306,
+			Username: "symfony",
+			Password: "symfony",
+			Database: "symfony",
+		}
+	case "laravel":
+		return dbCredentials{
+			Port:     3306,
+			Username: "laravel",
+			Password: "laravel",
+			Database: "laravel",
+		}
+	case "wordpress":
+		return dbCredentials{
+			Port:     3306,
+			Username: "wordpress",
+			Password: "wordpress",
+			Database: "wordpress",
+		}
+	default:
+		return dbCredentials{
+			Port:     3306,
+			Username: "magento",
+			Password: "magento",
+			Database: "magento",
+		}
 	}
 }
 
@@ -45,7 +69,7 @@ func (credentials dbCredentials) withDefaults() dbCredentials {
 }
 
 func resolveRemoteDBCredentials(config engine.Config, remoteName string, remoteCfg engine.RemoteConfig) (dbCredentials, error) {
-	fallback := defaultDBCredentials()
+	fallback := defaultDBCredentialsForFramework(config.Framework)
 	switch strings.TrimSpace(config.Framework) {
 	case "magento2":
 		metadata, err := remote.ProbeMagento2Environment(remoteName, remoteCfg)
@@ -89,8 +113,8 @@ func resolveRemoteDBCredentials(config engine.Config, remoteName string, remoteC
 	}
 }
 
-func resolveLocalDBCredentials(containerName string) dbCredentials {
-	credentials := defaultDBCredentials()
+func resolveLocalDBCredentials(config engine.Config, containerName string) dbCredentials {
+	credentials := defaultDBCredentialsForFramework(config.Framework)
 	inspectCommand := exec.Command("docker", "inspect", "-f", "{{range .Config.Env}}{{println .}}{{end}}", containerName)
 	output, err := inspectCommand.Output()
 	if err != nil {

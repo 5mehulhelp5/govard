@@ -105,22 +105,44 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrap
 		}
 	}
 
-	if shouldRunSymfonyPostClone(config, opts) {
+	if shouldRunFrameworkPostClone(config, opts) {
 		cwd, _ := os.Getwd()
-		symfonyOpts := bootstrap.Options{
+		containerName := fmt.Sprintf("%s-db-1", config.ProjectName)
+		localDB := resolveLocalDBCredentials(config, containerName)
+
+		bootstrapOpts := bootstrap.Options{
 			Version: opts.MetaVersion,
 			Env:     opts.Source,
+			Runner: func(command string) error {
+				return runPHPContainerShellCommand(config, command)
+			},
+			DBHost: "db",
+			DBUser: localDB.Username,
+			DBPass: localDB.Password,
+			DBName: localDB.Database,
 		}
-		symfonyBootstrap := bootstrap.NewSymfonyBootstrap(symfonyOpts)
-		if err := symfonyBootstrap.PostClone(cwd); err != nil {
-			if shouldIgnoreSymfonyPostCloneError(err, cwd) {
-				pterm.Warning.Printf("Skipping strict Symfony post-clone step: %v\n", err)
-			} else {
-				return err
+
+		var frameworkBootstrap bootstrap.FrameworkBootstrap
+		switch config.Framework {
+		case "symfony":
+			frameworkBootstrap = bootstrap.NewSymfonyBootstrap(bootstrapOpts)
+		case "laravel":
+			frameworkBootstrap = bootstrap.NewLaravelBootstrap(bootstrapOpts)
+		case "wordpress":
+			frameworkBootstrap = bootstrap.NewWordPressBootstrap(bootstrapOpts)
+		}
+
+		if frameworkBootstrap != nil {
+			if err := frameworkBootstrap.PostClone(cwd); err != nil {
+				if shouldIgnoreFrameworkPostCloneError(config, err, cwd) {
+					pterm.Warning.Printf("Skipping strict %s post-clone step: %v\n", config.Framework, err)
+				} else {
+					return err
+				}
 			}
 		}
-	} else if config.Framework == "symfony" {
-		pterm.Info.Println("Skipping Symfony post-clone setup because composer install is disabled.")
+	} else if config.Framework == "symfony" || config.Framework == "laravel" || config.Framework == "wordpress" {
+		pterm.Info.Printf("Skipping %s post-clone setup because composer install is disabled.\n", config.Framework)
 	}
 
 	if opts.AdminCreate && config.Framework == "magento2" {

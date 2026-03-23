@@ -27,7 +27,7 @@ func TestRequiredRuntimeImagesMagento(t *testing.T) {
 				Varnish: true,
 			},
 		},
-	})
+	}, "")
 
 	expected := map[string]bool{
 		"ddtcorex/govard-nginx:1.28":        true,
@@ -60,7 +60,7 @@ func TestRequiredRuntimeImagesNextjs(t *testing.T) {
 				Queue: "rabbitmq",
 			},
 		},
-	})
+	}, "")
 
 	expected := map[string]bool{
 		"node:24-alpine":                  true,
@@ -94,7 +94,7 @@ func TestRequiredRuntimeImagesMagentoHybrid(t *testing.T) {
 				Queue:     "none",
 			},
 		},
-	})
+	}, "")
 
 	expected := map[string]bool{
 		"ddtcorex/govard-nginx:1.28":       true,

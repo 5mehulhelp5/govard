@@ -306,15 +306,25 @@ func stringSliceContains(slice []string, item string) bool {
 	return false
 }
 
-func shouldRunSymfonyPostClone(config engine.Config, opts bootstrapRuntimeOptions) bool {
-	return config.Framework == "symfony" && opts.ComposerInstall
+func shouldRunFrameworkPostClone(config engine.Config, opts bootstrapRuntimeOptions) bool {
+	if !opts.ComposerInstall {
+		return false
+	}
+	return config.Framework == "symfony" || config.Framework == "laravel" || config.Framework == "wordpress"
 }
 
-func shouldIgnoreSymfonyPostCloneError(err error, cwd string) bool {
+func shouldIgnoreFrameworkPostCloneError(config engine.Config, err error, cwd string) bool {
 	if err == nil {
 		return false
 	}
-	if !strings.Contains(strings.ToLower(err.Error()), "composer install failed") {
+	errText := strings.ToLower(err.Error())
+
+	// WordPress config might already exist or fail in non-critical ways
+	if config.Framework == "wordpress" {
+		return fileExists(filepath.Join(cwd, "wp-config.php"))
+	}
+
+	if !strings.Contains(errText, "composer install failed") {
 		return false
 	}
 	return fileExists(filepath.Join(cwd, "vendor", "autoload.php"))
@@ -346,12 +356,12 @@ func shouldSkipBootstrapMediaSync(config engine.Config, opts bootstrapRuntimeOpt
 	return false, ""
 }
 
-func ShouldRunSymfonyPostCloneForTest(framework string, composerInstall bool) bool {
-	return shouldRunSymfonyPostClone(engine.Config{Framework: framework}, bootstrapRuntimeOptions{ComposerInstall: composerInstall})
+func ShouldRunFrameworkPostCloneForTest(framework string, composerInstall bool) bool {
+	return shouldRunFrameworkPostClone(engine.Config{Framework: framework}, bootstrapRuntimeOptions{ComposerInstall: composerInstall})
 }
 
-func ShouldIgnoreSymfonyPostCloneErrorForTest(err error, cwd string) bool {
-	return shouldIgnoreSymfonyPostCloneError(err, cwd)
+func ShouldIgnoreFrameworkPostCloneErrorForTest(framework string, err error, cwd string) bool {
+	return shouldIgnoreFrameworkPostCloneError(engine.Config{Framework: framework}, err, cwd)
 }
 
 func ShouldSkipBootstrapMediaSyncForTest(config engine.Config, source string, mediaSync bool, clone bool, codeOnly bool) (bool, string) {

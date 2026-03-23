@@ -56,14 +56,21 @@ func (w *WordPressBootstrap) CreateProject(projectDir string) error {
 		}
 	}
 
-	cmd := exec.Command("wp", "core", "download", "--path=.", "--allow-root")
-	cmd.Dir = projectDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
+	command := "wp core download --path=. --allow-root"
+	if w.Options.Runner != nil {
+		if err := w.Options.Runner(command); err != nil {
+			return fmt.Errorf("failed to download WordPress: %w", err)
+		}
+	} else {
+		cmd := exec.Command("wp", "core", "download", "--path=.", "--allow-root")
+		cmd.Dir = projectDir
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Stdin = os.Stdin
 
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to download WordPress: %w", err)
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to download WordPress: %w", err)
+		}
 	}
 
 	pterm.Success.Println("WordPress downloaded successfully")
@@ -75,12 +82,62 @@ func (w *WordPressBootstrap) Install(projectDir string) error {
 
 	configPath := filepath.Join(projectDir, "wp-config.php")
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		cmd := exec.Command("wp", "config", "create",
-			"--dbname=wordpress",
-			"--dbuser=wordpress",
-			"--dbpass=wordpress",
-			"--dbhost=db",
-			"--dbprefix=wp_",
+		dbHost := w.Options.DBHost
+		if dbHost == "" {
+			dbHost = "db"
+		}
+		dbUser := w.Options.DBUser
+		if dbUser == "" {
+			dbUser = "wordpress"
+		}
+		dbPass := w.Options.DBPass
+		if dbPass == "" {
+			dbPass = "wordpress"
+		}
+		dbName := w.Options.DBName
+		if dbName == "" {
+			dbName = "wordpress"
+		}
+
+		command := fmt.Sprintf("wp config create --dbname=%s --dbuser=%s --dbpass=%s --dbhost=%s --dbprefix=wp_ --allow-root",
+			dbName, dbUser, dbPass, dbHost)
+
+		if w.Options.Runner != nil {
+			if err := w.Options.Runner(command); err != nil {
+				return fmt.Errorf("failed to create wp-config.php: %w", err)
+			}
+		} else {
+			cmd := exec.Command("wp", "config", "create",
+				"--dbname="+dbName,
+				"--dbuser="+dbUser,
+				"--dbpass="+dbPass,
+				"--dbhost="+dbHost,
+				"--dbprefix=wp_",
+				"--allow-root",
+			)
+			cmd.Dir = projectDir
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+
+			if err := cmd.Run(); err != nil {
+				return fmt.Errorf("failed to create wp-config.php: %w", err)
+			}
+		}
+		pterm.Success.Println("Created wp-config.php")
+	}
+
+	installCommand := "wp core install --url=http://localhost --title='WordPress Site' --admin_user=admin --admin_password=admin --admin_email=admin@local.test --allow-root"
+	if w.Options.Runner != nil {
+		if err := w.Options.Runner(installCommand); err != nil {
+			pterm.Warning.Printf("WordPress install warning: %v\n", err)
+		}
+	} else {
+		cmd := exec.Command("wp", "core", "install",
+			"--url=http://localhost",
+			"--title=WordPress Site",
+			"--admin_user=admin",
+			"--admin_password=admin",
+			"--admin_email=admin@local.test",
 			"--allow-root",
 		)
 		cmd.Dir = projectDir
@@ -88,25 +145,8 @@ func (w *WordPressBootstrap) Install(projectDir string) error {
 		cmd.Stderr = os.Stderr
 
 		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("failed to create wp-config.php: %w", err)
+			pterm.Warning.Printf("WordPress install warning: %v\n", err)
 		}
-		pterm.Success.Println("Created wp-config.php")
-	}
-
-	cmd := exec.Command("wp", "core", "install",
-		"--url=http://localhost",
-		"--title=WordPress Site",
-		"--admin_user=admin",
-		"--admin_password=admin",
-		"--admin_email=admin@local.test",
-		"--allow-root",
-	)
-	cmd.Dir = projectDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
-		pterm.Warning.Printf("WordPress install warning: %v\n", err)
 	}
 
 	pterm.Success.Println("WordPress installation completed")

@@ -420,3 +420,49 @@ func TestCLIShortcutsHelp(t *testing.T) {
 		return
 	}
 }
+
+func TestCLIWebRootCorrection(t *testing.T) {
+	env := NewTestEnvironment(t)
+
+	files := map[string]string{
+		"composer.json": MustMarshalJSON(t, map[string]interface{}{
+			"require": map[string]string{
+				"symfony/framework-bundle": "7.0.0",
+			},
+		}),
+		"public/index.php": "<?php echo 'hello';",
+		".govard.yml": MustMarshalYAML(t, map[string]interface{}{
+			"project_name": "webroot-test",
+			"framework":    "symfony",
+			"domain":       "webroot-test.test",
+			"stack": map[string]interface{}{
+				"php_version": "8.3",
+				"web_server":  "nginx",
+				"web_root":    "/",
+				"services": map[string]interface{}{
+					"web_server": "nginx",
+					"search":     "none",
+					"cache":      "none",
+					"queue":      "none",
+				},
+			},
+		}),
+	}
+
+	projectDir := env.CreateTestProject(t, "webroot-correction-test", files)
+
+	result := env.RunGovard(t, projectDir, "init")
+	result.AssertSuccess(t)
+
+	result.AssertOutputContains(t, "Corrected web_root from '/' to '/public'")
+
+	composePath := filepath.Join(projectDir, ".govard", "compose.yml")
+	composeContent, err := os.ReadFile(composePath)
+	if err == nil {
+		if !strings.Contains(string(composeContent), "/public") {
+			t.Errorf("Expected /public in compose file, but didn't find it")
+		}
+	} else if !os.IsNotExist(err) {
+		t.Errorf("Failed to read compose.yml: %v", err)
+	}
+}

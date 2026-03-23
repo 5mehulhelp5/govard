@@ -22,7 +22,7 @@ remotes:
 	if err := yaml.Unmarshal([]byte(yamlInput), &cfg); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	engine.NormalizeConfig(&cfg)
+	engine.NormalizeConfig(&cfg, "")
 
 	remote := cfg.Remotes["staging"]
 	if remote.Port != 22 {
@@ -67,7 +67,7 @@ remotes:
 	if err := yaml.Unmarshal([]byte(yamlInput), &cfg); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	engine.NormalizeConfig(&cfg)
+	engine.NormalizeConfig(&cfg, "")
 
 	remote := cfg.Remotes["dev"]
 	if remote.Auth.Method != engine.RemoteAuthMethodKeychain {
@@ -103,7 +103,7 @@ remotes:
 	if err := yaml.Unmarshal([]byte(yamlInput), &cfg); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	engine.NormalizeConfig(&cfg)
+	engine.NormalizeConfig(&cfg, "")
 
 	remote := cfg.Remotes["staging"]
 	if remote.Auth.Method != engine.RemoteAuthMethodSSHAgent {
@@ -141,7 +141,7 @@ func TestRemoteConfigRejectsUnsupportedAuthMethod(t *testing.T) {
 			},
 		},
 	}
-	engine.NormalizeConfig(&cfg)
+	engine.NormalizeConfig(&cfg, "")
 	if err := engine.ValidateConfig(cfg); err == nil {
 		t.Fatal("expected unsupported auth method validation error")
 	}

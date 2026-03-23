@@ -56,7 +56,7 @@ func ensureBootstrapMagentoEnvPHP(config engine.Config, opts bootstrapRuntimeOpt
 	}
 
 	containerName := fmt.Sprintf("%s-db-1", config.ProjectName)
-	localDB := resolveLocalDBCredentials(containerName)
+	localDB := resolveLocalDBCredentials(config, containerName)
 
 	template := fmt.Sprintf(`<?php
 return [

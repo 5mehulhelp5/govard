@@ -79,6 +79,10 @@ func (l *LaravelBootstrap) CreateProject(projectDir string) error {
 
 	laravelVersion := l.getLaravelVersion(l.Options.Version)
 
+	if l.Options.Runner != nil {
+		return l.Options.Runner("composer create-project " + laravelVersion + " . --no-interaction")
+	}
+
 	cmd := exec.Command("composer", "create-project", laravelVersion, ".", "--no-interaction")
 	cmd.Dir = projectDir
 	cmd.Stdout = os.Stdout
@@ -106,13 +110,30 @@ func (l *LaravelBootstrap) Install(projectDir string) error {
 	}
 
 	if data, err := os.ReadFile(envPath); err == nil {
+		dbHost := l.Options.DBHost
+		if dbHost == "" {
+			dbHost = "db"
+		}
+		dbUser := l.Options.DBUser
+		if dbUser == "" {
+			dbUser = "laravel"
+		}
+		dbPass := l.Options.DBPass
+		if dbPass == "" {
+			dbPass = "laravel"
+		}
+		dbName := l.Options.DBName
+		if dbName == "" {
+			dbName = "laravel"
+		}
+
 		content := string(data)
 		content = strings.ReplaceAll(content, "APP_ENV=production", "APP_ENV=local")
 		content = strings.ReplaceAll(content, "APP_DEBUG=false", "APP_DEBUG=true")
-		content = strings.ReplaceAll(content, "DB_HOST=127.0.0.1", "DB_HOST=db")
-		content = strings.ReplaceAll(content, "DB_DATABASE=laravel", "DB_DATABASE=laravel")
-		content = strings.ReplaceAll(content, "DB_USERNAME=root", "DB_USERNAME=laravel")
-		content = strings.ReplaceAll(content, "DB_PASSWORD=", "DB_PASSWORD=laravel")
+		content = strings.ReplaceAll(content, "DB_HOST=127.0.0.1", "DB_HOST="+dbHost)
+		content = strings.ReplaceAll(content, "DB_DATABASE=laravel", "DB_DATABASE="+dbName)
+		content = strings.ReplaceAll(content, "DB_USERNAME=root", "DB_USERNAME="+dbUser)
+		content = strings.ReplaceAll(content, "DB_PASSWORD=", "DB_PASSWORD="+dbPass)
 		_ = os.WriteFile(envPath, []byte(content), 0600)
 	}
 
@@ -140,10 +161,14 @@ func (l *LaravelBootstrap) Configure(projectDir string) error {
 	if _, err := os.Stat(envPath); err == nil {
 		content, err := os.ReadFile(envPath)
 		if err == nil {
+			dbHost := l.Options.DBHost
+			if dbHost == "" {
+				dbHost = "db"
+			}
 			updated := string(content)
-			if !strings.Contains(updated, "DB_HOST=db") {
-				updated = strings.ReplaceAll(updated, "DB_HOST=127.0.0.1", "DB_HOST=db")
-				updated = strings.ReplaceAll(updated, "DB_HOST=localhost", "DB_HOST=db")
+			if !strings.Contains(updated, "DB_HOST="+dbHost) {
+				updated = strings.ReplaceAll(updated, "DB_HOST=127.0.0.1", "DB_HOST="+dbHost)
+				updated = strings.ReplaceAll(updated, "DB_HOST=localhost", "DB_HOST="+dbHost)
 				_ = os.WriteFile(envPath, []byte(updated), 0600)
 			}
 		}
@@ -177,9 +202,13 @@ func (l *LaravelBootstrap) PostClone(projectDir string) error {
 
 	if _, err := os.Stat(envPath); err == nil {
 		if data, err := os.ReadFile(envPath); err == nil {
+			dbHost := l.Options.DBHost
+			if dbHost == "" {
+				dbHost = "db"
+			}
 			content := string(data)
-			content = strings.ReplaceAll(content, "DB_HOST=127.0.0.1", "DB_HOST=db")
-			content = strings.ReplaceAll(content, "DB_HOST=localhost", "DB_HOST=db")
+			content = strings.ReplaceAll(content, "DB_HOST=127.0.0.1", "DB_HOST="+dbHost)
+			content = strings.ReplaceAll(content, "DB_HOST=localhost", "DB_HOST="+dbHost)
 			_ = os.WriteFile(envPath, []byte(content), 0600)
 		}
 	}
@@ -217,6 +246,11 @@ func (l *LaravelBootstrap) getLaravelVersion(version string) string {
 }
 
 func (l *LaravelBootstrap) runComposerCommand(projectDir string, args ...string) error {
+	command := "composer " + strings.Join(args, " ")
+	if l.Options.Runner != nil {
+		return l.Options.Runner(command)
+	}
+
 	cmd := exec.Command("composer", args...)
 	cmd.Dir = projectDir
 	cmd.Stdout = os.Stdout
@@ -232,8 +266,17 @@ func (l *LaravelBootstrap) runArtisanCommand(projectDir string, args ...string) 
 		return nil
 	}
 
-	args = append([]string{artisanPath}, args...)
-	cmd := exec.Command("php", args...)
+	relArtisanPath, err := filepath.Rel(projectDir, artisanPath)
+	if err != nil {
+		relArtisanPath = artisanPath
+	}
+
+	command := "php " + relArtisanPath + " " + strings.Join(args, " ")
+	if l.Options.Runner != nil {
+		return l.Options.Runner(command)
+	}
+
+	cmd := exec.Command("php", append([]string{artisanPath}, args...)...)
 	cmd.Dir = projectDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

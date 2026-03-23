@@ -304,8 +304,16 @@ Case Studies:
 			}
 			config.Hooks = existingConfig.Hooks
 		}
+
+		oldWebRoot := config.Stack.WebRoot
+
 		configForObservability = config
-		engine.NormalizeConfig(&config)
+		engine.NormalizeConfig(&config, cwd)
+
+		if oldWebRoot == "/" && config.Stack.WebRoot != "/" && config.Stack.WebRoot != "" {
+			pterm.Info.Printf("Corrected web_root from '/' to '%s' based on framework conventions\n", config.Stack.WebRoot)
+		}
+
 		writableConfig := engine.PrepareConfigForWrite(config)
 
 		data, err := yaml.Marshal(&writableConfig)
@@ -330,11 +338,12 @@ Case Studies:
 
 func loadExistingInitConfig(cwd string) (engine.Config, bool) {
 	configPath := filepath.Join(cwd, engine.BaseConfigFile)
-	if _, err := os.Stat(configPath); err != nil {
+	data, err := os.ReadFile(configPath)
+	if err != nil {
 		return engine.Config{}, false
 	}
-	existing, err := engine.LoadBaseConfigFromDir(cwd, true)
-	if err != nil {
+	var existing engine.Config
+	if err := yaml.Unmarshal(data, &existing); err != nil {
 		pterm.Warning.Printf("Could not load existing %s for merge: %v\n", engine.BaseConfigFile, err)
 		return engine.Config{}, false
 	}

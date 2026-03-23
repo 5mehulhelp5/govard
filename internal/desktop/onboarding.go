@@ -172,7 +172,7 @@ func onboardProjectWithOptionsInternalWithContext(
 			rabbitMQEnabled,
 			elasticsearchEnabled,
 		) {
-		engine.NormalizeConfig(&config)
+		engine.NormalizeConfig(&config, root)
 		if err := writeBaseConfig(root, config); err != nil {
 			message = err.Error()
 			return "", err

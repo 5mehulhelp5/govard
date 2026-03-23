@@ -25,7 +25,7 @@ func TestRunHooksExecutesCommands(t *testing.T) {
 			},
 		},
 	}
-	engine.NormalizeConfig(&cfg)
+	engine.NormalizeConfig(&cfg, "")
 
 	if err := engine.RunHooks(cfg, engine.HookPreUp, nil, nil); err != nil {
 		t.Fatalf("run hooks: %v", err)
@@ -50,7 +50,7 @@ func TestValidateConfigRejectsUnknownHookEvent(t *testing.T) {
 			},
 		},
 	}
-	engine.NormalizeConfig(&cfg)
+	engine.NormalizeConfig(&cfg, "")
 
 	if err := engine.ValidateConfig(cfg); err == nil {
 		t.Fatal("expected validation error for unknown hook event")
@@ -67,7 +67,7 @@ func TestValidateConfigRejectsEmptyHookCommand(t *testing.T) {
 			},
 		},
 	}
-	engine.NormalizeConfig(&cfg)
+	engine.NormalizeConfig(&cfg, "")
 
 	if err := engine.ValidateConfig(cfg); err == nil {
 		t.Fatal("expected validation error for empty hook command")

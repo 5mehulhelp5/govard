@@ -139,7 +139,7 @@ var profileApplyCmd = &cobra.Command{
 		}
 
 		engine.ApplyRuntimeProfileToConfig(&config, result.Profile)
-		engine.NormalizeConfig(&config)
+		engine.NormalizeConfig(&config, wd)
 		saveConfig(config)
 		pterm.Success.Println("Applied profile to .govard.yml")
 		return nil

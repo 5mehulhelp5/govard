@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func NormalizeConfig(config *Config) {
+func NormalizeConfig(config *Config, root string) {
 	if config == nil {
 		return
 	}
@@ -21,6 +21,19 @@ func NormalizeConfig(config *Config) {
 	profileResult, profileErr := ResolveRuntimeProfile(config.Framework, config.FrameworkVersion)
 	profileAvailable := profileErr == nil
 	profile := profileResult.Profile
+
+	if config.Stack.WebRoot == "" || (config.Stack.WebRoot == "/" && root != "") {
+		detected := DetectWebRoot(root, config.Framework)
+		if detected != "" {
+			config.Stack.WebRoot = detected
+		} else if config.Stack.WebRoot == "" {
+			if profileAvailable && profile.WebRoot != "" {
+				config.Stack.WebRoot = profile.WebRoot
+			} else if ok && fwConfig.NGINXPUBLIC != "" {
+				config.Stack.WebRoot = fwConfig.NGINXPUBLIC
+			}
+		}
+	}
 
 	if config.Stack.DBType == "" {
 		if profileAvailable && profile.DBType != "" {

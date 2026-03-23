@@ -12,6 +12,35 @@ type ProjectMetadata struct {
 	Version   string
 }
 
+func DetectWebRoot(root string, framework string) string {
+	framework = strings.ToLower(strings.TrimSpace(framework))
+	switch framework {
+	case "symfony", "laravel", "shopware", "cakephp":
+		if _, err := os.Stat(filepath.Join(root, "public")); err == nil {
+			return "/public"
+		}
+		if framework == "cakephp" {
+			if _, err := os.Stat(filepath.Join(root, "webroot")); err == nil {
+				return "/webroot"
+			}
+		}
+	case "magento2":
+		if _, err := os.Stat(filepath.Join(root, "pub")); err == nil {
+			return "/pub"
+		}
+	case "drupal":
+		if _, err := os.Stat(filepath.Join(root, "web")); err == nil {
+			return "/web"
+		}
+	case "wordpress":
+		if _, err := os.Stat(filepath.Join(root, "wordpress")); err == nil {
+			return "/wordpress"
+		}
+	}
+
+	return ""
+}
+
 func DetectFramework(root string) ProjectMetadata {
 	metadata := ProjectMetadata{Framework: "generic"}
 

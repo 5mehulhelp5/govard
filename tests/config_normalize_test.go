@@ -15,7 +15,7 @@ func TestNormalizeConfigDefaultsMagento2(t *testing.T) {
 		Framework: "magento2",
 	}
 
-	engine.NormalizeConfig(&config)
+	engine.NormalizeConfig(&config, "")
 
 	if config.Stack.DBType != "mariadb" {
 		t.Fatalf("Expected DBType mariadb, got %s", config.Stack.DBType)
@@ -66,7 +66,7 @@ func TestNormalizeConfigQueueDefaults(t *testing.T) {
 		},
 	}
 
-	engine.NormalizeConfig(&config)
+	engine.NormalizeConfig(&config, "")
 
 	if config.Stack.QueueVersion != "3.13.7" {
 		t.Fatalf("Expected QueueVersion 3.13.7, got %s", config.Stack.QueueVersion)
@@ -79,7 +79,7 @@ func TestNormalizeConfigVersionAwareDefaultsMagento2(t *testing.T) {
 		FrameworkVersion: "2.4.7-p3",
 	}
 
-	engine.NormalizeConfig(&config)
+	engine.NormalizeConfig(&config, "")
 
 	if config.Stack.PHPVersion != "8.3" {
 		t.Fatalf("Expected PHPVersion 8.3, got %s", config.Stack.PHPVersion)
@@ -124,7 +124,7 @@ func TestNormalizeConfigCacheAndSearchVersions(t *testing.T) {
 		},
 	}
 
-	engine.NormalizeConfig(&config)
+	engine.NormalizeConfig(&config, "")
 
 	if config.Stack.CacheVersion != "7.2" {
 		t.Fatalf("Expected CacheVersion 7.2, got %s", config.Stack.CacheVersion)

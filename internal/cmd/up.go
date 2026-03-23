@@ -414,7 +414,7 @@ func AutoTuneMagentoRuntime(config *engine.Config, metadata engine.ProjectMetada
 		))
 	}
 
-	engine.NormalizeConfig(config)
+	engine.NormalizeConfig(config, "")
 	return notes
 }
 

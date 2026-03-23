@@ -65,7 +65,7 @@ func ensureTrailingSlash(path string) string {
 
 func buildDatabaseSyncAction(config engine.Config, source syncEndpoint, destination syncEndpoint, noNoise bool, noPII bool) (string, func() error, error) {
 	localDBContainer := fmt.Sprintf("%s-db-1", config.ProjectName)
-	localCredentials := resolveLocalDBCredentials(localDBContainer)
+	localCredentials := resolveLocalDBCredentials(config, localDBContainer)
 
 	switch {
 	case !source.IsLocal && destination.IsLocal:

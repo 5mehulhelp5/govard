@@ -46,9 +46,19 @@ func runBootstrapMagentoFreshInstall(cmd *cobra.Command, config engine.Config, o
 }
 
 func runBootstrapSymfonyFreshInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions, cwd string) error {
+	containerName := fmt.Sprintf("%s-db-1", config.ProjectName)
+	localDB := resolveLocalDBCredentials(config, containerName)
+
 	symfonyOpts := bootstrap.Options{
 		Version: opts.MetaVersion,
 		Env:     opts.Source,
+		Runner: func(command string) error {
+			return runPHPContainerShellCommand(config, command)
+		},
+		DBHost: "db", // Internal container hostname
+		DBUser: localDB.Username,
+		DBPass: localDB.Password,
+		DBName: localDB.Database,
 	}
 
 	symfonyBootstrap := bootstrap.NewSymfonyBootstrap(symfonyOpts)
@@ -70,9 +80,19 @@ func runBootstrapSymfonyFreshInstall(cmd *cobra.Command, config engine.Config, o
 }
 
 func runBootstrapLaravelFreshInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions, cwd string) error {
+	containerName := fmt.Sprintf("%s-db-1", config.ProjectName)
+	localDB := resolveLocalDBCredentials(config, containerName)
+
 	laravelOpts := bootstrap.Options{
 		Version: opts.MetaVersion,
 		Env:     opts.Source,
+		Runner: func(command string) error {
+			return runPHPContainerShellCommand(config, command)
+		},
+		DBHost: "db", // Internal container hostname
+		DBUser: localDB.Username,
+		DBPass: localDB.Password,
+		DBName: localDB.Database,
 	}
 
 	laravelBootstrap := bootstrap.NewLaravelBootstrap(laravelOpts)
@@ -97,6 +117,9 @@ func runBootstrapDrupalFreshInstall(cmd *cobra.Command, config engine.Config, op
 	drupalOpts := bootstrap.Options{
 		Version: opts.MetaVersion,
 		Env:     opts.Source,
+		Runner: func(command string) error {
+			return runPHPContainerShellCommand(config, command)
+		},
 	}
 
 	drupalBootstrap := bootstrap.NewDrupalBootstrap(drupalOpts)
@@ -118,9 +141,19 @@ func runBootstrapDrupalFreshInstall(cmd *cobra.Command, config engine.Config, op
 }
 
 func runBootstrapWordPressFreshInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions, cwd string) error {
+	containerName := fmt.Sprintf("%s-db-1", config.ProjectName)
+	localDB := resolveLocalDBCredentials(config, containerName)
+
 	wpOpts := bootstrap.Options{
 		Version: opts.MetaVersion,
 		Env:     opts.Source,
+		Runner: func(command string) error {
+			return runPHPContainerShellCommand(config, command)
+		},
+		DBHost: "db",
+		DBUser: localDB.Username,
+		DBPass: localDB.Password,
+		DBName: localDB.Database,
 	}
 
 	wpBootstrap := bootstrap.NewWordPressBootstrap(wpOpts)
@@ -145,6 +178,9 @@ func runBootstrapShopwareFreshInstall(cmd *cobra.Command, config engine.Config, 
 	shopwareOpts := bootstrap.Options{
 		Version: opts.MetaVersion,
 		Env:     opts.Source,
+		Runner: func(command string) error {
+			return runPHPContainerShellCommand(config, command)
+		},
 	}
 
 	shopwareBootstrap := bootstrap.NewShopwareBootstrap(shopwareOpts)
@@ -169,6 +205,9 @@ func runBootstrapCakePHPFreshInstall(cmd *cobra.Command, config engine.Config, o
 	cakePHPOpts := bootstrap.Options{
 		Version: opts.MetaVersion,
 		Env:     opts.Source,
+		Runner: func(command string) error {
+			return runPHPContainerShellCommand(config, command)
+		},
 	}
 
 	cakePHPBootstrap := bootstrap.NewCakePHPBootstrap(cakePHPOpts)
@@ -193,6 +232,9 @@ func runBootstrapOpenMageFreshInstall(cmd *cobra.Command, config engine.Config, 
 	openmageOpts := bootstrap.Options{
 		Version: opts.MetaVersion,
 		Env:     opts.Source,
+		Runner: func(command string) error {
+			return runPHPContainerShellCommand(config, command)
+		},
 	}
 
 	openmageBootstrap := bootstrap.NewOpenMageBootstrap(openmageOpts)
@@ -217,6 +259,13 @@ func runBootstrapNextJSFreshInstall(cmd *cobra.Command, config engine.Config, op
 	nextJSOpts := bootstrap.Options{
 		Version: opts.MetaVersion,
 		Env:     opts.Source,
+		Runner: func(command string) error {
+			// For Next.js, we might want to run commands in the web container if it's node-based
+			// but for now let's keep it consistent or handle it specifically if needed.
+			// Next.js currently uses CreateProject and Configure which run on host in the Next.js bootstrap.
+			// I'll leave it for now or fix it if I see it's also host-only.
+			return nil
+		},
 	}
 
 	nextJSBootstrap := bootstrap.NewNextJSBootstrap(nextJSOpts)

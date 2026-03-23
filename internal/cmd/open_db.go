@@ -41,7 +41,7 @@ func runOpenDBTarget(config engine.Config, requestedEnvironment string, pmaFlag 
 		containerName := dbContainerName(config)
 
 		if usePma {
-			credentials := resolveLocalDBCredentials(containerName)
+			credentials := resolveLocalDBCredentials(config, containerName)
 			target := buildOpenDBPMAURL(config.ProjectName, credentials.Database)
 			pterm.Info.Printf("Opening %s\n", target)
 			return openURL(target)
@@ -49,7 +49,7 @@ func runOpenDBTarget(config engine.Config, requestedEnvironment string, pmaFlag 
 			if err := ensureLocalDBRunning(containerName); err != nil {
 				return err
 			}
-			credentials := resolveLocalDBCredentials(containerName)
+			credentials := resolveLocalDBCredentials(config, containerName)
 			// Assuming Ward doesn't bind 3306 locally by default, we build a connect string to point to 127.0.0.1:3306
 			// A local developer might have overriden their proxy map or bound it to the host.
 			connectionURL := buildOpenDBConnectionURL(credentials, 3306)

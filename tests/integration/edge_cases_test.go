@@ -41,7 +41,7 @@ func TestEdgeCaseProjectNameWithUnderscores(t *testing.T) {
 	}
 
 	normalized := config
-	engine.NormalizeConfig(&normalized)
+	engine.NormalizeConfig(&normalized, "")
 	if normalized.ProjectName != "my_test_project_123" {
 		t.Fatalf("Project name should be preserved, got: %s", normalized.ProjectName)
 	}
@@ -82,7 +82,7 @@ func TestEdgeCaseProjectNameWithHyphens(t *testing.T) {
 	}
 
 	normalized := config
-	engine.NormalizeConfig(&normalized)
+	engine.NormalizeConfig(&normalized, "")
 	if normalized.ProjectName != "my-test-project" {
 		t.Fatalf("Project name should be preserved, got: %s", normalized.ProjectName)
 	}
@@ -164,7 +164,7 @@ func TestEdgeCasePHPVersionEdgeValues(t *testing.T) {
 			},
 		}
 
-		engine.NormalizeConfig(&config)
+		engine.NormalizeConfig(&config, "")
 
 		t.Logf("PHP version %s normalized to %s", tc.version, config.Stack.PHPVersion)
 	}
@@ -292,7 +292,7 @@ func TestEdgeCaseNilConfigFeatures(t *testing.T) {
 		},
 	}
 
-	engine.NormalizeConfig(&config)
+	engine.NormalizeConfig(&config, "")
 
 	if config.Stack.Features.Xdebug &&
 		config.Stack.Features.Redis &&

@@ -79,7 +79,7 @@ func missingRuntimeImagesForCurrentProject() ([]string, []string) {
 		return nil, []string{fmt.Sprintf("Skipped runtime image checks: %v", err)}
 	}
 
-	required := RequiredRuntimeImages(config)
+	required := RequiredRuntimeImages(config, cwd)
 	if len(required) == 0 {
 		return nil, nil
 	}
@@ -94,8 +94,8 @@ func missingRuntimeImagesForCurrentProject() ([]string, []string) {
 }
 
 // RequiredRuntimeImages returns all Docker images needed by the current runtime config.
-func RequiredRuntimeImages(config engine.Config) []string {
-	engine.NormalizeConfig(&config)
+func RequiredRuntimeImages(config engine.Config, root string) []string {
+	engine.NormalizeConfig(&config, root)
 
 	imageRepo := strings.TrimSpace(os.Getenv("GOVARD_IMAGE_REPOSITORY"))
 	if imageRepo == "" {

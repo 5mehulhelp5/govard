@@ -27,7 +27,7 @@ func runDBQuery(cmd *cobra.Command, config engine.Config, options dbCommandOptio
 				return err
 			}
 
-			credentials := resolveLocalDBCredentials(containerName)
+			credentials := resolveLocalDBCredentials(config, containerName)
 			pterm.Info.Printf("Executing query on %s...\n", containerName)
 
 			queryCmd := buildLocalDBQueryCommand(containerName, credentials, query)

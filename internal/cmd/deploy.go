@@ -71,7 +71,7 @@ func detectMagento2Locales(config engine.Config) []string {
 	// Query locale codes from core_config_data (covers storefront + admin)
 	query := "SELECT DISTINCT value FROM core_config_data WHERE path IN ('general/locale/code','general/locale/timezone') AND value REGEXP '^[a-z]{2}_[A-Z]{2}$';"
 
-	credentials := resolveLocalDBCredentials(containerName)
+	credentials := resolveLocalDBCredentials(config, containerName)
 	credentials = credentials.withDefaults()
 
 	args := []string{"exec", "-i"}

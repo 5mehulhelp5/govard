@@ -20,7 +20,7 @@ func runDBInfo(cmd *cobra.Command, config engine.Config, options dbCommandOption
 				return err
 			}
 
-			credentials := resolveLocalDBCredentials(containerName)
+			credentials := resolveLocalDBCredentials(config, containerName)
 
 			fmt.Fprintf(cmd.OutOrStdout(), "Environment:  local\n")
 			fmt.Fprintf(cmd.OutOrStdout(), "Container:    %s\n", containerName)

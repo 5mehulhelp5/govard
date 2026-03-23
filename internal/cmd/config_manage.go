@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"govard/internal/engine"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -49,7 +50,8 @@ var configSetCmd = &cobra.Command{
 		if !setConfigValue(&config, key, value) {
 			return fmt.Errorf("unknown config key: %s", key)
 		}
-		engine.NormalizeConfig(&config)
+		wd, _ := os.Getwd()
+		engine.NormalizeConfig(&config, wd)
 		saveConfig(config)
 		_, err = io.WriteString(cmd.OutOrStdout(), fmt.Sprintf("Config updated: %s = %s\n", key, value))
 		return err

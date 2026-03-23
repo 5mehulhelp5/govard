@@ -11,7 +11,7 @@ import (
 	"govard/internal/engine"
 )
 
-func TestShouldRunSymfonyPostClone(t *testing.T) {
+func TestShouldRunFrameworkPostClone(t *testing.T) {
 	testCases := []struct {
 		name            string
 		framework       string
@@ -25,14 +25,26 @@ func TestShouldRunSymfonyPostClone(t *testing.T) {
 			want:            true,
 		},
 		{
+			name:            "runs for laravel when composer install enabled",
+			framework:       "laravel",
+			composerInstall: true,
+			want:            true,
+		},
+		{
+			name:            "runs for wordpress when composer install enabled",
+			framework:       "wordpress",
+			composerInstall: true,
+			want:            true,
+		},
+		{
 			name:            "skips for symfony when composer install disabled",
 			framework:       "symfony",
 			composerInstall: false,
 			want:            false,
 		},
 		{
-			name:            "skips for non symfony",
-			framework:       "laravel",
+			name:            "skips for magento2 (handled separately)",
+			framework:       "magento2",
 			composerInstall: true,
 			want:            false,
 		},
@@ -41,7 +53,7 @@ func TestShouldRunSymfonyPostClone(t *testing.T) {
 	for _, testCase := range testCases {
 		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
-			got := cmd.ShouldRunSymfonyPostCloneForTest(testCase.framework, testCase.composerInstall)
+			got := cmd.ShouldRunFrameworkPostCloneForTest(testCase.framework, testCase.composerInstall)
 			if got != testCase.want {
 				t.Fatalf("expected %v, got %v", testCase.want, got)
 			}
@@ -49,7 +61,7 @@ func TestShouldRunSymfonyPostClone(t *testing.T) {
 	}
 }
 
-func TestShouldIgnoreSymfonyPostCloneError(t *testing.T) {
+func TestShouldIgnoreFrameworkPostCloneError(t *testing.T) {
 	cwd := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(cwd, "vendor"), 0o755); err != nil {
 		t.Fatalf("mkdir vendor: %v", err)
@@ -58,12 +70,21 @@ func TestShouldIgnoreSymfonyPostCloneError(t *testing.T) {
 		t.Fatalf("write autoload: %v", err)
 	}
 
-	if !cmd.ShouldIgnoreSymfonyPostCloneErrorForTest(errors.New(`composer install failed: exec: "composer": executable file not found in $PATH`), cwd) {
+	if !cmd.ShouldIgnoreFrameworkPostCloneErrorForTest("symfony", errors.New(`composer install failed: exec: "composer": executable file not found in $PATH`), cwd) {
 		t.Fatal("expected composer post-clone error to be ignored when vendor/autoload.php exists")
 	}
 
-	if cmd.ShouldIgnoreSymfonyPostCloneErrorForTest(errors.New("some other failure"), cwd) {
+	if cmd.ShouldIgnoreFrameworkPostCloneErrorForTest("symfony", errors.New("some other failure"), cwd) {
 		t.Fatal("expected non-composer error to remain fatal")
+	}
+
+	// WordPress specific
+	if cmd.ShouldIgnoreFrameworkPostCloneErrorForTest("wordpress", errors.New("any error"), cwd) {
+		t.Fatal("expected WP error to be fatal if wp-config.php is missing")
+	}
+	_ = os.WriteFile(filepath.Join(cwd, "wp-config.php"), []byte("<?php"), 0o644)
+	if !cmd.ShouldIgnoreFrameworkPostCloneErrorForTest("wordpress", errors.New("any error"), cwd) {
+		t.Fatal("expected WP error to be ignored if wp-config.php exists")
 	}
 }
 

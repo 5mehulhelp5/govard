@@ -18,7 +18,7 @@ func runDBConnect(cmd *cobra.Command, config engine.Config, options dbCommandOpt
 				return err
 			}
 
-			credentials := resolveLocalDBCredentials(containerName)
+			credentials := resolveLocalDBCredentials(config, containerName)
 			pterm.Info.Printf("Connecting to database on %s...\n", containerName)
 			connectCmd := buildLocalDBConnectCommand(containerName, credentials)
 			connectCmd.Stdin, connectCmd.Stdout, connectCmd.Stderr = os.Stdin, os.Stdout, os.Stderr

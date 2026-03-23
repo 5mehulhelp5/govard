@@ -309,7 +309,7 @@ func loadProjectConfig(info *projectInfo) error {
 		if config.ProjectName == "" {
 			config.ProjectName = info.name
 		}
-		engine.NormalizeConfig(&config)
+		engine.NormalizeConfig(&config, filepath.Dir(path))
 		info.config = config
 		info.configPath = path
 		info.configLoaded = true

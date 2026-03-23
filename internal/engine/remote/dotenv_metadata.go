@@ -220,7 +220,7 @@ function govard_parse_env($path, &$vars) {
 		if ($line === '' || $line[0] === '#') {
 			continue;
 		}
-		if (str_starts_with($line, 'export ')) {
+		if (isset($line[6]) && substr($line, 0, 7) === 'export ') {
 			$line = substr($line, 7);
 		}
 		$pos = strpos($line, '=');

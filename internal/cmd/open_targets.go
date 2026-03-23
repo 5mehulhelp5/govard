@@ -256,7 +256,7 @@ func readLocalMagentoAdminDBValues(config engine.Config, tablePrefix string) map
 		return map[string]string{}
 	}
 
-	credentials := resolveLocalDBCredentials(containerName)
+	credentials := resolveLocalDBCredentials(config, containerName)
 	table := tablePrefix + "core_config_data"
 	query := "SELECT path, value FROM " + table +
 		" WHERE path IN ('admin/url/use_custom','admin/url/use_custom_path','admin/url/custom','admin/url/custom_path')"

@@ -104,7 +104,7 @@ func LoadConfigFromDirWithProfile(root string, requireBase bool, profile string)
 		cfg.Domain = cfg.ProjectName + ".test"
 	}
 
-	NormalizeConfig(&cfg)
+	NormalizeConfig(&cfg, root)
 	if err := ValidateConfig(cfg); err != nil {
 		return Config{}, nil, err
 	}
@@ -126,7 +126,7 @@ func LoadBaseConfigFromDir(root string, requireBase bool) (Config, error) {
 			if cfg.ProjectName != "" {
 				cfg.Domain = cfg.ProjectName + ".test"
 			}
-			NormalizeConfig(&cfg)
+			NormalizeConfig(&cfg, root)
 			return cfg, nil
 		}
 		return Config{}, fmt.Errorf("failed to read %s: %w", path, err)
@@ -144,7 +144,7 @@ func LoadBaseConfigFromDir(root string, requireBase bool) (Config, error) {
 		cfg.Domain = cfg.ProjectName + ".test"
 	}
 
-	NormalizeConfig(&cfg)
+	NormalizeConfig(&cfg, root)
 	if err := ValidateConfig(cfg); err != nil {
 		return Config{}, err
 	}

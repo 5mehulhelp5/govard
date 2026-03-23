@@ -9,6 +9,7 @@ import (
 
 	"govard/internal/cmd"
 	"govard/internal/engine"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -72,6 +73,9 @@ remotes:
 	})()
 	defer cmd.SetBootstrapRemoteDirExistsForTest(func(remoteName string, remoteCfg engine.RemoteConfig, remotePath string) bool {
 		return true
+	})()
+	defer cmd.SetPHPContainerShellRunnerForTest(func(config engine.Config, commandLine string) error {
+		return nil
 	})()
 
 	root := cmd.RootCommandForTest()
@@ -141,8 +145,9 @@ remotes:
 	if shellConfig.ProjectName != "sample-project" {
 		t.Fatalf("shell runner project = %q, want sample-project", shellConfig.ProjectName)
 	}
-	if shellCmdLine != "rm -rf vendor" {
-		t.Fatalf("shell runner command = %q, want %q", shellCmdLine, "rm -rf vendor")
+	// Post-clone setup runs for Laravel, which includes composer install in container
+	if shellCmdLine != "rm -rf vendor" && !strings.Contains(shellCmdLine, "composer install") {
+		t.Fatalf("shell runner command = %q, does not contain expected commands", shellCmdLine)
 	}
 
 	if len(calls) < 5 {

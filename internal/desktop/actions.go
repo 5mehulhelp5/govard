@@ -445,7 +445,7 @@ func startEnvironment(project string) (string, error) {
 		if strings.TrimSpace(config.ProjectName) == "" {
 			config.ProjectName = info.name
 		}
-		engine.NormalizeConfig(&config)
+		engine.NormalizeConfig(&config, info.workingDir)
 
 		composePath := engine.ComposeFilePath(info.workingDir, config.ProjectName)
 		if _, statErr := os.Stat(composePath); statErr != nil {
@@ -508,7 +508,7 @@ func startEnvironmentFromConfig(project string) (string, error) {
 	if strings.TrimSpace(config.ProjectName) == "" {
 		config.ProjectName = filepath.Base(root)
 	}
-	engine.NormalizeConfig(&config)
+	engine.NormalizeConfig(&config, root)
 
 	composePath := engine.ComposeFilePath(root, config.ProjectName)
 	if _, err := os.Stat(composePath); err != nil {
@@ -540,7 +540,7 @@ func pullEnvironment(project string) (string, error) {
 		if strings.TrimSpace(config.ProjectName) == "" {
 			config.ProjectName = info.name
 		}
-		engine.NormalizeConfig(&config)
+		engine.NormalizeConfig(&config, info.workingDir)
 
 		composePath := engine.ComposeFilePath(info.workingDir, config.ProjectName)
 		if _, statErr := os.Stat(composePath); statErr != nil {
@@ -576,7 +576,7 @@ func pullEnvironmentFromConfig(project string) (string, error) {
 	if strings.TrimSpace(config.ProjectName) == "" {
 		config.ProjectName = filepath.Base(root)
 	}
-	engine.NormalizeConfig(&config)
+	engine.NormalizeConfig(&config, root)
 
 	composePath := engine.ComposeFilePath(root, config.ProjectName)
 	if _, err := os.Stat(composePath); err != nil {

@@ -41,7 +41,7 @@ func runStreamDBImport(cmd *cobra.Command, config engine.Config, options dbComma
 	if probeErr != nil {
 		pterm.Warning.Println(formatRemoteDBProbeWarning(options.Environment, probeErr))
 	}
-	localCredentials := resolveLocalDBCredentials(containerName)
+	localCredentials := resolveLocalDBCredentials(config, containerName)
 	if options.Drop {
 		confirmed, _ := pterm.DefaultInteractiveConfirm.WithDefaultText("Are you sure you want to drop and recreate the local database?").Show()
 		if !confirmed {
@@ -177,7 +177,7 @@ func runDirectDBImport(cmd *cobra.Command, config engine.Config, options dbComma
 		if err := ensureLocalDBRunning(containerName); err != nil {
 			return err
 		}
-		credentials := resolveLocalDBCredentials(containerName)
+		credentials := resolveLocalDBCredentials(config, containerName)
 		script, err := buildLocalDBResetScript(credentials.Database)
 		if err != nil {
 			return err
