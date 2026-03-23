@@ -86,7 +86,7 @@ func init() {
 	dbCmd.Flags().String("profile", "", "Environment scope (profile) to use")
 	dbCmd.Flags().Bool("stream-db", false, "For import: stream dump from remote environment into local database")
 	dbCmd.Flags().BoolP("no-noise", "N", false, "For dump: exclude ephemeral tables (cron, cache, session, logs...)")
-	dbCmd.Flags().BoolP("no-pii", "S", false, "For dump: exclude PII/sensitive tables (customers, orders...) — implies --no-noise")
+	dbCmd.Flags().BoolP("no-pii", "S", false, "For dump: exclude PII/sensitive tables (customers, orders...)")
 	dbCmd.Flags().Bool("drop", false, "For import: drop and recreate the database before importing (Magento only)")
 	dbCmd.Flags().Bool("local", false, "For dump/import: force local file operations for remote environments")
 }
@@ -218,6 +218,12 @@ func runDBSubcommand(cmd *cobra.Command, subcommand string, extraArgs []string) 
 		return err
 	}
 	operationConfig = config
+	if options.Environment != "local" {
+		if remoteName, ok := findRemoteByNameOrEnvironment(config, options.Environment); ok {
+			options.Environment = remoteName
+		}
+	}
+	operationSource = options.Environment
 	switch subcommand {
 	case "connect":
 		err = runDBConnect(cmd, config, options)
@@ -313,7 +319,7 @@ func readDBCommandOptions(cmd *cobra.Command) (dbCommandOptions, error) {
 		Profile:     profile,
 		StreamDB:    streamDB,
 		NoNoise:     noNoise,
-		NoPII:       noPII || noNoise, // --no-pii implies --no-noise; also honour explicit --no-noise
+		NoPII:       noPII,
 		Drop:        drop,
 		Local:       local,
 	}, nil
@@ -400,7 +406,7 @@ func stdinIsTerminal() bool {
 	return stdinIsTerminalFn()
 }
 
-func buildDBDumpCommand(config engine.Config, options dbCommandOptions) (*exec.Cmd, error) {
+func buildDBDumpCommand(config engine.Config, options dbCommandOptions) (*exec.Cmd, string, error) {
 	suffix := "sql.gz"
 	timestamp := time.Now().Format("20060102T150405")
 	defaultFilename := fmt.Sprintf("%s_%s-%s.%s", config.ProjectName, options.Environment, timestamp, suffix)
@@ -408,15 +414,15 @@ func buildDBDumpCommand(config engine.Config, options dbCommandOptions) (*exec.C
 	if options.Environment == "local" {
 		containerName := dbContainerName(config)
 		if err := ensureLocalDBRunning(containerName); err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		credentials := resolveLocalDBCredentials(containerName)
-		return buildLocalDBDumpCommand(containerName, credentials, options.NoNoise, options.NoPII, config.Framework), nil
+		return buildLocalDBDumpCommand(containerName, credentials, options.NoNoise, options.NoPII, config.Framework), "", nil
 	}
 
 	remoteCfg, err := resolveDBRemote(config, options.Environment, false)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	credentials, probeErr := resolveRemoteDBCredentials(config, options.Environment, remoteCfg)
 	if probeErr != nil {
@@ -434,11 +440,19 @@ func buildDBDumpCommand(config engine.Config, options dbCommandOptions) (*exec.C
 		// We need to wrap the command to create the directory and redirect output
 		// Note: we use base64 or complex quoting if needed, but here simple redirection should work if we quote the filename
 		// Using sh -c to allow redirects and mkdir -p on the remote
-		remoteCmd := fmt.Sprintf("mkdir -p $(dirname %s) && { %s; } | gzip > %s", shellQuote(remoteFile), dumpStr, shellQuote(remoteFile))
-		return remote.BuildSSHExecCommand(options.Environment, remoteCfg, true, remoteCmd), nil
+		quotedFile := quoteRemotePath(remoteFile)
+		remoteCmd := fmt.Sprintf("mkdir -p $(dirname %s) && { %s; } | gzip > %s", quotedFile, dumpStr, quotedFile)
+		return remote.BuildSSHExecCommand(options.Environment, remoteCfg, true, remoteCmd), remoteFile, nil
 	}
 
-	return remote.BuildSSHExecCommand(options.Environment, remoteCfg, true, dumpStr), nil
+	return remote.BuildSSHExecCommand(options.Environment, remoteCfg, true, dumpStr), "", nil
+}
+
+func quoteRemotePath(path string) string {
+	if strings.HasPrefix(path, "~/") {
+		return "$HOME/" + shellQuote(path[2:])
+	}
+	return shellQuote(path)
 }
 
 func buildDBImportCommand(config engine.Config, options dbCommandOptions) (*exec.Cmd, error) {
@@ -475,7 +489,7 @@ func ensureLocalDBRunning(containerName string) error {
 }
 
 func resolveDBRemote(config engine.Config, name string, forWrite bool) (engine.RemoteConfig, error) {
-	remoteCfg, err := ensureRemoteKnown(config, name)
+	_, remoteCfg, err := ensureRemoteKnown(config, name)
 	if err != nil {
 		return engine.RemoteConfig{}, err
 	}
@@ -686,7 +700,7 @@ func ResolveDBImportReaderForTest(options DBCommandOptions) (io.Reader, io.Close
 
 // BuildDBDumpCommandForTest exposes buildDBDumpCommand args for tests in /tests.
 func BuildDBDumpCommandForTest(config engine.Config, options DBCommandOptions) ([]string, error) {
-	command, err := buildDBDumpCommand(config, options)
+	command, _, err := buildDBDumpCommand(config, options)
 	if err != nil {
 		return nil, err
 	}

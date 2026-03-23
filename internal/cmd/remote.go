@@ -211,7 +211,7 @@ var remoteExecCmd = &cobra.Command{
 			return err
 		}
 		configForObservability = config
-		remoteCfg, err := ensureRemoteKnown(config, remoteName)
+		_, remoteCfg, err := ensureRemoteKnown(config, remoteName)
 		if err != nil {
 			pterm.Error.Println(err.Error())
 			operationCategory = "validation"
@@ -313,7 +313,7 @@ var remoteTestCmd = &cobra.Command{
 			return err
 		}
 		configForObservability = config
-		remoteCfg, err := ensureRemoteKnown(config, remoteName)
+		_, remoteCfg, err := ensureRemoteKnown(config, remoteName)
 		if err != nil {
 			pterm.Error.Println(err.Error())
 			operationCategory = "validation"
@@ -471,17 +471,17 @@ func RootCommandForTest() *cobra.Command {
 	return rootCmd
 }
 
-func ensureRemoteKnown(config engine.Config, name string) (engine.RemoteConfig, error) {
+func ensureRemoteKnown(config engine.Config, name string) (string, engine.RemoteConfig, error) {
 	resolvedName, ok := findRemoteByNameOrEnvironment(config, name)
 	if !ok {
-		return engine.RemoteConfig{}, fmt.Errorf("unknown remote: %s", name)
+		return "", engine.RemoteConfig{}, fmt.Errorf("unknown remote: %s", name)
 	}
 	remote := config.Remotes[resolvedName]
 	resolved, err := resolveRemoteConfigSecrets(resolvedName, remote)
 	if err != nil {
-		return engine.RemoteConfig{}, err
+		return "", engine.RemoteConfig{}, err
 	}
-	return resolved, nil
+	return resolvedName, resolved, nil
 }
 
 func findRemoteByNameOrEnvironment(config engine.Config, requested string) (string, bool) {

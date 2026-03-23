@@ -194,7 +194,7 @@ func resolveOpenEnvironment(config engine.Config, requestedEnvironment string) (
 }
 
 func ensureOpenRemote(config engine.Config, name string, capability string) (engine.RemoteConfig, error) {
-	remoteCfg, err := ensureRemoteKnown(config, name)
+	_, remoteCfg, err := ensureRemoteKnown(config, name)
 	if err != nil {
 		return engine.RemoteConfig{}, err
 	}

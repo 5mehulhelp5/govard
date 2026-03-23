@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"govard/internal/engine"
@@ -40,7 +41,7 @@ Case Studies:
   # Sync DB, excluding noise tables (logs, caches, cron)
   govard sync -s dev --db --no-noise
 
-  # Sync DB, excluding PII data (implies --no-noise)
+  # Sync DB, excluding PII data
   govard sync -s dev --db --no-pii
 
   # Sync media from dev, but exclude specific folders
@@ -168,7 +169,7 @@ Case Studies:
 			Resume:      resumeTransfers,
 			NoCompress:  noCompress,
 			NoNoise:     noNoise,
-			NoPII:       noPII || noNoise,
+			NoPII:       noPII,
 			Path:        path,
 			Include:     includePatterns,
 			Exclude:     excludePatterns,
@@ -181,7 +182,7 @@ Case Studies:
 			Resume:     resumeTransfers,
 			NoCompress: noCompress,
 			NoNoise:    noNoise,
-			NoPII:      noPII || noNoise,
+			NoPII:      noPII,
 			Path:       path,
 			Include:    includePatterns,
 			Exclude:    excludePatterns,
@@ -226,6 +227,9 @@ Case Studies:
 		for _, warning := range policyWarnings {
 			pterm.Warning.Println(warning)
 		}
+
+		syncMessage := fmt.Sprintf("Synchronizing %s from '%s' to '%s'...", strings.Join(syncScopes(execOpts), ", "), source, destination)
+		pterm.Info.Println(syncMessage)
 
 		if err := engine.RunHooks(config, engine.HookPreSync, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
 			return fmt.Errorf("pre-synchronization hooks failed to execute: %w", err)

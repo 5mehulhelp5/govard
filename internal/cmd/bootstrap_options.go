@@ -62,7 +62,7 @@ func resolveBootstrapOptions(cmd *cobra.Command) (bootstrapRuntimeOptions, error
 		IncludeProduct:  bootstrapIncludeProduct,
 		Plan:            bootstrapPlan,
 		NoNoise:         bootstrapNoNoise,
-		NoPII:           bootstrapNoPII || bootstrapNoNoise,
+		NoPII:           bootstrapNoPII,
 	}
 
 	if opts.MetaPackage == "" {

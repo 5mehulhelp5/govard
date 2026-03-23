@@ -15,7 +15,7 @@ import (
 
 func runDBDump(cmd *cobra.Command, config engine.Config, options dbCommandOptions) error {
 	return runDBHooks(config, engine.HookPreDBDump, engine.HookPostDBDump, cmd, func() error {
-		dumpCommand, err := buildDBDumpCommand(config, options)
+		dumpCommand, remoteFilePath, err := buildDBDumpCommand(config, options)
 		if err != nil {
 			return err
 		}
@@ -33,7 +33,7 @@ func runDBDump(cmd *cobra.Command, config engine.Config, options dbCommandOption
 			// We don't have the final filename easily here if it was defaulted in buildDBDumpCommand
 			// but we can at least show success.
 			// Actually, let's fix buildDBDumpCommand to return the filename or just rely on Warden-like patterns.
-			pterm.Success.Printf("Database dump completed on remote environment '%s'.\n", options.Environment)
+			pterm.Success.Printf("Database dump completed on remote environment '%s' at '%s'.\n", options.Environment, remoteFilePath)
 			return nil
 		}
 

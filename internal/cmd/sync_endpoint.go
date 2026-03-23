@@ -51,7 +51,7 @@ func resolveSyncEndpoint(config engine.Config, name string, cwd string) (syncEnd
 		}, nil
 	}
 
-	remoteCfg, err := ensureRemoteKnown(config, name)
+	resolvedName, remoteCfg, err := ensureRemoteKnown(config, name)
 	if err != nil {
 		return syncEndpoint{}, err
 	}
@@ -62,7 +62,7 @@ func resolveSyncEndpoint(config engine.Config, name string, cwd string) (syncEnd
 	}
 
 	return syncEndpoint{
-		Name:      name,
+		Name:      resolvedName,
 		IsLocal:   false,
 		RemoteCfg: remoteCfg,
 		RootPath:  root,

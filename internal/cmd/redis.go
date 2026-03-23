@@ -107,10 +107,11 @@ func runRedisCommand(cmd *cobra.Command, args []string) error {
 	}
 
 	// Remote environment
-	remoteCfg, err := ensureRemoteKnown(config, environment)
+	resolvedName, remoteCfg, err := ensureRemoteKnown(config, environment)
 	if err != nil {
 		return err
 	}
+	environment = resolvedName
 
 	if !engine.RemoteCapabilityEnabled(remoteCfg, engine.RemoteCapabilityCache) {
 		return fmt.Errorf("remote '%s' does not allow cache operations", environment)

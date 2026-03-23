@@ -200,10 +200,12 @@ Note: -e/--environment accepts remote name aliases (e.g. 'dev' matches a remote 
 				}
 				return nil
 			}
+			pterm.Info.Printf("Bootstrapping project from remote '%s'...\n", opts.Source)
 			if err := runBootstrapRemote(cmd, config, opts); err != nil {
 				return err
 			}
 		} else {
+			pterm.Info.Printf("Bootstrapping fresh %s project...\n", config.Framework)
 			if err := runBootstrapFrameworkFreshInstall(cmd, config, opts); err != nil {
 				return err
 			}
