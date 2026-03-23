@@ -61,8 +61,14 @@ func TestInitCaddyForTestUsesRunnerAndSeedsExpectedConfig(t *testing.T) {
 	if gotContainer != "govard-proxy-caddy" {
 		t.Fatalf("container = %q, want %q", gotContainer, "govard-proxy-caddy")
 	}
-	if !strings.Contains(gotPayload, `"listen": [":80", ":443"]`) {
-		t.Fatalf("init payload missing listen ports: %s", gotPayload)
+	if !strings.Contains(gotPayload, `"listen": [":443"]`) {
+		t.Fatalf("init payload missing listen port :443: %s", gotPayload)
+	}
+	if !strings.Contains(gotPayload, `"listen": [":80"]`) {
+		t.Fatalf("init payload missing listen port :80: %s", gotPayload)
+	}
+	if !strings.Contains(gotPayload, `"srv_redirect"`) {
+		t.Fatalf("init payload missing srv_redirect: %s", gotPayload)
 	}
 	if !strings.Contains(gotPayload, `"subjects": ["*.test"]`) {
 		t.Fatalf("init payload missing *.test policy: %s", gotPayload)

@@ -333,23 +333,36 @@ func ensureTLSConfig(config map[string]interface{}) bool {
 	var listen []interface{}
 	if ok {
 		if l, ok := listenVal.([]interface{}); ok {
-			listen = l
+			for _, v := range l {
+				if s, ok := v.(string); ok && s == ":443" {
+					listen = append(listen, v)
+				} else if ok {
+					changed = true
+				}
+			}
 		}
 	}
-	if listen == nil {
-		listen = []interface{}{":80", ":443"}
+	if len(listen) == 0 {
+		listen = []interface{}{":443"}
 		changed = true
-	} else {
-		if !stringSliceContains(listen, ":80") {
-			listen = append(listen, ":80")
-			changed = true
-		}
-		if !stringSliceContains(listen, ":443") {
-			listen = append(listen, ":443")
-			changed = true
-		}
 	}
 	srv0["listen"] = listen
+
+	// Ensure srv_redirect for :80 and global redirect
+	srvRedirect := getOrCreateMap(servers, "srv_redirect", &changed)
+	srvRedirect["listen"] = []interface{}{":80"}
+	redirectRoute := map[string]interface{}{
+		"handle": []interface{}{
+			map[string]interface{}{
+				"handler": "static_response",
+				"headers": map[string]interface{}{
+					"Location": []interface{}{"https://{http.request.host}{http.request.uri}"},
+				},
+				"status_code": 308,
+			},
+		},
+	}
+	srvRedirect["routes"] = []interface{}{redirectRoute}
 
 	routesVal, ok := srv0["routes"]
 	if ok {
@@ -513,8 +526,24 @@ func initCaddy(container string) error {
 			"http": {
 				"servers": {
 					"srv0": {
-						"listen": [":80", ":443"],
+						"listen": [":443"],
 						"routes": []
+					},
+					"srv_redirect": {
+						"listen": [":80"],
+						"routes": [
+							{
+								"handle": [
+									{
+										"handler": "static_response",
+										"headers": {
+											"Location": ["https://{http.request.host}{http.request.uri}"]
+										},
+										"status_code": 308
+									}
+								]
+							}
+						]
 					}
 				}
 			},

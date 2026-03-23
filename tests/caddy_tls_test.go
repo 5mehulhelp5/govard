@@ -39,8 +39,25 @@ func TestEnsureTLSConfigAddsTestPolicyAndListenPorts(t *testing.T) {
 		t.Fatalf("Expected listen to be a slice")
 	}
 
-	if !proxy.StringSliceContainsForTest(listen, ":80") || !proxy.StringSliceContainsForTest(listen, ":443") {
-		t.Fatalf("Expected listen to include :80 and :443")
+	if proxy.StringSliceContainsForTest(listen, ":80") {
+		t.Fatalf("Expected srv0 NOT to include :80")
+	}
+	if !proxy.StringSliceContainsForTest(listen, ":443") {
+		t.Fatalf("Expected srv0 to include :443")
+	}
+
+	srvRedirect, ok := servers["srv_redirect"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("Expected srv_redirect to be a map")
+	}
+
+	listenRedirect, ok := srvRedirect["listen"].([]interface{})
+	if !ok {
+		t.Fatalf("Expected srv_redirect listen to be a slice")
+	}
+
+	if !proxy.StringSliceContainsForTest(listenRedirect, ":80") {
+		t.Fatalf("Expected srv_redirect to include :80")
 	}
 
 	tls, ok := apps["tls"].(map[string]interface{})
