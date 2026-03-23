@@ -480,6 +480,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2026-02-20
 
 - Initial professional-grade release of Govard.
-
-[1.23.0]: https://github.com/ddtcorex/govard/compare/v1.22.1...v1.23.0
-[1.22.1]: https://github.com/ddtcorex/govard/compare/v1.22.0...v1.22.1
