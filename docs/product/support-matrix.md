@@ -4,7 +4,7 @@
 
 | Component | Supported |
 |---|---|
-| Go | 1.24+ |
+| Go | 1.25+ |
 | Docker Engine | 24+ |
 | Docker Compose Plugin | v2 |
 | SSH Client | OpenSSH compatible |

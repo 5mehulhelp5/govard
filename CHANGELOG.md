@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.25.0] - 2026-03-23
+
+### Added
+
+- **Optimized Self-Update**: The `govard self-update` command now includes automated system dependency checks (Linux-specific), post-update global service refreshes, and SSL trust verification, ensuring a consistent state after upgrades.
+- **Debian Package Priority**: On Ubuntu/Debian, `self-update` now prioritizes using `.deb` packages for better dependency management and parity with the installation script.
+
+### Fixed
+
+- **Mail Server Connectivity**: Resolved an issue where PHP containers were isolated from the global Mailpit service, causing mail sending failures in projects like Magento 2.
+- **Database Networking**: Added `govard-proxy` network to database services in blueprints for consistent phpMyAdmin access.
+- **Magento 1 Credentials**: Restored the default database password in Magento 1 blueprints.
+
 ## [1.24.0] - 2026-03-23
 
 ### Added
