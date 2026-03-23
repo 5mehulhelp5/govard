@@ -50,6 +50,7 @@ services:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: magento
       MYSQL_USER: magento
+      MYSQL_PASSWORD: magento
     networks:
       - govard-net
       - govard-proxy
