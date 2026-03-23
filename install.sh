@@ -128,19 +128,37 @@ check_dependencies() {
         error "Git is required for --source mode."
     fi
 
-    # certutil (for browser trust)
+    # certutil and WebKitGTK (for browser trust and Desktop App)
     if [[ "$OS" == "linux" ]]; then
+        local missing_deps=()
+        
+        # Check certutil
         if command -v certutil >/dev/null 2>&1; then
             success "  certutil: Found"
         else
             warn "  certutil: Not found (Required for automatic browser SSL trust)"
+            missing_deps+=("libnss3-tools")
+        fi
+
+        # Check WebKitGTK
+        if command -v ldconfig >/dev/null 2>&1 && ldconfig -p | grep -q "libwebkit2gtk-4.1"; then
+            success "  WebKitGTK: Found"
+        elif [[ -f "/usr/lib/x86_64-linux-gnu/libwebkit2gtk-4.1.so.0" ]] || [[ -f "/usr/lib/libwebkit2gtk-4.1.so.0" ]]; then
+            success "  WebKitGTK: Found (via file check)"
+        else
+            warn "  WebKitGTK: Not found (Required for Desktop App)"
+            missing_deps+=("libwebkit2gtk-4.1-0")
+        fi
+
+        if [[ ${#missing_deps[@]} -gt 0 ]]; then
+            local deps_str="${missing_deps[*]}"
             if [[ "$FORCE_YES" == true ]]; then
-                info "Installing libnss3-tools (provides certutil) automatically..."
-                sudo apt-get update && sudo apt-get install -y libnss3-tools
+                info "Installing missing dependencies (${deps_str}) automatically..."
+                sudo apt-get update && sudo apt-get install -y ${missing_deps[@]}
             else
-            read -p "Do you want to install libnss3-tools (provides certutil) automatically? (y/N) " confirm </dev/tty
+                read -p "Do you want to install missing dependencies (${deps_str}) automatically? (y/N) " confirm </dev/tty
                 if [[ $confirm =~ ^[Yy]$ ]]; then
-                    sudo apt-get update && sudo apt-get install -y libnss3-tools
+                    sudo apt-get update && sudo apt-get install -y ${missing_deps[@]}
                 fi
             fi
         fi
