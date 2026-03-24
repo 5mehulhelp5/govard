@@ -183,15 +183,17 @@ func generateMagento1CryptKey() (string, error) {
 // containerName is the docker container (e.g. "myproject-db-1"), baseURL is https://host.test/.
 func RunMagento1SetConfigSQL(containerName string, baseURL string, dbUser string, dbPassword string, dbName string, dbPrefix string) error {
 	sqls := []string{
-		fmt.Sprintf("UPDATE %score_config_data SET value = '%s' WHERE path = 'web/secure/base_url'", dbPrefix, baseURL),
-		fmt.Sprintf("UPDATE %score_config_data SET value = '%s' WHERE path = 'web/unsecure/base_url'", dbPrefix, baseURL),
-		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}' WHERE path = 'web/unsecure/base_link_url'",
-		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}skin/' WHERE path = 'web/unsecure/base_skin_url'",
-		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}media/' WHERE path = 'web/unsecure/base_media_url'",
-		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}js/' WHERE path = 'web/unsecure/base_js_url'",
+		fmt.Sprintf("UPDATE %score_config_data SET value = '%s' WHERE path IN ('web/secure/base_url', 'web/unsecure/base_url')", dbPrefix, baseURL),
+		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}' WHERE path IN ('web/unsecure/base_link_url', 'web/secure/base_link_url')",
+		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}skin/' WHERE path IN ('web/unsecure/base_skin_url', 'web/secure/base_skin_url')",
+		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}media/' WHERE path IN ('web/unsecure/base_media_url', 'web/secure/base_media_url')",
+		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}js/' WHERE path IN ('web/unsecure/base_js_url', 'web/secure/base_js_url')",
+		"UPDATE " + dbPrefix + "core_config_data SET value = 'X-Forwarded-Proto' WHERE path = 'web/secure/offloader_header'",
 		"UPDATE " + dbPrefix + "core_config_data SET value = '1' WHERE path = 'web/secure/use_in_frontend'",
 		"UPDATE " + dbPrefix + "core_config_data SET value = '1' WHERE path = 'web/secure/use_in_adminhtml'",
+		"UPDATE " + dbPrefix + "core_config_data SET value = '0' WHERE path = 'web/url/redirect_to_base'",
 		"UPDATE " + dbPrefix + "core_config_data SET value = NULL WHERE path = 'web/cookie/cookie_domain'",
+		"UPDATE " + dbPrefix + "core_config_data SET value = '/' WHERE path = 'web/cookie/cookie_path'",
 	}
 
 	for _, sql := range sqls {
