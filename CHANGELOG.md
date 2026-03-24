@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.28.1] - 2026-03-24
+
+### Fixed
+
+- **SSH Key Mounting**: Fixed an issue where SSH keys from the host were missing in the container when a safe SSH configuration copy was being used.
+- **Architectural Update**: Incremented internal blueprint version to ensure all project environments automatically receive the SSH mounting fix during the next `env up`.
+
 ## [1.28.0] - 2026-03-24
 
 ### Added
