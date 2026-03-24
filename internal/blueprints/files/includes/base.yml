@@ -134,7 +134,6 @@ services:
       MYSQL_PASSWORD: {{ .DatabaseName }}
     networks:
       - govard-net
-      - govard-proxy
     volumes:
       - db-data{{ if .Config.Profile }}-{{ .Config.Profile }}{{ end }}:/var/lib/mysql
   {{ end }}

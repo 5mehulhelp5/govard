@@ -24,8 +24,12 @@ services:
       - MP_HTTP_BIND_ADDR=0.0.0.0:8025
     ports:
       - "1025:1025"
+    volumes:
+      - mail_data:/data
     networks:
-      - govard-proxy
+      govard-proxy:
+        aliases:
+          - mail
 
   pma:
     image: phpmyadmin/phpmyadmin:latest
@@ -70,3 +74,4 @@ volumes:
   caddy_data:
   caddy_config:
   portainer_data:
+  mail_data:
