@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"compress/gzip"
 	"context"
 	"errors"
@@ -340,11 +341,8 @@ func validateDBCommandOptions(subcommand string, options dbCommandOptions) error
 			return errors.New("--stream-db is only supported by db import")
 		}
 	case "import":
-		if options.Drop {
-			return errors.New("--drop is only supported by db dump")
-		}
-		if options.Local {
-			return errors.New("--local is only supported by db dump")
+		if options.NoNoise || options.NoPII {
+			return errors.New("--no-noise and --no-pii are only supported by db dump")
 		}
 		if options.StreamDB && options.Environment == "local" {
 			return errors.New("--stream-db requires a remote --environment source")
@@ -619,9 +617,12 @@ func RunDumpToImportWithProgress(dumpCmd *exec.Cmd, importCmd *exec.Cmd, totalSi
 		return err
 	}
 
-	dumpCmd.Stderr = stderr
+	// Capture stderr to prevent it from breaking the progress bar UI
+	dumpStderr := &bytes.Buffer{}
+	importStderr := &bytes.Buffer{}
+	dumpCmd.Stderr = dumpStderr
 	importCmd.Stdout = stdout
-	importCmd.Stderr = stderr
+	importCmd.Stderr = importStderr
 
 	if err := dumpCmd.Start(); err != nil {
 		return err
@@ -668,15 +669,26 @@ func RunDumpToImportWithProgress(dumpCmd *exec.Cmd, importCmd *exec.Cmd, totalSi
 	importErr := importCmd.Wait()
 
 	if copyErr != nil {
+		// If copy failed, check if it was due to a process termination
+		if dumpErr != nil {
+			return fmt.Errorf("database dump failed: %w\nOutput: %s", dumpErr, dumpStderr.String())
+		}
+		if importErr != nil {
+			return fmt.Errorf("database import failed: %w\nOutput: %s", importErr, importStderr.String())
+		}
 		return copyErr
 	}
+
 	if closeErr != nil {
 		return closeErr
 	}
 	if dumpErr != nil {
-		return dumpErr
+		return fmt.Errorf("database dump failed: %w\nOutput: %s", dumpErr, dumpStderr.String())
 	}
-	return importErr
+	if importErr != nil {
+		return fmt.Errorf("database import failed: %w\nOutput: %s", importErr, importStderr.String())
+	}
+	return nil
 }
 
 // SetStdinIsTerminalForTest overrides terminal detection for tests.
