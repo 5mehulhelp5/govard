@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.27.0] - 2026-03-24
+
+### Added
+
+- **phpMyAdmin Database Access**: Database containers are now connected to the `govard-proxy` network, enabling phpMyAdmin (`pma.govard.test`) to directly reach all running project databases without additional configuration.
+- **Magento 1 HTTPS Fix**: The `magento1.conf` Nginx template now includes `fastcgi_param HTTPS 'on';` so Magento 1 correctly identifies HTTPS requests behind Govard's Caddy reverse proxy, eliminating infinite redirect loops.
+- **Composer Version Config**: Added `composer_version` field to `.govard.yml` stack config, allowing projects to pin a specific Composer version (e.g. `2.2`, `2`, `latest`).
+
+### Improved
+
+- **Magento 1 Bootstrap**: `RunMagento1SetConfigSQL` now sets `web/secure/offloader_header` to `X-Forwarded-Proto`, ensuring Magento 1 trusts the forwarded protocol header from Govard's proxy — a prerequisite for correct HTTPS detection.
+- **Auto Composer Downgrade**: Govard automatically selects Composer 2.2 LTS for projects running PHP < 7.2.5 when `composer_version` is not explicitly set, preventing plugin-blocking errors on legacy stacks.
+- **DB Import Validation**: Improved `db import` command to correctly validate flag combinations (`--drop`, `--local`) and restrict incompatible options (`--no-noise`, `--no-pii`).
+
+### Fixed
+
+- **Self-Update CI Safety**: Avoided system dependency checks in non-interactive/CI environments to prevent test hangs and improve `TestSelfUpdateAutoConfirmViaEnv` reliability.
+
 ## [1.26.0] - 2026-03-24
 
 ### Added

@@ -42,7 +42,27 @@ Govard auto-detects remote database credentials for Magento 1 / OpenMage by SSHi
 The bootstrap package exposes `RunMagento1SetConfigSQL` and `RunMagento1AdminUserSQL` for post-import configuration. These are used by hooks to:
 
 - Update `core_config_data` base URLs (`web/secure/base_url`, `web/unsecure/base_url`, and related paths) to the local environment URL.
+- Set `web/secure/offloader_header` to `X-Forwarded-Proto` so Magento 1 correctly detects HTTPS from Govard's Caddy proxy.
 - Create the admin user with a salted MD5 password (Magento 1 compatible format).
+
+## HTTPS & Proxy configuration
+
+Govard's Nginx template for Magento 1 (`magento1.conf`) automatically includes:
+
+```nginx
+fastcgi_param HTTPS 'on';
+```
+
+This ensures Magento 1 treats all requests as HTTPS even though Caddy terminates TLS externally, preventing infinite redirect loops (`web/url/redirect_to_base` is also forced to `0` in the database).
+
+## Composer version
+
+For projects running PHP 5.x or PHP < 7.2.5, Govard automatically installs **Composer 2.2 LTS** (the last version compatible with older PHP). You can also pin a version explicitly in `.govard.yml`:
+
+```yaml
+stack:
+  composer_version: "2.2"   # or "1", "2", "latest"
+```
 
 ## Commands
 
