@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.28.0] - 2026-03-24
+
+### Added
+
+- **CLI Flag `--force-recreate`**: Added to `govard env up` and `govard svc up` commands, allowing users to force container recreation.
+- **Apache Hybrid Mode Improvements**: Configured essential Apache modules (`mod_alias`, `mod_remoteip`, `mod_expires`, etc.) and added `X-Backend-Server: apache` header for easier debugging of hybrid environments.
+
+### Improved
+
+- **Global Nginx Proxy Support**: Updated all Nginx framework templates to include `fastcgi_param HTTPS 'on';`, ensuring correct HTTPS detection for all project types when running behind Govard's reverse proxy.
+- **Service Management**: `govard svc up` now correctly parses additional arguments and always runs in detached mode (`-d`).
+- **Magento 1 Bootstrap**: `RunMagento1SetConfigSQL` now sets `web/secure/offloader_header` to `X-Forwarded-Proto`, ensuring Magento 1 trusts the forwarded protocol header from Govard's proxy — a prerequisite for correct HTTPS detection.
+
 ## [1.27.0] - 2026-03-24
 
 ### Added
@@ -14,9 +27,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Composer Version Config**: Added `composer_version` field to `.govard.yml` stack config, allowing projects to pin a specific Composer version (e.g. `2.2`, `2`, `latest`).
 
 ### Improved
-
-- **Global Nginx Proxy Support**: Updated all Nginx framework templates to include `fastcgi_param HTTPS 'on';`, ensuring correct HTTPS detection for all project types when running behind Govard's reverse proxy.
-- **Magento 1 Bootstrap**: `RunMagento1SetConfigSQL` now sets `web/secure/offloader_header` to `X-Forwarded-Proto`, ensuring Magento 1 trusts the forwarded protocol header from Govard's proxy — a prerequisite for correct HTTPS detection.
 
 - **Auto Composer Downgrade**: Govard automatically selects Composer 2.2 LTS for projects running PHP < 7.2.5 when `composer_version` is not explicitly set, preventing plugin-blocking errors on legacy stacks.
 - **DB Import Validation**: Improved `db import` command to correctly validate flag combinations (`--drop`, `--local`) and restrict incompatible options (`--no-noise`, `--no-pii`).
