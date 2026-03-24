@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.26.0] - 2026-03-24
+
+### Added
+
+- **Enhanced Magento 1 Support**: Dedicated bootstrap logic for Magento 1 / OpenMage with automated `local.xml` generation, admin user creation, and base URL configuration. Added support for `--no-noise` and `--no-pii` flags in Magento 1 database dumps.
+- **Improved Mailpit Persistence**: Added a dedicated `mail_data` volume to the global Mailpit service and configured the `mail` network alias for reliable internal mail routing.
+
+### Changed
+
+- **Blueprint Architecture Standardizing**: Refactored blueprints to centralize shared service definitions (Redis, Varnish, RabbitMQ, etc.) into unified includes for better consistency.
+- **Blueprint Version Update**: Updated internal blueprints to version 2 (V2 architecture) with optimized networking.
+
+### Improved
+
+- **Caddy Stability**: Enabled `--resume` flag for the global Caddy proxy, ensuring routes persist across container or host restarts.
+- **Self-update Robustness**: Improved dependency installation checks and error handling in the `self-update` command.
+
+### Fixed
+
+- **Network Isolation**: Fully isolated PHP and Database networks from the global `govard-proxy` to resolve hostname conflicts and improve security.
+- **Mail Connectivity**: Fixed mail routing issues by using `host-gateway` for the `mail` alias in all project environments.
+
 ## [1.25.0] - 2026-03-23
 
 ### Added
