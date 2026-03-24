@@ -54,14 +54,12 @@ var selfUpdateCmd = &cobra.Command{
 			return nil
 		}
 
-		// Re-check assumeYes after potential environment override in shouldProceedWithSelfUpdate
-		// Actually, shouldProceedWithSelfUpdate doesn't modify it. Let's make it consistent.
 		effectiveAssumeYes := selfUpdateAssumeYes
 		if os.Getenv(selfUpdateConfirmOverrideEnvVar) == "true" || os.Getenv(selfUpdateConfirmOverrideEnvVar) == "yes" {
 			effectiveAssumeYes = true
 		}
 
-		if runtime.GOOS == "linux" {
+		if runtime.GOOS == "linux" && os.Getenv("GOVARD_SKIP_DEP_CHECK") != "true" {
 			checkAndFixSystemDependencies(effectiveAssumeYes)
 		}
 

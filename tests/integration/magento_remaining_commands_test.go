@@ -121,6 +121,7 @@ func TestSelfUpdateAutoConfirmViaEnv(t *testing.T) {
 		[]string{
 			"GOVARD_SELF_UPDATE_CONFIRM=yes",
 			"GOVARD_SELF_UPDATE_RELEASE_BASE_URL=" + mockReleaseServer.URL,
+			"GOVARD_SKIP_DEP_CHECK=true",
 		},
 		"self-update",
 		"--version",
@@ -216,6 +217,7 @@ func TestSelfUpdateAutoConfirmSuccessWithMockRelease(t *testing.T) {
 		os.Environ(),
 		"GOVARD_SELF_UPDATE_CONFIRM=yes",
 		"GOVARD_SELF_UPDATE_RELEASE_BASE_URL="+mockReleaseServer.URL,
+		"GOVARD_SKIP_DEP_CHECK=true",
 		"PATH="+isolatedDir,
 	)
 
