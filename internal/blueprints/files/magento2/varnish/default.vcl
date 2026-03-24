@@ -190,6 +190,7 @@ sub vcl_deliver {
     }
     unset resp.http.X-Magento-Debug;
     unset resp.http.X-Magento-Tags;
+    unset resp.http.Content-Security-Policy;
     unset resp.http.X-Powered-By;
     unset resp.http.Server;
     unset resp.http.X-Varnish;

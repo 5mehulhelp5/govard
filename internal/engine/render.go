@@ -31,6 +31,7 @@ type RenderData struct {
 	HostSSHDir           string
 	SafeSSHConfig        string
 	HostComposerCacheDir string
+	VarnishVclPath       string
 }
 
 func findBlueprintsDir(startDir string) (string, error) {
@@ -112,7 +113,7 @@ func RenderBlueprint(root string, config Config) error {
 
 // BlueprintVersion should be incremented whenever architectural changes are made to the embedded blueprints
 // to ensure that 'govard env up' re-renders existing environments.
-const BlueprintVersion = "1.11"
+const BlueprintVersion = "1.21"
 
 func RenderBlueprintWithProfile(root string, config Config, profile string) error {
 	blueprintsFS, err := resolveBlueprintsDirForConfig(root, config)
@@ -159,6 +160,7 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 		DatabaseName:         fwConfig.DatabaseName,
 		ImageRepository:      imageRepo,
 		XdebugSessionPattern: buildXdebugSessionPattern(config.Stack.XdebugSession),
+		VarnishVclPath:       filepath.Join(GovardHomeDir(), "varnish", config.ProjectName, "default.vcl"),
 	}
 	if config.Stack.WebRoot != "" {
 		renderData.NGINXPublic = config.Stack.WebRoot
@@ -188,8 +190,8 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 	// Ensure support assets (Varnish, etc)
 	if config.Stack.Features.Varnish {
 		vclSrc := path.Join(config.Framework, "varnish", "default.vcl")
-		vclDestDir := filepath.Join(root, "varnish")
-		vclDest := filepath.Join(vclDestDir, "default.vcl")
+		vclDest := renderData.VarnishVclPath
+		vclDestDir := filepath.Dir(vclDest)
 
 		rendered, err := renderTemplateFS(blueprintsFS, vclSrc, renderData)
 		if err != nil {

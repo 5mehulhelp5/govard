@@ -6,7 +6,8 @@ services:
     hostname: {{ .Config.ProjectName }}-varnish
     image: {{ $.ImageRepository }}varnish:{{ .Config.Stack.VarnishVersion }}
     volumes:
-      - './varnish/default.vcl:/etc/varnish/default.vcl:ro'
+      - '{{ .VarnishVclPath }}:/etc/varnish/default.vcl:ro'
+    command: "-p http_resp_hdr_len=1m -p http_resp_size=10M -p workspace_backend=64m -p workspace_client=64m -p gzip_buffer=1m -p vsl_buffer=1m -p fetch_chunksize=256k -p thread_pools=4 -p thread_pool_max=2000 -p http_gzip_support=off"
     networks:
       - govard-net
       - govard-proxy

@@ -315,6 +315,24 @@ func buildMagentoCommands(projectName string, config Config) []magentoCommand {
 			Args: magentoDockerExecArgs(containerName, config, "bin/magento", "config:set",
 				"system/full_page_cache/caching_application", "2", "--no-interaction"),
 		})
+		commands = append(commands, magentoCommand{
+			Desc: "Configuring Varnish Purge Hosts",
+			Args: magentoDockerExecArgs(containerName, config, "bin/magento", "setup:config:set",
+				"--http-cache-hosts=varnish:80", "--no-interaction"),
+			Optional: true,
+		})
+		commands = append(commands, magentoCommand{
+			Desc: "Configuring Varnish Backend Host",
+			Args: magentoDockerExecArgs(containerName, config, "bin/magento", "config:set",
+				"system/full_page_cache/varnish/backend_host", "web", "--no-interaction"),
+			Optional: true,
+		})
+		commands = append(commands, magentoCommand{
+			Desc: "Configuring Varnish Backend Port",
+			Args: magentoDockerExecArgs(containerName, config, "bin/magento", "config:set",
+				"system/full_page_cache/varnish/backend_port", "80", "--no-interaction"),
+			Optional: true,
+		})
 	}
 
 	if config.Domain != "" {
