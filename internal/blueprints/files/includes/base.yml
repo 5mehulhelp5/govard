@@ -61,10 +61,11 @@ services:
       {{ if (lt .Config.Stack.PHPVersion "7.3") }}
       - /dev/null:/usr/local/etc/php-fpm.d/docker-tuned.conf:ro
       {{ end }}
+      {{ if .HostSSHDir }}
+      - "{{ .HostSSHDir }}:/home/www-data/.ssh:ro"
+      {{ end }}
       {{ if .SafeSSHConfig }}
       - "{{ .SafeSSHConfig }}:/home/www-data/.ssh/config:ro"
-      {{ else if .HostSSHDir }}
-      - "{{ .HostSSHDir }}:/home/www-data/.ssh:ro"
       {{ end }}
       {{ if .SSHAuthSock }}
       - "{{ .SSHAuthSock }}:/ssh-agent"
@@ -96,10 +97,11 @@ services:
       {{ if (lt .Config.Stack.PHPVersion "7.3") }}
       - /dev/null:/usr/local/etc/php-fpm.d/docker-tuned.conf:ro
       {{ end }}
+      {{ if .HostSSHDir }}
+      - "{{ .HostSSHDir }}:/home/www-data/.ssh:ro"
+      {{ end }}
       {{ if .SafeSSHConfig }}
       - "{{ .SafeSSHConfig }}:/home/www-data/.ssh/config:ro"
-      {{ else if .HostSSHDir }}
-      - "{{ .HostSSHDir }}:/home/www-data/.ssh:ro"
       {{ end }}
       {{ if .SSHAuthSock }}
       - "{{ .SSHAuthSock }}:/ssh-agent"
