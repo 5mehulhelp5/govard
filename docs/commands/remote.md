@@ -6,6 +6,7 @@ Manage remote environments for sync, deploy, and database operations.
 
 ```bash
 govard remote add <name> --host <host> --user <user> --path <path>
+govard remote copy-id <name> [-i <pub_key>]
 govard remote exec <name> -- <command>
 govard remote test <name>
 govard remote audit tail --lines 20
@@ -15,9 +16,10 @@ govard remote audit tail --since 2026-02-12T00:00:00Z --until 2026-02-12T23:59:5
 
 ## Options
 
-- `--host` Remote host (required)
-- `--user` Remote user (required)
-- `--path` Remote project root (required)
+### `remote add`
+- `--host` Remote host (required if not interactive)
+- `--user` Remote user (required if not interactive)
+- `--path` Remote project root (required if not interactive). Supports `~/` expansion.
 - `--port` Remote SSH port (default: 22)
 - `--capabilities` Allowed remote scopes (`files,media,db,deploy` or `all`)
 - `--auth-method` Remote auth method (`keychain`, `ssh-agent`, `keyfile`)
@@ -26,12 +28,23 @@ govard remote audit tail --since 2026-02-12T00:00:00Z --until 2026-02-12T23:59:5
 - `--known-hosts-file` Custom SSH `known_hosts` file (implies `--strict-host-key`)
 - `--protected` Prevents destructive writes to this remote (defaults to true for 'prod' remotes)
 
+### `remote copy-id`
+- `-i, --identity` Path to the SSH public key to copy. If omitted, Govard attempts to resolve it from the remote's configured key or default SSH keys.
+
 ## Examples
 
 ```bash
-govard remote add staging --host staging.example.com --user deploy --path /var/www/html
-govard remote add staging --host staging.example.com --user deploy --path /var/www/html --strict-host-key --known-hosts-file ~/.ssh/known_hosts
-govard remote add staging --host staging.example.com --user deploy --path /var/www/html --auth-method keychain --key-path ~/.ssh/id_ed25519
+# Interactive add
+govard remote add staging
+
+# Explicit add
+govard remote add staging --host staging.example.com --user deploy --path ~/public_html
+
+# Copy SSH key
+govard remote copy-id staging
+
+govard remote add staging --host staging.example.com --user deploy --path ~/public_html --strict-host-key --known-hosts-file ~/.ssh/known_hosts
+govard remote add staging --host staging.example.com --user deploy --path ~/public_html --auth-method keychain --key-path ~/.ssh/id_ed25519
 govard remote add ci --host ci.example.com --user deploy --path /srv/www/app --auth-method keyfile
 govard remote add prod --host prod.example.com --user deploy --path /srv/www/app --capabilities files,media --protected=false
 govard remote test staging

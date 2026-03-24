@@ -2,6 +2,7 @@ package remote
 
 import (
 	"strconv"
+	"strings"
 
 	"govard/internal/engine"
 )
@@ -37,4 +38,18 @@ func BuildSSHArgs(remoteName string, remoteCfg engine.RemoteConfig, forwardAgent
 		args = append(args, "-i", keyPath)
 	}
 	return args
+}
+
+func ShellQuote(raw string) string {
+	if raw == "" {
+		return "''"
+	}
+	return "'" + strings.ReplaceAll(raw, "'", `'"'"'`) + "'"
+}
+
+func QuoteRemotePath(path string) string {
+	if strings.HasPrefix(path, "~/") {
+		return "$HOME/" + ShellQuote(path[2:])
+	}
+	return ShellQuote(path)
 }

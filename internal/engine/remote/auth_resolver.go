@@ -26,28 +26,28 @@ func IsSupportedAuthMethod(method string) bool {
 }
 
 func PersistSSHKeyPath(remoteName string, keyPath string) error {
-	return NewKeychainStore().Set(authStoreKey(remoteName), normalizePath(keyPath))
+	return NewKeychainStore().Set(authStoreKey(remoteName), NormalizePath(keyPath))
 }
 
 // ResolveSSHKeyPath resolves SSH identity path with explicit precedence:
 // config key_path -> per-remote env -> global env -> keychain/file store -> default keyfile probes.
 func ResolveSSHKeyPath(remoteName string, remoteCfg engine.RemoteConfig) (string, string) {
-	if fromConfig := normalizePath(remoteCfg.Auth.KeyPath); fromConfig != "" {
+	if fromConfig := NormalizePath(remoteCfg.Auth.KeyPath); fromConfig != "" {
 		return fromConfig, "config"
 	}
 
-	if fromRemoteEnv := normalizePath(os.Getenv(RemoteKeyPathEnvVar(remoteName))); fromRemoteEnv != "" {
+	if fromRemoteEnv := NormalizePath(os.Getenv(RemoteKeyPathEnvVar(remoteName))); fromRemoteEnv != "" {
 		return fromRemoteEnv, "env:" + RemoteKeyPathEnvVar(remoteName)
 	}
 
-	if fromGlobalEnv := normalizePath(os.Getenv(remoteKeyPathEnvVar)); fromGlobalEnv != "" {
+	if fromGlobalEnv := NormalizePath(os.Getenv(remoteKeyPathEnvVar)); fromGlobalEnv != "" {
 		return fromGlobalEnv, "env:" + remoteKeyPathEnvVar
 	}
 
 	authMethod := NormalizeAuthMethod(remoteCfg.Auth.Method)
 	if authMethod == AuthMethodKeychain {
 		if fromStore, err := NewKeychainStore().Get(authStoreKey(remoteName)); err == nil {
-			if fromStorePath := normalizePath(fromStore); fromStorePath != "" {
+			if fromStorePath := NormalizePath(fromStore); fromStorePath != "" {
 				return fromStorePath, "store:keychain"
 			}
 		}
@@ -95,7 +95,7 @@ func firstExistingSSHKeyfile() string {
 		"~/.ssh/id_rsa",
 	}
 	for _, candidate := range candidates {
-		path := normalizePath(candidate)
+		path := NormalizePath(candidate)
 		if path == "" {
 			continue
 		}
@@ -106,7 +106,7 @@ func firstExistingSSHKeyfile() string {
 	return ""
 }
 
-func normalizePath(value string) string {
+func NormalizePath(value string) string {
 	trimmed := strings.TrimSpace(value)
 	if trimmed == "" {
 		return ""

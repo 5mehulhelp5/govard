@@ -23,7 +23,7 @@ var remoteCmd = &cobra.Command{
 var remoteAddCmd = &cobra.Command{
 	Use:   "add [name]",
 	Short: "Add or update a remote environment",
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		startedAt := time.Now()
 		operationStatus := engine.OperationStatusFailure
@@ -52,7 +52,18 @@ var remoteAddCmd = &cobra.Command{
 			return err
 		}
 		configForObservability = config
-		name := args[0]
+
+		name := ""
+		if len(args) > 0 {
+			name = strings.TrimSpace(args[0])
+		} else if stdinIsTerminal() {
+			name, _ = pterm.DefaultInteractiveTextInput.Show("Enter remote name (e.g. staging)")
+		}
+		name = strings.ToLower(strings.TrimSpace(name))
+
+		if name == "" {
+			return fmt.Errorf("remote name is required")
+		}
 
 		host, _ := cmd.Flags().GetString("host")
 		user, _ := cmd.Flags().GetString("user")
@@ -65,6 +76,16 @@ var remoteAddCmd = &cobra.Command{
 		keyPathRaw, _ := cmd.Flags().GetString("key-path")
 		strictHostKey, _ := cmd.Flags().GetBool("strict-host-key")
 		knownHostsFile, _ := cmd.Flags().GetString("known-hosts-file")
+
+		if host == "" && stdinIsTerminal() {
+			host, _ = pterm.DefaultInteractiveTextInput.Show("Remote host (e.g. example.com)")
+		}
+		if user == "" && stdinIsTerminal() {
+			user, _ = pterm.DefaultInteractiveTextInput.Show("Remote SSH user")
+		}
+		if path == "" && stdinIsTerminal() {
+			path, _ = pterm.DefaultInteractiveTextInput.Show("Remote project path (e.g. ~/public_html)")
+		}
 
 		if host == "" || user == "" || path == "" {
 			err := fmt.Errorf("host, user, and path are required")
@@ -175,6 +196,91 @@ var remoteAddCmd = &cobra.Command{
 		operationStatus = engine.OperationStatusSuccess
 		operationMessage = "remote saved"
 		return nil
+	},
+}
+
+var remoteCopyIdCmd = &cobra.Command{
+	Use:   "copy-id [name]",
+	Short: "Copy local SSH public key to a remote environment",
+	Args:  cobra.MaximumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		name := ""
+		if len(args) > 0 {
+			name = strings.TrimSpace(args[0])
+		} else if stdinIsTerminal() {
+			name, _ = pterm.DefaultInteractiveTextInput.Show("Enter remote name (e.g. staging)")
+		}
+		name = strings.ToLower(strings.TrimSpace(name))
+		if name == "" {
+			return fmt.Errorf("remote name is required")
+		}
+
+		keyPathRaw, _ := cmd.Flags().GetString("identity")
+		config, err := loadFullConfig()
+		if err != nil {
+			return err
+		}
+		_, remoteCfg, err := ensureRemoteKnown(config, name)
+		if err != nil {
+			pterm.Error.Println(err.Error())
+			return err
+		}
+
+		// Resolve actual key to copy
+		pubKeyPath := ""
+		if keyPathRaw != "" {
+			pubKeyPath = strings.TrimSuffix(keyPathRaw, ".pub") + ".pub"
+		} else {
+			privateKeyPath, _ := remote.ResolveSSHKeyPath(name, remoteCfg)
+			if privateKeyPath != "" {
+				pubKeyPath = strings.TrimSuffix(privateKeyPath, ".pub") + ".pub"
+			}
+		}
+
+		// Default fallback if still unknown
+		if pubKeyPath == "" || !fileExists(pubKeyPath) {
+			candidates := []string{"~/.ssh/id_ed25519.pub", "~/.ssh/id_ecdsa.pub", "~/.ssh/id_rsa.pub"}
+			for _, c := range candidates {
+				resolved := remote.NormalizePath(c)
+				if fileExists(resolved) {
+					pubKeyPath = resolved
+					break
+				}
+			}
+		}
+
+		if pubKeyPath == "" || !fileExists(pubKeyPath) {
+			return fmt.Errorf("could not find a public key to copy. Please specify one with --identity/-i")
+		}
+
+		pterm.Info.Printf("Copying public key '%s' to remote '%s' (%s)...\n", pubKeyPath, name, remote.RemoteTarget(remoteCfg))
+
+		// Check if ssh-copy-id exists
+		if _, err := exec.LookPath("ssh-copy-id"); err == nil {
+			sshCopyIdArgs := []string{"-i", pubKeyPath}
+			if remoteCfg.Port > 0 {
+				sshCopyIdArgs = append(sshCopyIdArgs, "-p", fmt.Sprintf("%d", remoteCfg.Port))
+			}
+			sshCopyIdArgs = append(sshCopyIdArgs, remote.RemoteTarget(remoteCfg))
+			sshCopyIdCmd := exec.Command("ssh-copy-id", sshCopyIdArgs...)
+			sshCopyIdCmd.Stdin = os.Stdin
+			sshCopyIdCmd.Stdout = os.Stdout
+			sshCopyIdCmd.Stderr = os.Stderr
+			return sshCopyIdCmd.Run()
+		}
+
+		// Fallback for systems without ssh-copy-id
+		pubKeyContent, err := os.ReadFile(pubKeyPath)
+		if err != nil {
+			return fmt.Errorf("failed to read public key: %w", err)
+		}
+
+		setupCmd := fmt.Sprintf("mkdir -p ~/.ssh && chmod 700 ~/.ssh && echo '%s' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys", strings.TrimSpace(string(pubKeyContent)))
+		sshCmd := remote.BuildSSHExecCommand(name, remoteCfg, false, setupCmd)
+		sshCmd.Stdin = os.Stdin
+		sshCmd.Stdout = os.Stdout
+		sshCmd.Stderr = os.Stderr
+		return sshCmd.Run()
 	},
 }
 
@@ -452,9 +558,11 @@ func init() {
 	remoteAddCmd.Flags().Bool("strict-host-key", false, "Enable strict SSH host key checking")
 	remoteAddCmd.Flags().String("known-hosts-file", "", "Custom SSH known_hosts file (implies --strict-host-key)")
 	remoteAddCmd.Flags().Bool("protected", false, "Mark remote as protected")
+	remoteCopyIdCmd.Flags().StringP("identity", "i", "", "Path to the SSH public key to copy")
 
 	remoteCmd.AddCommand(remoteAddCmd)
 	remoteCmd.AddCommand(remoteExecCmd)
+	remoteCmd.AddCommand(remoteCopyIdCmd)
 	remoteCmd.AddCommand(remoteTestCmd)
 	remoteCmd.AddCommand(remoteAuditCmd)
 

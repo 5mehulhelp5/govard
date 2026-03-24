@@ -58,6 +58,9 @@ services:
     image: {{ if eq .Config.Framework "magento2" }}{{ $.ImageRepository }}php-magento2:{{ .Config.Stack.PHPVersion }}{{ else }}{{ $.ImageRepository }}php:{{ .Config.Stack.PHPVersion }}{{ end }}
     volumes:
       - .:/var/www/html
+      {{ if (lt .Config.Stack.PHPVersion "7.3") }}
+      - /dev/null:/usr/local/etc/php-fpm.d/docker-tuned.conf:ro
+      {{ end }}
       {{ if .SafeSSHConfig }}
       - "{{ .SafeSSHConfig }}:/home/www-data/.ssh/config:ro"
       {{ else if .HostSSHDir }}
@@ -90,6 +93,9 @@ services:
     image: {{ if eq .Config.Framework "magento2" }}{{ $.ImageRepository }}php-magento2:{{ .Config.Stack.PHPVersion }}-debug{{ else }}{{ $.ImageRepository }}php:{{ .Config.Stack.PHPVersion }}-debug{{ end }}
     volumes:
       - .:/var/www/html
+      {{ if (lt .Config.Stack.PHPVersion "7.3") }}
+      - /dev/null:/usr/local/etc/php-fpm.d/docker-tuned.conf:ro
+      {{ end }}
       {{ if .SafeSSHConfig }}
       - "{{ .SafeSSHConfig }}:/home/www-data/.ssh/config:ro"
       {{ else if .HostSSHDir }}

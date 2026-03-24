@@ -341,8 +341,8 @@ func validateDBCommandOptions(subcommand string, options dbCommandOptions) error
 			return errors.New("--stream-db is only supported by db import")
 		}
 	case "import":
-		if options.NoNoise || options.NoPII {
-			return errors.New("--no-noise and --no-pii are only supported by db dump")
+		if (options.NoNoise || options.NoPII) && !options.StreamDB {
+			return errors.New("--no-noise and --no-pii are only supported by db dump or stream-db import")
 		}
 		if options.StreamDB && options.Environment == "local" {
 			return errors.New("--stream-db requires a remote --environment source")

@@ -172,9 +172,6 @@ func initFrameworkCommands() {
 				// Determine container and user
 				// Most frameworks use 'php' container, node-based use 'app' or 'web'
 				containerName := fmt.Sprintf("%s-php-1", config.ProjectName)
-				// For node commands, we check if we have a node container or use php one (many php images have node)
-				// In our blueprints, we usually have node in php or a separate app container
-				// For now, default to php container as it's the main workspace
 
 				user := target.DefaultUser
 				// Override user if it's magento2

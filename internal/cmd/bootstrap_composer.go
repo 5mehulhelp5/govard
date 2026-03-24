@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -30,6 +31,67 @@ func runBootstrapComposerPrepare(config engine.Config) error {
 	if err := runPHPContainerShellCommand(config, "rm -rf vendor"); err != nil {
 		return fmt.Errorf("failed to clean vendor directory: %w", err)
 	}
+	return nil
+}
+
+func FixComposerCompatibility(config engine.Config) error {
+	version := config.Stack.PHPVersion
+	targetVer := config.Stack.ComposerVersion
+	if targetVer == "" {
+		targetVer = "latest"
+	}
+
+	// If user explicitly wants a version, we should try to ensure it
+	if targetVer != "latest" && targetVer != "" {
+		pterm.Info.Printf("Ensuring Composer version %s as requested in config...\n", targetVer)
+		return ensureSpecificComposerVersion(config, targetVer)
+	}
+
+	// Automatic compatibility check for old PHP
+	if engine.IsNumericDotVersionAtLeast(version, "7.2.5") {
+		return nil
+	}
+
+	pterm.Info.Printf("PHP version is %s (< 7.2.5). Ensuring Composer 2.2 LTS compatibility...\n", version)
+
+	// Check if composer current runs or fails with support error code
+	err := runPHPContainerShellCommand(config, "composer --version")
+	if err == nil {
+		return nil // Already works
+	}
+
+	return ensureSpecificComposerVersion(config, "2.2.24")
+}
+
+func ensureSpecificComposerVersion(config engine.Config, version string) error {
+	pterm.Info.Printf("Ensuring Composer version %s is installed in container...\n", version)
+
+	containerName := fmt.Sprintf("%s-php-1", config.ProjectName)
+
+	downloadUrl := "https://getcomposer.org/composer-stable.phar"
+	if version != "latest" {
+		// Try to resolve exactly or use the lts versions
+		if version == "2" {
+			downloadUrl = "https://getcomposer.org/composer-2.phar"
+		} else if version == "1" {
+			downloadUrl = "https://getcomposer.org/composer-1.phar"
+		} else if version == "2.2" {
+			downloadUrl = "https://getcomposer.org/download/2.2.24/composer.phar"
+		} else if strings.Contains(version, ".") {
+			downloadUrl = fmt.Sprintf("https://getcomposer.org/download/%s/composer.phar", version)
+		}
+	}
+
+	script := fmt.Sprintf("curl -sS %s -o /tmp/composer.phar && chmod +x /tmp/composer.phar && mv /tmp/composer.phar $(which composer)", downloadUrl)
+	cmd := exec.Command("docker", "exec", "-u", "root", containerName, "sh", "-c", script)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("composer setup failed (%s): %w: %s", version, err, string(out))
+	}
+
+	pterm.Success.Printf("Composer %s is now active.\n", version)
+
+	// Fix: Composer 2.2+ blocks plugins by default. Enable them globally in the container for bootstrap.
+	_ = runPHPContainerShellCommand(config, "composer config -g allow-plugins true")
 	return nil
 }
 

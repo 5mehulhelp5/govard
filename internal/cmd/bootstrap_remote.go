@@ -15,7 +15,7 @@ import (
 )
 
 var bootstrapRemoteDirExists = func(remoteName string, remoteCfg engine.RemoteConfig, remotePath string) bool {
-	probe := remote.BuildSSHExecCommand(remoteName, remoteCfg, true, "test -d "+shellQuote(remotePath))
+	probe := remote.BuildSSHExecCommand(remoteName, remoteCfg, true, "test -d "+remote.QuoteRemotePath(remotePath))
 	return probe.Run() == nil
 }
 
@@ -24,7 +24,25 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrap
 
 	if requiresRemote {
 		if _, ok := config.Remotes[opts.Source]; !ok {
-			return fmt.Errorf("remote '%s' is not configured. Add it to remotes in %s", opts.Source, engine.BaseConfigFile)
+			if stdinIsTerminal() {
+				pterm.Warning.Printf("Remote '%s' is not configured.\n", opts.Source)
+				yes, _ := pterm.DefaultInteractiveConfirm.Show(fmt.Sprintf("Would you like to add remote '%s' now?", opts.Source))
+				if yes {
+					if err := runGovardSubcommand(cmd, "remote", "add", opts.Source); err != nil {
+						return err
+					}
+					// Reload config after adding remote
+					newConfig, err := loadFullConfig()
+					if err != nil {
+						return err
+					}
+					config = newConfig
+				} else {
+					return fmt.Errorf("remote '%s' is not configured", opts.Source)
+				}
+			} else {
+				return fmt.Errorf("remote '%s' is not configured. Add it to remotes in %s", opts.Source, engine.BaseConfigFile)
+			}
 		}
 
 		if err := runGovardSubcommand(cmd, "remote", "test", opts.Source); err != nil {
@@ -42,9 +60,14 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrap
 
 	if opts.ComposerInstall {
 		composerJSONPath := filepath.Join(cwd, "composer.json")
-		if !fileExists(composerJSONPath) && strings.ToLower(config.Framework) == "wordpress" {
-			pterm.Info.Println("No composer.json found. Skipping composer install for WordPress.")
+		if !fileExists(composerJSONPath) {
+			pterm.Info.Println("No composer.json found. Skipping composer install.")
 		} else {
+			// First check if composer is compatible with the current PHP version
+			if err := FixComposerCompatibility(config); err != nil {
+				pterm.Warning.Printf("Could not verify/fix composer compatibility: %v\n", err)
+			}
+
 			if err := ensureBootstrapAuthJSON(config, opts); err != nil {
 				return err
 			}

@@ -20,24 +20,25 @@ type Services struct {
 }
 
 type Stack struct {
-	PHPVersion     string   `yaml:"php_version"`
-	NodeVersion    string   `yaml:"node_version"`
-	DBType         string   `yaml:"db_type"`
-	DBVersion      string   `yaml:"db_version"`
-	WebRoot        string   `yaml:"web_root"`
-	NginxVersion   string   `yaml:"nginx_version,omitempty"`
-	ApacheVersion  string   `yaml:"apache_version,omitempty"`
-	CacheVersion   string   `yaml:"cache_version"`
-	SearchVersion  string   `yaml:"search_version"`
-	VarnishVersion string   `yaml:"varnish_version,omitempty"`
-	QueueVersion   string   `yaml:"queue_version,omitempty"`
-	XdebugSession  string   `yaml:"xdebug_session,omitempty"`
-	WebServer      string   `yaml:"web_server,omitempty"`
-	UserID         int      `yaml:"user_id,omitempty"`
-	GroupID        int      `yaml:"group_id,omitempty"`
-	Services       Services `yaml:"services"`
-	Features       Features `yaml:"features"`
-	ChownDirList   []string `yaml:"chown_dir_list,omitempty"`
+	PHPVersion      string   `yaml:"php_version"`
+	NodeVersion     string   `yaml:"node_version"`
+	DBType          string   `yaml:"db_type"`
+	DBVersion       string   `yaml:"db_version"`
+	WebRoot         string   `yaml:"web_root"`
+	NginxVersion    string   `yaml:"nginx_version,omitempty"`
+	ApacheVersion   string   `yaml:"apache_version,omitempty"`
+	CacheVersion    string   `yaml:"cache_version"`
+	SearchVersion   string   `yaml:"search_version"`
+	VarnishVersion  string   `yaml:"varnish_version,omitempty"`
+	QueueVersion    string   `yaml:"queue_version,omitempty"`
+	ComposerVersion string   `yaml:"composer_version,omitempty"`
+	XdebugSession   string   `yaml:"xdebug_session,omitempty"`
+	WebServer       string   `yaml:"web_server,omitempty"`
+	UserID          int      `yaml:"user_id,omitempty"`
+	GroupID         int      `yaml:"group_id,omitempty"`
+	Services        Services `yaml:"services"`
+	Features        Features `yaml:"features"`
+	ChownDirList    []string `yaml:"chown_dir_list,omitempty"`
 }
 
 type Config struct {

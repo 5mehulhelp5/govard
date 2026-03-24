@@ -203,7 +203,8 @@ govard shell
 Set up and validate a remote:
 
 ```bash
-govard remote add staging --host staging.example.com --user deploy --path /var/www/html
+govard remote add staging --host staging.example.com --user deploy --path ~/public_html
+govard remote copy-id staging
 govard remote test staging
 ```
 
@@ -222,6 +223,9 @@ govard remote audit tail --status failure --lines 50
 
 Remote defaults and protections:
 
+- `remote add` is interactive if flags are missing.
+- `remote copy-id` transfers your local public key to the remote `authorized_keys`.
+- Remote paths support `~/` home directory expansion.
 - `prod` remotes are write-protected by default.
 - Capability scopes (`files,media,db,deploy`) are enforced per operation.
 - File/media sync uses resumable rsync mode by default.

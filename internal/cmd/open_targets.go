@@ -178,7 +178,7 @@ func buildRemoteShellCommand(projectPath string) string {
 	if trimmedPath == "" {
 		return cmd
 	}
-	return "cd " + shellQuote(trimmedPath) + " && " + cmd
+	return "cd " + quoteRemotePath(trimmedPath) + " && " + cmd
 }
 
 func resolveOpenEnvironment(config engine.Config, requestedEnvironment string) (string, bool, error) {

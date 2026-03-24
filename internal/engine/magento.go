@@ -497,7 +497,7 @@ func patchMagentoElasticsearchSchemaForLibxml() (bool, error) {
 }
 
 func isMagentoVersionAtLeast(raw string, minimum string) bool {
-	return isNumericDotVersionAtLeast(raw, minimum)
+	return IsNumericDotVersionAtLeast(raw, minimum)
 }
 
 // BuildMagentoSearchHostFixSQL returns the SQL query needed to fix the search host in the database.

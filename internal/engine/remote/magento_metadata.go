@@ -134,14 +134,11 @@ func buildMagentoRemoteCommand(projectPath string, body string) string {
 	if trimmedPath == "" {
 		return body
 	}
-	return "cd " + shellQuoteRemote(trimmedPath) + " && " + body
+	return "cd " + QuoteRemotePath(trimmedPath) + " && " + body
 }
 
 func shellQuoteRemote(raw string) string {
-	if raw == "" {
-		return "''"
-	}
-	return "'" + strings.ReplaceAll(raw, "'", `'"'"'`) + "'"
+	return ShellQuote(raw)
 }
 
 func normalizeMagentoVersion(raw string) string {

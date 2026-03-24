@@ -38,7 +38,7 @@ func CompareNumericDotVersions(left, right string) (int, bool) {
 	return 0, true
 }
 
-func isNumericDotVersionAtLeast(raw string, minimum string) bool {
+func IsNumericDotVersionAtLeast(raw string, minimum string) bool {
 	comparison, comparable := CompareNumericDotVersions(raw, minimum)
 	return comparable && comparison >= 0
 }

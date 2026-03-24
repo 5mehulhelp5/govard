@@ -323,7 +323,7 @@ then prints the matched project path to stdout.
 
 ### `govard remote`
 
-Manage remote environments (add, exec, test).
+Manage remote environments (add, copy-id, exec, test).
 Supports remote environment classification (`dev`, `staging`, `prod`) and per-remote capabilities (`files`, `media`, `db`, `deploy`).
 Supports auth method selection (`keychain`, `ssh-agent`, `keyfile`) and SSH key-path overrides.
 Supports optional strict SSH host key verification per remote.
