@@ -20,7 +20,9 @@ govard env up [flags]
 5. **Verify**: Maps `.test` domains and registers them with the Govard Proxy.
 
 **Options:**
+
 - `--pull`: Pull latest images before starting.
+- `--force-recreate`: Recreate containers even if their configuration and image haven't changed.
 - `--quickstart`: Skip heavy services (Elasticsearch, Varnish, Redis) for faster startup.
 - `--remove-orphans`: Remove containers for services no longer in config.
 

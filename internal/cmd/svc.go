@@ -152,10 +152,12 @@ func handleSvcUp(cmd *cobra.Command, args []string) error {
 		})
 	}
 
-	// Prepare standard 'up' args if it's just 'up'
-	upArgs := args
-	if len(args) == 1 && args[0] == "up" {
-		upArgs = []string{"up", "-d"}
+	// Prepare standard 'up' args
+	upArgs := []string{"up", "-d"}
+	for _, arg := range args[1:] {
+		if arg != "-d" && arg != "--detach" {
+			upArgs = append(upArgs, arg)
+		}
 	}
 
 	err := engine.RunCompose(ctx, engine.ComposeOptions{

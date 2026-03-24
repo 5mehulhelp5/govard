@@ -47,6 +47,7 @@ Case Studies:
 		pull, _ := cmd.Flags().GetBool("pull")
 		fallbackLocalBuild := boolFlagOrDefault(cmd, "fallback-local-build", true)
 		removeOrphans, _ := cmd.Flags().GetBool("remove-orphans")
+		forceRecreate, _ := cmd.Flags().GetBool("force-recreate")
 		cwd, _ := os.Getwd()
 		context := upRuntimeContext{
 			Cwd:           cwd,
@@ -55,6 +56,7 @@ Case Studies:
 			Pull:          pull,
 			FallbackLocal: fallbackLocalBuild,
 			RemoveOrphans: removeOrphans,
+			ForceRecreate: forceRecreate,
 			Out:           cmd.OutOrStdout(),
 			Err:           cmd.ErrOrStderr(),
 		}
@@ -105,6 +107,7 @@ type upRuntimeContext struct {
 	Pull          bool
 	FallbackLocal bool
 	RemoveOrphans bool
+	ForceRecreate bool
 	Out           io.Writer
 	Err           io.Writer
 }
@@ -240,6 +243,9 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 				upArgs := []string{"up", "-d"}
 				if context.RemoveOrphans {
 					upArgs = append(upArgs, "--remove-orphans")
+				}
+				if context.ForceRecreate {
+					upArgs = append(upArgs, "--force-recreate")
 				}
 
 				err := engine.RunCompose(cmd.Context(), engine.ComposeOptions{
@@ -459,4 +465,5 @@ func init() {
 	upCmd.Flags().Bool("pull", false, "Pull latest images before starting")
 	upCmd.Flags().Bool("fallback-local-build", true, "When pull/start fails due missing Govard images, build missing Govard-managed images locally and retry")
 	upCmd.Flags().Bool("remove-orphans", false, "Remove containers for services not defined in the compose file")
+	upCmd.Flags().Bool("force-recreate", false, "Recreate containers even if their configuration and image haven't changed")
 }
