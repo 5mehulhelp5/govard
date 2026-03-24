@@ -25,13 +25,13 @@ On Linux, if the release does not include a standalone `govard-desktop` archive,
 
 ### 2. Source Installation (with Go Bootstrap)
 
-If you prefer to build from source or need to install Go 1.24+ automatically:
+If you prefer to build from source or need to install Go 1.25+ automatically:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ddtcorex/govard/master/install.sh | bash -s -- --source
 ```
 
-The script will offer to install Go 1.24 if your system Go version is missing or outdated (< 1.24).
+The script will offer to install Go 1.25 if your system Go version is missing or outdated (< 1.25).
 
 ### 3. Manual Build
 
