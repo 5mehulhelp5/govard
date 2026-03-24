@@ -21,9 +21,11 @@ services:
       - .:/var/www/html
     networks:
       - govard-net
-      - govard-proxy
     environment:
       XDEBUG_MODE: off
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "mail:host-gateway"
 
   {{ if .Config.Stack.Features.Xdebug }}
   php-debug:
@@ -31,7 +33,6 @@ services:
     volumes:
       - .:/var/www/html
     networks:
-      - govard-proxy
       - govard-net
     environment:
       {{ if (ge .Config.Stack.PHPVersion "7.2") }}
@@ -41,6 +42,9 @@ services:
       XDEBUG_CONFIG: "remote_enable=1 remote_host=host.docker.internal remote_port=9003"
       {{ end }}
       PHP_IDE_CONFIG: "serverName={{ .Config.ProjectName }}-docker"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "mail:host-gateway"
   {{ end }}
 
   {{ if ne .Config.Stack.DBType "none" }}

@@ -71,7 +71,6 @@ services:
       {{ end }}
     networks:
       - govard-net
-      - govard-proxy
     environment:
       XDEBUG_MODE: off
       {{ if .SSHAuthSock }}
@@ -81,6 +80,9 @@ services:
       PUID: {{ .Config.Stack.UserID }}
       PGID: {{ .Config.Stack.GroupID }}
       CHOWN_DIR_LIST: "{{ range $i, $dir := .Config.Stack.ChownDirList }}{{ if $i }} {{ end }}{{ $dir }}{{ end }}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "mail:host-gateway"
 
   {{ if .Config.Stack.Features.Xdebug }}
   php-debug:
@@ -101,7 +103,6 @@ services:
       {{ end }}
     networks:
       - govard-net
-      - govard-proxy
     environment:
       {{ if (ge .Config.Stack.PHPVersion "7.2") }}
       XDEBUG_MODE: debug
@@ -119,6 +120,7 @@ services:
       CHOWN_DIR_LIST: "{{ range $i, $dir := .Config.Stack.ChownDirList }}{{ if $i }} {{ end }}{{ $dir }}{{ end }}"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+      - "mail:host-gateway"
   {{ end }}
 
   {{ if ne .Config.Stack.DBType "none" }}

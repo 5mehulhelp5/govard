@@ -7,7 +7,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "2019:2019" # Caddy Admin API
+      - "2019:2019"
     volumes:
       - caddy_data:/data
       - caddy_config:/config
@@ -22,6 +22,8 @@ services:
       - MP_MAX_MESSAGES=500
       - MP_SMTP_BIND_ADDR=0.0.0.0:1025
       - MP_HTTP_BIND_ADDR=0.0.0.0:8025
+    ports:
+      - "1025:1025"
     networks:
       - govard-proxy
 
