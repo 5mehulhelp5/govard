@@ -1,8 +1,5 @@
+# Symfony specific services
+# Standard services are provided by includes
+
 services:
-  mailpit:
-    image: axllent/mailpit:latest
-    ports:
-      - "8025"
-    networks:
-      - govard-net
-      - govard-proxy
+  # Framework specific overrides can go here

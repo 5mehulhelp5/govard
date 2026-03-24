@@ -1,22 +1,5 @@
+# Shopware specific services
+# Common services (PHP, Web, MySQL, Redis, Elasticsearch) are provided by includes
+
 services:
-  elasticsearch:
-    image: "{{ .ImageRepository }}/elasticsearch:{{ .Config.Stack.SearchVersion }}"
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    volumes:
-      - es-data:/usr/share/elasticsearch/data
-    networks:
-      - govard-net
-
-  mailpit:
-    image: axllent/mailpit:latest
-    ports:
-      - "8025"
-    networks:
-      - govard-net
-      - govard-proxy
-
-volumes:
-  es-data:
+  # Framework specific overrides can go here

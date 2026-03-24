@@ -104,6 +104,8 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 		DefaultQueue:     "none",
 		Includes: []string{
 			"nextjs/services.yml",
+			"includes/redis.yml",
+			"includes/rabbitmq.yml",
 		},
 	},
 	"drupal": {
@@ -178,6 +180,8 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 		DefaultCache:      "none",
 		DefaultQueue:      "none",
 		Includes: []string{
+			"includes/base.yml",
+			"includes/redis.yml",
 			"magento1/services.yml",
 			"includes/rabbitmq.yml",
 		},
@@ -201,6 +205,8 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 		DefaultCache:      "none",
 		DefaultQueue:      "none",
 		Includes: []string{
+			"includes/base.yml",
+			"includes/redis.yml",
 			"magento1/services.yml",
 			"includes/rabbitmq.yml",
 		},
