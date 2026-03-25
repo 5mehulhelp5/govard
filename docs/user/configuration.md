@@ -329,6 +329,23 @@ Govard supports project-scoped extension files in `.govard/`:
 - `.govard/hooks/`: project hook scripts referenced from `hooks.*.run`.
 - `.govard/docker-compose.override.yml`: compose overrides merged into the generated compose file in `~/.govard/compose/`.
 - `.govard/.govard.local.yml`: preferred project local override layer.
+- `.govard/varnish/default.vcl`: optional custom Varnish VCL configuration (requires override).
+
+### Customizing Varnish
+
+If your project requires a custom Varnish configuration, you can store it within the `.govard/` directory and map it using a compose override.
+
+1. Create your custom VCL file at `.govard/varnish/default.vcl`.
+2. Add the following to `.govard/docker-compose.override.yml`:
+
+```yaml
+services:
+  varnish:
+    volumes:
+      - ./.govard/varnish/default.vcl:/etc/varnish/default.vcl:ro
+```
+
+By default, Govard generates a framework-specific VCL in `~/.govard/varnish/<project-name>/default.vcl`. Using the override above allows you to commit project-specific cache logic to your repository.
 
 Create scaffolding:
 

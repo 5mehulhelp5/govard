@@ -100,14 +100,22 @@ Pre-configured with:
 - User: `magento` / `magento`
 - Root: `root` / `root`
 
-### Varnish 7.x
-
-Custom VCL with:
-
-- Cache bypass for Admin and Checkout routes
-- Support for `X-Magento-Tags` purging
-- Grace periods for stale-content delivery
 - Custom `X-Govard-Cache` headers for HIT/MISS debugging
+- Centralized configuration: The rendered VCL is stored in `~/.govard/varnish/<project-name>/default.vcl` and mounted as read-only.
+
+#### Customizing Varnish VCL
+
+If you need to use a project-specific VCL (e.g., to add custom ban logic or modify caching rules):
+
+1. Create your custom file at `.govard/varnish/default.vcl`.
+2. Map it using `.govard/docker-compose.override.yml`:
+
+```yaml
+services:
+  varnish:
+    volumes:
+      - ./.govard/varnish/default.vcl:/etc/varnish/default.vcl:ro
+```
 
 ### Grunt LiveReload
 
