@@ -10,8 +10,9 @@ import (
 )
 
 var debugCmd = &cobra.Command{
-	Use:   "debug [on|off|status|shell] [args...]",
-	Short: "Manage Xdebug for the current environment",
+	Use:     "debug [on|off|status|shell] [args...]",
+	Aliases: []string{"dbg"},
+	Short:   "Manage Xdebug for the current environment",
 	Long: `Toggle Xdebug on or off, check its status, or open a debug shell. 
 When run without subcommands, it opens a debug shell.
 Changes to on/off will trigger an environment update.`,

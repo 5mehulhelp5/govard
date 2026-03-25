@@ -37,56 +37,7 @@ Case Studies:
 
   # Fast startup: skip heavy services like Elasticsearch, Varnish, Redis
   govard env up --quickstart`,
-	RunE: func(cmd *cobra.Command, args []string) (err error) {
-		updater.CheckForUpdates(Version)
-		startedAt := time.Now()
-
-		quickstart, _ := cmd.Flags().GetBool("quickstart")
-		profile, _ := cmd.Flags().GetString("profile")
-		pull, _ := cmd.Flags().GetBool("pull")
-		fallbackLocalBuild := boolFlagOrDefault(cmd, "fallback-local-build", true)
-		removeOrphans, _ := cmd.Flags().GetBool("remove-orphans")
-		forceRecreate, _ := cmd.Flags().GetBool("force-recreate")
-		cwd, _ := os.Getwd()
-		context := upRuntimeContext{
-			Cwd:           cwd,
-			Profile:       profile,
-			Quickstart:    quickstart,
-			Pull:          pull,
-			FallbackLocal: fallbackLocalBuild,
-			RemoveOrphans: removeOrphans,
-			ForceRecreate: forceRecreate,
-			Out:           cmd.OutOrStdout(),
-			Err:           cmd.ErrOrStderr(),
-		}
-		defer func() {
-			status := engine.OperationStatusSuccess
-			message := "up completed"
-			if err != nil {
-				status = engine.OperationStatusFailure
-				message = err.Error()
-			}
-			writeOperationEventBestEffort(
-				"up.run",
-				status,
-				context.Config,
-				"",
-				"",
-				message,
-				"",
-				time.Since(startedAt),
-			)
-			if err == nil {
-				trackProjectRegistryBestEffort(context.Config, cwd, "up")
-			}
-		}()
-		stages := buildUpPipelineStages(cmd, &context)
-		if err = runUpPipeline(stages); err != nil {
-			return err
-		}
-		pterm.Success.Printf("Environment is up and running at https://%s\n", context.Config.Domain)
-		return nil
-	},
+	RunE: runUpCommand,
 }
 
 type upPipelineStage struct {
@@ -458,11 +409,66 @@ func compareNumericDotVersions(left, right string) (int, bool) {
 	return engine.CompareNumericDotVersions(left, right)
 }
 
+func runUpCommand(cmd *cobra.Command, args []string) (err error) {
+	updater.CheckForUpdates(Version)
+	startedAt := time.Now()
+
+	quickstart, _ := cmd.Flags().GetBool("quickstart")
+	profile, _ := cmd.Flags().GetString("profile")
+	pull, _ := cmd.Flags().GetBool("pull")
+	fallbackLocalBuild := boolFlagOrDefault(cmd, "fallback-local-build", true)
+	removeOrphans, _ := cmd.Flags().GetBool("remove-orphans")
+	forceRecreate, _ := cmd.Flags().GetBool("force-recreate")
+	cwd, _ := os.Getwd()
+	context := upRuntimeContext{
+		Cwd:           cwd,
+		Profile:       profile,
+		Quickstart:    quickstart,
+		Pull:          pull,
+		FallbackLocal: fallbackLocalBuild,
+		RemoveOrphans: removeOrphans,
+		ForceRecreate: forceRecreate,
+		Out:           cmd.OutOrStdout(),
+		Err:           cmd.ErrOrStderr(),
+	}
+	defer func() {
+		status := engine.OperationStatusSuccess
+		message := "up completed"
+		if err != nil {
+			status = engine.OperationStatusFailure
+			message = err.Error()
+		}
+		writeOperationEventBestEffort(
+			"up.run",
+			status,
+			context.Config,
+			"",
+			"",
+			message,
+			"",
+			time.Since(startedAt),
+		)
+		if err == nil {
+			trackProjectRegistryBestEffort(context.Config, cwd, "up")
+		}
+	}()
+	stages := buildUpPipelineStages(cmd, &context)
+	if err = runUpPipeline(stages); err != nil {
+		return err
+	}
+	pterm.Success.Printf("Environment is up and running at https://%s\n", context.Config.Domain)
+	return nil
+}
+
+func addUpFlags(command *cobra.Command) {
+	command.Flags().Bool("quickstart", false, "Use a minimal runtime profile for faster first run")
+	command.Flags().String("profile", "", "Environment scope (profile) to use")
+	command.Flags().Bool("pull", false, "Pull latest images before starting")
+	command.Flags().Bool("fallback-local-build", true, "When pull/start fails due missing Govard images, build missing Govard-managed images locally and retry")
+	command.Flags().Bool("remove-orphans", false, "Remove containers for services not defined in the compose file")
+	command.Flags().Bool("force-recreate", false, "Recreate containers even if their configuration and image haven't changed")
+}
+
 func init() {
-	upCmd.Flags().Bool("quickstart", false, "Use a minimal runtime profile for faster first run")
-	upCmd.Flags().String("profile", "", "Environment scope (profile) to use")
-	upCmd.Flags().Bool("pull", false, "Pull latest images before starting")
-	upCmd.Flags().Bool("fallback-local-build", true, "When pull/start fails due missing Govard images, build missing Govard-managed images locally and retry")
-	upCmd.Flags().Bool("remove-orphans", false, "Remove containers for services not defined in the compose file")
-	upCmd.Flags().Bool("force-recreate", false, "Recreate containers even if their configuration and image haven't changed")
+	addUpFlags(upCmd)
 }

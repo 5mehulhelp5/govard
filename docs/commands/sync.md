@@ -6,14 +6,16 @@ Synchronize files, media, and databases between environments.
 
 ```bash
 govard sync --source staging --destination local --file
+govard sync --from staging --to local --file
 govard sync -s staging -d local --full --plan
 govard sync -s dev --db --no-pii
 ```
 
 ## Options
 
-- `-s, --source`, `-e, --environment` Source environment (default: `staging`). Accepts remote name or alias (e.g. `dev`, `stg`, `prod`).
-- `-d, --destination` Destination environment (default: `local`). Accepts remote name or alias.
+- `-s, --source`, `--from` Source environment (default: `staging`). Accepts remote name or alias (e.g. `dev`, `stg`, `prod`).
+- `-e, --environment` Legacy source alias kept for compatibility. Prefer `--source` or `--from`.
+- `-d, --destination`, `--to` Destination environment (default: `local`). Accepts remote name or alias.
 - `--file` Sync source code/files
 - `--media` Sync media files
 - `--db` Sync database
@@ -28,16 +30,16 @@ govard sync -s dev --db --no-pii
 - `--plan` Print a dry-run summary (endpoints, scopes, risk, steps) and exit
 - `-y, --yes` Skip confirmation and proceed with synchronization (useful for automation)
 - `-N, --no-noise` Exclude ephemeral/noise tables from DB sync (cron, cache, sessions, logs, etc.)
-- `-S, --no-pii` Exclude PII/sensitive tables from DB sync (users, orders, passwords, etc.)
+- `-P, --no-pii` Exclude PII/sensitive tables from DB sync (users, orders, passwords, etc.)
 
 ## Remote Name Resolution
 
-The `--source` (`-s`) and `--destination` (`-d`) flags support fuzzy remote name resolution:
+The `--source` / `--from` and `--destination` / `--to` flags support fuzzy remote name resolution:
 
 - Exact key match in `config.Remotes` (e.g. `staging`).
 - Alias matching via `NormalizeRemoteEnvironment` (e.g. `stg` → `staging`, `dev` → `development`).
 
-This means `govard sync -s stg --db` and `govard sync --source staging --db` are equivalent if your config has a remote named `staging`.
+This means `govard sync -s stg --db`, `govard sync --source staging --db`, and `govard sync --from staging --db` are equivalent if your config has a remote named `staging`.
 
 ## Notes
 
@@ -65,6 +67,9 @@ This means `govard sync -s stg --db` and `govard sync --source staging --db` are
 ```bash
 # Sync media from staging to local
 govard sync -s staging -d local --media
+
+# Same flow using the clearer aliases
+govard sync --from staging --to local --media
 
 # Full sync plan (dry-run)
 govard sync -s staging -d local --full --plan

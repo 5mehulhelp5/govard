@@ -16,8 +16,9 @@ import (
 )
 
 var remoteCmd = &cobra.Command{
-	Use:   "remote",
-	Short: "Manage remote environments",
+	Use:     "remote",
+	Aliases: []string{"rmt"},
+	Short:   "Manage remote environments",
 }
 
 var remoteAddCmd = &cobra.Command{

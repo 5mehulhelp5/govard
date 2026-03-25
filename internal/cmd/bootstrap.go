@@ -49,8 +49,9 @@ var (
 )
 
 var bootstrapCmd = &cobra.Command{
-	Use:   "bootstrap [flags]",
-	Short: "Bootstrap local environment: import DB/media from remote, or full clone with --clone",
+	Use:     "bootstrap [flags]",
+	Aliases: []string{"boot"},
+	Short:   "Bootstrap local environment: import DB/media from remote, or full clone with --clone",
 	Long: `Quickly set up a local project from a remote environment or a fresh installation.
 Ideal for onboarding new team members or re-initialising a local workspace.
 

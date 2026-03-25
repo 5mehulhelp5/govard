@@ -178,9 +178,18 @@ This scans your project (via `composer.json` or `package.json`) and generates a 
 
 ```bash
 govard env up
+govard up --quickstart
 ```
 
 This renders a per-project compose file under `~/.govard/compose/` and starts your specialized stack in detached mode. Use `--fallback-local-build` if you need to build missing images locally.
+
+Common root shortcuts are also available for day-to-day lifecycle work:
+
+- `govard up` → `govard env up`
+- `govard down` → `govard env down`
+- `govard restart` → `govard env restart`
+- `govard ps` → `govard env ps`
+- `govard logs` → `govard env logs`
 
 ### 3. Configure the Stack
 
@@ -370,6 +379,19 @@ _Note: Once trusted, all `*.test` domains managed by Govard will show a "Green L
 ---
 
 ## 🔍 CLI Command Reference
+
+Common command aliases:
+
+- `govard bootstrap` → `govard boot`
+- `govard config` → `govard cfg`
+- `govard debug` → `govard dbg`
+- `govard desktop` → `govard gui`
+- `govard doctor` → `govard diag`
+- `govard extensions` → `govard ext`
+- `govard projects` → `govard prj`
+- `govard remote` → `govard rmt`
+- `govard shell` → `govard sh`
+- `govard snapshot` → `govard snap`
 
 | Command              | Description                                                        |
 | :------------------- | :----------------------------------------------------------------- |

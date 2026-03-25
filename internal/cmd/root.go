@@ -77,6 +77,11 @@ func init() {
 	rootCmd.AddCommand(bootstrapCmd)
 	rootCmd.AddCommand(envCmd)
 	rootCmd.AddCommand(svcCmd)
+	rootCmd.AddCommand(upShortcutCmd)
+	rootCmd.AddCommand(downShortcutCmd)
+	rootCmd.AddCommand(restartShortcutCmd)
+	rootCmd.AddCommand(psShortcutCmd)
+	rootCmd.AddCommand(logsShortcutCmd)
 
 	// Direct service shortcuts (alias for 'env <service>')
 	rootCmd.AddCommand(redisCmd)

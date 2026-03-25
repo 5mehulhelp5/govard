@@ -12,8 +12,9 @@ import (
 )
 
 var doctorCmd = &cobra.Command{
-	Use:   "doctor",
-	Short: "Run system diagnostics",
+	Use:     "doctor",
+	Aliases: []string{"diag"},
+	Short:   "Run system diagnostics",
 	Long: strings.TrimSpace(`
 Run system diagnostics and report on the health of your local Govard environment.
 

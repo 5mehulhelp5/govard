@@ -11,8 +11,9 @@ import (
 )
 
 var projectsCmd = &cobra.Command{
-	Use:   "projects",
-	Short: "Browse known projects from registry",
+	Use:     "projects",
+	Aliases: []string{"prj"},
+	Short:   "Browse known projects from registry",
 }
 
 var projectsOpenCmd = &cobra.Command{

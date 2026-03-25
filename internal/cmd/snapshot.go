@@ -12,8 +12,9 @@ import (
 )
 
 var snapshotCmd = &cobra.Command{
-	Use:   "snapshot",
-	Short: "Manage local snapshots for database and media",
+	Use:     "snapshot",
+	Aliases: []string{"snap"},
+	Short:   "Manage local snapshots for database and media",
 }
 
 var snapshotCreateCmd = &cobra.Command{

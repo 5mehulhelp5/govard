@@ -12,8 +12,9 @@ import (
 var extensionForce bool
 
 var extensionsCmd = &cobra.Command{
-	Use:   "extensions",
-	Short: "Manage project extension contract in .govard",
+	Use:     "extensions",
+	Aliases: []string{"ext"},
+	Short:   "Manage project extension contract in .govard",
 }
 
 var extensionsInitCmd = &cobra.Command{

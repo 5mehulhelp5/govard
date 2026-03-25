@@ -29,7 +29,8 @@ Framework Notes:
 - Laravel: File sync includes 'storage/app/public' if media is requested.
 - General: You can use --include/--exclude to fine-tune rsync behavior.
 - Single File: Use --path "path/to/file" to sync a specific file or directory.
-- Note: -e / --environment can be used as an alias for -s / --source.
+- Preferred naming: use --source/--from and --destination/--to.
+- Legacy compatibility: -e / --environment is still accepted as a source alias.
 
 Case Studies:
 - Daily Data Refresh: Fetch the latest DB and media from staging to work on a fresh dataset.
@@ -74,12 +75,20 @@ Case Studies:
 		operationMessage := ""
 
 		source, _ := cmd.Flags().GetString("source")
+		from, _ := cmd.Flags().GetString("from")
 		environment, _ := cmd.Flags().GetString("environment")
-		if cmd.Flags().Changed("environment") && !cmd.Flags().Changed("source") {
+		if cmd.Flags().Changed("from") && !cmd.Flags().Changed("source") {
+			source = from
+		}
+		if cmd.Flags().Changed("environment") && !cmd.Flags().Changed("source") && !cmd.Flags().Changed("from") {
 			source = environment
 		}
 
 		destination, _ := cmd.Flags().GetString("destination")
+		to, _ := cmd.Flags().GetString("to")
+		if cmd.Flags().Changed("to") && !cmd.Flags().Changed("destination") {
+			destination = to
+		}
 		files, _ := cmd.Flags().GetBool("file")
 		media, _ := cmd.Flags().GetBool("media")
 		database, _ := cmd.Flags().GetBool("db")
@@ -310,8 +319,10 @@ func init() {
 
 	// Environment & Scopes
 	syncCmd.Flags().StringP("source", "s", "staging", "Source environment")
-	syncCmd.Flags().StringP("environment", "e", "staging", "Source environment (alias for --source)")
+	syncCmd.Flags().String("from", "", "Source environment alias for --source")
+	syncCmd.Flags().StringP("environment", "e", "staging", "Legacy source environment alias for --source")
 	syncCmd.Flags().StringP("destination", "d", "local", "Destination environment")
+	syncCmd.Flags().String("to", "", "Destination environment alias for --destination")
 	syncCmd.Flags().BoolP("full", "A", false, "Sync files, media, and database")
 	syncCmd.Flags().BoolP("file", "f", false, "Sync source code/files")
 	syncCmd.Flags().BoolP("media", "m", false, "Sync media files")
@@ -347,7 +358,11 @@ func SyncCommand() *cobra.Command {
 // ResetSyncFlagsForTest resets sync command flags to defaults for tests.
 func ResetSyncFlagsForTest() {
 	syncCmd.Flags().VisitAll(func(flag *pflag.Flag) {
-		_ = flag.Value.Set(flag.DefValue)
+		if sliceValue, ok := flag.Value.(pflag.SliceValue); ok && (flag.DefValue == "" || flag.DefValue == "[]") {
+			_ = sliceValue.Replace(nil)
+		} else {
+			_ = flag.Value.Set(flag.DefValue)
+		}
 		flag.Changed = false
 	})
 }

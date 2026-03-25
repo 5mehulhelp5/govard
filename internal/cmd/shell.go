@@ -9,6 +9,7 @@ import (
 
 var shellCmd = &cobra.Command{
 	Use:                "shell",
+	Aliases:            []string{"sh"},
 	Short:              "Enter the application container",
 	DisableFlagParsing: true,
 	SilenceUsage:       true,

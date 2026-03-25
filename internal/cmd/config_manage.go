@@ -11,8 +11,9 @@ import (
 )
 
 var configCmd = &cobra.Command{
-	Use:   "config",
-	Short: "Manage .govard.yml configuration from CLI",
+	Use:     "config",
+	Aliases: []string{"cfg"},
+	Short:   "Manage .govard.yml configuration from CLI",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return cmd.Help()
 	},

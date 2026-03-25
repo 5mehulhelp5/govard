@@ -2,6 +2,35 @@
 
 Complete reference for all Govard commands.
 
+## Aliases & Shortcuts
+
+Root lifecycle shortcuts:
+
+- `govard up` → `govard env up`
+- `govard down` → `govard env down`
+- `govard restart` → `govard env restart`
+- `govard ps` → `govard env ps`
+- `govard logs` → `govard env logs`
+
+Common command aliases:
+
+- `govard boot` → `govard bootstrap`
+- `govard cfg` → `govard config`
+- `govard dbg` → `govard debug`
+- `govard gui` → `govard desktop`
+- `govard diag` → `govard doctor`
+- `govard ext` → `govard extensions`
+- `govard prj` → `govard projects`
+- `govard rmt` → `govard remote`
+- `govard sh` → `govard shell`
+- `govard snap` → `govard snapshot`
+
+`govard sync` flag aliases:
+
+- `--from` is a clearer alias for `--source`
+- `--to` is a clearer alias for `--destination`
+- `-e, --environment` remains accepted as a legacy alias for source
+
 ## Environment Commands
 
 ### `govard init`
@@ -59,6 +88,7 @@ Renders the compose file at `~/.govard/compose/<project>-<hash>.yml` and starts 
 
 ```bash
 govard env up
+govard up --quickstart
 govard env up --pull
 govard env up --fallback-local-build
 govard env up --remove-orphans
@@ -95,9 +125,12 @@ govard env down
 govard env restart
 govard env ps
 govard env logs [service] [-f]
+govard down -v
+govard logs php -f
 ```
 
 Govard intelligently proxies almost all Docker Compose maintenance commands (ps, logs, stop, start, restart, pull, build, etc.) to the current project context.
+For the most common lifecycle actions, the equivalent root shortcuts (`govard up/down/restart/ps/logs`) are also available.
 
 Service access under project scope (now with smart proxying):
 
@@ -346,6 +379,7 @@ Synchronize files, media, and databases between environments.
 - **Filtering**: Supports rsync include/exclude filters via repeatable `--include` and `--exclude` flags.
 - **Resumable Transfers**: Uses resumable rsync mode by default (`--resume`).
 - **Path Selection**: Target specific files or directories with `--path`.
+- **Alias Cleanup**: Prefer `--source` / `--from` and `--destination` / `--to`. `-e, --environment` is kept as a legacy source alias for compatibility.
 
 See `docs/commands/sync.md`.
 

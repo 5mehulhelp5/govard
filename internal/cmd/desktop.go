@@ -33,8 +33,9 @@ func desktopBuildTags(isProd bool) string {
 }
 
 var desktopCmd = &cobra.Command{
-	Use:   "desktop",
-	Short: "Launch the Govard Desktop app",
+	Use:     "desktop",
+	Aliases: []string{"gui"},
+	Short:   "Launch the Govard Desktop app",
 	Run: func(cmd *cobra.Command, args []string) {
 		if desktopDev {
 			runDesktopDev()

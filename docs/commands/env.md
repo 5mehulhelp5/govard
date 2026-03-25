@@ -2,6 +2,14 @@
 
 Manage the local development environment for the current project. Govard provides a smart wrapper around Docker Compose, handling framework-specific hooks, proxy registration, and host mapping.
 
+Common root shortcuts are also available:
+
+- `govard up` → `govard env up`
+- `govard down` → `govard env down`
+- `govard restart` → `govard env restart`
+- `govard ps` → `govard env ps`
+- `govard logs` → `govard env logs`
+
 ## Root Commands
 
 ### `up`
@@ -10,6 +18,7 @@ Starts all Docker containers required for the current project.
 
 ```bash
 govard env up [flags]
+govard up [flags]
 ```
 
 **Stages:**
