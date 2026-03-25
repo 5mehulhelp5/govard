@@ -32,7 +32,9 @@ Use --pack to export a diagnostics support bundle for sharing with support.`,
 		packEnabled, _ := cmd.Flags().GetBool("pack")
 		packDir, _ := cmd.Flags().GetString("pack-dir")
 		if !outputJSON {
-			pterm.DefaultHeader.Println("Govard System Doctor")
+			fmt.Println()
+			pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Println(" Govard System Doctor ")
+			fmt.Println()
 		}
 
 		report := runDoctorDiagnostics()

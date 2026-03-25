@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -34,6 +33,8 @@ Documentation: https://github.com/ddtcorex/govard`,
 	CompletionOptions: cobra.CompletionOptions{
 		DisableDefaultCmd: false,
 	},
+	SilenceUsage:  true,
+	SilenceErrors: true,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		if verbose {
 			pterm.EnableDebugMessages()
@@ -64,7 +65,7 @@ var versionCmd = &cobra.Command{
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		pterm.Error.Println(err)
 		os.Exit(1)
 	}
 }

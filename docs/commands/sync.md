@@ -12,7 +12,7 @@ govard sync -s dev --db --no-pii
 
 ## Options
 
-- `-s, --source` Source environment (default: `staging`). Accepts remote name or alias (e.g. `dev`, `stg`, `prod`).
+- `-s, --source`, `-e, --environment` Source environment (default: `staging`). Accepts remote name or alias (e.g. `dev`, `stg`, `prod`).
 - `-d, --destination` Destination environment (default: `local`). Accepts remote name or alias.
 - `--file` Sync source code/files
 - `--media` Sync media files
@@ -26,6 +26,7 @@ govard sync -s dev --db --no-pii
 - `--include` Rsync include pattern (repeatable)
 - `--exclude` Rsync exclude pattern (repeatable)
 - `--plan` Print a dry-run summary (endpoints, scopes, risk, steps) and exit
+- `-y, --yes` Skip confirmation and proceed with synchronization (useful for automation)
 - `-N, --no-noise` Exclude ephemeral/noise tables from DB sync (cron, cache, sessions, logs, etc.)
 - `-S, --no-pii` Exclude PII/sensitive tables from DB sync (users, orders, passwords, etc.)
 
@@ -52,6 +53,9 @@ This means `govard sync -s stg --db` and `govard sync --source staging --db` are
 - `--include` and `--exclude` apply to rsync scopes (`--file`, `--media`) and are ignored for DB-only sync.
 - `--no-noise` and `--no-pii` apply to DB sync only. They generate `--ignore-table` args in the `mysqldump` command.
 - Policy warnings are included for risky options such as `--delete` and `--db`.
+- **Confirmation Prompt**: Every sync command (unless `--yes` or `--plan` is used) now displays a detailed Synchronization Plan Review and requires explicit user confirmation (`[y/N]`) before proceeding.
+- **Progress Tracking**: During file and media synchronization, Govard displays a live 10-line rolling progress window below the task spinner, allowing you to follow the `rsync` output in real-time.
+- **Single File Sync**: You can target a single file or directory using `--path`. Govard now correctly handles trailing slashes to ensure tệp tin (single files) are not treated as directories by `rsync`.
 - Remote endpoint config used by sync supports secret references (`op://...`) for fields like host/user/path/auth, resolved via the 1Password CLI.
 - Executions and plans are logged to `~/.govard/remote.log` for remote audit history.
 - Sync runs also emit operation events to `~/.govard/operations.log` (used by desktop notifications and operation timeline views).
@@ -82,4 +86,10 @@ govard sync -s dev --db --no-noise --no-pii
 
 # Push code to staging (local → remote)
 govard sync -d staging --file --path app/code
+
+# Sync a single configuration file from production to local
+govard sync -s prod --file --path app/etc/config.php
+
+# Run a full sync in a script (non-interactive)
+govard sync -s staging --full --yes
 ```

@@ -46,7 +46,9 @@ Case Studies:
   # Specify framework version during init
   govard init --framework laravel --framework-version 11`,
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
-		pterm.DefaultHeader.Println("Govard Initialization")
+		fmt.Println()
+		pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Println(" Govard Initialization ")
+		fmt.Println()
 		startedAt := time.Now()
 
 		fmt.Println("🔍 Detecting project framework...")

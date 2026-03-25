@@ -39,7 +39,6 @@ Case Studies:
   govard env up --quickstart`,
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		updater.CheckForUpdates(Version)
-		pterm.DefaultHeader.Println("Govard Environment Liftoff")
 		startedAt := time.Now()
 
 		quickstart, _ := cmd.Flags().GetBool("quickstart")

@@ -55,7 +55,9 @@ func runDefaultTests(config engine.Config) error {
 }
 
 func runPHPUnit(config engine.Config, args []string) error {
-	pterm.DefaultHeader.Println("Running PHPUnit Tests")
+	fmt.Println()
+	pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Println(" Running PHPUnit Tests ")
+	fmt.Println()
 	binaryPath := "vendor/bin/phpunit"
 	// We check for binaryPath but we use it in RunInContainer
 
@@ -66,7 +68,9 @@ func runPHPUnit(config engine.Config, args []string) error {
 }
 
 func runPHPStan(config engine.Config, args []string) error {
-	pterm.DefaultHeader.Println("Running PHPStan Static Analysis")
+	fmt.Println()
+	pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Println(" Running PHPStan Static Analysis ")
+	fmt.Println()
 	binaryPath := "vendor/bin/phpstan"
 	cmdArgs := []string{binaryPath, "analyze"}
 	if len(args) > 0 {
@@ -87,7 +91,9 @@ func runMFTF(config engine.Config, args []string) error {
 	if config.Framework != "magento2" {
 		return fmt.Errorf("MFTF is only supported for Magento 2 projects")
 	}
-	pterm.DefaultHeader.Println("Running MFTF Tests")
+	fmt.Println()
+	pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Println(" Running MFTF Tests ")
+	fmt.Println()
 	binaryPath := "vendor/bin/mftf"
 	cmdArgs := []string{binaryPath, "run:group"}
 	cmdArgs = append(cmdArgs, args...)
@@ -97,7 +103,9 @@ func runMFTF(config engine.Config, args []string) error {
 
 func runIntegrationTests(config engine.Config, args []string) error {
 	if config.Framework == "magento2" {
-		pterm.DefaultHeader.Println("Running Magento 2 Integration Tests")
+		fmt.Println()
+		pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Println(" Running Magento 2 Integration Tests ")
+		fmt.Println()
 		binaryPath := "vendor/bin/phpunit"
 		cmdArgs := []string{"-c", "dev/tests/integration/phpunit.xml", binaryPath}
 		cmdArgs = append(cmdArgs, args...)

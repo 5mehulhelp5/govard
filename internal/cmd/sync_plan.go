@@ -29,6 +29,7 @@ type syncExecutionOptions struct {
 
 type syncExecutionPlan struct {
 	Descriptions    []string
+	Commands        []string
 	RsyncCommands   []*exec.Cmd
 	DatabaseActions []func() error
 }
@@ -55,6 +56,7 @@ func buildSyncExecutionPlan(config engine.Config, endpoints resolvedSyncEndpoint
 			endpoints.Destination,
 			sourcePath,
 			destinationPath,
+			opts.Path == "" || strings.HasSuffix(opts.Path, "/") || strings.HasSuffix(opts.Path, "\\"),
 			opts.Delete,
 			opts.Resume,
 			opts.NoCompress,
@@ -66,6 +68,7 @@ func buildSyncExecutionPlan(config engine.Config, endpoints resolvedSyncEndpoint
 		}
 		plan.RsyncCommands = append(plan.RsyncCommands, rsyncCmd)
 		plan.Descriptions = append(plan.Descriptions, "Syncing files and source code...")
+		plan.Commands = append(plan.Commands, rsyncCmd.String())
 	}
 
 	if opts.Media {
@@ -74,6 +77,7 @@ func buildSyncExecutionPlan(config engine.Config, endpoints resolvedSyncEndpoint
 			endpoints.Destination,
 			endpoints.Source.MediaPath,
 			endpoints.Destination.MediaPath,
+			true,
 			opts.Delete,
 			opts.Resume,
 			opts.NoCompress,
@@ -85,14 +89,16 @@ func buildSyncExecutionPlan(config engine.Config, endpoints resolvedSyncEndpoint
 		}
 		plan.RsyncCommands = append(plan.RsyncCommands, rsyncCmd)
 		plan.Descriptions = append(plan.Descriptions, "Syncing media and static assets...")
+		plan.Commands = append(plan.Commands, rsyncCmd.String())
 	}
 
 	if opts.DB {
-		_, action, err := buildDatabaseSyncAction(config, endpoints.Source, endpoints.Destination, opts.NoNoise, opts.NoPII)
+		dbDesc, action, err := buildDatabaseSyncAction(config, endpoints.Source, endpoints.Destination, opts.NoNoise, opts.NoPII)
 		if err != nil {
 			return syncExecutionPlan{}, err
 		}
 		plan.Descriptions = append(plan.Descriptions, "Synchronizing database...")
+		plan.Commands = append(plan.Commands, dbDesc)
 		plan.DatabaseActions = append(plan.DatabaseActions, action)
 	}
 
@@ -158,37 +164,40 @@ func evaluateSyncPolicy(endpoints resolvedSyncEndpoints, opts syncExecutionOptio
 
 func buildSyncPlanSummary(endpoints resolvedSyncEndpoints, execution syncExecutionPlan, opts syncExecutionOptions, warnings []string) []string {
 	lines := []string{
-		pterm.Bold.Sprint("Synchronization Plan Review"),
-		fmt.Sprintf("  Source:      %s", describeSyncEndpoint(endpoints.Source)),
-		fmt.Sprintf("  Destination: %s", describeSyncEndpoint(endpoints.Destination)),
-		fmt.Sprintf("  Scopes:      %s", strings.Join(syncScopes(opts), ", ")),
-		fmt.Sprintf("  Path Filter: %s", syncPathFilter(opts.Path)),
-		fmt.Sprintf("  Includes:    %s", syncPatternSummary(opts.Include)),
-		fmt.Sprintf("  Excludes:    %s", syncPatternSummary(opts.Exclude)),
-		fmt.Sprintf("  Resume Mode: %s", boolLabel(opts.Resume, "Enabled", "Disabled")),
-		fmt.Sprintf("  Compression: %s", boolLabel(!opts.NoCompress, "Enabled", "Disabled")),
-		fmt.Sprintf("  Delete Mode: %s", boolLabel(opts.Delete, "Enabled (destructive)", "Disabled")),
+		"",
+		pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Sprint(" Synchronization Plan Review "),
+		"",
+		fmt.Sprintf("%s %s", pterm.LightCyan("  Source:     "), describeSyncEndpoint(endpoints.Source)),
+		fmt.Sprintf("%s %s", pterm.LightCyan("  Destination:"), describeSyncEndpoint(endpoints.Destination)),
+		"",
+		fmt.Sprintf("%s %s", pterm.LightCyan("  Scopes:     "), strings.Join(syncScopes(opts), ", ")),
+		fmt.Sprintf("%s %s", pterm.LightCyan("  Path Filter:"), syncPathFilter(opts.Path)),
+		fmt.Sprintf("%s %s", pterm.LightCyan("  Includes:   "), syncPatternSummary(opts.Include)),
+		fmt.Sprintf("%s %s", pterm.LightCyan("  Excludes:   "), syncPatternSummary(opts.Exclude)),
+		fmt.Sprintf("%s %s", pterm.LightCyan("  Resume Mode:"), boolLabel(opts.Resume, "Enabled", "Disabled")),
+		fmt.Sprintf("%s %s", pterm.LightCyan("  Compression:"), boolLabel(!opts.NoCompress, "Enabled", "Disabled")),
+		fmt.Sprintf("%s %s", pterm.LightCyan("  Delete Mode:"), boolLabel(opts.Delete, "Enabled (destructive)", "Disabled")),
 	}
 
 	risk, reasons := syncRiskLevel(endpoints, opts)
 	lines = append(lines, fmt.Sprintf("  Risk Level:  %s (%s)", risk, strings.Join(reasons, "; ")))
 
 	if len(warnings) > 0 {
-		lines = append(lines, pterm.Yellow("Policy Warnings:"))
+		lines = append(lines, "", pterm.Yellow("Policy Warnings:"))
 		for _, warning := range warnings {
 			lines = append(lines, "  ! "+warning)
 		}
 	}
 
-	lines = append(lines, "Planned Actions:")
+	lines = append(lines, "", pterm.LightMagenta("Planned Actions:"), "")
 	if len(execution.Descriptions) == 0 {
 		lines = append(lines, "  (No transfer actions selected)")
 		return lines
 	}
 	for i, description := range execution.Descriptions {
 		lines = append(lines, fmt.Sprintf(" %d. %s", i+1, description))
-		if i < len(execution.RsyncCommands) {
-			lines = append(lines, fmt.Sprintf("    Command: %s", execution.RsyncCommands[i].String()))
+		if i < len(execution.Commands) {
+			lines = append(lines, pterm.NewStyle(pterm.FgCyan, pterm.Bold).Sprintf("    ↳ sh: %s", execution.Commands[i]))
 		}
 	}
 	return lines
@@ -196,7 +205,9 @@ func buildSyncPlanSummary(endpoints resolvedSyncEndpoints, execution syncExecuti
 
 func buildFallbackSyncPlanSummary(source, destination string, opts syncExecutionOptions, legacy remote.SyncPlan, resolveErr error) []string {
 	lines := []string{
-		pterm.Bold.Sprint("Synchronization Plan Review (Fallback)"),
+		"",
+		pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Sprint(" Synchronization Plan Review (Fallback) "),
+		"",
 		fmt.Sprintf("  Source:      %s", source),
 		fmt.Sprintf("  Destination: %s", destination),
 		fmt.Sprintf("  Scopes:      %s", strings.Join(syncScopes(opts), ", ")),
@@ -208,7 +219,9 @@ func buildFallbackSyncPlanSummary(source, destination string, opts syncExecution
 		fmt.Sprintf("  Delete Mode: %s", boolLabel(opts.Delete, "Enabled (destructive)", "Disabled")),
 		fmt.Sprintf("  Risk Level:  %s (Endpoint details unavailable)", pterm.Yellow("MEDIUM RISK")),
 		pterm.Yellow(fmt.Sprintf("Warning: Full endpoint resolution failed: %v", resolveErr)),
+		"",
 		"Planned Actions:",
+		"",
 		fmt.Sprintf(" 1. %s", legacy.Command),
 	}
 	return lines

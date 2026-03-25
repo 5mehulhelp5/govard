@@ -96,7 +96,6 @@ Note: -e/--environment accepts remote name aliases (e.g. 'dev' matches a remote 
   # Bootstrap and ensure Magento 2 if init runs
   govard bootstrap --framework magento2`,
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
-		pterm.DefaultHeader.Println("Govard Bootstrap")
 		startedAt := time.Now()
 		cwd, _ := os.Getwd()
 		configForObservability := engine.Config{}
@@ -163,48 +162,47 @@ Note: -e/--environment accepts remote name aliases (e.g. 'dev' matches a remote 
 			runBootstrapFixDeps(cmd, opts)
 		}
 
-		if !opts.SkipUp {
-			if err := runGovardSubcommand(cmd, "env", "up", "--remove-orphans"); err != nil {
-				return fmt.Errorf("failed to start local environment: %w", err)
-			}
-		}
-
 		if !opts.Fresh {
+			plan, err := buildBootstrapRemotePlan(config, opts)
+			if err != nil {
+				return err
+			}
+
 			if opts.Plan {
-				pterm.DefaultSection.Println("Bootstrap Plan")
-				pterm.Info.Printf("Source:    %s\n", opts.Source)
-				pterm.Info.Printf("Actions:\n")
-				if opts.Clone {
-					var items []pterm.BulletListItem
-					for _, item := range []string{
-						"Full rsync from remote (may take a while)",
-						"Start local containers",
-						"Run composer install",
-						"Import database",
-						"Sync media files",
-					} {
-						items = append(items, pterm.BulletListItem{Text: item})
-					}
-					_ = pterm.DefaultBulletList.WithItems(items).Render()
-				} else {
-					var items []pterm.BulletListItem
-					for _, item := range []string{
-						"Start local containers",
-						"Run composer install",
-						"Import database",
-						"Sync media files",
-					} {
-						items = append(items, pterm.BulletListItem{Text: item})
-					}
-					_ = pterm.DefaultBulletList.WithItems(items).Render()
+				for _, line := range buildBootstrapPlanSummary(config, opts.Source, plan) {
+					fmt.Fprintln(cmd.OutOrStdout(), line)
 				}
 				return nil
 			}
+
+			if !opts.AssumeYes {
+				for _, line := range buildBootstrapPlanSummary(config, opts.Source, plan) {
+					fmt.Fprintln(cmd.OutOrStdout(), line)
+				}
+				fmt.Println()
+				confirmed, _ := pterm.DefaultInteractiveConfirm.WithDefaultText("Do you want to proceed with this bootstrap?").Show()
+				if !confirmed {
+					return fmt.Errorf("bootstrap cancelled by user")
+				}
+			}
+
+			if !opts.SkipUp {
+				if err := runGovardSubcommand(cmd, "env", "up", "--remove-orphans"); err != nil {
+					return fmt.Errorf("failed to start local environment: %w", err)
+				}
+			}
+
 			pterm.Info.Printf("Bootstrapping project from remote '%s'...\n", opts.Source)
 			if err := runBootstrapRemote(cmd, config, opts); err != nil {
 				return err
 			}
 		} else {
+			if !opts.SkipUp {
+				if err := runGovardSubcommand(cmd, "env", "up", "--remove-orphans"); err != nil {
+					return fmt.Errorf("failed to start local environment: %w", err)
+				}
+			}
+
 			pterm.Info.Printf("Bootstrapping fresh %s project...\n", config.Framework)
 			if err := runBootstrapFrameworkFreshInstall(cmd, config, opts); err != nil {
 				return err

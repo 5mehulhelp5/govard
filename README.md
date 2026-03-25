@@ -213,6 +213,7 @@ Plan and run a safe sync:
 ```bash
 govard sync --source staging --destination local --full --plan
 govard sync --source staging --destination local --full
+govard sync --source prod --file --path "app/etc/config.php"
 ```
 
 Inspect remote audit events:

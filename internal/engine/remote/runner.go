@@ -42,9 +42,9 @@ func BuildRsyncCommand(
 	includePatterns []string,
 	excludePatterns []string,
 ) *exec.Cmd {
-	rsyncMode := "-a"
+	rsyncMode := "-av"
 	if !noCompress {
-		rsyncMode = "-az"
+		rsyncMode = "-avz"
 	}
 	args := []string{rsyncMode, "--timeout=60"}
 	if deleteFiles {

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"govard/internal/engine"
 
 	"github.com/pterm/pterm"
@@ -11,7 +12,9 @@ var trustCmd = &cobra.Command{
 	Use:   "trust",
 	Short: "Trust the local CA for SSL certificates",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		pterm.DefaultHeader.Println("Govard SSL Trust Store")
+		fmt.Println()
+		pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Println(" Govard SSL Trust Store ")
+		fmt.Println()
 
 		if err := engine.TrustCA(); err != nil {
 			return err

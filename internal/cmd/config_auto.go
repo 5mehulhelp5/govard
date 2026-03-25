@@ -12,7 +12,9 @@ var configAutoCmd = &cobra.Command{
 	Use:   "auto",
 	Short: "Auto-configure framework runtime files",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		pterm.DefaultHeader.Println("Govard Auto-Configuration")
+		fmt.Println()
+		pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Println(" Govard Auto-Configuration ")
+		fmt.Println()
 
 		config, err := loadFullConfig()
 		if err != nil {

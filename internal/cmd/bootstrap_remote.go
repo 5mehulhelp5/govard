@@ -51,7 +51,8 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrap
 	}
 
 	if opts.Clone {
-		if err := runGovardSubcommand(cmd, bootstrapFileSyncArgs(opts)...); err != nil {
+		syncArgs := append(bootstrapFileSyncArgs(opts), "--yes")
+		if err := runGovardSubcommand(cmd, syncArgs...); err != nil {
 			return fmt.Errorf("file sync failed: %w", err)
 		}
 	}
@@ -91,7 +92,7 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrap
 					pterm.Warning.Printf("composer install failed, but %s exists. Continuing bootstrap (%v).\n", autoloadPath, installErr)
 				} else {
 					pterm.Warning.Printf("composer install failed (%v). Attempting to sync vendor from remote '%s'...\n", installErr, opts.Source)
-					if err := runGovardSubcommand(cmd, "sync", "--source", opts.Source, "--file", "--path", "vendor"); err != nil {
+					if err := runGovardSubcommand(cmd, "sync", "--source", opts.Source, "--file", "--path", "vendor", "--yes"); err != nil {
 						return fmt.Errorf("composer install failed (%v) and vendor sync failed (%v)", installErr, err)
 					}
 				}
@@ -198,7 +199,7 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrap
 			if config.Framework == "magento2" {
 				args = append(args, bootstrapMagentoMediaSyncArgs(opts)...)
 			}
-			if err := runGovardSubcommand(cmd, args...); err != nil {
+			if err := runGovardSubcommand(cmd, append(args, "--yes")...); err != nil {
 				return fmt.Errorf("media sync failed: %w", err)
 			}
 		}
@@ -237,7 +238,7 @@ func runBootstrapDatabaseSync(cmd *cobra.Command, opts bootstrapRuntimeOptions) 
 	if opts.NoPII {
 		args = append(args, "--no-pii")
 	}
-	if err := runGovardSubcommand(cmd, args...); err != nil {
+	if err := runGovardSubcommand(cmd, append(args, "--yes")...); err != nil {
 		return fmt.Errorf("database sync failed: %w", err)
 	}
 	return nil

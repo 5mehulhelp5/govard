@@ -21,11 +21,15 @@ var syncCmd = &cobra.Command{
 This command uses rsync for file/media transfers and mysqldump/mysql for database synchronization.
 It supports bi-directional sync (local to remote, remote to local), but prevents accidental
 overwrites on protected remotes.
+It will generate a detailed synchronization plan and prompt for confirmation before starting.
+While syncing, it provides a live 10-line rolling progress of transferred files.
 
 Framework Notes:
 - Magento 2: Media sync defaults to 'pub/media', excluding large generated/cache directories.
 - Laravel: File sync includes 'storage/app/public' if media is requested.
 - General: You can use --include/--exclude to fine-tune rsync behavior.
+- Single File: Use --path "path/to/file" to sync a specific file or directory.
+- Note: -e / --environment can be used as an alias for -s / --source.
 
 Case Studies:
 - Daily Data Refresh: Fetch the latest DB and media from staging to work on a fresh dataset.
@@ -50,8 +54,14 @@ Case Studies:
   # Push a specific path to a dev remote
   govard sync -d dev --file --path "app/design/frontend/MyTheme"
 
+  # Sync a single file from production
+  govard sync -s prod --file --path "app/etc/config.php"
+
   # Dry-run: Show what would be synced without actually doing it
-  govard sync -s staging --full --plan`,
+  govard sync -s staging --full --plan
+
+  # Non-interactive: Proceed without confirmation (useful for scripts)
+  govard sync -s staging --full --yes`,
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		startedAt := time.Now()
 		config, err := loadFullConfig()
@@ -64,6 +74,11 @@ Case Studies:
 		operationMessage := ""
 
 		source, _ := cmd.Flags().GetString("source")
+		environment, _ := cmd.Flags().GetString("environment")
+		if cmd.Flags().Changed("environment") && !cmd.Flags().Changed("source") {
+			source = environment
+		}
+
 		destination, _ := cmd.Flags().GetString("destination")
 		files, _ := cmd.Flags().GetBool("file")
 		media, _ := cmd.Flags().GetBool("media")
@@ -72,6 +87,7 @@ Case Studies:
 		deleteFiles, _ := cmd.Flags().GetBool("delete")
 		path, _ := cmd.Flags().GetString("path")
 		planOnly, _ := cmd.Flags().GetBool("plan")
+		yes, _ := cmd.Flags().GetBool("yes")
 		resume, _ := cmd.Flags().GetBool("resume")
 		noResume, _ := cmd.Flags().GetBool("no-resume")
 		noCompress, _ := cmd.Flags().GetBool("no-compress")
@@ -224,8 +240,21 @@ Case Studies:
 			return nil
 		}
 
-		for _, warning := range policyWarnings {
-			pterm.Warning.Println(warning)
+		if !yes {
+			for _, line := range buildSyncPlanSummary(endpoints, executionPlan, execOpts, policyWarnings) {
+				fmt.Fprintln(cmd.OutOrStdout(), line)
+			}
+			fmt.Println()
+			confirmed, _ := pterm.DefaultInteractiveConfirm.WithDefaultText("Do you want to proceed with this synchronization?").Show()
+			if !confirmed {
+				return fmt.Errorf("synchronization cancelled by user")
+			}
+		}
+
+		if yes {
+			for _, warning := range policyWarnings {
+				pterm.Warning.Println(warning)
+			}
 		}
 
 		syncMessage := fmt.Sprintf("Synchronizing %s from '%s' to '%s'...", strings.Join(syncScopes(execOpts), ", "), source, destination)
@@ -236,13 +265,21 @@ Case Studies:
 		}
 
 		for i, rsyncCmd := range executionPlan.RsyncCommands {
-			spinner, _ := pterm.DefaultSpinner.Start(executionPlan.Descriptions[i])
-			rsyncCmd.Stdout = cmd.OutOrStdout()
-			rsyncCmd.Stderr = cmd.ErrOrStderr()
+			description := executionPlan.Descriptions[i]
+			spinner, _ := pterm.DefaultSpinner.Start(description)
+
+			area, _ := pterm.DefaultArea.Start()
+			writer := newTailWriter(area, 10)
+			rsyncCmd.Stdout = writer
+			rsyncCmd.Stderr = writer
+
 			if err := rsyncCmd.Run(); err != nil {
+				_ = area.Stop()
 				spinner.Fail(fmt.Sprintf("Failed to sync: %v", err))
 				return fmt.Errorf("sync command failed: %w", err)
 			}
+
+			_ = area.Stop()
 			spinner.Success()
 		}
 
@@ -266,22 +303,35 @@ Case Studies:
 }
 
 func init() {
+	syncCmd.Flags().SortFlags = false
+
+	// Environment & Scopes
 	syncCmd.Flags().StringP("source", "s", "staging", "Source environment")
+	syncCmd.Flags().StringP("environment", "e", "staging", "Source environment (alias for --source)")
 	syncCmd.Flags().StringP("destination", "d", "local", "Destination environment")
-	syncCmd.Flags().Bool("file", false, "Sync source code/files")
-	syncCmd.Flags().Bool("media", false, "Sync media files")
-	syncCmd.Flags().Bool("db", false, "Sync database")
-	syncCmd.Flags().Bool("full", false, "Sync files, media, and database")
-	syncCmd.Flags().Bool("delete", false, "Delete destination files missing on source")
-	syncCmd.Flags().Bool("resume", true, "Enable resumable rsync transfers (--partial --append-verify)")
-	syncCmd.Flags().Bool("no-resume", false, "Disable resumable rsync transfers")
-	syncCmd.Flags().Bool("no-compress", false, "Disable rsync compression")
-	syncCmd.Flags().String("path", "", "Sync a specific path")
-	syncCmd.Flags().StringArray("include", nil, "Rsync include pattern (repeatable)")
-	syncCmd.Flags().StringArray("exclude", nil, "Rsync exclude pattern (repeatable)")
-	syncCmd.Flags().Bool("plan", false, "Print the sync plan and exit")
+	syncCmd.Flags().BoolP("full", "A", false, "Sync files, media, and database")
+	syncCmd.Flags().BoolP("file", "f", false, "Sync source code/files")
+	syncCmd.Flags().BoolP("media", "m", false, "Sync media files")
+	syncCmd.Flags().BoolP("db", "b", false, "Sync database")
+
+	// Filters
+	syncCmd.Flags().StringP("path", "p", "", "Sync a specific path")
+	syncCmd.Flags().StringArrayP("include", "I", nil, "Rsync include pattern (repeatable)")
+	syncCmd.Flags().StringArrayP("exclude", "X", nil, "Rsync exclude pattern (repeatable)")
+
+	// Database Options
 	syncCmd.Flags().BoolP("no-noise", "N", false, "Exclude ephemeral/noise tables from database sync (logs, caches, etc)")
-	syncCmd.Flags().BoolP("no-pii", "S", false, "Exclude PII/sensitive tables from database sync (users, orders, passwords, etc)")
+	syncCmd.Flags().BoolP("no-pii", "P", false, "Exclude PII/sensitive tables from database sync (users, orders, passwords, etc)")
+
+	// Rsync & Transfer Options
+	syncCmd.Flags().BoolP("delete", "D", false, "Delete destination files missing on source")
+	syncCmd.Flags().BoolP("resume", "R", true, "Enable resumable rsync transfers (--partial --append-verify)")
+	syncCmd.Flags().Bool("no-resume", false, "Disable resumable rsync transfers")
+	syncCmd.Flags().BoolP("no-compress", "C", false, "Disable rsync compression")
+
+	// Execution Control
+	syncCmd.Flags().Bool("plan", false, "Print the sync plan and exit")
+	syncCmd.Flags().BoolP("yes", "y", false, "Skip confirmation and proceed with synchronization")
 
 	rootCmd.AddCommand(syncCmd)
 }

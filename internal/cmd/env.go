@@ -75,10 +75,14 @@ func proxyEnvToCompose(cmd *cobra.Command, args []string) error {
 
 	switch subcommand {
 	case "start":
-		pterm.DefaultHeader.Println("Starting Govard Project")
+		fmt.Println()
+		pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Println(" Starting Govard Project ")
+		fmt.Println()
 		args = append([]string{"up", "-d"}, args[1:]...)
 	case "restart":
-		pterm.DefaultHeader.Println("Restarting Govard Project")
+		fmt.Println()
+		pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Println(" Restarting Govard Project ")
+		fmt.Println()
 		if err := proxyEnvToCompose(cmd, []string{"stop"}); err != nil {
 			return err
 		}
@@ -88,7 +92,9 @@ func proxyEnvToCompose(cmd *cobra.Command, args []string) error {
 		if subcommand == "down" {
 			action = "Tearing Down"
 		}
-		pterm.DefaultHeader.Printf("%s Govard Environment\n", action)
+		fmt.Println()
+		pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Printf(" %s Govard Environment \n", action)
+		fmt.Println()
 
 		if err := engine.RunHooks(config, engine.HookPreStop, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
 			return fmt.Errorf("pre-stop hooks failed: %w", err)
@@ -134,7 +140,9 @@ func proxyEnvToCompose(cmd *cobra.Command, args []string) error {
 		}
 
 		if hasErrorFilter {
-			pterm.DefaultHeader.Println("Govard Log Stream (Errors Only)")
+			fmt.Println()
+			pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Println(" Govard Log Stream (Errors Only) ")
+			fmt.Println()
 			pterm.Info.Println("Filtering for errors...")
 
 			// Rebuild args without --errors
@@ -161,7 +169,9 @@ func proxyEnvToCompose(cmd *cobra.Command, args []string) error {
 		}
 
 	case "pull":
-		pterm.DefaultHeader.Println("Pulling Project Images")
+		fmt.Println()
+		pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Println(" Pulling Project Images ")
+		fmt.Println()
 		err := engine.RunCompose(cmd.Context(), engine.ComposeOptions{
 			ProjectDir:  cwd,
 			ProjectName: config.ProjectName,

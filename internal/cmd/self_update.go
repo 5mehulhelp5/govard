@@ -43,7 +43,9 @@ var selfUpdateCmd = &cobra.Command{
 	Use:   "self-update",
 	Short: "Upgrade installed Govard binaries",
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		pterm.DefaultHeader.Println("Govard Self-Update")
+		fmt.Println()
+		pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Println(" Govard Self-Update ")
+		fmt.Println()
 
 		if runtime.GOOS == "windows" {
 			return errors.New("self-update is not supported on Windows yet; use a fresh release install")

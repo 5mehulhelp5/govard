@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"govard/internal/engine"
 
 	"github.com/pterm/pterm"
@@ -24,7 +25,9 @@ var statusCmd = &cobra.Command{
 		}
 
 		entries, _ := engine.ReadProjectRegistryEntries()
-		pterm.DefaultHeader.WithFullWidth().Println("Govard Environments")
+		fmt.Println()
+		pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Println(" Govard Environments ")
+		fmt.Println()
 
 		tableData := pterm.TableData{
 			{"Project", "Status", "Domain"},
