@@ -9,6 +9,7 @@ import (
 
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"gopkg.in/yaml.v3"
 )
 
@@ -94,12 +95,16 @@ func rebrandComposeHelp(cmd *cobra.Command, govardCmdName string) {
 
 	// Determine the subcommand by looking at os.Args
 	dockerArgs := []string{"compose"}
+	detectedSubcommand := ""
 	for i, arg := range os.Args {
 		if arg == govardCmdName {
 			// Append subsequent args to get subcommand-specific help
 			for j := i + 1; j < len(os.Args); j++ {
 				candidate := os.Args[j]
 				if candidate != "--help" && candidate != "-h" && candidate != "help" && !strings.HasPrefix(candidate, "-") {
+					if detectedSubcommand == "" {
+						detectedSubcommand = candidate
+					}
 					dockerArgs = append(dockerArgs, candidate)
 				}
 			}
@@ -119,32 +124,10 @@ func rebrandComposeHelp(cmd *cobra.Command, govardCmdName string) {
 
 	// Rebrand: replace `docker compose` with `govard [govardCmdName]`
 	helpText = strings.ReplaceAll(helpText, "docker compose", "govard "+govardCmdName)
-
-	// Remove noise (flags that user shouldn't use directly because Govard manages them)
-	noiseLines := []string{
-		"--file",
-		"-f",
-		"--project-name",
-		"-p",
-		"--project-directory",
-	}
-
-	lines := strings.Split(helpText, "\n")
-	var filteredLines []string
-	for _, line := range lines {
-		skip := false
-		for _, noise := range noiseLines {
-			if strings.Contains(line, noise) {
-				skip = true
-				break
-			}
-		}
-		if !skip {
-			filteredLines = append(filteredLines, line)
-		}
-	}
-
-	fmt.Fprintln(cmd.OutOrStdout(), strings.Join(filteredLines, "\n"))
+	suppressedFlags := suppressedComposeFlags(cmd, govardCmdName, detectedSubcommand)
+	helpText = filterComposeHelpText(helpText, suppressedFlags)
+	fmt.Fprintln(cmd.OutOrStdout(), helpText)
+	appendGovardSpecificOptions(cmd, govardCmdName, detectedSubcommand, cmd.OutOrStdout())
 }
 
 func printGovardHelpHeader(cmd *cobra.Command) {
@@ -161,6 +144,165 @@ func printGovardHelpHeader(cmd *cobra.Command) {
 		fmt.Fprintln(cmd.OutOrStdout(), cmd.Example)
 		fmt.Fprintln(cmd.OutOrStdout())
 	}
+}
+
+func suppressedComposeFlags(cmd *cobra.Command, govardCmdName, detectedSubcommand string) map[string]struct{} {
+	flags := map[string]struct{}{
+		"file":              {},
+		"project-name":      {},
+		"project-directory": {},
+	}
+
+	if cmd != nil {
+		cmd.NonInheritedFlags().VisitAll(func(flag *pflag.Flag) {
+			if flag.Name == "help" {
+				return
+			}
+			flags[flag.Name] = struct{}{}
+		})
+	}
+
+	if govardCmdName == "svc" {
+		switch detectedSubcommand {
+		case "up", "restart":
+			flags["pull"] = struct{}{}
+			flags["no-trust"] = struct{}{}
+			flags["no-fallback"] = struct{}{}
+		}
+	}
+
+	return flags
+}
+
+func filterComposeHelpText(helpText string, suppressedFlags map[string]struct{}) string {
+	lines := strings.Split(helpText, "\n")
+	filtered := make([]string, 0, len(lines))
+
+	for i := 0; i < len(lines); {
+		trimmed := strings.TrimSpace(lines[i])
+		if shouldSkipComposeOption(trimmed, suppressedFlags) {
+			i++
+			for i < len(lines) {
+				nextTrimmed := strings.TrimSpace(lines[i])
+				if nextTrimmed == "" {
+					i++
+					break
+				}
+				if strings.HasSuffix(nextTrimmed, ":") || strings.HasPrefix(nextTrimmed, "-") {
+					break
+				}
+				if !strings.HasPrefix(lines[i], " ") && !strings.HasPrefix(lines[i], "\t") {
+					break
+				}
+				i++
+			}
+			continue
+		}
+		filtered = append(filtered, lines[i])
+		i++
+	}
+
+	return strings.Join(filtered, "\n")
+}
+
+func shouldSkipComposeOption(line string, suppressedFlags map[string]struct{}) bool {
+	if !strings.HasPrefix(line, "-") {
+		return false
+	}
+
+	for _, token := range strings.Fields(line) {
+		if !strings.HasPrefix(token, "--") {
+			continue
+		}
+		name := strings.TrimPrefix(token, "--")
+		name = strings.TrimRight(name, ",")
+		if idx := strings.IndexAny(name, " [<"); idx >= 0 {
+			name = name[:idx]
+		}
+		if _, ok := suppressedFlags[name]; ok {
+			return true
+		}
+	}
+
+	return false
+}
+
+type helpFlagSpec struct {
+	Display string
+	Usage   string
+}
+
+func appendGovardSpecificOptions(cmd *cobra.Command, govardCmdName, detectedSubcommand string, out interface{ Write([]byte) (int, error) }) {
+	specs := collectGovardSpecificOptions(cmd, govardCmdName, detectedSubcommand)
+	if len(specs) == 0 {
+		return
+	}
+
+	fmt.Fprintln(out)
+	fmt.Fprintln(out, "Govard-specific Options:")
+	for _, spec := range specs {
+		fmt.Fprintf(out, "  %-28s %s\n", spec.Display, spec.Usage)
+	}
+}
+
+func collectGovardSpecificOptions(cmd *cobra.Command, govardCmdName, detectedSubcommand string) []helpFlagSpec {
+	specs := make([]helpFlagSpec, 0)
+
+	if cmd != nil {
+		cmd.NonInheritedFlags().VisitAll(func(flag *pflag.Flag) {
+			if flag.Name == "help" {
+				return
+			}
+			specs = append(specs, helpFlagSpec{
+				Display: formatHelpFlagDisplay(flag),
+				Usage:   formatHelpFlagUsage(flag),
+			})
+		})
+	}
+
+	if govardCmdName == "svc" {
+		switch detectedSubcommand {
+		case "up", "restart":
+			specs = append(specs,
+				helpFlagSpec{
+					Display: "--pull",
+					Usage:   "Pull latest images before startup.",
+				},
+				helpFlagSpec{
+					Display: "--no-trust",
+					Usage:   "Skip Govard Root CA trust installation.",
+				},
+				helpFlagSpec{
+					Display: "--no-fallback",
+					Usage:   "Disable the automatic local image build retry if pulls fail.",
+				},
+			)
+		}
+	}
+
+	return specs
+}
+
+func formatHelpFlagDisplay(flag *pflag.Flag) string {
+	parts := make([]string, 0, 2)
+	if flag.Shorthand != "" {
+		parts = append(parts, "-"+flag.Shorthand)
+	}
+
+	long := "--" + flag.Name
+	if flag.Value.Type() != "bool" {
+		long += " " + flag.Value.Type()
+	}
+	parts = append(parts, long)
+	return strings.Join(parts, ", ")
+}
+
+func formatHelpFlagUsage(flag *pflag.Flag) string {
+	usage := strings.TrimSpace(flag.Usage)
+	if flag.DefValue == "" || flag.DefValue == "false" {
+		return usage
+	}
+	return fmt.Sprintf("%s (default %s)", usage, flag.DefValue)
 }
 
 func boolFlagOrDefault(cmd *cobra.Command, name string, fallback bool) bool {
