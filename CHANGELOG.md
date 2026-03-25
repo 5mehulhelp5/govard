@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.29.0] - 2026-03-25
+
+### ✨ New Features
+
+- **Interactivity Control**: Introduced the `-y, --yes` flag for `bootstrap` and `sync` commands. In non-interactive environments (CI/CD), these commands now require the `--yes` flag to proceed, preventing unexpected hangs.
+- **Improved Headers**: Redesigned all CLI headers with a bold, blue-boxed style and standardized vertical margins for better focus and readability.
+- **Elasticsearch Alias**: Added the `opensearch` hostname alias to the `elasticsearch` service in blueprints to ensure backward compatibility for projects expecting the OpenSearch hostname.
+
+### 🛠 Improvements
+
+- **Bootstrap Flow**: Reordered the bootstrap execution flow to display the full synchronization plan review *before* starting environment containers, giving users a clear overview of the intended operations.
+- **Sync Plan Visibility**: The synchronization plan review now explicitly lists endpoints, scopes (files, media, db), risk assessment, and detailed rsync/shell steps.
+- **Sync Progress UI**: Integrated a new live-scrolling 10-line window for `rsync` progress during file and media synchronization, providing better real-time feedback without overwhelming the terminal.
+- **Single File Sync**: Improved `--path` handling in `sync` to correctly distinguish between single files and directories, ensuring precise `rsync` behavior.
+- **Non-Interactive Self-Update**: The `self-update` command now intelligently skips heavy system dependency checks when running in CI/non-interactive mode.
+
+### 🐛 Bug Fixes
+
+- **Integration Test Stability**: Resolved multiple test hangs in CI by enforcing the `--yes` flag and disabling terminal color (`NO_COLOR=1`) for consistent assertion matching.
+- **Varnish CI Path Fix**: Corrected Varnish VCL path references in integration tests to align with the decentralized engine storage architecture.
+- **Rsync Path Sanitization**: Correctly handles trailing slashes in sync operations to prevent duplicated subdirectories when syncing specific paths.
+
 ## [1.28.1] - 2026-03-24
 
 ### Fixed

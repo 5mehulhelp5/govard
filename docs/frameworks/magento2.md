@@ -67,8 +67,8 @@ Sets `system/full_page_cache/caching_application` to `2` (Varnish).
 
 #### Elasticsearch/OpenSearch
 
-- **Engine**: `opensearch`
-- **Host**: `elasticsearch`
+- **Engine**: `opensearch` (recommended) or `elasticsearch`
+- **Host**: `elasticsearch` (aliases to `opensearch` automatically)
 - **Port**: `9200`
 
 ## Stack Components
@@ -304,6 +304,7 @@ If search doesn't work:
 
 ```bash
 govard tool magento config:set catalog/search/engine opensearch
+# You can use either 'elasticsearch' or 'opensearch' as hostname
 govard tool magento config:set catalog/search/opensearch_server_hostname elasticsearch
 govard tool magento config:set catalog/search/opensearch_server_port 9200
 ```

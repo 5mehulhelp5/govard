@@ -42,11 +42,13 @@ govard bootstrap --framework magento2 --fresh --framework-version 2.4.8
 - `--mage-password` Magento marketplace password for auth bootstrap
 - `--fix-deps` Run `govard custom fix-deps` before bootstrap (auto-detects remote Magento version when cloning and `--framework-version` is omitted)
 - `--skip-up` Skip `govard env up` stage
+- `-y, --yes` Skip confirmation and proceed (useful for CI/CD)
 - `-N, --no-noise` Exclude ephemeral/noise tables from DB import (cron, cache, sessions, logs, etc.)
 - `-S, --no-pii` Exclude PII/sensitive tables from DB import (users, orders, passwords, etc.)
 
 ## Notes
 
+- **Plan Review**: `govard bootstrap` now displays a detailed Bootstrap Review (endpoints, features, and risk) and requires explicit confirmation (`[y/N]`) before proceeding. Use `--yes` to skip this in automated scripts.
 - Requires `remotes.<environment>` configured in `.govard.yml` for clone flow.
 - Fresh flow works as a single command (`govard bootstrap --fresh ...`) without needing `--clone=false`.
 - `govard init` preserves existing `remotes` and `hooks`.

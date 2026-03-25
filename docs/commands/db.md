@@ -25,6 +25,7 @@ govard db import --stream-db --environment staging --drop
 - `--local` For `db dump/import`: force local file operations for remote environments
 - `-N, --no-noise` For `db dump`: exclude ephemeral/noise tables (cron, cache, session, logs, indexes…)
 - `-S, --no-pii` For `db dump`: exclude PII/sensitive tables (customers, orders, quotes…)
+- `-y, --yes` For `db import`: skip interactive confirmation when dropping or streaming databases
 
 > **Note:** SQL sanitization (DEFINER/GTID cleanup) and tiered dumping (metadata + data) are always applied automatically for Magento 2.
 

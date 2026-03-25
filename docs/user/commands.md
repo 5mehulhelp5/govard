@@ -38,17 +38,20 @@ Bootstrap project local setup with clone/fresh workflows (Magento and other supp
 
 ```bash
 govard bootstrap
-govard bootstrap --fresh --framework-version 2.4.8
+govard bootstrap --clone --environment dev --yes
+govard bootstrap --framework magento2 --fresh --framework-version 2.4.9
 ```
 
-Highlights:
+**Plan Review & Reordered Flow:**
 
-- Auto-runs `govard init` if `.govard.yml` is missing
-- Clone flow: file sync, optional composer install, DB/media sync, Magento configure, admin create
-- Fresh flow: create-project, setup install, optional sample data, optional Hyva install
-- Fresh mode does not require `--clone=false`; use `govard bootstrap --fresh ...` directly
+`govard bootstrap` now presents a detailed **Bootstrap Review** (endpoints, features, and risk) *before* environment containers are started. This allows for a clear verification step.
 
-See [env.md](file:///home/kai/Work/htdocs/ddtcorex/govard/docs/commands/env.md).
+1. `Detect` framework context and remote availability
+2. `Review` Display plan and ask for confirmation (skip with `--yes` or `-y`)
+3. `Init` Run `govard init` if .govard.yml is missing
+4. `Up` Execute `govard env up`
+5. `Orchestrate` Clone flow (sync files, media, DB) or fresh install flow
+6. `Configure` Auto-configuration and admin setup
 
 ### `govard env up`
 
@@ -337,8 +340,12 @@ See `docs/commands/remote.md`.
 ### `govard sync`
 
 Synchronize files, media, and databases between environments.
-Supports rsync include/exclude filters via repeatable `--include` and `--exclude` flags.
-Uses resumable rsync mode by default for file/media transfers (`--resume`, disable via `--no-resume`).
+
+- **Plan Review**: Every `sync` command (unless `-y, --yes` or `--plan` is used) displays a detailed **Synchronization Plan Review** including endpoints, scopes (files, media, db), and detailed transfer steps.
+- **Progress UI**: For file and media synchronization, Govard displays a live 10-line scrolling window to monitor `rsync` progress in real-time.
+- **Filtering**: Supports rsync include/exclude filters via repeatable `--include` and `--exclude` flags.
+- **Resumable Transfers**: Uses resumable rsync mode by default (`--resume`).
+- **Path Selection**: Target specific files or directories with `--path`.
 
 See `docs/commands/sync.md`.
 
@@ -644,9 +651,11 @@ govard self-update
 **Process:**
 
 1. Queries GitHub API for latest release
-2. Downloads release archives for `govard` and detected `govard-desktop` (on Linux, falls back to release `.deb` for desktop when standalone desktop archive is unavailable)
-3. Verifies each archive against `checksums.txt`
+2. Downloads binaries for `govard` and `govard-desktop`
+3. Verifies archives against checksums
 4. Replaces installed binaries atomically
+
+**CI Optimized**: Skips heavy system dependency checks in non-interactive/CI environments to ensure reliable automation.
 
 ### `govard upgrade`
 
