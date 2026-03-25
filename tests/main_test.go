@@ -3,9 +3,12 @@ package tests
 import (
 	"os"
 	"testing"
+
+	"github.com/pterm/pterm"
 )
 
 func TestMain(m *testing.M) {
+	pterm.DisableColor()
 	originalGovardHome, hadGovardHome := os.LookupEnv("GOVARD_HOME_DIR")
 
 	tempGovardHome, err := os.MkdirTemp("", "govard-tests-home-*")

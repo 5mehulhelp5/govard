@@ -176,6 +176,9 @@ Note: -e/--environment accepts remote name aliases (e.g. 'dev' matches a remote 
 			}
 
 			if !opts.AssumeYes {
+				if !stdinIsTerminal() {
+					return fmt.Errorf("confirmation required to proceed with bootstrap plan; use -y to assume yes in non-interactive environments")
+				}
 				for _, line := range buildBootstrapPlanSummary(config, opts.Source, plan) {
 					fmt.Fprintln(cmd.OutOrStdout(), line)
 				}

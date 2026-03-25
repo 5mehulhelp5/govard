@@ -81,7 +81,7 @@ remotes:
 	root := cmd.RootCommandForTest()
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
-	root.SetArgs([]string{"bootstrap", "--environment", "staging", "--skip-up"})
+	root.SetArgs([]string{"bootstrap", "--environment", "staging", "--yes", "--skip-up"})
 	if err := root.Execute(); err != nil {
 		t.Fatalf("bootstrap remote flow failed: %v", err)
 	}
@@ -90,9 +90,9 @@ remotes:
 		{"remote", "test", "staging"},
 		{"tool", "composer", "install", "-n"},
 		{"tool", "composer", "dump-autoload", "-n"},
-		{"db", "import", "--stream-db", "--environment", "staging"},
+		{"db", "import", "--yes", "--stream-db", "--environment", "staging"},
 		{"tool", "composer", "dump-autoload", "-n"},
-		{"sync", "--source", "staging", "--media"},
+		{"sync", "--source", "staging", "--media", "--yes"},
 	}
 	if !reflect.DeepEqual(calls, want) {
 		t.Fatalf("subcommand calls = %#v, want %#v", calls, want)
@@ -137,7 +137,7 @@ remotes:
 	root := cmd.RootCommandForTest()
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
-	root.SetArgs([]string{"bootstrap", "--clone", "--code-only", "--environment", "dev", "--skip-up"})
+	root.SetArgs([]string{"bootstrap", "--clone", "--code-only", "--environment", "dev", "--yes", "--skip-up"})
 	if err := root.Execute(); err != nil {
 		t.Fatalf("bootstrap --clone --code-only failed: %v", err)
 	}
@@ -197,6 +197,7 @@ framework: laravel
 	root.SetErr(io.Discard)
 	root.SetArgs([]string{
 		"bootstrap",
+		"--yes",
 		"--clone=false",
 		"--skip-up",
 		"--no-media",
@@ -208,7 +209,7 @@ framework: laravel
 	}
 
 	want := [][]string{
-		{"db", "import", "--file", dumpPath},
+		{"db", "import", "--yes", "--file", dumpPath},
 	}
 	if !reflect.DeepEqual(calls, want) {
 		t.Fatalf("subcommand calls = %#v, want %#v", calls, want)
@@ -249,7 +250,7 @@ remotes:
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
 	// Test with both --no-noise and --no-pii
-	root.SetArgs([]string{"bootstrap", "--environment", "staging", "--no-noise", "--no-pii", "--skip-up", "--no-media", "--no-composer"})
+	root.SetArgs([]string{"bootstrap", "--environment", "staging", "--yes", "--no-noise", "--no-pii", "--skip-up", "--no-media", "--no-composer"})
 	if err := root.Execute(); err != nil {
 		t.Fatalf("bootstrap failed: %v", err)
 	}

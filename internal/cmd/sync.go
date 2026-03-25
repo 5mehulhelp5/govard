@@ -241,6 +241,9 @@ Case Studies:
 		}
 
 		if !yes {
+			if !stdinIsTerminal() {
+				return fmt.Errorf("confirmation required to proceed with synchronization plan; use -y to assume yes in non-interactive environments")
+			}
 			for _, line := range buildSyncPlanSummary(endpoints, executionPlan, execOpts, policyWarnings) {
 				fmt.Fprintln(cmd.OutOrStdout(), line)
 			}

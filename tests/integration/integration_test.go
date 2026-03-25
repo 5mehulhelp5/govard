@@ -189,6 +189,7 @@ func (env *TestEnvironment) RunGovardWithEnv(t *testing.T, projectDir string, ex
 
 	extraEnv = append(extraEnv, "GOVARD_TEST_REPO_ROOT="+env.ProjectRoot)
 	extraEnv = append(extraEnv, "GOVARD_TEST_RUNTIME=true")
+	extraEnv = append(extraEnv, "NO_COLOR=1")
 
 	cmd := exec.Command(env.BinaryPath, args...)
 	cmd.Dir = projectDir

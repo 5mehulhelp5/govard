@@ -211,14 +211,14 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrap
 
 func runBootstrapDatabaseSync(cmd *cobra.Command, opts bootstrapRuntimeOptions) error {
 	if opts.DBDump != "" {
-		if err := runGovardSubcommand(cmd, "db", "import", "--file", opts.DBDump); err != nil {
+		if err := runGovardSubcommand(cmd, "db", "import", "--yes", "--file", opts.DBDump); err != nil {
 			return fmt.Errorf("database import from file failed: %w", err)
 		}
 		return nil
 	}
 
 	if opts.StreamDB {
-		importArgs := []string{"db", "import", "--stream-db", "--environment", opts.Source}
+		importArgs := []string{"db", "import", "--yes", "--stream-db", "--environment", opts.Source}
 		if opts.NoNoise {
 			importArgs = append(importArgs, "--no-noise")
 		}

@@ -43,9 +43,14 @@ func runStreamDBImport(cmd *cobra.Command, config engine.Config, options dbComma
 	}
 	localCredentials := resolveLocalDBCredentials(config, containerName)
 	if options.Drop {
-		confirmed, _ := pterm.DefaultInteractiveConfirm.WithDefaultText("Are you sure you want to drop and recreate the local database?").Show()
-		if !confirmed {
-			return errors.New("stream-db import cancelled by user")
+		if !options.AssumeYes {
+			if !stdinIsTerminal() {
+				return errors.New("confirmation required to drop and recreate the local database; use -y to assume yes in non-interactive environments")
+			}
+			confirmed, _ := pterm.DefaultInteractiveConfirm.WithDefaultText("Are you sure you want to drop and recreate the local database?").Show()
+			if !confirmed {
+				return errors.New("stream-db import cancelled by user")
+			}
 		}
 
 		if err := resetLocalDatabase(containerName, localCredentials.Database); err != nil {
@@ -168,9 +173,14 @@ func BuildLocalDBResetScriptForTest(database string) (string, error) {
 
 func runDirectDBImport(cmd *cobra.Command, config engine.Config, options dbCommandOptions) error {
 	if options.Drop {
-		confirmed, _ := pterm.DefaultInteractiveConfirm.WithDefaultText("Are you sure you want to drop and recreate the database?").Show()
-		if !confirmed {
-			return errors.New("database import cancelled by user")
+		if !options.AssumeYes {
+			if !stdinIsTerminal() {
+				return errors.New("confirmation required to drop and recreate the database; use -y to assume yes in non-interactive environments")
+			}
+			confirmed, _ := pterm.DefaultInteractiveConfirm.WithDefaultText("Are you sure you want to drop and recreate the database?").Show()
+			if !confirmed {
+				return errors.New("database import cancelled by user")
+			}
 		}
 
 		containerName := dbContainerName(config)

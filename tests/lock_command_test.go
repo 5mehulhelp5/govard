@@ -10,6 +10,8 @@ import (
 
 	"govard/internal/cmd"
 	"govard/internal/engine"
+
+	"github.com/pterm/pterm"
 )
 
 func TestLockCommandExists(t *testing.T) {
@@ -129,6 +131,16 @@ framework: magento2
 	root := cmd.RootCommandForTest()
 	root.SetOut(buf)
 	root.SetErr(buf)
+
+	// Redirect pterm output to capture warnings
+	root.SetOut(buf)
+	root.SetErr(buf)
+
+	// Override Warning printer's output for this test
+	originalWarning := pterm.Warning
+	pterm.Warning.Writer = buf
+	defer func() { pterm.Warning = originalWarning }()
+
 	root.SetArgs([]string{"lock", "check"})
 	err := root.Execute()
 	if err == nil {

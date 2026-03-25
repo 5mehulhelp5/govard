@@ -19,7 +19,7 @@ func TestDBCommandValidationAndRuntime(t *testing.T) {
 		if result.Success() {
 			t.Fatal("expected db connect --stream-db to fail")
 		}
-		assertContains(t, result.Stderr, "connect does not support --file, --stream-db, --no-noise, --no-pii, --drop, or --local")
+		assertContains(t, result.Stdout+result.Stderr, "connect does not support --file, --stream-db, --no-noise, --no-pii, --drop, or --local")
 	})
 
 	t.Run("ImportStreamDBRequiresRemoteEnv", func(t *testing.T) {
@@ -28,7 +28,7 @@ func TestDBCommandValidationAndRuntime(t *testing.T) {
 		if result.Success() {
 			t.Fatal("expected db import --stream-db without remote environment to fail")
 		}
-		assertContains(t, result.Stderr, "--stream-db requires a remote --environment source")
+		assertContains(t, result.Stdout+result.Stderr, "--stream-db requires a remote --environment source")
 	})
 
 	t.Run("RemoteDumpUsesSSHShim", func(t *testing.T) {
@@ -51,7 +51,7 @@ func TestDBCommandValidationAndRuntime(t *testing.T) {
 		}
 
 		shim := env.SetupRuntimeShims(t, map[string]int{"docker": 0, "ssh": 0, "rsync": 0})
-		result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "db", "import", "--environment", "dev", "--file", dumpPath)
+		result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "db", "import", "--environment", "dev", "--file", dumpPath, "--yes")
 		result.AssertSuccess(t)
 
 		logs := shim.ReadLog(t)

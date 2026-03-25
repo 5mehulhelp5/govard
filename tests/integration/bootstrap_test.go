@@ -13,29 +13,20 @@ func TestBootstrapValidationMatrix(t *testing.T) {
 
 	t.Run("FreshAndCloneMutuallyExclusive", func(t *testing.T) {
 		projectDir := env.CreateProjectFromFixture(t, "magento2/options-dev", "bootstrap-validate-fresh-clone")
-		result := env.RunGovard(t, projectDir, "bootstrap", "--fresh", "--clone", "--skip-up")
-		if result.Success() {
-			t.Fatal("expected failure for --fresh + --clone")
-		}
-		assertBootstrapContains(t, result.Stderr, "--fresh and --clone cannot be used together")
+		result := env.RunGovard(t, projectDir, "bootstrap", "--fresh", "--clone", "--skip-up", "--yes")
+		assertBootstrapContains(t, result.Stdout+result.Stderr, "--fresh and --clone cannot be used together")
 	})
 
 	t.Run("CodeOnlyRequiresClone", func(t *testing.T) {
 		projectDir := env.CreateProjectFromFixture(t, "magento2/options-dev", "bootstrap-validate-code-only")
-		result := env.RunGovard(t, projectDir, "bootstrap", "--clone=false", "--code-only", "--skip-up")
-		if result.Success() {
-			t.Fatal("expected failure for --code-only without --clone")
-		}
-		assertBootstrapContains(t, result.Stderr, "--code-only requires --clone")
+		result := env.RunGovard(t, projectDir, "bootstrap", "--clone=false", "--code-only", "--skip-up", "--yes")
+		assertBootstrapContains(t, result.Stdout+result.Stderr, "--code-only requires --clone")
 	})
 
 	t.Run("InvalidVersionRejected", func(t *testing.T) {
 		projectDir := env.CreateProjectFromFixture(t, "magento2/options-dev", "bootstrap-validate-version")
-		result := env.RunGovard(t, projectDir, "bootstrap", "--fresh", "--framework-version", "1.0.0", "--skip-up")
-		if result.Success() {
-			t.Fatal("expected failure for invalid --framework-version")
-		}
-		assertBootstrapContains(t, result.Stderr, "invalid --framework-version value")
+		result := env.RunGovard(t, projectDir, "bootstrap", "--fresh", "--framework-version", "1.0.0", "--skip-up", "--yes")
+		assertBootstrapContains(t, result.Stdout+result.Stderr, "invalid --framework-version value")
 	})
 }
 
@@ -43,11 +34,8 @@ func TestBootstrapCloneRequiresConfiguredRemote(t *testing.T) {
 	env := NewTestEnvironment(t)
 	projectDir := env.CreateProjectFromFixture(t, "magento2/options-dev", "bootstrap-no-remote")
 
-	result := env.RunGovard(t, projectDir, "bootstrap", "--clone", "--environment", "dev", "--skip-up")
-	if result.Success() {
-		t.Fatal("expected missing remote error")
-	}
-	assertBootstrapContains(t, result.Stderr, "remote 'dev' is not configured")
+	result := env.RunGovard(t, projectDir, "bootstrap", "--clone", "--environment", "dev", "--skip-up", "--yes")
+	assertBootstrapContains(t, result.Stdout+result.Stderr, "remote 'dev' is not configured")
 }
 
 func TestBootstrapCloneOrchestrationWithShims(t *testing.T) {

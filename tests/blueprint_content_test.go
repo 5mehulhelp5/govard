@@ -46,7 +46,7 @@ func TestRenderMagento2Blueprint(t *testing.T) {
 
 	var composeStruct struct {
 		Services map[string]struct {
-			Networks []string `yaml:"networks"`
+			Networks interface{} `yaml:"networks"`
 		} `yaml:"services"`
 	}
 	if err := yaml.Unmarshal(content, &composeStruct); err != nil {
@@ -58,10 +58,16 @@ func TestRenderMagento2Blueprint(t *testing.T) {
 	}
 
 	hasProxy := false
-	for _, n := range webSvc.Networks {
-		if n == "govard-proxy" {
+	if networks, ok := webSvc.Networks.([]interface{}); ok {
+		for _, n := range networks {
+			if n == "govard-proxy" {
+				hasProxy = true
+				break
+			}
+		}
+	} else if networks, ok := webSvc.Networks.(map[string]interface{}); ok {
+		if _, ok := networks["govard-proxy"]; ok {
 			hasProxy = true
-			break
 		}
 	}
 	if !hasProxy {
@@ -205,6 +211,9 @@ func TestRenderBlueprintWithFeatures(t *testing.T) {
 	}
 	if !strings.Contains(contentStr, "elasticsearch:") {
 		t.Error("Expected elasticsearch service")
+	}
+	if !strings.Contains(contentStr, "aliases:") || !strings.Contains(contentStr, "- opensearch") {
+		t.Error("Expected opensearch alias for elasticsearch service")
 	}
 }
 

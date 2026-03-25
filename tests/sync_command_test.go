@@ -99,10 +99,10 @@ remotes:
 	if !strings.Contains(out, "Excludes:    vendor/") {
 		t.Fatalf("expected exclude pattern summary, got: %s", out)
 	}
-	if !strings.Contains(out, "--include app/*") {
+	if !strings.Contains(out, "--include") || !strings.Contains(out, "app/*") {
 		t.Fatalf("expected include flag in planned rsync command, got: %s", out)
 	}
-	if !strings.Contains(out, "--exclude vendor/") {
+	if !strings.Contains(out, "--exclude") || !strings.Contains(out, "vendor/") {
 		t.Fatalf("expected exclude flag in planned rsync command, got: %s", out)
 	}
 }
@@ -184,7 +184,10 @@ remotes:
 	if !strings.Contains(out, "Compression: Disabled") {
 		t.Fatalf("expected compression disabled in plan output, got: %s", out)
 	}
-	if strings.Contains(out, "rsync -az") {
+	if !strings.Contains(out, "rsync") || !strings.Contains(out, "-av") {
+		t.Fatalf("expected rsync command with -av mode in plan output, got: %s", out)
+	}
+	if strings.Contains(out, " -avz") {
 		t.Fatalf("did not expect compressed rsync mode when --no-compress is set, got: %s", out)
 	}
 }

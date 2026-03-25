@@ -63,22 +63,22 @@ func TestSyncPolicyProtectedDestinationBlocked(t *testing.T) {
 	env := NewTestEnvironment(t)
 	projectDir := env.CreateProjectFromFixture(t, "magento2/options-staging", "sync-policy-protected")
 
-	result := env.RunGovard(t, projectDir, "sync", "--source", "local", "--destination", "prod", "--file")
+	result := env.RunGovard(t, projectDir, "sync", "--source", "local", "--destination", "prod", "--file", "--yes")
 	if result.Success() {
 		t.Fatal("expected protected destination error")
 	}
-	assertContains(t, result.Stderr, "Write-protected")
+	assertContains(t, result.Stdout+result.Stderr, "Write-protected")
 }
 
 func TestSyncPolicyRemoteToRemoteBlocked(t *testing.T) {
 	env := NewTestEnvironment(t)
 	projectDir := env.CreateProjectFromFixture(t, "magento2/options-staging", "sync-policy-remote-remote")
 
-	result := env.RunGovard(t, projectDir, "sync", "--source", "staging", "--destination", "prod", "--file")
+	result := env.RunGovard(t, projectDir, "sync", "--source", "staging", "--destination", "prod", "--file", "--yes")
 	if result.Success() {
 		t.Fatal("expected local<->remote validation error")
 	}
-	assertContains(t, result.Stderr, "between local and remote environments")
+	assertContains(t, result.Stdout+result.Stderr, "between local and remote environments")
 }
 
 func TestSyncRuntimeRsyncInvocationWithShims(t *testing.T) {
@@ -98,6 +98,7 @@ func TestSyncRuntimeRsyncInvocationWithShims(t *testing.T) {
 		"--source", "dev",
 		"--destination", "local",
 		"--file",
+		"--yes",
 	)
 	result.AssertSuccess(t)
 
@@ -124,6 +125,7 @@ func TestSyncRuntimeDBPipelineWithShims(t *testing.T) {
 		"--source", "dev",
 		"--destination", "local",
 		"--db",
+		"--yes",
 	)
 	result.AssertSuccess(t)
 

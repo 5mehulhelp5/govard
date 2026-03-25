@@ -36,6 +36,7 @@ remotes:
 	root.SetErr(io.Discard)
 	root.SetArgs([]string{
 		"sync",
+		"--yes",
 		"--source", "staging",
 		"--destination", "local",
 		"--file",
@@ -47,7 +48,7 @@ remotes:
 	}
 
 	logs := readRuntimeLog(t, logPath)
-	if !strings.Contains(logs, "rsync|-az") {
+	if !strings.Contains(logs, "rsync|-avz") {
 		t.Fatalf("missing rsync invocation in log:\n%s", logs)
 	}
 	if !strings.Contains(logs, "--partial --append-verify") {
@@ -84,6 +85,7 @@ remotes:
 	root.SetErr(io.Discard)
 	root.SetArgs([]string{
 		"sync",
+		"--yes",
 		"--source", "staging",
 		"--destination", "local",
 		"--file",
@@ -96,8 +98,8 @@ remotes:
 	}
 
 	logs := readRuntimeLog(t, logPath)
-	if !strings.Contains(logs, "rsync|-a ") {
-		t.Fatalf("expected non-compressed rsync mode (-a), got:\n%s", logs)
+	if !strings.Contains(logs, "rsync|-av ") {
+		t.Fatalf("expected non-compressed rsync mode (-av), got:\n%s", logs)
 	}
 	if strings.Contains(logs, "--append-verify") || strings.Contains(logs, "--partial") {
 		t.Fatalf("did not expect resume flags with --no-resume, got:\n%s", logs)

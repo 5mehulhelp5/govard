@@ -113,6 +113,7 @@ func TestMagentoThreeEnvironmentInitBootstrapAndSyncOptions(t *testing.T) {
 		"--skip-up",
 		"--no-composer",
 		"--no-admin",
+		"--yes",
 	)
 	localBootstrap.AssertSuccess(t)
 
@@ -127,6 +128,7 @@ func TestMagentoThreeEnvironmentInitBootstrapAndSyncOptions(t *testing.T) {
 		"--skip-up",
 		"--no-composer",
 		"--no-admin",
+		"--yes",
 	)
 	devBootstrap.AssertSuccess(t)
 
@@ -138,10 +140,9 @@ func TestMagentoThreeEnvironmentInitBootstrapAndSyncOptions(t *testing.T) {
 		"--clone",
 		"--environment", "dev",
 		"--skip-up",
-		"--no-composer",
-		"--no-admin",
 		"--no-media",
 		"--db-dump", "fixtures/seed.sql",
+		"--yes",
 	)
 	stagingBootstrap.AssertSuccess(t)
 
@@ -181,10 +182,11 @@ func TestMagentoThreeEnvironmentInitBootstrapAndSyncOptions(t *testing.T) {
 		"--source", "dev",
 		"--destination", "local",
 		"--file",
-		"--path", "app/code",
 		"--include", "app/*",
 		"--exclude", "vendor/",
 		"--delete",
+		"--path", "app/code",
+		"--yes",
 	)
 	syncRun.AssertSuccess(t)
 
@@ -193,5 +195,5 @@ func TestMagentoThreeEnvironmentInitBootstrapAndSyncOptions(t *testing.T) {
 	assertContains(t, syncLogs, "--include app/*")
 	assertContains(t, syncLogs, "--exclude vendor/")
 	assertContains(t, syncLogs, "--delete")
-	assertContains(t, syncLogs, "deploy@dev.example.com:/var/www/html/app/code/")
+	assertContains(t, syncLogs, "deploy@dev.example.com:/var/www/html/app/code")
 }

@@ -17,7 +17,7 @@ func TestRunGovardWithShimsCapturesExternalCalls(t *testing.T) {
 		"rsync":  0,
 	})
 
-	result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "sync", "--source", "dev", "--destination", "local", "--file")
+	result := env.RunGovardWithEnv(t, projectDir, shim.Env(), "sync", "--source", "dev", "--destination", "local", "--file", "--yes")
 	result.AssertSuccess(t)
 
 	logs := shim.ReadLog(t)

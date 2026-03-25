@@ -34,6 +34,7 @@ func TestBootstrapOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 			"--skip-up",
 			"--no-composer",
 			"--no-admin",
+			"--yes",
 		)
 		result.AssertSuccess(t)
 
@@ -65,6 +66,7 @@ func TestBootstrapOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 			"--no-media",
 			"--no-admin",
 			"--no-stream-db",
+			"--yes",
 		)
 		result.AssertSuccess(t)
 
@@ -101,6 +103,7 @@ func TestBootstrapOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 			"--no-media",
 			"--no-admin",
 			"--db-dump", "fixtures/bootstrap-dump.sql",
+			"--yes",
 		)
 		result.AssertSuccess(t)
 
@@ -131,6 +134,7 @@ func TestBootstrapOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 			"--include-product",
 			"--fix-deps",
 			"--framework-version", "2.4.8",
+			"--yes",
 		)
 		result.AssertSuccess(t)
 
@@ -208,6 +212,7 @@ func TestBootstrapOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 			"--no-admin",
 			"--framework", "magento2",
 			"--framework-version", "2.4.8",
+			"--yes",
 		)
 		result.AssertSuccess(t)
 
@@ -318,14 +323,15 @@ func TestSyncOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 			"--file",
 			"--delete",
 			"--path", "app/code",
+			"--yes",
 		)
 		result.AssertSuccess(t)
 
 		logs := shim.ReadLog(t)
 		assertMatrixContains(t, logs, "rsync|")
 		assertMatrixContains(t, logs, "--delete")
-		assertMatrixContains(t, logs, "deploy@staging.example.com:/srv/www/staging/app/code/")
-		assertMatrixContains(t, logs, filepath.Join(projectDir, "app", "code")+"/")
+		assertMatrixContains(t, logs, "deploy@staging.example.com:/srv/www/staging/app/code")
+		assertMatrixContains(t, logs, filepath.Join(projectDir, "app", "code"))
 	})
 
 	t.Run("RuntimeStagingToLocalMediaIncludeExcludeNoResume", func(t *testing.T) {
@@ -347,6 +353,7 @@ func TestSyncOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 			"--include", "catalog/*",
 			"--exclude", "catalog/cache",
 			"--no-resume",
+			"--yes",
 		)
 		result.AssertSuccess(t)
 
@@ -374,6 +381,7 @@ func TestSyncOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 				"--source", "dev",
 				"--destination", "local",
 				"--db",
+				"--yes",
 			)
 			result.AssertSuccess(t)
 
@@ -399,6 +407,7 @@ func TestSyncOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 				"--source", "local",
 				"--destination", "staging",
 				"--db",
+				"--yes",
 			)
 			result.AssertSuccess(t)
 
@@ -425,6 +434,7 @@ func TestSyncOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 				"--destination", "local",
 				"--db",
 				"--no-pii",
+				"--yes",
 			)
 			result.AssertSuccess(t)
 

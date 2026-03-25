@@ -90,6 +90,7 @@ func init() {
 	dbCmd.Flags().BoolP("no-pii", "S", false, "For dump: exclude PII/sensitive tables (customers, orders...)")
 	dbCmd.Flags().Bool("drop", false, "For import: drop and recreate the database before importing (Magento only)")
 	dbCmd.Flags().Bool("local", false, "For dump/import: force local file operations for remote environments")
+	dbCmd.Flags().BoolP("yes", "y", false, "Skip confirmation prompts")
 }
 
 type DBCommandOptions struct {
@@ -101,6 +102,7 @@ type DBCommandOptions struct {
 	NoPII       bool
 	Drop        bool
 	Local       bool
+	AssumeYes   bool
 }
 
 type dbCommandOptions = DBCommandOptions
@@ -314,6 +316,7 @@ func readDBCommandOptions(cmd *cobra.Command) (dbCommandOptions, error) {
 		return dbCommandOptions{}, err
 	}
 	profile, _ := cmd.Flags().GetString("profile")
+	assumeYes, _ := cmd.Flags().GetBool("yes")
 	return dbCommandOptions{
 		Environment: strings.ToLower(strings.TrimSpace(environment)),
 		File:        strings.TrimSpace(file),
@@ -323,6 +326,7 @@ func readDBCommandOptions(cmd *cobra.Command) (dbCommandOptions, error) {
 		NoPII:       noPII,
 		Drop:        drop,
 		Local:       local,
+		AssumeYes:   assumeYes,
 	}, nil
 }
 
