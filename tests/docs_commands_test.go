@@ -8,18 +8,16 @@ import (
 
 func TestDocsCommandsExist(t *testing.T) {
 	required := []string{
-		"docs/commands/bootstrap.md",
-		"docs/commands/env.md",
-		"docs/commands/remote.md",
-		"docs/commands/sync.md",
-		"docs/commands/db.md",
-		"docs/commands/deploy.md",
-		"docs/commands/open.md",
-		"docs/commands/lock.md",
-		"docs/commands/tunnel.md",
-		"docs/commands/upgrade.md",
-		"docs/commands/snapshot.md",
-		"docs/commands/profile.md",
+		"docs/README.md",
+		"docs/getting-started.md",
+		"docs/commands.md",
+		"docs/configuration.md",
+		"docs/remotes-and-sync.md",
+		"docs/frameworks.md",
+		"docs/ssl-and-domains.md",
+		"docs/desktop.md",
+		"docs/architecture.md",
+		"docs/contributing.md",
 	}
 
 	for _, path := range required {

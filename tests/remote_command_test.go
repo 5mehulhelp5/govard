@@ -63,6 +63,49 @@ func TestRemoteAddWritesConfig(t *testing.T) {
 	}
 }
 
+func TestRemoteAddPreservesQuotedHomeRelativePath(t *testing.T) {
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, ".govard.yml")
+	if err := os.WriteFile(configPath, []byte("project_name: test\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cwd, _ := os.Getwd()
+	defer func() { _ = os.Chdir(cwd) }()
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatal(err)
+	}
+
+	root := cmd.RootCommandForTest()
+	root.SetArgs([]string{"remote", "add", "staging", "--host", "example.com", "--user", "deploy", "--path", "~/public_html"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("execute: %v", err)
+	}
+
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var out map[string]interface{}
+	if err := yaml.Unmarshal(data, &out); err != nil {
+		t.Fatal(err)
+	}
+
+	remotes, ok := out["remotes"].(map[string]interface{})
+	if !ok || remotes["staging"] == nil {
+		t.Fatal("expected remotes.staging")
+	}
+	staging, ok := remotes["staging"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected remotes.staging object")
+	}
+
+	if got := staging["path"]; got != "~/public_html" {
+		t.Fatalf("expected remote path to remain home-relative, got %v", got)
+	}
+}
+
 func TestRemoteAddKnownHostsEnablesStrictHostKey(t *testing.T) {
 	tempDir := t.TempDir()
 	configPath := filepath.Join(tempDir, ".govard.yml")

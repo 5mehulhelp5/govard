@@ -29,7 +29,7 @@ At a glance, these are the areas where Govard delivers stronger day-to-day value
 
 ## 🚀 Key Features
 
-- **Snapshot Compression**: Database snapshots are now gzipped by default, saving up to 90% disk space.
+- **Snapshot Compression**: Database snapshots are gzipped by default to reduce disk usage.
 - **Automatic Tunnel URL**: One-click public tunnels (`govard tunnel start`) with automatic base URL update/revert for supported frameworks (`magento1`, `magento2`, `laravel`, `symfony`, `wordpress`).
 - **Integrated Testing**: Run `phpunit`, `phpstan`, and `mftf` directly with `govard test`.
 - **Redis & Valkey Management**: Full support for Redis and Valkey CLI, flushing, and info across local and remote environments.
@@ -39,9 +39,9 @@ At a glance, these are the areas where Govard delivers stronger day-to-day value
 - **Custom Framework**: Interactive prompt to pick web server, database, cache, search, queue, and varnish for bespoke stacks.
 - **Xdebug Routing**: Dedicated `php-debug` container, activated only when `XDEBUG_SESSION` cookie is present.
 - **Queue Support**: Optional RabbitMQ service for async workloads.
-- **High Performance**: Built with Go and utilizes the native Docker SDK for direct container orchestration.
-- **Local Image Fallback**: Automatically build missing Govard-managed images locally from embedded blueprints if they cannot be pulled from Docker Hub. Disable this retry with `--no-fallback`.
-- **Smart Templating**: Uses the Go `text/template` engine to render dynamic Docker Compose files from framework-specific Blueprints.
+- **High Performance**: Built with Go and uses the native Docker SDK for direct container orchestration.
+- **Local Image Fallback**: Automatically builds missing Govard-managed images locally from embedded blueprints if they cannot be pulled from Docker Hub. Disable this retry with `--no-fallback`.
+- **Smart Templating**: Uses Go `text/template` to render dynamic Docker Compose files from framework-specific blueprints.
 - **Magento 2 Optimized**: Deep integration for Magento 2, including automated `env.php` configuration, Varnish 7.x support, and Redis caching.
 - **Remote Management (Flagship)**: Manage named remotes for sync/deploy/db workflows with scope-based capabilities (`files,media,db,deploy`) and flexible auth modes (`keychain`, `ssh-agent`, `keyfile`).
 - **Remote Safety Guardrails**: Production remotes are write-protected by default, with policy checks to block risky destination writes and explicit capability enforcement per operation.
@@ -50,7 +50,7 @@ At a glance, these are the areas where Govard delivers stronger day-to-day value
 - **Remote Connectivity Diagnostics**: `govard remote test` validates SSH + `rsync`, reports probe latency, and classifies failures (`network`, `auth`, `permission`, `host_key`, `dependency`) with remediation hints.
 - **Secrets-Aware Remote Config**: Remote fields support `op://...` references resolved through 1Password CLI for safer credential handling.
 - **SSL Management**: Professional CA management for "Green Lock" HTTPS on local `.test` domains.
-- **Rich CLI UX**: Powered by `pterm` for beautiful terminal output, progress bars, and interactive prompts. Use `--verbose` for deeper diagnostic trace logging via `log/slog`.
+- **Rich CLI UX**: Powered by `pterm` for terminal output, progress bars, and interactive prompts.
 - **Global Services**: Built-in Proxy (Caddy), Mailpit, PHPMyAdmin, and Portainer.
 - **Desktop Dashboard**: Wails-based UI with live logs, quick actions, and settings.
 
@@ -212,7 +212,7 @@ govard shell
 Set up and validate a remote:
 
 ```bash
-govard remote add staging --host staging.example.com --user deploy --path ~/public_html
+govard remote add staging --host staging.example.com --user deploy --path /var/www/app
 govard remote copy-id staging
 govard remote test staging
 ```
@@ -235,11 +235,19 @@ Remote defaults and protections:
 
 - `remote add` is interactive if flags are missing.
 - `remote copy-id` transfers your local public key to the remote `authorized_keys`.
-- Remote paths support `~/` home directory expansion.
+- Remote paths support `~/` home directory expansion on the remote host. In shell examples, use an absolute remote path or quote the value, for example `--path '~/public_html'`, so the local shell does not expand it first.
 - `prod` remotes are write-protected by default.
 - Capability scopes (`files,media,db,deploy`) are enforced per operation.
 - File/media sync uses resumable rsync mode by default.
-- Full docs: `docs/commands/remote.md` and `docs/commands/sync.md`.
+- Full docs: `docs/remotes-and-sync.md`.
+
+### 6. Common Operational Workflows
+
+- `govard db ...` for dump, import, query, and connection helpers.
+- `govard debug on|off` to toggle Xdebug for the current project.
+- `govard snapshot create` before risky local upgrades or imports.
+- `govard lock generate` / `govard lock check` to detect environment drift.
+- `govard tunnel start` to expose a local project publicly.
 
 ---
 
@@ -380,24 +388,32 @@ _Note: Once trusted, all `*.test` domains managed by Govard will show a "Green L
 
 ## 🔍 CLI Command Reference
 
+Root lifecycle shortcuts:
+
+- `govard up` → `govard env up`
+- `govard down` → `govard env down`
+- `govard restart` → `govard env restart`
+- `govard ps` → `govard env ps`
+- `govard logs` → `govard env logs`
+
 Common command aliases:
 
-- `govard bootstrap` → `govard boot`
-- `govard config` → `govard cfg`
-- `govard debug` → `govard dbg`
-- `govard desktop` → `govard gui`
-- `govard doctor` → `govard diag`
-- `govard extensions` → `govard ext`
-- `govard projects` → `govard prj`
-- `govard remote` → `govard rmt`
-- `govard shell` → `govard sh`
-- `govard snapshot` → `govard snap`
+- `govard boot` → `govard bootstrap`
+- `govard cfg` → `govard config`
+- `govard dbg` → `govard debug`
+- `govard gui` → `govard desktop`
+- `govard diag` → `govard doctor`
+- `govard ext` → `govard extensions`
+- `govard prj` → `govard projects`
+- `govard rmt` → `govard remote`
+- `govard sh` → `govard shell`
+- `govard snap` → `govard snapshot`
 
 | Command              | Description                                                        |
 | :------------------- | :----------------------------------------------------------------- |
 | `govard init`        | Initialize a new project configuration                             |
 | `govard bootstrap`   | Bootstrap local project setup and clone a remote environment       |
-| `govard env`        | Project-scoped lifecycle; intelligently proxies Docker Compose commands |
+| `govard env`        | Project-scoped lifecycle; intelligently proxies Docker Compose commands  |
 | `govard domain`     | Manage additional domains for the project                          |
 | `govard svc`        | Manage global services (`proxy`, `mail`, `pma`, `portainer`)       |
 | `govard tool`        | Run framework/tooling CLIs inside project containers               |
@@ -428,44 +444,29 @@ Common command aliases:
 
 ## 📚 Documentation
 
-Documentation is organized by audience:
+Documentation is organized as a flat set of canonical topic files:
 
-**For Users:**
-
-- [Getting Started](./docs/user/getting-started.md) - Installation and basic workflow
-- [Configuration](./docs/user/configuration.md) - `.govard.yml` and blueprints
-- [CLI Commands](./docs/user/commands.md) - Complete command reference
-- [SSL & HTTPS](./docs/user/ssl-https.md) - Local HTTPS setup
-
-**For Framework Users:**
-
-- [Magento 1 (OpenMage)](./docs/frameworks/magento1.md) - Magento 1/OpenMage support
-- [Magento 2](./docs/frameworks/magento2.md) - Magento-specific features
-- [Laravel](./docs/frameworks/laravel.md) - PHP framework support
-- [Symfony](./docs/frameworks/symfony.md) - PHP framework support
-- [Drupal](./docs/frameworks/drupal.md) - CMS support
-- [WordPress](./docs/frameworks/wordpress.md) - CMS support
-- [Shopware](./docs/frameworks/shopware.md) - E-commerce support
-- [CakePHP](./docs/frameworks/cakephp.md) - PHP framework support
-- [Next.js](./docs/frameworks/nextjs.md) - Frontend framework support
-- [Custom](./docs/frameworks/custom.md) - Build your own service mix
-
-**For Developers:**
-
-- [Architecture](./docs/dev/architecture.md) - System design and specs
-- [Contributing](./docs/dev/contributing.md) - Development workflow
-- [Desktop](./docs/desktop/README.md) - Desktop app roadmap and integration
+- [Docs Index](./docs/README.md) - Topic map and reading order
+- [Getting Started](./docs/getting-started.md) - Installation and first project workflow
+- [Commands](./docs/commands.md) - CLI reference, shortcuts, tools, diagnostics, and utilities
+- [Configuration](./docs/configuration.md) - `.govard.yml`, profiles, remotes, and blueprint registry
+- [Remotes and Sync](./docs/remotes-and-sync.md) - Remote setup, sync flows, audit logs, and remote DB work
+- [Frameworks](./docs/frameworks.md) - Support matrix and framework-specific notes
+- [SSL and Domains](./docs/ssl-and-domains.md) - Local HTTPS, CA trust, and domain routing
+- [Desktop](./docs/desktop.md) - Desktop surface and dev-mode workflow
+- [Architecture](./docs/architecture.md) - System design and module layout
+- [Contributing](./docs/contributing.md) - Build, test, and contribution workflow
 
 ---
 
 ## ✅ Quality Gates
 
-Govard CI runs the following checks on every push and pull request to ensure stability and code quality.
+Govard CI runs these checks on every push and pull request:
 
 | Pipeline Job | Local Command | Description |
 | :--- | :--- | :--- |
 | **Quality Checks** | `make lint fmt-check vet` | Runs `golangci-lint`, checks `gofmt -s` compliance, and `go vet`. |
-| **Fast Tests** | `make test-unit test-frontend` | Executes Go unit tests (short mode) and Node.js frontend tests. |
+| **Fast Tests** | `make test-fast` | Runs lint, format check, `go vet`, frontend tests, and Go unit tests. |
 | **Integration Tests** | `make test-integration` | Builds a test binary and runs end-to-end framework tests in Docker. |
 | **Build Binaries** | `make build` | Verifies that the project compiles for the current platform. |
 
@@ -473,14 +474,14 @@ Govard CI runs the following checks on every push and pull request to ensure sta
 
 To ensure your contribution passes the GitHub CI pipeline, run the following sequence before pushing:
 
-#### 1. Fast Validation (caught ~95% of issues)
-Runs linting, formatting, vet, and all unit tests (approx. 20-30 seconds):
+#### 1. Fast Validation
+Runs linting, formatting checks, vet, frontend tests, and unit tests:
 ```bash
 make test-fast
 ```
 
 #### 2. Full Validation (requires Docker)
-Runs all the above plus the full integration test suite (approx. 2-5 minutes):
+Runs the full suite including integration tests:
 ```bash
 make test
 ```

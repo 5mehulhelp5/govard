@@ -42,11 +42,11 @@ func extractHeadingBlock(t *testing.T, content string, heading string) string {
 }
 
 func TestDocsFrameworkCommandsMatchSupportedShortcuts(t *testing.T) {
-	content := readDocFile(t, "docs/user/commands.md")
+	content := readDocFile(t, "docs/commands.md")
 
 	magento2Block := extractHeadingBlock(t, content, "### Magento 2")
 	if strings.Contains(magento2Block, "govard magerun") {
-		t.Fatalf("docs/user/commands.md Magento 2 block must not advertise govard magerun")
+		t.Fatalf("docs/commands.md Magento 2 block must not advertise govard magerun")
 	}
 
 	for _, required := range []string{
@@ -68,25 +68,22 @@ func TestDocsFrameworkCommandsMatchSupportedShortcuts(t *testing.T) {
 }
 
 func TestDocsMagento2GuideUsesSupportedCLIReferences(t *testing.T) {
-	content := readDocFile(t, "docs/frameworks/magento2.md")
+	content := readDocFile(t, "docs/frameworks.md")
+	block := extractHeadingBlock(t, content, "## Magento 2")
 
-	for _, banned := range []string{
-		"govard db export",
-		"govard magerun [command]",
-		"Commands run as `magento` user",
-	} {
-		if strings.Contains(content, banned) {
-			t.Fatalf("docs/frameworks/magento2.md contains outdated command/runtime claim %q", banned)
+	for _, banned := range []string{"govard db export", "govard magerun [command]", "Commands run as `magento` user"} {
+		if strings.Contains(block, banned) {
+			t.Fatalf("docs/frameworks.md Magento 2 block contains outdated command/runtime claim %q", banned)
 		}
 	}
 
-	if !strings.Contains(content, "govard db dump > dump.sql") {
-		t.Fatalf("docs/frameworks/magento2.md should use supported db dump command examples")
+	if !strings.Contains(block, "govard db dump > dump.sql") {
+		t.Fatalf("docs/frameworks.md Magento 2 block should use supported db dump command examples")
 	}
 }
 
 func TestDocsContributingFixturePathsMatchRepository(t *testing.T) {
-	content := readDocFile(t, "docs/dev/contributing.md")
+	content := readDocFile(t, "docs/contributing.md")
 
 	for _, banned := range []string{
 		"`init-projects/[framework]-init/`",
@@ -94,7 +91,7 @@ func TestDocsContributingFixturePathsMatchRepository(t *testing.T) {
 		"Create `tests/init-projects/[framework]-init/`",
 	} {
 		if strings.Contains(content, banned) {
-			t.Fatalf("docs/dev/contributing.md contains outdated fixture path %q", banned)
+			t.Fatalf("docs/contributing.md contains outdated fixture path %q", banned)
 		}
 	}
 
@@ -103,19 +100,19 @@ func TestDocsContributingFixturePathsMatchRepository(t *testing.T) {
 		"`tests/integration/projects/`",
 	} {
 		if !strings.Contains(content, required) {
-			t.Fatalf("docs/dev/contributing.md missing current fixture path %q", required)
+			t.Fatalf("docs/contributing.md missing current fixture path %q", required)
 		}
 	}
 }
 
 func TestDocsUserCommandsGlobalSectionMatchesRootCLI(t *testing.T) {
-	content := readDocFile(t, "docs/user/commands.md")
+	content := readDocFile(t, "docs/commands.md")
 
 	if strings.Contains(content, "--verbose") {
-		t.Fatalf("docs/user/commands.md must not advertise unsupported global flag --verbose")
+		t.Fatalf("docs/commands.md must not advertise unsupported global flag --verbose")
 	}
 
 	if strings.Contains(content, "### `govard completion`") {
-		t.Fatal("docs/user/commands.md must not advertise removed completion command")
+		t.Fatal("docs/commands.md must not advertise removed completion command")
 	}
 }

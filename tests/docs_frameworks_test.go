@@ -8,7 +8,7 @@ import (
 
 func TestFrameworkSupportDocsExist(t *testing.T) {
 	required := []string{
-		"docs/frameworks/support-matrix.md",
+		"docs/frameworks.md",
 	}
 
 	for _, path := range required {

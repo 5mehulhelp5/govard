@@ -18,7 +18,7 @@ func readDoc(t *testing.T, relativePath string) string {
 }
 
 func TestDocsDesktopCommandReferenceTracksLightweightSurface(t *testing.T) {
-	content := readDoc(t, "docs/user/commands.md")
+	content := readDoc(t, "docs/desktop.md")
 
 	for _, banned := range []string{
 		"Role mode switch (`developer` and `pm_tester`)",
@@ -36,13 +36,13 @@ func TestDocsDesktopCommandReferenceTracksLightweightSurface(t *testing.T) {
 		"Shell launcher (service, user, shell)",
 	} {
 		if !strings.Contains(content, required) {
-			t.Fatalf("desktop command docs missing lightweight desktop capability %q", required)
+			t.Fatalf("desktop docs missing lightweight desktop capability %q", required)
 		}
 	}
 }
 
 func TestDocsArchitectureDesktopSectionTracksLightweightCore(t *testing.T) {
-	content := readDoc(t, "docs/dev/architecture.md")
+	content := readDoc(t, "docs/architecture.md")
 
 	for _, banned := range []string{
 		"workflow snapshots",
@@ -65,7 +65,7 @@ func TestDocsArchitectureDesktopSectionTracksLightweightCore(t *testing.T) {
 		"modular frontend split across feature modules and bridge/state services",
 	} {
 		if !strings.Contains(content, required) {
-			t.Fatalf("architecture docs missing lightweight desktop architecture claim %q", required)
+			t.Fatalf("docs/architecture.md missing lightweight desktop architecture claim %q", required)
 		}
 	}
 }

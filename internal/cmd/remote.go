@@ -85,7 +85,7 @@ var remoteAddCmd = &cobra.Command{
 			user, _ = pterm.DefaultInteractiveTextInput.Show("Remote SSH user")
 		}
 		if path == "" && stdinIsTerminal() {
-			path, _ = pterm.DefaultInteractiveTextInput.Show("Remote project path (e.g. ~/public_html)")
+			path, _ = pterm.DefaultInteractiveTextInput.Show("Remote project path on target host (e.g. /var/www/app or ~/public_html)")
 		}
 
 		if host == "" || user == "" || path == "" {
@@ -551,7 +551,7 @@ var remoteTestCmd = &cobra.Command{
 func init() {
 	remoteAddCmd.Flags().String("host", "", "Remote host")
 	remoteAddCmd.Flags().String("user", "", "Remote user")
-	remoteAddCmd.Flags().String("path", "", "Remote path")
+	remoteAddCmd.Flags().String("path", "", "Remote path on target host (quote '~/...' in shell usage to preserve remote home expansion)")
 	remoteAddCmd.Flags().Int("port", 22, "Remote port")
 	remoteAddCmd.Flags().String("capabilities", "files,media,db,deploy", "Remote capabilities (files,media,db,deploy or all)")
 	remoteAddCmd.Flags().String("auth-method", remote.AuthMethodKeychain, "Remote auth method (keychain, ssh-agent, keyfile)")

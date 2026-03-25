@@ -43,7 +43,7 @@ docker --version
 - `cmd/govard/main.go`: CLI entrypoint
 - `cmd/govard-desktop/`: Desktop app entrypoint (built by Wails)
 - `desktop/`: Wails desktop app codebase (Go backend bridge + HTML/vanilla JS frontend in `desktop/frontend/`)
-- `docs/`: Project documentation, architectural decisions, and AI agent test reports
+- `docs/`: Flat, top-level project documentation (`docs/*.md`) and AI agent test reports
 - `internal/cmd/`: Cobra command implementations
 - `internal/engine/`: orchestration, config, blueprint logic
 - `internal/engine/bootstrap/`: framework bootstrap workflows
@@ -64,10 +64,10 @@ docker --version
 Preferred commands:
 
 ```bash
-make test-fast           # frontend + unit tests
+make test-fast           # lint + fmt-check + vet + frontend + unit tests
 make test-unit           # unit tests only
 make test-integration    # integration tests (requires build + docker)
-make test                # full test suite
+make test                # lint + fmt-check + vet + frontend + unit + integration tests
 make vet                 # go vet
 make fmt                 # go fmt ./...
 make build               # build Govard for the current platform
@@ -197,7 +197,20 @@ Update `README.md` when changes affect:
 3. command names/flags
 4. release consumption
 
+Update the canonical top-level docs in `docs/*.md` when changes affect:
+
+1. command names, aliases, or flags
+2. configuration behavior or layering
+3. remote/sync/db workflows
+4. framework support or runtime defaults
+5. desktop behavior or desktop testing workflow
+
 If behavior changed and docs are stale, treat as incomplete work.
+
+When documenting commands that accept remote filesystem paths:
+
+- prefer absolute remote paths in shell examples (for example `/var/www/app`)
+- if using remote-home shorthand, quote it (`'~/public_html'`) so the local shell does not expand it before Govard receives the flag
 
 ## 12. Git and Change Hygiene
 
@@ -214,7 +227,7 @@ If behavior changed and docs are stale, treat as incomplete work.
 4. Add/adjust tests in `tests/`.
 5. Run formatting and targeted tests.
 6. Run broader suite as needed (`make test-fast` or `go test ./...`).
-7. Update README/docs if user-facing behavior changed.
+7. Update `README.md` and the relevant canonical `docs/*.md` files if user-facing behavior changed.
 8. Summarize file-level changes and verification evidence.
 
 ## 14. Pre-Completion Checklist
@@ -224,7 +237,7 @@ Before declaring done:
 1. `go test` on affected scope passes.
 2. No formatting drift (`gofmt -s -l .` should be empty for changed Go files).
 3. Command help/flags still coherent.
-4. Docs updated for user-visible changes.
+4. `README.md` and relevant canonical `docs/*.md` files updated for user-visible changes.
 5. `git status` reviewed for unintended file changes.
 
 ## 15. Known Project-Specific Notes
@@ -277,4 +290,4 @@ This is the **mandatory approach for agents to test the real desktop UI**.
 
 ### Test Reports
 
-Desktop UI test plans and results should be stored under `docs/desktop/`.
+Desktop UI test plans and results should be stored in top-level docs files (for example `docs/desktop.md` or `docs/desktop-testing.md`).
