@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.30.0] - 2026-03-26
+
+### ✨ New Features
+
+- **Command Aliases**: Introduced command aliases and shortcuts for improved CLI usability, allowing users to run `up`, `down`, `ps`, and `logs` as top-level shortcuts.
+- **Enhanced Service Management**: Added new flags and Portainer integration to the `svc` command for better observability of global services.
+
+### 🛠 Improvements
+
+- **DB Command Refactor**: Refactored `db` command flags for consistency. The `--no-pii` shorthand is now `-P`, and `--sanitize` is introduced as a `-S` alias.
+- **Improved Help Output**: Enhanced help output by dynamically filtering compose flags and adding Govard-specific options.
+- **Documentation Restructuring**: Restructured and consolidated documentation into broader topics for better navigation and clarity.
+- **Framework Detection & Config**: Simplified framework detection logic and added profile-based config loading for more flexible environment setups.
+
 ## [1.29.0] - 2026-03-25
 
 ### ✨ New Features
