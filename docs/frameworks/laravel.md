@@ -10,10 +10,7 @@ Govard provides a pre-configured stack for Laravel applications with automated e
 
 ## Detection
 
-Govard detects Laravel when one of the following is present:
-
-- `laravel/framework` in `composer.json`
-- `artisan` file in the project root
+Govard detects Laravel when `laravel/framework` is present in `composer.json`.
 
 ## Default Stack
 
@@ -46,6 +43,7 @@ govard tool artisan migrate
 
 # Clear cache
 govard tool artisan cache:clear
+```
 
 ## Testing Integration
 
@@ -60,4 +58,3 @@ govard test phpstan
 ```
 
 Tests run as the web user inside the PHP container.
-```

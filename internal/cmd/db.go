@@ -88,7 +88,7 @@ func init() {
 	dbCmd.Flags().Bool("stream-db", false, "For import: stream dump from remote environment into local database")
 	dbCmd.Flags().BoolP("no-noise", "N", false, "For dump: exclude ephemeral tables (cron, cache, session, logs...)")
 	dbCmd.Flags().BoolP("no-pii", "S", false, "For dump: exclude PII/sensitive tables (customers, orders...)")
-	dbCmd.Flags().Bool("drop", false, "For import: drop and recreate the database before importing (Magento only)")
+	dbCmd.Flags().Bool("drop", false, "For import: drop and recreate the database before importing")
 	dbCmd.Flags().Bool("local", false, "For dump/import: force local file operations for remote environments")
 	dbCmd.Flags().BoolP("yes", "y", false, "Skip confirmation prompts")
 }

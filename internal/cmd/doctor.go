@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"govard/internal/engine"
 	"os"
+	"strings"
 
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
@@ -13,7 +14,8 @@ import (
 var doctorCmd = &cobra.Command{
 	Use:   "doctor",
 	Short: "Run system diagnostics",
-	Long: `Run system diagnostics and report on the health of your local Govard environment.
+	Long: strings.TrimSpace(`
+Run system diagnostics and report on the health of your local Govard environment.
 
 Checks:
   - Docker daemon connectivity
@@ -25,7 +27,19 @@ Checks:
   - SSH agent connectivity and loaded keys
 
 Use --fix to apply safe automatic remediations. Use --json for machine-readable output.
-Use --pack to export a diagnostics support bundle for sharing with support.`,
+Use --pack to export a diagnostics support bundle for sharing with support.
+`),
+	Example: `  # Run a standard diagnostic pass
+  govard doctor
+
+  # Apply safe automatic fixes when available
+  govard doctor --fix
+
+  # Export a diagnostics support pack
+  govard doctor --pack
+
+  # Trust the Govard local CA
+  govard doctor trust`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		outputJSON, _ := cmd.Flags().GetBool("json")
 		fixEnabled, _ := cmd.Flags().GetBool("fix")

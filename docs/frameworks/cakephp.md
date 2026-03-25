@@ -9,10 +9,7 @@ Govard provides a pre-configured stack for CakePHP applications with automated e
 
 ## Detection
 
-Govard detects CakePHP when one of the following is present:
-
-- `cakephp/cakephp` in `composer.json`
-- `bin/cake` file in the project root
+Govard detects CakePHP when `cakephp/cakephp` is present in `composer.json`.
 
 ## Default Stack
 

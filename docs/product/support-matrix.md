@@ -35,7 +35,8 @@
 
 ## Command Contract Notes
 
-- `govard doctor` is diagnostics-only.
+- `govard doctor` supports diagnostics, JSON output, safe fixes (`--fix`), and support pack export (`--pack`, `--pack-dir`).
 - `govard doctor fix-deps` checks required host dependencies (`docker`, `docker compose`, `ssh`, `rsync`).
+- `govard doctor trust` installs the Govard local CA into the system trust store and attempts NSS browser import when available.
 - `govard config profile` is read-only.
 - `govard config profile apply` writes runtime choices into `.govard.yml` only.

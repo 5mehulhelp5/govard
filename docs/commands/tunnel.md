@@ -1,6 +1,6 @@
 # govard tunnel
 
-Manage public tunnels and automatic base URL registration for local projects.
+Manage public tunnels and framework-specific base URL registration for local projects.
 
 ## Usage
 
@@ -15,7 +15,7 @@ govard tunnel start --provider cloudflare --plan
 
 ### `start [url]`
 
-Starts a public tunnel and **automatically updates your local project base URL** to match the tunnel address. When the tunnel is stopped, the base URL is automatically reverted to the original value.
+Starts a public tunnel. For supported frameworks, Govard also updates the local project base URL to match the tunnel address and reverts it when the tunnel stops.
 
 Defaults:
 - Provider: `cloudflare`
@@ -28,7 +28,7 @@ Check if a tunnel is currently active and display the public URL.
 
 ### `stop`
 
-Stop the active tunnel and revert the project base URL.
+Stop the active tunnel and revert the project base URL for supported frameworks.
 
 ## Options
 
@@ -39,5 +39,6 @@ Stop the active tunnel and revert the project base URL.
 
 ## Notes
 
-- **Automatic Base URL:** Govard detects your framework (Magento, Laravel, etc.) and updates the relevant configuration (e.g., `web/unsecure/base_url` in Magento) while the tunnel is active.
+- **Automatic Base URL:** Govard currently mutates application base URL only for `magento1`, `magento2`, `laravel`, `symfony`, and `wordpress`.
+- For other frameworks, Govard still starts the tunnel but does not change application config.
 - Tunnels run as background processes. Use `tunnel stop` to clean up.

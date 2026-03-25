@@ -156,15 +156,15 @@ Manage global services and workspace-wide sleep state.
 ```bash
 govard svc up
 govard svc up --pull
-govard svc up --fallback-local-build
+govard svc up --no-fallback
 govard svc up --remove-orphans
-govard svc up --auto-trust=false
-govard svc up --trust-browsers=false
+govard svc up --no-trust
 govard svc down
 govard svc down --remove-orphans
 govard svc restart
 govard svc restart --pull
-govard svc restart --fallback-local-build
+govard svc restart --no-fallback
+govard svc restart --no-trust
 govard svc restart --remove-orphans
 govard svc pull
 govard svc ps
@@ -176,8 +176,8 @@ govard svc wake
 
 `svc up`, `svc down`, and `svc restart` manage the global services suite (proxy, mailpit, phpmyadmin, and portainer).
 By default, `svc up` and `svc restart` also auto-trust Govard Root CA on the host machine.
-Set `--auto-trust=false` to skip CA trust, or `--trust-browsers=false` to skip browser NSS import.
-`--fallback-local-build` allows `svc up/restart` to build missing Govard-managed images locally and retry startup once.
+Set `--no-trust` to skip CA trust installation.
+Govard also retries startup with local image fallback by default; set `--no-fallback` to disable that retry.
 
 `svc sleep` stops all running Govard projects detected from Docker and persists wake state to
 `~/.govard/sleep-state.json` (override with `GOVARD_SLEEP_STATE_PATH`).

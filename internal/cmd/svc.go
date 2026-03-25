@@ -23,17 +23,29 @@ var errGlobalServicesNotInitialized = errors.New("global services are not initia
 var svcCmd = &cobra.Command{
 	Use:   "svc",
 	Short: "Manage global services and workspace sleep state",
-	Long: `Manage global shared services (Proxy, Mailpit, PHPMyAdmin) and control the workspace state.
+	Long: strings.TrimSpace(`
+Manage global shared services (Proxy, Mailpit, PHPMyAdmin, Portainer) and control the workspace state.
 Global services are shared across all projects.
 
 Govard intelligently proxies global Docker Compose commands to the shared service stack.
+Govard-specific toggles on 'up'/'restart' include:
+- --pull: pull latest images before startup
+- --no-trust: skip Govard Root CA trust installation
+- --no-fallback: disable automatic local image build retry if pulls fail
 
 Case Studies:
 - Setup: Use 'govard svc up' to start the global proxy and shared utilities.
 - Troubleshooting: Use 'govard svc logs' or 'govard svc ps' to check global service health.
-- Optimization: Use 'govard svc sleep' to pause all running project containers at once.`,
+- Optimization: Use 'govard svc sleep' to pause all running project containers at once.
+`),
 	Example: `  # Start global services (Proxy, Mail, etc.)
   govard svc up
+
+  # Start global services without CA trust installation
+  govard svc up --no-trust
+
+  # Disable automatic local image build fallback
+  govard svc up --no-fallback
 
   # Stop all global services
   govard svc down

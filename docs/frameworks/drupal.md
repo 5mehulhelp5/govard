@@ -9,10 +9,7 @@ Govard provides support for Drupal projects with optimized nginx configurations 
 
 ## Detection
 
-Govard detects Drupal when one of the following is present:
-
-- `drupal/core` in `composer.json`
-- `web/core` or `core` directory exists
+Govard detects Drupal when `drupal/core` is present in `composer.json`.
 
 ## Default Stack
 

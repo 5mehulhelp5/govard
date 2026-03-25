@@ -9,10 +9,11 @@ Govard provides support for WordPress development with automated configuration a
 
 ## Detection
 
-Govard detects WordPress when one of the following is present:
+Govard detects WordPress when one of the supported Composer packages is present in `composer.json`:
 
-- `wordpress` in `composer.json` or `wp-config.php` file
-- `wp-content` directory or `wordpress` folder exists
+- `johnpbloch/wordpress`
+- `roots/wordpress`
+- `wordpress/wordpress`
 
 ## Default Stack
 

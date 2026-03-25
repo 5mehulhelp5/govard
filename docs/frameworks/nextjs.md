@@ -9,7 +9,7 @@ Govard supports Next.js development with a streamlined Node.js stack and automat
 
 ## Detection
 
-Govard detects Next.js when `next` is present in `package.json` or a `next.config.js` / `next.config.mjs` file exists.
+Govard detects Next.js when `next` is present in `package.json`.
 
 ## Default Stack
 
@@ -54,6 +54,6 @@ govard tool npm run build
 # Start the development server
 govard env up
 
-# Open the site in your browser
-govard open site
+# Run a production build inside the container
+govard tool npm run build
 ```

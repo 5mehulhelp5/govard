@@ -9,10 +9,7 @@ Govard supports Symfony projects with a standard nginx/PHP-FPM stack and automat
 
 ## Detection
 
-Govard detects Symfony when one of the following is present:
-
-- `symfony/framework-bundle` in `composer.json`
-- `bin/console` file in the project root
+Govard detects Symfony when `symfony/framework-bundle` or `symfony/symfony` is present in `composer.json`.
 
 ## Default Stack
 
@@ -26,8 +23,8 @@ Govard detects Symfony when one of the following is present:
 Use `bin/console` for Symfony CLI tasks:
 
 ```bash
-govard tool console list
-govard tool console cache:clear
+govard tool symfony list
+govard tool symfony cache:clear
 ```
 
 ## Remote Database Operations
@@ -41,5 +38,5 @@ Govard auto-detects remote database credentials for Symfony by SSHing to the rem
 govard env up
 
 # Clear cache
-govard tool console cache:clear
+govard tool symfony cache:clear
 ```

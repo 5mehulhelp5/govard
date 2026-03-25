@@ -5,10 +5,11 @@
 Govard loads config layers in this order:
 
 1. `.govard.yml`
-2. `.govard.local.yml` (legacy local override)
-3. `.govard/.govard.local.yml` (project extension local override, preferred)
-4. `.govard.<env>.yml` (legacy env override, enabled by `GOVARD_ENV`)
-5. `.govard/.govard.<env>.yml` (project extension env override, preferred)
+2. `.govard.<profile>.yml` (profile override, enabled by `--profile`)
+3. `.govard.local.yml` (legacy local override)
+4. `.govard/.govard.local.yml` (project extension local override, preferred)
+5. `.govard.<env>.yml` (legacy env override, enabled by `GOVARD_ENV`)
+6. `.govard/.govard.<env>.yml` (project extension env override, preferred)
 
 Later layers override earlier layers.
 
@@ -17,6 +18,9 @@ Later layers override earlier layers.
 - `.govard.yml`:
   - Source of truth committed to repository.
   - Writable by Govard commands (`init`, `config set`, `profile apply`, etc.).
+- `.govard.<profile>.yml`:
+  - Team-shared profile overrides selected via `--profile`.
+  - Not managed by Govard write operations.
 - `.govard.local.yml`:
   - Developer-local overrides (legacy path).
   - Not managed by Govard write operations.

@@ -17,20 +17,25 @@ var openClient bool
 var openCmd = &cobra.Command{
 	Use:   "open [target]",
 	Short: "Open common service URLs",
-	Long: `Quickly open web interfaces for various services in your default browser.
-Supported targets: admin, db (PMA/DB Client), mail (Mailpit), portainer, sftp, elasticsearch, opensearch.
+	Long: strings.TrimSpace(`
+Quickly open web interfaces for various services in your default browser.
+Supported targets: admin, db (PMA/DB Client), mail (Mailpit), mftf, portainer, shell, sftp, elasticsearch, opensearch.
 
 Targets:
 - admin: The web application's admin panel.
 - db: PHPMyAdmin (local) or local DB client (remote).
 - mail: Mailpit web UI for inspecting outgoing emails.
+- mftf: Magento Functional Testing Framework web endpoint.
+- shell: Open or print shell access details for the target environment.
 - sftp: SFTP connection details (remote).
 - elasticsearch/opensearch: Search engine endpoint info.
 
 Case Studies:
 - Fast Login: Use 'govard open admin' to jump straight to the login page.
+- QA Access: Use 'govard open mftf' to reach MFTF services when enabled.
 - Remote Debugging: Open SFTP details for a remote environment to check logs or config files.
-- Database Inspection: Quickly open PHPMyAdmin locally or get connection strings for remote DBs.`,
+- Database Inspection: Quickly open PHPMyAdmin locally or get connection strings for remote DBs.
+`),
 	Example: `  # Open the local admin panel
   govard open admin
 

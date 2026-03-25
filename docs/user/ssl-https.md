@@ -101,8 +101,7 @@ What happens automatically:
 Optional flags on `svc up`/`svc restart`:
 
 ```bash
-govard svc up --auto-trust=false
-govard svc up --trust-browsers=false
+govard svc up --no-trust
 ```
 
 ### 3. Browser Configuration

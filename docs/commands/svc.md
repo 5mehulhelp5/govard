@@ -19,6 +19,7 @@ govard svc restart
 - `--pull`: Pull latest global service images.
 - `--force-recreate`: Recreate containers even if their configuration and image haven't changed.
 - `--no-trust`: Skip root CA trust installation.
+- `--no-fallback`: Disable the automatic local image build retry when managed images cannot be pulled.
 - `--remove-orphans`: Remove obsolete global containers.
 
 ---

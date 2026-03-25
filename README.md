@@ -30,7 +30,7 @@ At a glance, these are the areas where Govard delivers stronger day-to-day value
 ## 🚀 Key Features
 
 - **Snapshot Compression**: Database snapshots are now gzipped by default, saving up to 90% disk space.
-- **Automatic Tunnel URL**: One-click public tunnels (`govard tunnel start`) that automatically update and revert your project base URL.
+- **Automatic Tunnel URL**: One-click public tunnels (`govard tunnel start`) with automatic base URL update/revert for supported frameworks (`magento1`, `magento2`, `laravel`, `symfony`, `wordpress`).
 - **Integrated Testing**: Run `phpunit`, `phpstan`, and `mftf` directly with `govard test`.
 - **Redis & Valkey Management**: Full support for Redis and Valkey CLI, flushing, and info across local and remote environments.
 - **Database Observability**: Live query monitoring with `govard db top` and real-time progress bars for imports and syncs.
@@ -40,7 +40,7 @@ At a glance, these are the areas where Govard delivers stronger day-to-day value
 - **Xdebug Routing**: Dedicated `php-debug` container, activated only when `XDEBUG_SESSION` cookie is present.
 - **Queue Support**: Optional RabbitMQ service for async workloads.
 - **High Performance**: Built with Go and utilizes the native Docker SDK for direct container orchestration.
-- **Local Image Fallback**: Automatically build missing Govard-managed images locally from embedded blueprints if they cannot be pulled from Docker Hub (via `--fallback-local-build`).
+- **Local Image Fallback**: Automatically build missing Govard-managed images locally from embedded blueprints if they cannot be pulled from Docker Hub. Disable this retry with `--no-fallback`.
 - **Smart Templating**: Uses the Go `text/template` engine to render dynamic Docker Compose files from framework-specific Blueprints.
 - **Magento 2 Optimized**: Deep integration for Magento 2, including automated `env.php` configuration, Varnish 7.x support, and Redis caching.
 - **Remote Management (Flagship)**: Manage named remotes for sync/deploy/db workflows with scope-based capabilities (`files,media,db,deploy`) and flexible auth modes (`keychain`, `ssh-agent`, `keyfile`).
@@ -329,8 +329,8 @@ What happens automatically:
 Optional flags on `svc up`/`svc restart`:
 
 ```bash
-govard svc up --auto-trust=false
-govard svc up --trust-browsers=false
+govard svc up --no-trust
+govard svc up --no-fallback
 ```
 
 ### 3. Browser Configuration

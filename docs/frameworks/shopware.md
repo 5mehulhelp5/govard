@@ -9,7 +9,7 @@ Govard supports Shopware projects with optimized nginx configurations and sensib
 
 ## Detection
 
-Govard detects Shopware when `shopware/core` is present in `composer.json` or related Shopware files exist.
+Govard detects Shopware when `shopware/core` or `shopware/platform` is present in `composer.json`.
 
 ## Default Stack
 
@@ -23,8 +23,8 @@ Govard detects Shopware when `shopware/core` is present in `composer.json` or re
 Use the Shopware CLI:
 
 ```bash
-govard tool console list
-govard tool console cache:clear
+govard tool shopware list
+govard tool shopware cache:clear
 ```
 
 ## Remote Database Operations
@@ -38,5 +38,5 @@ Govard auto-detects remote database credentials for Shopware by SSHing to the re
 govard env up
 
 # Clear cache
-govard tool console cache:clear
+govard tool shopware cache:clear
 ```
