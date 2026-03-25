@@ -14,7 +14,7 @@ govard sync -s dev --db --no-pii
 ## Options
 
 - `-s, --source`, `--from` Source environment (default: `staging`). Accepts remote name or alias (e.g. `dev`, `stg`, `prod`).
-- `-e, --environment` Legacy source alias kept for compatibility. Prefer `--source` or `--from`.
+- `-e, --environment` Supported source environment selector. Use it interchangeably with `--source` when that naming fits your workflow.
 - `-d, --destination`, `--to` Destination environment (default: `local`). Accepts remote name or alias.
 - `--file` Sync source code/files
 - `--media` Sync media files

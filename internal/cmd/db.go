@@ -19,6 +19,7 @@ import (
 
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"golang.org/x/term"
 )
 
@@ -87,7 +88,8 @@ func init() {
 	dbCmd.Flags().String("profile", "", "Environment scope (profile) to use")
 	dbCmd.Flags().Bool("stream-db", false, "For import: stream dump from remote environment into local database")
 	dbCmd.Flags().BoolP("no-noise", "N", false, "For dump: exclude ephemeral tables (cron, cache, session, logs...)")
-	dbCmd.Flags().BoolP("no-pii", "S", false, "For dump: exclude PII/sensitive tables (customers, orders...)")
+	dbCmd.Flags().BoolP("no-pii", "P", false, "For dump: exclude PII/sensitive tables (customers, orders...)")
+	dbCmd.Flags().BoolP("sanitize", "S", false, "Alias for --no-pii")
 	dbCmd.Flags().Bool("drop", false, "For import: drop and recreate the database before importing")
 	dbCmd.Flags().Bool("local", false, "For dump/import: force local file operations for remote environments")
 	dbCmd.Flags().BoolP("yes", "y", false, "Skip confirmation prompts")
@@ -315,6 +317,10 @@ func readDBCommandOptions(cmd *cobra.Command) (dbCommandOptions, error) {
 	if err != nil {
 		return dbCommandOptions{}, err
 	}
+	sanitizePII, err := cmd.Flags().GetBool("sanitize")
+	if err != nil {
+		return dbCommandOptions{}, err
+	}
 	profile, _ := cmd.Flags().GetString("profile")
 	assumeYes, _ := cmd.Flags().GetBool("yes")
 	return dbCommandOptions{
@@ -323,7 +329,7 @@ func readDBCommandOptions(cmd *cobra.Command) (dbCommandOptions, error) {
 		Profile:     profile,
 		StreamDB:    streamDB,
 		NoNoise:     noNoise,
-		NoPII:       noPII,
+		NoPII:       noPII || sanitizePII,
 		Drop:        drop,
 		Local:       local,
 		AssumeYes:   assumeYes,
@@ -359,6 +365,14 @@ func validateDBCommandOptions(subcommand string, options dbCommandOptions) error
 		return fmt.Errorf("unknown db subcommand: %s", subcommand)
 	}
 	return nil
+}
+
+// ResetDBFlagsForTest resets db command flags to defaults for tests.
+func ResetDBFlagsForTest() {
+	dbCmd.Flags().VisitAll(func(flag *pflag.Flag) {
+		_ = flag.Value.Set(flag.DefValue)
+		flag.Changed = false
+	})
 }
 
 func runDBHooks(config engine.Config, pre string, post string, cmd *cobra.Command, action func() error) error {

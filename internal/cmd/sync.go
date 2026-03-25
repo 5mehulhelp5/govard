@@ -30,7 +30,7 @@ Framework Notes:
 - General: You can use --include/--exclude to fine-tune rsync behavior.
 - Single File: Use --path "path/to/file" to sync a specific file or directory.
 - Preferred naming: use --source/--from and --destination/--to.
-- Legacy compatibility: -e / --environment is still accepted as a source alias.
+- -e / --environment remains a supported source-environment selector.
 
 Case Studies:
 - Daily Data Refresh: Fetch the latest DB and media from staging to work on a fresh dataset.
@@ -320,7 +320,7 @@ func init() {
 	// Environment & Scopes
 	syncCmd.Flags().StringP("source", "s", "staging", "Source environment")
 	syncCmd.Flags().String("from", "", "Source environment alias for --source")
-	syncCmd.Flags().StringP("environment", "e", "staging", "Legacy source environment alias for --source")
+	syncCmd.Flags().StringP("environment", "e", "staging", "Source environment alias for --source")
 	syncCmd.Flags().StringP("destination", "d", "local", "Destination environment")
 	syncCmd.Flags().String("to", "", "Destination environment alias for --destination")
 	syncCmd.Flags().BoolP("full", "A", false, "Sync files, media, and database")

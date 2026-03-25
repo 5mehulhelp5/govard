@@ -29,7 +29,7 @@ Common command aliases:
 
 - `--from` is a clearer alias for `--source`
 - `--to` is a clearer alias for `--destination`
-- `-e, --environment` remains accepted as a legacy alias for source
+- `-e, --environment` remains a supported source-environment option
 
 ## Environment Commands
 
@@ -379,7 +379,7 @@ Synchronize files, media, and databases between environments.
 - **Filtering**: Supports rsync include/exclude filters via repeatable `--include` and `--exclude` flags.
 - **Resumable Transfers**: Uses resumable rsync mode by default (`--resume`).
 - **Path Selection**: Target specific files or directories with `--path`.
-- **Alias Cleanup**: Prefer `--source` / `--from` and `--destination` / `--to`. `-e, --environment` is kept as a legacy source alias for compatibility.
+- **Alias Cleanup**: Prefer `--source` / `--from` and `--destination` / `--to`. `-e, --environment` remains a supported source-environment option.
 
 See `docs/commands/sync.md`.
 
