@@ -198,8 +198,8 @@ func TestBlueprintRenderingWithAllFeatures(t *testing.T) {
 		t.Error("Missing Xdebug debug mode configuration")
 	}
 
-	varnishVclPath := filepath.Join(projectDir, "varnish", "default.vcl")
+	varnishVclPath := filepath.Join(engine.GovardHomeDir(), "varnish", config.ProjectName, "default.vcl")
 	if _, err := os.Stat(varnishVclPath); os.IsNotExist(err) {
-		t.Error("Varnish VCL file was not created")
+		t.Error("Varnish VCL file was not created in GovardHomeDir")
 	}
 }

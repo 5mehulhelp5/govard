@@ -205,9 +205,9 @@ func TestRenderBlueprintWithVarnish(t *testing.T) {
 		t.Error("Varnish service not found in compose file")
 	}
 
-	vclPath := filepath.Join(projectDir, "varnish", "default.vcl")
+	vclPath := filepath.Join(engine.GovardHomeDir(), "varnish", config.ProjectName, "default.vcl")
 	if _, err := os.Stat(vclPath); os.IsNotExist(err) {
-		t.Error("Varnish VCL file was not created")
+		t.Error("Varnish VCL file was not created in GovardHomeDir")
 	}
 }
 
