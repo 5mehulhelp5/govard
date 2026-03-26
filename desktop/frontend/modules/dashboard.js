@@ -293,7 +293,7 @@ const renderEnvironmentItem = (env, { selectedProject, sidebarMode }) => {
   const meta = classifyEnvironmentStatus(env);
   const isSelected = sidebarMode === "environments" && key === selectedProject;
 
-  const baseClass = `group flex items-center justify-start gap-2 py-2.5 px-3 rounded-lg cursor-pointer relative overflow-hidden transition-all ${isSelected
+  const baseClass = `group grid w-full items-center gap-x-2 py-2.5 px-3 rounded-lg text-left cursor-pointer relative overflow-hidden transition-all ${isSelected
     ? "active-env bg-primary/10 border border-primary/20 text-slate-900 shadow-[0_2px_8px_rgba(var(--primary-rgb),0.08)]"
     : "text-slate-600 dark:text-slate-200 hover:bg-background-primary/80 dark:hover:text-white"
     } ${!meta.active ? "dark:opacity-50" : "opacity-100"}`;
@@ -305,17 +305,17 @@ const renderEnvironmentItem = (env, { selectedProject, sidebarMode }) => {
   const titleClass = meta.active ? "text-text-primary" : "text-text-secondary";
 
   return `
-    <button data-action="select-environment" data-env="${escapeHTML(key)}" class="${baseClass}" title="Select ${escapeHTML(domain)}">
+    <button data-action="select-environment" data-env="${escapeHTML(key)}" class="${baseClass}" style="grid-template-columns:24px minmax(0,1fr)" title="Select ${escapeHTML(domain)}">
       ${selectionIndicator}
-      <div class="relative shrink-0 z-10">
-        <span data-action="toggle-env" data-env="${escapeHTML(key)}" class="material-symbols-outlined ${meta.iconClass} transition-colors hover:text-slate-900 dark:hover:text-white text-[20px]" ${meta.iconStyle}>${meta.iconName}</span>
+      <div class="relative flex h-6 w-6 items-center justify-center self-center z-10">
+        <span data-action="toggle-env" data-env="${escapeHTML(key)}" class="material-symbols-outlined leading-none ${meta.iconClass} transition-colors hover:text-slate-900 dark:hover:text-white text-[20px]" ${meta.iconStyle}>${meta.iconName}</span>
         ${meta.showPulseDot
       ? `<span class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary border border-[var(--bg-primary)] animate-pulse"></span>`
       : ""
     }
       </div>
-      <div class="min-w-0 pointer-events-none">
-        <div class="text-sm font-semibold truncate ${titleClass}">${escapeHTML(domain)}</div>
+      <div class="min-w-0 flex flex-col justify-center pointer-events-none">
+        <div class="text-sm font-semibold leading-tight truncate ${titleClass}">${escapeHTML(domain)}</div>
         <div class="text-[11px] ${meta.active ? meta.detailClass : "text-slate-600 dark:text-slate-500"} flex items-center gap-1 font-medium">
           <span class="w-1 h-1 rounded-full ${meta.dotClass}"></span>
           <span>${escapeHTML(meta.detailText)}</span>
@@ -351,7 +351,7 @@ export const renderEnvironmentSkeletons = (container) => {
   `,
     )
     .join("");
-  const inactiveHeader = `<div class="px-1 mt-4 pb-4 text-[10px] font-semibold text-slate-500 uppercase tracking-[0.12em]">Inactive Environments</div>`;
+  const inactiveHeader = `<div class="px-1 mt-4 pb-4 text-[10px] font-semibold text-primary/80 uppercase tracking-[0.12em]">Inactive Environments</div>`;
   container.innerHTML =
     globalRow + activeHeader + items + inactiveHeader + items;
 };
@@ -446,7 +446,7 @@ export const renderEnvironmentList = (
       "Inactive Environments",
       inactive,
       "No projects found.",
-      "text-slate-400/80",
+      "text-primary/70",
       "mt-8",
     );
 };

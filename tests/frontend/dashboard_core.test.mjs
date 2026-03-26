@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises";
 import {
   localEnvironmentURL,
   normalizeDashboardPayload,
+  renderEnvironmentList,
   renderProjectHero,
   serviceTargets,
 } from "../../desktop/frontend/modules/dashboard.js";
@@ -169,6 +170,38 @@ test("sidebar mode switch drives global services panel on the right", async () =
     dashboardJS.includes('data-action="switch-sidebar-mode"'),
     true,
     "missing sidebar mode switch action",
+  );
+});
+
+test("inactive environments label uses the same primary styling as active environments", () => {
+  const container = { innerHTML: "" };
+
+  renderEnvironmentList(
+    container,
+    [
+      {
+        Project: "m2govard",
+        Domain: "m2govard.test",
+        Status: "running",
+        Services: [{ Name: "Nginx" }],
+      },
+      {
+        Project: "govard",
+        Domain: "govard",
+        Status: "stopped",
+        Services: [],
+      },
+    ],
+    "m2govard",
+    { sidebarMode: "environments" },
+  );
+
+  assert.equal(
+    container.innerHTML.includes(
+      '<div class="px-1 mt-8 pb-2 text-[10px] font-bold text-primary/70 uppercase tracking-[0.12em]">Inactive Environments</div>',
+    ),
+    true,
+    "inactive environments label should reuse the primary header styling",
   );
 });
 
@@ -367,6 +400,18 @@ test("project hero exposes pull button contract", async () => {
     html.includes('data-action="env-pull"'),
     true,
     "hero pull button should trigger env-pull action",
+  );
+  assert.equal(
+    html.includes('id="projectUrl"'),
+    true,
+    "missing project URL link",
+  );
+  assert.equal(
+    html.includes(
+      'class="mb-2 text-emerald-700 dark:text-primary hover:text-emerald-800 dark:hover:text-primary/80 transition-colors text-sm font-bold flex items-center gap-1 leading-none"',
+    ),
+    true,
+    "project URL link should keep bottom spacing before technology badges",
   );
 });
 
