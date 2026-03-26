@@ -144,6 +144,13 @@ func (m *Magento1Bootstrap) createLocalXml(projectDir string) error {
         <session_save><![CDATA[files]]></session_save>
         <session_save_path><![CDATA[var/session]]></session_save_path>
     </global>
+    <default>
+        <web>
+            <secure>
+                <offloader_header><![CDATA[HTTP_X_FORWARDED_PROTO]]></offloader_header>
+            </secure>
+        </web>
+    </default>
     <admin>
         <routers>
             <adminhtml>
@@ -188,7 +195,7 @@ func RunMagento1SetConfigSQL(containerName string, baseURL string, dbUser string
 		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}skin/' WHERE path IN ('web/unsecure/base_skin_url', 'web/secure/base_skin_url')",
 		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}media/' WHERE path IN ('web/unsecure/base_media_url', 'web/secure/base_media_url')",
 		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}js/' WHERE path IN ('web/unsecure/base_js_url', 'web/secure/base_js_url')",
-		"UPDATE " + dbPrefix + "core_config_data SET value = 'X-Forwarded-Proto' WHERE path = 'web/secure/offloader_header'",
+		"UPDATE " + dbPrefix + "core_config_data SET value = 'HTTP_X_FORWARDED_PROTO' WHERE path = 'web/secure/offloader_header'",
 		"UPDATE " + dbPrefix + "core_config_data SET value = '1' WHERE path = 'web/secure/use_in_frontend'",
 		"UPDATE " + dbPrefix + "core_config_data SET value = '1' WHERE path = 'web/secure/use_in_adminhtml'",
 		"UPDATE " + dbPrefix + "core_config_data SET value = '0' WHERE path = 'web/url/redirect_to_base'",

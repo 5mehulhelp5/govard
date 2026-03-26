@@ -93,6 +93,17 @@ func RegisterDomain(domain string, targetContainer string) error {
 	}
 
 	changed := ensureTLSConfig(config)
+	if strings.HasSuffix(domain, ".test") {
+		policies, ok := config["apps"].(map[string]interface{})["tls"].(map[string]interface{})["automation"].(map[string]interface{})["policies"].([]interface{})
+		if ok {
+			newPolicies, policyChanged := ensurePolicySubject(policies, domain, changed)
+			if policyChanged {
+				config["apps"].(map[string]interface{})["tls"].(map[string]interface{})["automation"].(map[string]interface{})["policies"] = newPolicies
+				changed = true
+			}
+		}
+	}
+
 	if upsertDomainRoute(config, domain, targetContainer) {
 		changed = true
 	}
