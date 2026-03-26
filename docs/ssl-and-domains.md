@@ -78,6 +78,13 @@ govard domain list
 
 Govard maps these domains through the same proxy and CA flow as the primary project domain.
 
+For Magento multi-site setups:
+
+- use `store_domains` when you want Govard to route those hostnames automatically and set scoped base URLs in Magento
+- use object entries in `store_domains` when you want Govard to emit `MAGE_RUN_CODE` / `MAGE_RUN_TYPE` host mappings
+- you do not need manual `.htaccess` `SetEnvIf` rules for the standard typed `store_domains` flow
+- use `extra_domains` only for additional hostnames that are not already declared in `store_domains`
+
 ## How Routing Works
 
 1. `govard env up` renders the project stack and registers routes

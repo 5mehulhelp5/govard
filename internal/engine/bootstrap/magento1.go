@@ -77,24 +77,12 @@ func (m *Magento1Bootstrap) PostClone(projectDir string) error {
 		}
 	}
 
-	if err := m.SetConfig(projectDir); err != nil {
-		pterm.Warning.Printf("Failed to configure base URLs: %v\n", err)
-	}
-
 	if err := m.CreateAdmin(projectDir); err != nil {
 		pterm.Warning.Printf("Failed to create admin user: %v\n", err)
 	}
 
 	pterm.Success.Println("Post-clone setup completed")
 	return nil
-}
-
-func (m *Magento1Bootstrap) SetConfig(projectDir string) error {
-	baseURL := fmt.Sprintf("https://%s/", m.Options.Domain)
-	containerName := fmt.Sprintf("%s-db-1", m.Options.ProjectName)
-
-	pterm.Info.Println("Configuring Magento 1 base URLs...")
-	return RunMagento1SetConfigSQL(containerName, baseURL, m.Options.DBUser, m.Options.DBPass, m.Options.DBName, "")
 }
 
 func (m *Magento1Bootstrap) CreateAdmin(projectDir string) error {
@@ -186,10 +174,8 @@ func generateMagento1CryptKey() (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
-// RunMagento1SetConfigSQL executes Magento 1 base URL configuration SQL against the local DB container.
-// containerName is the docker container (e.g. "myproject-db-1"), baseURL is https://host.test/.
-func RunMagento1SetConfigSQL(containerName string, baseURL string, dbUser string, dbPassword string, dbName string, dbPrefix string) error {
-	sqls := []string{
+func BuildMagento1SetConfigSQLStatements(baseURL string, dbPrefix string) []string {
+	return []string{
 		fmt.Sprintf("UPDATE %score_config_data SET value = '%s' WHERE path IN ('web/secure/base_url', 'web/unsecure/base_url')", dbPrefix, baseURL),
 		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}' WHERE path IN ('web/unsecure/base_link_url', 'web/secure/base_link_url')",
 		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}skin/' WHERE path IN ('web/unsecure/base_skin_url', 'web/secure/base_skin_url')",
@@ -202,13 +188,62 @@ func RunMagento1SetConfigSQL(containerName string, baseURL string, dbUser string
 		"UPDATE " + dbPrefix + "core_config_data SET value = NULL WHERE path = 'web/cookie/cookie_domain'",
 		"UPDATE " + dbPrefix + "core_config_data SET value = '/' WHERE path = 'web/cookie/cookie_path'",
 	}
+}
 
-	for _, sql := range sqls {
-		if err := RunMagento1SQL(containerName, dbUser, dbPassword, dbName, sql); err != nil {
-			pterm.Warning.Printf("set-config SQL failed (continuing): %v\n", err)
-		}
+func BuildMagento1ScopedBaseURLSQLStatements(scopeCode string, baseURL string, dbPrefix string) []string {
+	statements := BuildMagento1WebsiteBaseURLSQLStatements(scopeCode, baseURL, dbPrefix)
+	statements = append(statements, BuildMagento1StoreBaseURLSQLStatements(scopeCode, baseURL, dbPrefix)...)
+	return statements
+}
+
+func BuildMagento1WebsiteBaseURLSQLStatements(scopeCode string, baseURL string, dbPrefix string) []string {
+	scopeCodeSQL := ShellEscape(scopeCode)
+	baseURLSQL := ShellEscape(baseURL)
+	configTable := dbPrefix + "core_config_data"
+	scopeTable := dbPrefix + "core_website"
+	return []string{
+		fmt.Sprintf(
+			"UPDATE %s cfg JOIN %s scope_entity ON scope_entity.website_id = cfg.scope_id SET cfg.value = %s WHERE cfg.scope = 'websites' AND scope_entity.code = %s AND cfg.path = 'web/unsecure/base_url'",
+			configTable, scopeTable, baseURLSQL, scopeCodeSQL,
+		),
+		fmt.Sprintf(
+			"INSERT INTO %s (scope, scope_id, path, value) SELECT 'websites', scope_entity.website_id, 'web/unsecure/base_url', %s FROM %s scope_entity WHERE scope_entity.code = %s AND NOT EXISTS (SELECT 1 FROM %s cfg WHERE cfg.scope = 'websites' AND cfg.scope_id = scope_entity.website_id AND cfg.path = 'web/unsecure/base_url')",
+			configTable, baseURLSQL, scopeTable, scopeCodeSQL, configTable,
+		),
+		fmt.Sprintf(
+			"UPDATE %s cfg JOIN %s scope_entity ON scope_entity.website_id = cfg.scope_id SET cfg.value = %s WHERE cfg.scope = 'websites' AND scope_entity.code = %s AND cfg.path = 'web/secure/base_url'",
+			configTable, scopeTable, baseURLSQL, scopeCodeSQL,
+		),
+		fmt.Sprintf(
+			"INSERT INTO %s (scope, scope_id, path, value) SELECT 'websites', scope_entity.website_id, 'web/secure/base_url', %s FROM %s scope_entity WHERE scope_entity.code = %s AND NOT EXISTS (SELECT 1 FROM %s cfg WHERE cfg.scope = 'websites' AND cfg.scope_id = scope_entity.website_id AND cfg.path = 'web/secure/base_url')",
+			configTable, baseURLSQL, scopeTable, scopeCodeSQL, configTable,
+		),
 	}
-	return nil
+}
+
+func BuildMagento1StoreBaseURLSQLStatements(scopeCode string, baseURL string, dbPrefix string) []string {
+	scopeCodeSQL := ShellEscape(scopeCode)
+	baseURLSQL := ShellEscape(baseURL)
+	configTable := dbPrefix + "core_config_data"
+	scopeTable := dbPrefix + "core_store"
+	return []string{
+		fmt.Sprintf(
+			"UPDATE %s cfg JOIN %s scope_entity ON scope_entity.store_id = cfg.scope_id SET cfg.value = %s WHERE cfg.scope = 'stores' AND scope_entity.code = %s AND cfg.path = 'web/unsecure/base_url'",
+			configTable, scopeTable, baseURLSQL, scopeCodeSQL,
+		),
+		fmt.Sprintf(
+			"INSERT INTO %s (scope, scope_id, path, value) SELECT 'stores', scope_entity.store_id, 'web/unsecure/base_url', %s FROM %s scope_entity WHERE scope_entity.code = %s AND NOT EXISTS (SELECT 1 FROM %s cfg WHERE cfg.scope = 'stores' AND cfg.scope_id = scope_entity.store_id AND cfg.path = 'web/unsecure/base_url')",
+			configTable, baseURLSQL, scopeTable, scopeCodeSQL, configTable,
+		),
+		fmt.Sprintf(
+			"UPDATE %s cfg JOIN %s scope_entity ON scope_entity.store_id = cfg.scope_id SET cfg.value = %s WHERE cfg.scope = 'stores' AND scope_entity.code = %s AND cfg.path = 'web/secure/base_url'",
+			configTable, scopeTable, baseURLSQL, scopeCodeSQL,
+		),
+		fmt.Sprintf(
+			"INSERT INTO %s (scope, scope_id, path, value) SELECT 'stores', scope_entity.store_id, 'web/secure/base_url', %s FROM %s scope_entity WHERE scope_entity.code = %s AND NOT EXISTS (SELECT 1 FROM %s cfg WHERE cfg.scope = 'stores' AND cfg.scope_id = scope_entity.store_id AND cfg.path = 'web/secure/base_url')",
+			configTable, baseURLSQL, scopeTable, scopeCodeSQL, configTable,
+		),
+	}
 }
 
 // RunMagento1AdminUserSQL inserts/updates the admin user in the local DB using a salted MD5 hash.

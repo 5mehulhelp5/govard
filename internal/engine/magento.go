@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"govard/internal/engine/bootstrap"
+
 	"github.com/pterm/pterm"
 )
 
@@ -24,7 +26,7 @@ const (
 
 // MagentoConfigCommandsForTest exposes command planning for tests.
 func MagentoConfigCommandsForTest(projectName string, config Config) []magentoCommand {
-	return buildMagentoCommands(projectName, config)
+	return buildFrameworkAutoConfigurationCommands(projectName, config)
 }
 
 func ConfigureMagento(projectName string, config Config) error {
@@ -50,7 +52,7 @@ func ConfigureMagento(projectName string, config Config) error {
 		pterm.Warning.Printf("Could not prepare Magento writable dirs (continuing): %v\n", err)
 	}
 
-	commands := buildMagentoCommands(projectName, config)
+	commands := buildMagento2Commands(projectName, config)
 
 	for _, cmd := range commands {
 		pterm.Info.Printf("→ %s...\n", cmd.Desc)
@@ -259,7 +261,16 @@ func ensureMagentoLocalWritableDirs(containerName string, config Config) error {
 	return nil
 }
 
-func buildMagentoCommands(projectName string, config Config) []magentoCommand {
+func buildFrameworkAutoConfigurationCommands(projectName string, config Config) []magentoCommand {
+	switch strings.ToLower(config.Framework) {
+	case "magento1", "openmage":
+		return buildMagento1Commands(projectName, config)
+	default:
+		return buildMagento2Commands(projectName, config)
+	}
+}
+
+func buildMagento2Commands(projectName string, config Config) []magentoCommand {
 	containerName := fmt.Sprintf("%s-php-1", projectName)
 	searchEngine := ResolveMagentoSearchEngine(config)
 
@@ -345,17 +356,27 @@ func buildMagentoCommands(projectName string, config Config) []magentoCommand {
 	}
 
 	// Per-store base URLs
-	for domain, storeCode := range config.StoreDomains {
+	for domain, mapping := range config.StoreDomains {
+		scopeCode := mapping.ScopeCode()
+		if scopeCode == "" {
+			continue
+		}
 		baseURL := fmt.Sprintf("https://%s/", domain)
+		scopeFlag := "--scope=stores"
+		scopeDesc := "store"
+		if mapping.ScopeType() == "website" {
+			scopeFlag = "--scope=websites"
+			scopeDesc = "website"
+		}
 		commands = append(commands, magentoCommand{
-			Desc: fmt.Sprintf("Setting Base URL for store %s", storeCode),
+			Desc: fmt.Sprintf("Setting Base URL for %s %s", scopeDesc, scopeCode),
 			Args: magentoDockerExecArgs(containerName, config, "bin/magento", "config:set",
-				"--scope=stores", "--scope-code="+storeCode, "web/unsecure/base_url", baseURL, "--no-interaction"),
+				scopeFlag, "--scope-code="+scopeCode, "web/unsecure/base_url", baseURL, "--no-interaction"),
 			Optional: true,
 		}, magentoCommand{
-			Desc: fmt.Sprintf("Setting Secure Base URL for store %s", storeCode),
+			Desc: fmt.Sprintf("Setting Secure Base URL for %s %s", scopeDesc, scopeCode),
 			Args: magentoDockerExecArgs(containerName, config, "bin/magento", "config:set",
-				"--scope=stores", "--scope-code="+storeCode, "web/secure/base_url", baseURL, "--no-interaction"),
+				scopeFlag, "--scope-code="+scopeCode, "web/secure/base_url", baseURL, "--no-interaction"),
 			Optional: true,
 		})
 	}
@@ -379,6 +400,71 @@ func buildMagentoCommands(projectName string, config Config) []magentoCommand {
 			"twofactorauth/general/enable", "0", "--no-interaction"),
 		Optional: true,
 	})
+	return commands
+}
+
+func ConfigureMagento1(projectName string, config Config) error {
+	pterm.Info.Println("Configuring Magento 1 environment...")
+
+	commands := buildMagento1Commands(projectName, config)
+	for _, cmd := range commands {
+		pterm.Info.Printf("→ %s...\n", cmd.Desc)
+		output, err := exec.Command("docker", cmd.Args...).CombinedOutput()
+		if err != nil {
+			if cmd.Optional {
+				pterm.Warning.Printf("Non-fatal Magento 1 configure step failed (%s): %v\n", cmd.Desc, err)
+				continue
+			}
+			if strings.Contains(string(output), "No such container") {
+				return fmt.Errorf("container %s is not running. Run 'govard env up' first", fmt.Sprintf("%s-db-1", projectName))
+			}
+			return fmt.Errorf("command failed: %s %v\nOutput: %s", cmd.Desc, err, string(output))
+		}
+	}
+
+	pterm.Success.Println("Magento 1 environment configured successfully!")
+	return nil
+}
+
+func buildMagento1Commands(projectName string, config Config) []magentoCommand {
+	containerName := fmt.Sprintf("%s-db-1", projectName)
+	commands := make([]magentoCommand, 0)
+
+	if config.Domain != "" {
+		baseURL := fmt.Sprintf("https://%s/", config.Domain)
+		sqlStatements := bootstrap.BuildMagento1SetConfigSQLStatements(baseURL, "")
+		for idx, sql := range sqlStatements {
+			commands = append(commands, magentoCommand{
+				Desc: fmt.Sprintf("Setting Magento 1 base configuration (%d/%d)", idx+1, len(sqlStatements)),
+				Args: magento1DockerSQLExecArgs(containerName, sql),
+			})
+		}
+	}
+
+	for domain, mapping := range config.StoreDomains {
+		scopeCode := mapping.ScopeCode()
+		if scopeCode == "" {
+			continue
+		}
+		baseURL := fmt.Sprintf("https://%s/", domain)
+		var sqlStatements []string
+		switch mapping.ScopeType() {
+		case "website":
+			sqlStatements = bootstrap.BuildMagento1WebsiteBaseURLSQLStatements(scopeCode, baseURL, "")
+		case "store":
+			sqlStatements = bootstrap.BuildMagento1StoreBaseURLSQLStatements(scopeCode, baseURL, "")
+		default:
+			sqlStatements = bootstrap.BuildMagento1ScopedBaseURLSQLStatements(scopeCode, baseURL, "")
+		}
+		for idx, sql := range sqlStatements {
+			commands = append(commands, magentoCommand{
+				Desc:     fmt.Sprintf("Setting Magento 1 scoped base URL for %s (%d/%d)", scopeCode, idx+1, len(sqlStatements)),
+				Args:     magento1DockerSQLExecArgs(containerName, sql),
+				Optional: true,
+			})
+		}
+	}
+
 	return commands
 }
 
@@ -560,6 +646,20 @@ func magentoDockerExecArgs(containerName string, config Config, args ...string) 
 	result = append(result, "-w", "/var/www/html", containerName)
 	result = append(result, args...)
 	return result
+}
+
+func magento1DockerSQLExecArgs(containerName string, sql string) []string {
+	script := fmt.Sprintf(
+		`if command -v mysql >/dev/null 2>&1; then DB_CLI=mysql; elif command -v mariadb >/dev/null 2>&1; then DB_CLI=mariadb; else exit 1; fi && echo %s | "$DB_CLI" -u %s %s -f`,
+		bootstrap.ShellEscape(sql), bootstrap.ShellEscape("magento"), bootstrap.ShellEscape("magento"),
+	)
+
+	return []string{
+		"exec", "-i",
+		"-e", "MYSQL_PWD=magento",
+		containerName,
+		"sh", "-lc", script,
+	}
 }
 
 func resolveMagentoExecUser(config Config) string {

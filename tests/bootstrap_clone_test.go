@@ -37,6 +37,12 @@ func TestShouldRunFrameworkPostClone(t *testing.T) {
 			want:            true,
 		},
 		{
+			name:            "runs for openmage when composer install enabled",
+			framework:       "openmage",
+			composerInstall: true,
+			want:            true,
+		},
+		{
 			name:            "skips for symfony when composer install disabled",
 			framework:       "symfony",
 			composerInstall: false,

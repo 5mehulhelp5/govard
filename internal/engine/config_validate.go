@@ -41,6 +41,24 @@ func ValidateConfig(cfg Config) error {
 		return err
 	}
 
+	for host, mapping := range cfg.StoreDomains {
+		trimmedHost := strings.TrimSpace(host)
+		if trimmedHost == "" {
+			return fmt.Errorf("store_domains host cannot be empty")
+		}
+		if strings.ContainsAny(trimmedHost, " \t\r\n") {
+			return fmt.Errorf("store_domains host '%s' cannot contain whitespace", host)
+		}
+		if strings.TrimSpace(mapping.Code) == "" {
+			return fmt.Errorf("store_domains host '%s' is missing code", host)
+		}
+		switch mapping.ScopeType() {
+		case "", "store", "website":
+		default:
+			return fmt.Errorf("store_domains host '%s' has unsupported type '%s' (allowed: store, website)", host, mapping.Type)
+		}
+	}
+
 	if err := validateService("stack.services.web_server", cfg.Stack.Services.WebServer, validWebServers); err != nil {
 		return err
 	}

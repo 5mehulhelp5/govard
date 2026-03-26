@@ -106,6 +106,36 @@ stack:
 - `framework_version`
 - `domain`
 - `extra_domains`
+- `store_domains`
+
+`extra_domains` tells Govard which additional hostnames should resolve through the local proxy.
+
+`store_domains` is a Magento convenience map of:
+
+```yaml
+store_domains:
+  brand-b.test: brand_b
+  brand-c.test: brand_c
+```
+
+Or, when you need explicit runtime routing type:
+
+```yaml
+store_domains:
+  brand-b.test:
+    code: base
+    type: website
+  brand-c.test:
+    code: brand_c
+    type: store
+```
+
+Each key is a local hostname. Govard routes those hostnames through the local proxy automatically. Each value identifies the Magento scope code that should receive that base URL when you run `govard config auto`.
+
+- Legacy scalar form keeps existing behavior:
+  - Magento 2: scalar values are treated as store codes and use `bin/magento config:set --scope=stores`
+  - Magento 1 / OpenMage: scalar values are tried as both website codes and store codes in `core_config_data`
+- Object form lets you choose the scope explicitly with `type: website` or `type: store`
 
 ### Runtime stack
 

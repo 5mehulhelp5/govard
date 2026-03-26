@@ -55,6 +55,8 @@ govard bootstrap --framework magento2 --fresh --framework-version 2.4.9
 
 Bootstrap shows a review step before environment startup unless you skip prompts with `--yes`.
 
+During remote bootstrap flows, Govard runs `govard config auto` automatically for Magento 2, Magento 1, and OpenMage unless you use `--skip-up`.
+
 ### `govard env`
 
 Project lifecycle and service wrapper.
@@ -77,6 +79,14 @@ govard env build
 - `--fallback-local-build`
 - `--remove-orphans`
 - `--quickstart`
+
+Before starting containers, `govard env up` re-renders the per-project compose file and the generated web-server config assets under `~/.govard/`, including:
+
+- `~/.govard/compose/<project-hash>.yml`
+- `~/.govard/nginx/<project>/default.conf`
+- `~/.govard/apache/<project>/httpd.conf`
+- `~/.govard/nginx/<project>/mage-run-map.conf`
+- `~/.govard/apache/<project>/mage-run-map.conf`
 
 `govard env down` supports:
 
@@ -405,6 +415,11 @@ Auto-inject runtime settings into Magento 2 `app/etc/env.php`.
 ```bash
 govard config auto
 ```
+
+If `.govard.yml` includes `store_domains`, `govard config auto` also attempts scoped base URL updates for Magento projects:
+
+- Magento 2: `bin/magento config:set` using `--scope=stores` by default, or `--scope=websites` when `store_domains.<host>.type=website`
+- Magento 1 / OpenMage: scoped `core_config_data` updates using website/store codes, with explicit `type` respected when provided
 
 ### `govard config`
 

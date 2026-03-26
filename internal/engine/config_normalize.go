@@ -11,6 +11,7 @@ func NormalizeConfig(config *Config, root string) {
 	}
 
 	normalizeBlueprintRegistryConfig(&config.BlueprintRegistry)
+	config.StoreDomains = normalizeStoreDomainMappings(config.StoreDomains)
 
 	config.Framework = strings.ToLower(strings.TrimSpace(config.Framework))
 	if config.Framework == "magento" {

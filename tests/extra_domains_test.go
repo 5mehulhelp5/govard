@@ -50,6 +50,22 @@ func TestAllDomains(t *testing.T) {
 			},
 			expected: []string{"myshop.test", "brand-b.test"},
 		},
+		{
+			name: "Include store domain hostnames",
+			config: engine.Config{
+				Domain: "myshop.test",
+				StoreDomains: engine.StoreDomainMappings{
+					"brand-b.test": {
+						Code: "brand_b",
+					},
+					"wholesale.test": {
+						Code: "wholesale",
+						Type: "website",
+					},
+				},
+			},
+			expected: []string{"myshop.test", "brand-b.test", "wholesale.test"},
+		},
 	}
 
 	for _, tt := range tests {

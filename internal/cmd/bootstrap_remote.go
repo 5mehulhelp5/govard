@@ -160,6 +160,8 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrap
 		switch config.Framework {
 		case "magento1":
 			frameworkBootstrap = bootstrap.NewMagento1Bootstrap(bootstrapOpts)
+		case "openmage":
+			frameworkBootstrap = bootstrap.NewOpenMageBootstrap(bootstrapOpts)
 		case "symfony":
 			frameworkBootstrap = bootstrap.NewSymfonyBootstrap(bootstrapOpts)
 		case "laravel":
@@ -177,7 +179,7 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrap
 				}
 			}
 		}
-	} else if config.Framework == "symfony" || config.Framework == "laravel" || config.Framework == "wordpress" || config.Framework == "magento1" {
+	} else if config.Framework == "symfony" || config.Framework == "laravel" || config.Framework == "wordpress" || config.Framework == "magento1" || config.Framework == "openmage" {
 		pterm.Info.Printf("Skipping %s post-clone setup because composer install is disabled.\n", config.Framework)
 	}
 

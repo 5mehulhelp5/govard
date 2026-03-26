@@ -102,3 +102,70 @@ func TestRenderBlueprintReRendersWhenComposeFileMissing(t *testing.T) {
 		t.Errorf("compose file still missing after second render (hash-skip regression): %v", err)
 	}
 }
+
+func TestRenderBlueprintReRendersWhenBlueprintContentsChange(t *testing.T) {
+	tempDir := t.TempDir()
+	setTestGovardHome(t, tempDir)
+
+	_, filename, _, _ := runtime.Caller(0)
+	projectRoot := filepath.Join(filepath.Dir(filename), "..")
+	blueprintsDir := filepath.Join(projectRoot, "internal", "blueprints", "files")
+
+	destBlueprintsDir := filepath.Join(tempDir, "blueprints")
+	if err := copyDir(blueprintsDir, destBlueprintsDir); err != nil {
+		t.Fatalf("Failed to copy blueprints: %v", err)
+	}
+
+	config := engine.Config{
+		ProjectName: "sample-project",
+		Framework:   "custom",
+		Domain:      "sample-project.test",
+		Stack: engine.Stack{
+			PHPVersion: "8.4",
+			Services: engine.Services{
+				WebServer: "nginx",
+				Search:    "none",
+				Cache:     "none",
+				Queue:     "none",
+			},
+		},
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("first render failed: %v", err)
+	}
+
+	composePath := engine.ComposeFilePath(tempDir, config.ProjectName)
+	before, err := os.ReadFile(composePath)
+	if err != nil {
+		t.Fatalf("read first compose file: %v", err)
+	}
+	if !strings.Contains(string(before), "govard-net:") {
+		t.Fatalf("expected initial compose output to contain govard-net network, got:\n%s", string(before))
+	}
+
+	basePath := filepath.Join(destBlueprintsDir, "includes", "base.yml")
+	baseContent, err := os.ReadFile(basePath)
+	if err != nil {
+		t.Fatalf("read copied base blueprint: %v", err)
+	}
+	updated := strings.Replace(string(baseContent), "govard-net", "govard-net-reloaded", 1)
+	if updated == string(baseContent) {
+		t.Fatal("expected blueprint content replacement to change base.yml")
+	}
+	if err := os.WriteFile(basePath, []byte(updated), 0o644); err != nil {
+		t.Fatalf("write modified base blueprint: %v", err)
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("second render failed: %v", err)
+	}
+
+	after, err := os.ReadFile(composePath)
+	if err != nil {
+		t.Fatalf("read second compose file: %v", err)
+	}
+	if !strings.Contains(string(after), "- govard-net-reloaded") {
+		t.Fatalf("expected compose output to re-render after blueprint change, got:\n%s", string(after))
+	}
+}

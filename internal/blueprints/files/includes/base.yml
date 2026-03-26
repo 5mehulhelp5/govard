@@ -4,6 +4,7 @@
 {{ $web := .Config.Stack.Services.WebServer }}
 {{ $isApache := eq $web "apache" }}
 {{ $isHybrid := eq $web "hybrid" }}
+{{ $isMagento := or (eq .Config.Framework "magento1") (eq .Config.Framework "magento2") (eq .Config.Framework "openmage") }}
 
 services:
   web:
@@ -11,6 +12,15 @@ services:
     image: {{ if $isApache }}{{ $.ImageRepository }}apache:{{ .Config.Stack.ApacheVersion }}{{ else }}{{ $.ImageRepository }}nginx:{{ .Config.Stack.NginxVersion }}{{ end }}
     volumes:
       - .:/var/www/html
+      {{ if and (not $isApache) .NginxConfigPath }}
+      - "{{ .NginxConfigPath }}:/etc/nginx/templates/{{ if $isHybrid }}hybrid.conf{{ else }}{{ .NGINXTemplate }}{{ end }}:ro"
+      {{ end }}
+      {{ if and $isMagento (not $isApache) (not $isHybrid) .NginxMageRunMapPath }}
+      - "{{ .NginxMageRunMapPath }}:/etc/nginx/conf.d/mage-run-map.conf:ro"
+      {{ end }}
+      {{ if and $isApache .ApacheConfigDir }}
+      - "{{ .ApacheConfigDir }}:/usr/local/apache2/conf"
+      {{ end }}
     networks:
       - govard-net
       - govard-proxy
@@ -41,6 +51,9 @@ services:
     image: {{ $.ImageRepository }}apache:{{ .Config.Stack.ApacheVersion }}
     volumes:
       - .:/var/www/html
+      {{ if .ApacheConfigDir }}
+      - "{{ .ApacheConfigDir }}:/usr/local/apache2/conf"
+      {{ end }}
     networks:
       - govard-net
     depends_on:

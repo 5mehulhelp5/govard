@@ -42,13 +42,13 @@ type Stack struct {
 }
 
 type Config struct {
-	ProjectName      string            `yaml:"project_name"`
-	Profile          string            `yaml:"profile,omitempty"`
-	Framework        string            `yaml:"framework"`
-	FrameworkVersion string            `yaml:"framework_version,omitempty"`
-	Domain           string            `yaml:"domain"`
-	ExtraDomains     []string          `yaml:"extra_domains,omitempty"`
-	StoreDomains     map[string]string `yaml:"store_domains,omitempty"`
+	ProjectName      string              `yaml:"project_name"`
+	Profile          string              `yaml:"profile,omitempty"`
+	Framework        string              `yaml:"framework"`
+	FrameworkVersion string              `yaml:"framework_version,omitempty"`
+	Domain           string              `yaml:"domain"`
+	ExtraDomains     []string            `yaml:"extra_domains,omitempty"`
+	StoreDomains     StoreDomainMappings `yaml:"store_domains,omitempty"`
 
 	Lock              LockConfig              `yaml:"lock,omitempty"`
 	BlueprintRegistry BlueprintRegistryConfig `yaml:"blueprint_registry,omitempty"`
@@ -87,6 +87,15 @@ func (c Config) AllDomains() []string {
 	}
 
 	for _, domain := range c.ExtraDomains {
+		trimmed := strings.TrimSpace(domain)
+		if trimmed == "" || seen[trimmed] {
+			continue
+		}
+		domains = append(domains, trimmed)
+		seen[trimmed] = true
+	}
+
+	for domain := range c.StoreDomains {
 		trimmed := strings.TrimSpace(domain)
 		if trimmed == "" || seen[trimmed] {
 			continue

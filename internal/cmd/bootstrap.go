@@ -147,7 +147,7 @@ Note: -e/--environment accepts remote name aliases (e.g. 'dev' matches a remote 
 			operationSource = opts.Source
 		}
 
-		supportedFrameworks := []string{"magento2", "magento1", "laravel", "symfony", "wordpress"}
+		supportedFrameworks := []string{"magento2", "magento1", "openmage", "laravel", "symfony", "wordpress"}
 		if opts.Fresh {
 			supportedFrameworks = []string{"magento2", "magento1", "laravel", "symfony", "openmage", "drupal", "wordpress", "nextjs", "shopware", "cakephp"}
 		}
@@ -312,7 +312,7 @@ func shouldRunFrameworkPostClone(config engine.Config, opts bootstrapRuntimeOpti
 	if !opts.ComposerInstall {
 		return false
 	}
-	return config.Framework == "symfony" || config.Framework == "laravel" || config.Framework == "wordpress" || config.Framework == "magento1"
+	return config.Framework == "symfony" || config.Framework == "laravel" || config.Framework == "wordpress" || config.Framework == "magento1" || config.Framework == "openmage"
 }
 
 func shouldIgnoreFrameworkPostCloneError(config engine.Config, err error, cwd string) bool {

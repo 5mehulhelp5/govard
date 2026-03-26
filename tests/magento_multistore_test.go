@@ -10,8 +10,10 @@ func TestBuildMagentoCommandsStoreDomains(t *testing.T) {
 	config := engine.Config{
 		ProjectName: "testproject",
 		Domain:      "main.test",
-		StoreDomains: map[string]string{
-			"brand-b.test": "brand_b",
+		StoreDomains: engine.StoreDomainMappings{
+			"brand-b.test": {
+				Code: "brand_b",
+			},
 		},
 	}
 
@@ -57,5 +59,39 @@ func TestBuildMagentoCommandsNoStoreDomains(t *testing.T) {
 		if strings.Contains(strings.Join(cmd.Args, " "), "--scope=stores") {
 			t.Errorf("Found unexpected store scope command: %s", cmd.Desc)
 		}
+	}
+}
+
+func TestBuildMagentoCommandsWebsiteScopedStoreDomains(t *testing.T) {
+	config := engine.Config{
+		ProjectName: "testproject",
+		Domain:      "main.test",
+		StoreDomains: engine.StoreDomainMappings{
+			"brand-b.test": {
+				Code: "brand_b",
+				Type: "website",
+			},
+		},
+	}
+
+	commands := engine.MagentoConfigCommandsForTest("testproject", config)
+
+	foundWebsiteScope := false
+	foundStoreScope := false
+	for _, cmd := range commands {
+		cmdStr := strings.Join(cmd.Args, " ")
+		if strings.Contains(cmdStr, "config:set --scope=websites --scope-code=brand_b web/unsecure/base_url https://brand-b.test/") {
+			foundWebsiteScope = true
+		}
+		if strings.Contains(cmdStr, "config:set --scope=stores --scope-code=brand_b web/unsecure/base_url https://brand-b.test/") {
+			foundStoreScope = true
+		}
+	}
+
+	if !foundWebsiteScope {
+		t.Fatal("expected Magento 2 website-typed mapping to emit website scope config:set")
+	}
+	if foundStoreScope {
+		t.Fatal("did not expect Magento 2 website-typed mapping to emit store scope config:set")
 	}
 }

@@ -121,10 +121,6 @@ func (o *OpenMageBootstrap) Configure(projectDir string) error {
 func (o *OpenMageBootstrap) PostClone(projectDir string) error {
 	pterm.Info.Println("Setting up cloned OpenMage project...")
 
-	if err := o.runComposerCommand(projectDir, "install", "--no-interaction"); err != nil {
-		return fmt.Errorf("composer install failed: %w", err)
-	}
-
 	localXmlPath := filepath.Join(projectDir, "app", "etc", "local.xml")
 	if _, err := os.Stat(localXmlPath); os.IsNotExist(err) {
 		if err := o.createLocalXml(projectDir); err != nil {

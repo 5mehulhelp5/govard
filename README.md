@@ -183,6 +183,8 @@ govard up --quickstart
 
 This renders a per-project compose file under `~/.govard/compose/` and starts your specialized stack in detached mode. Use `--fallback-local-build` if you need to build missing images locally.
 
+`govard env up` also re-renders generated web-server assets under `~/.govard/` before container startup, so setup changes in the current Govard build are applied without depending on cached Apache or Nginx image configs.
+
 Common root shortcuts are also available for day-to-day lifecycle work:
 
 - `govard up` → `govard env up`

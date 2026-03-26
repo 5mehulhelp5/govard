@@ -220,6 +220,51 @@ lock:
 	}
 }
 
+func TestLoadConfigFromDirParsesStoreDomainObjectAndScalarForms(t *testing.T) {
+	tempDir := t.TempDir()
+
+	base := `project_name: demo
+domain: demo.test
+framework: magento2
+store_domains:
+  brand-a.test:
+    code: base
+    type: website
+  brand-b.test: brand_b
+`
+
+	if err := os.WriteFile(filepath.Join(tempDir, ".govard.yml"), []byte(base), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, _, err := engine.LoadConfigFromDir(tempDir, true)
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+
+	brandA, ok := cfg.StoreDomains["brand-a.test"]
+	if !ok {
+		t.Fatal("expected brand-a.test store domain mapping")
+	}
+	if brandA.Code != "base" {
+		t.Fatalf("expected brand-a.test code=base, got %q", brandA.Code)
+	}
+	if brandA.Type != "website" {
+		t.Fatalf("expected brand-a.test type=website, got %q", brandA.Type)
+	}
+
+	brandB, ok := cfg.StoreDomains["brand-b.test"]
+	if !ok {
+		t.Fatal("expected brand-b.test store domain mapping")
+	}
+	if brandB.Code != "brand_b" {
+		t.Fatalf("expected brand-b.test code=brand_b, got %q", brandB.Code)
+	}
+	if brandB.Type != "" {
+		t.Fatalf("expected legacy scalar store domain to keep empty type, got %q", brandB.Type)
+	}
+}
+
 func TestLoadConfigFromDirParsesBlueprintRegistrySettings(t *testing.T) {
 	tempDir := t.TempDir()
 

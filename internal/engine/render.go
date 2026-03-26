@@ -21,17 +21,23 @@ import (
 
 // RenderData holds all data needed for template rendering
 type RenderData struct {
-	Config               Config
-	NGINXPublic          string
-	NGINXTemplate        string
-	DatabaseName         string
-	ImageRepository      string
-	XdebugSessionPattern string
-	SSHAuthSock          string
-	HostSSHDir           string
-	SafeSSHConfig        string
-	HostComposerCacheDir string
-	VarnishVclPath       string
+	Config                Config
+	NGINXPublic           string
+	NGINXTemplate         string
+	NginxConfigPath       string
+	NginxMageRunMapPath   string
+	ApacheDocumentRoot    string
+	ApacheConfigDir       string
+	ApacheHTTPDConfigPath string
+	ApacheMageRunMapPath  string
+	DatabaseName          string
+	ImageRepository       string
+	XdebugSessionPattern  string
+	SSHAuthSock           string
+	HostSSHDir            string
+	SafeSSHConfig         string
+	HostComposerCacheDir  string
+	VarnishVclPath        string
 }
 
 func findBlueprintsDir(startDir string) (string, error) {
@@ -106,6 +112,43 @@ func findBlueprintsFS(startDir string) (fs.FS, error) {
 	return blueprints.FS, nil
 }
 
+func blueprintsFingerprint(blueprintsFS fs.FS) (string, error) {
+	hasher := sha256.New()
+
+	if err := fs.WalkDir(blueprintsFS, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+
+		content, err := fs.ReadFile(blueprintsFS, path)
+		if err != nil {
+			return err
+		}
+
+		if _, err := hasher.Write([]byte(path)); err != nil {
+			return err
+		}
+		if _, err := hasher.Write([]byte{0}); err != nil {
+			return err
+		}
+		if _, err := hasher.Write(content); err != nil {
+			return err
+		}
+		if _, err := hasher.Write([]byte{0}); err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(hasher.Sum(nil)), nil
+}
+
 // RenderBlueprint renders layered blueprints into a single docker-compose file
 func RenderBlueprint(root string, config Config) error {
 	return RenderBlueprintWithProfile(root, config, config.Profile)
@@ -113,7 +156,7 @@ func RenderBlueprint(root string, config Config) error {
 
 // BlueprintVersion should be incremented whenever architectural changes are made to the embedded blueprints
 // to ensure that 'govard env up' re-renders existing environments.
-const BlueprintVersion = "1.22"
+const BlueprintVersion = "1.25"
 
 func RenderBlueprintWithProfile(root string, config Config, profile string) error {
 	blueprintsFS, err := resolveBlueprintsDirForConfig(root, config)
@@ -124,11 +167,16 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 	NormalizeConfig(&config, root)
 	config.Profile = profile
 
+	blueprintFingerprint, err := blueprintsFingerprint(blueprintsFS)
+	if err != nil {
+		return fmt.Errorf("fingerprint blueprints: %w", err)
+	}
+
 	outputPath := ComposeFilePathWithProfile(root, config.ProjectName, profile)
 	hashPath := outputPath + ".hash"
 
 	hashData, _ := json.Marshal(config)
-	hashSum := sha256.Sum256(append(hashData, []byte(profile+BlueprintVersion)...))
+	hashSum := sha256.Sum256(append(hashData, []byte(profile+BlueprintVersion+blueprintFingerprint)...))
 	currentHash := hex.EncodeToString(hashSum[:])
 
 	if existingHash, err := os.ReadFile(hashPath); err == nil && string(existingHash) == currentHash {
@@ -164,6 +212,23 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 	}
 	if config.Stack.WebRoot != "" {
 		renderData.NGINXPublic = config.Stack.WebRoot
+	}
+	renderData.ApacheDocumentRoot = buildContainerDocumentRoot(renderData.NGINXPublic)
+
+	if nginxMapPath, apacheMapPath, err := prepareMagentoRunMappingAssets(config); err != nil {
+		return fmt.Errorf("failed to prepare Magento run mapping assets: %w", err)
+	} else {
+		renderData.NginxMageRunMapPath = nginxMapPath
+		renderData.ApacheMageRunMapPath = apacheMapPath
+	}
+	if nginxConfigPath, apacheHTTPDConfigPath, err := prepareWebServerConfigAssets(blueprintsFS, renderData); err != nil {
+		return fmt.Errorf("failed to prepare web server config assets: %w", err)
+	} else {
+		renderData.NginxConfigPath = nginxConfigPath
+		renderData.ApacheHTTPDConfigPath = apacheHTTPDConfigPath
+		if apacheHTTPDConfigPath != "" {
+			renderData.ApacheConfigDir = filepath.Dir(apacheHTTPDConfigPath)
+		}
 	}
 
 	renderData.SSHAuthSock = strings.TrimSpace(os.Getenv("SSH_AUTH_SOCK"))

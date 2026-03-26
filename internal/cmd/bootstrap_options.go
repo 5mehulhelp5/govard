@@ -122,6 +122,19 @@ func normalizeBootstrapSource(raw string) string {
 	return value
 }
 
+func DefaultBootstrapRuntimeOptionsForTest() bootstrapRuntimeOptions {
+	return bootstrapRuntimeOptions{
+		Source:          "dev",
+		DBImport:        true,
+		MediaSync:       true,
+		ComposerInstall: true,
+		AdminCreate:     true,
+		StreamDB:        true,
+		MetaPackage:     defaultBootstrapMetaPackage,
+		HyvaToken:       defaultBootstrapHyvaToken,
+	}
+}
+
 // ResetBootstrapFlags resets all package-level bootstrap flag variables.
 // Used primarily for testing to ensure a clean state between runs.
 func ResetBootstrapFlags() {

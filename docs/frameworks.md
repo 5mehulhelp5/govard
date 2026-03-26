@@ -82,6 +82,51 @@ Common services:
 - cache/session: Redis or Valkey depending on selected runtime profile
 - queue: optional RabbitMQ
 
+### Magento 2 multiple websites / stores
+
+Govard handles local routing for every hostname in `domain`, `extra_domains`, and `store_domains`. For Magento 2, you can additionally ask `govard config auto` to set scoped base URLs with `store_domains`.
+
+Example:
+
+```yaml
+framework: "magento2"
+domain: "primary.test"
+store_domains:
+  store-a.test:
+    code: base
+    type: website
+  store-b.test:
+    code: store_b
+    type: store
+```
+
+Recommended flow:
+
+```bash
+govard domain add store-a.test
+govard domain add store-b.test
+govard config auto
+govard tool magento cache:flush
+```
+
+You only need `govard domain add ...` when you want to persist those hostnames into `extra_domains` separately. Rendering and routing already include the `store_domains` hostnames.
+
+What Govard does:
+
+- routes `primary.test`, `store-a.test`, and `store-b.test` through the shared proxy
+- keeps local HTTPS working for every listed domain
+- sets the global base URL from `domain`
+- adds optional scoped `bin/magento config:set` commands for each `store_domains` entry during `govard config auto`
+- emits `MAGE_RUN_CODE` / `MAGE_RUN_TYPE` host mappings when a `store_domains` entry uses the object form with explicit `type`
+
+What you still need to do in Magento 2:
+
+- create the websites, stores, and store views in Magento admin or with `bin/magento`
+- ensure each `store_domains.<host>.code` matches the intended Magento website or store code
+- clear config/cache after changing domains or store mappings
+
+If a referenced scope code does not exist yet, `govard config auto` keeps going and leaves that scoped command as optional rather than failing the whole setup.
+
 ## Magento 1 (OpenMage)
 
 Use:
@@ -91,6 +136,66 @@ govard tool magerun [command]
 ```
 
 Default runtime is conservative: PHP 8.1 with MariaDB 10.11 and no optional cache/search/queue service forced on.
+
+### Magento 1 multiple websites / stores
+
+Govard can route multiple local hostnames to the same Magento 1 project, and it can now emit host-based `MAGE_RUN_CODE` / `MAGE_RUN_TYPE` mappings when you declare `store_domains` with explicit `type`.
+
+Example `.govard.yml`:
+
+```yaml
+framework: "magento1"
+domain: "primary.test"
+store_domains:
+  store-a.test:
+    code: base
+    type: website
+  store-b.test:
+    code: store_b
+    type: store
+  store-c.test: store_c
+```
+
+Recommended flow:
+
+```bash
+govard domain add store-a.test
+govard domain add store-b.test
+govard domain add store-c.test
+govard env up
+govard bootstrap --clone --yes
+```
+
+Like Magento 2, `store_domains` hostnames are routed automatically during render. Persist them to `extra_domains` only if you want them listed there explicitly.
+
+What Govard does:
+
+- routes every configured hostname through the shared proxy and local CA
+- configures Magento 1 to trust `HTTP_X_FORWARDED_PROTO` for HTTPS detection during bootstrap
+- runs `govard config auto` as part of remote bootstrap unless you use `--skip-up`
+- sets the global base URL from `domain` during `govard config auto`
+- tries each scalar `store_domains` entry as both a website code and a store code when updating scoped base URLs in `core_config_data`
+- respects `store_domains.<host>.type=website|store` for both scoped base URL updates and generated runtime host mappings
+- injects host-based `MAGE_RUN_CODE` / `MAGE_RUN_TYPE` mapping into nginx or Apache automatically when you use typed `store_domains` entries
+
+What you still need to do in Magento 1:
+
+- ensure each `store_domains.<host>.code` matches an existing Magento website code or store code
+- use the object form with explicit `type` when you want deterministic runtime routing per hostname
+
+You do not need manual `SetEnvIf` rules in `.htaccess` for the standard one-hostname-to-one-scope case when `store_domains` uses the object form.
+
+Keep custom host switching in `.htaccess`, `index.php`, or `get.php` only when you want logic beyond Govard's generated mapping, for example:
+
+```php
+switch ($_SERVER['HTTP_HOST']) {
+    case 'store-b.test':
+        Mage::run('store_b', 'store');
+        break;
+}
+```
+
+For Magento 1, scalar `store_domains` entries still keep the legacy behavior of trying both scopes. Use the object form when you want Govard to emit deterministic `MAGE_RUN_CODE` / `MAGE_RUN_TYPE` routing.
 
 ## Laravel
 

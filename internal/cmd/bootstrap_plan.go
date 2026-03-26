@@ -16,6 +16,7 @@ type bootstrapExecutionPlan struct {
 
 func buildBootstrapRemotePlan(config engine.Config, opts bootstrapRuntimeOptions) (bootstrapExecutionPlan, error) {
 	plan := bootstrapExecutionPlan{}
+	framework := strings.ToLower(strings.TrimSpace(config.Framework))
 
 	// 1. Env Up
 	if !opts.SkipUp {
@@ -75,7 +76,7 @@ func buildBootstrapRemotePlan(config engine.Config, opts bootstrapRuntimeOptions
 	}
 
 	// 6. Framework specific post-steps
-	if config.Framework == "magento2" {
+	if framework == "magento2" {
 		plan.Descriptions = append(plan.Descriptions, "Configuring Magento 2 environment (env.php)...")
 		plan.Commands = append(plan.Commands, "govard config auto")
 
@@ -86,9 +87,16 @@ func buildBootstrapRemotePlan(config engine.Config, opts bootstrapRuntimeOptions
 
 		plan.Descriptions = append(plan.Descriptions, "Reindexing Magento 2 data...")
 		plan.Commands = append(plan.Commands, "govard tool magento indexer:reindex")
+	} else if framework == "magento1" || framework == "openmage" {
+		plan.Descriptions = append(plan.Descriptions, "Configuring Magento 1 environment (base URLs and scoped website/store URLs)...")
+		plan.Commands = append(plan.Commands, "govard config auto")
 	}
 
 	return plan, nil
+}
+
+func BuildBootstrapRemotePlanForTest(config engine.Config, opts bootstrapRuntimeOptions) (bootstrapExecutionPlan, error) {
+	return buildBootstrapRemotePlan(config, opts)
 }
 
 func buildBootstrapPlanSummary(config engine.Config, source string, execution bootstrapExecutionPlan) []string {

@@ -8,6 +8,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	runMagento2AutoConfiguration = engine.ConfigureMagento
+	runMagento1AutoConfiguration = engine.ConfigureMagento1
+)
+
 var configAutoCmd = &cobra.Command{
 	Use:   "auto",
 	Short: "Auto-configure framework runtime files",
@@ -34,7 +39,9 @@ func applyFrameworkAutoConfiguration(cmd *cobra.Command, config engine.Config) e
 		if config.Stack.Features.Elasticsearch || config.Stack.Services.Search != "none" {
 			_ = runMagentoSearchHostFixViaCLI(cmd, config)
 		}
-		return engine.ConfigureMagento(config.ProjectName, config)
+		return runMagento2AutoConfiguration(config.ProjectName, config)
+	case "magento1", "openmage":
+		return runMagento1AutoConfiguration(config.ProjectName, config)
 	case "wordpress":
 		return nil
 	default:
@@ -44,6 +51,18 @@ func applyFrameworkAutoConfiguration(cmd *cobra.Command, config engine.Config) e
 		)
 		return nil
 	}
+}
+
+func SetMagento1AutoConfigurationRunnerForTest(fn func(projectName string, config engine.Config) error) func() {
+	previous := runMagento1AutoConfiguration
+	runMagento1AutoConfiguration = fn
+	return func() {
+		runMagento1AutoConfiguration = previous
+	}
+}
+
+func ApplyFrameworkAutoConfigurationForTest(config engine.Config) error {
+	return applyFrameworkAutoConfiguration(nil, config)
 }
 
 func init() {

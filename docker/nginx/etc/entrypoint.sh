@@ -3,12 +3,17 @@ set -e
 
 TEMPLATE="${NGINX_TEMPLATE:-magento2.conf}"
 TEMPLATE_PATH="/etc/nginx/templates/${TEMPLATE}"
+FINAL_CONFIG_PATH="/etc/nginx/conf.d/default.conf"
 
 if [ -n "${PGID:-}" ]; then
   groupmod -g "${PGID}" nginx 2>/dev/null || true
 fi
 if [ -n "${PUID:-}" ]; then
   usermod -u "${PUID}" nginx 2>/dev/null || true
+fi
+
+if [ -f "$FINAL_CONFIG_PATH" ] && [ ! -w "$FINAL_CONFIG_PATH" ]; then
+  exec "$@"
 fi
 
 if [ ! -f "$TEMPLATE_PATH" ]; then
@@ -19,6 +24,6 @@ fi
 export NGINX_PUBLIC="${NGINX_PUBLIC:-}"
 export XDEBUG_SESSION_PATTERN="${XDEBUG_SESSION_PATTERN:-PHPSTORM}"
 
-envsubst '${NGINX_PUBLIC} ${XDEBUG_SESSION_PATTERN}' < "$TEMPLATE_PATH" > /etc/nginx/conf.d/default.conf
+envsubst '${NGINX_PUBLIC} ${XDEBUG_SESSION_PATTERN}' < "$TEMPLATE_PATH" > "$FINAL_CONFIG_PATH"
 
 exec "$@"

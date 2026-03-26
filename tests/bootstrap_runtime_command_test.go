@@ -99,6 +99,131 @@ remotes:
 	}
 }
 
+func TestBootstrapCommandRuntimeMagento1RemoteFlowUsesConfigAuto(t *testing.T) {
+	resetBootstrapFlagsForRuntimeTest(t)
+
+	tempDir := t.TempDir()
+	chdirForTest(t, tempDir)
+	writeRuntimeConfig(t, tempDir, `project_name: sample-project
+domain: sample.test
+framework: magento1
+remotes:
+  staging:
+    host: staging.example.com
+    user: deploy
+    path: /srv/www/app
+`)
+
+	calls := make([][]string, 0, 4)
+	defer cmd.SetGovardSubcommandRunnerForTest(func(subCmd *cobra.Command, args ...string) error {
+		captured := make([]string, len(args))
+		copy(captured, args)
+		calls = append(calls, captured)
+		return nil
+	})()
+
+	root := cmd.RootCommandForTest()
+	root.SetOut(io.Discard)
+	root.SetErr(io.Discard)
+	root.SetArgs([]string{"bootstrap", "--environment", "staging", "--yes", "--clone=false", "--no-media", "--no-composer"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("bootstrap Magento 1 remote flow failed: %v", err)
+	}
+
+	want := [][]string{
+		{"env", "up", "--remove-orphans"},
+		{"remote", "test", "staging"},
+		{"db", "import", "--yes", "--stream-db", "--environment", "staging"},
+		{"config", "auto"},
+	}
+	if !reflect.DeepEqual(calls, want) {
+		t.Fatalf("subcommand calls = %#v, want %#v", calls, want)
+	}
+}
+
+func TestBootstrapCommandRuntimeOpenMagePostCloneCreatesLocalXML(t *testing.T) {
+	resetBootstrapFlagsForRuntimeTest(t)
+
+	tempDir := t.TempDir()
+	chdirForTest(t, tempDir)
+	writeRuntimeConfig(t, tempDir, `project_name: sample-project
+domain: sample.test
+framework: openmage
+`)
+
+	defer cmd.SetGovardSubcommandRunnerForTest(func(subCmd *cobra.Command, args ...string) error {
+		return nil
+	})()
+
+	root := cmd.RootCommandForTest()
+	root.SetOut(io.Discard)
+	root.SetErr(io.Discard)
+	root.SetArgs([]string{"bootstrap", "--yes", "--clone=false", "--skip-up", "--no-db", "--no-media"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("bootstrap OpenMage post-clone flow failed: %v", err)
+	}
+
+	localXMLPath := filepath.Join(tempDir, "app", "etc", "local.xml")
+	if _, err := os.Stat(localXMLPath); err != nil {
+		t.Fatalf("expected OpenMage bootstrap to create %s: %v", localXMLPath, err)
+	}
+
+	for _, dir := range []string{
+		filepath.Join(tempDir, "var", "cache"),
+		filepath.Join(tempDir, "var", "session"),
+	} {
+		info, err := os.Stat(dir)
+		if err != nil {
+			t.Fatalf("expected OpenMage bootstrap to create %s: %v", dir, err)
+		}
+		if !info.IsDir() {
+			t.Fatalf("expected %s to be a directory", dir)
+		}
+	}
+}
+
+func TestBootstrapCommandRuntimeOpenMageRemoteFlowUsesConfigAuto(t *testing.T) {
+	resetBootstrapFlagsForRuntimeTest(t)
+
+	tempDir := t.TempDir()
+	chdirForTest(t, tempDir)
+	writeRuntimeConfig(t, tempDir, `project_name: sample-project
+domain: sample.test
+framework: openmage
+remotes:
+  staging:
+    host: staging.example.com
+    user: deploy
+    path: /srv/www/app
+`)
+
+	calls := make([][]string, 0, 4)
+	defer cmd.SetGovardSubcommandRunnerForTest(func(subCmd *cobra.Command, args ...string) error {
+		captured := make([]string, len(args))
+		copy(captured, args)
+		calls = append(calls, captured)
+		return nil
+	})()
+
+	root := cmd.RootCommandForTest()
+	root.SetOut(io.Discard)
+	root.SetErr(io.Discard)
+	root.SetArgs([]string{"bootstrap", "--environment", "staging", "--yes", "--clone=false", "--no-media", "--no-composer"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("bootstrap OpenMage remote flow failed: %v", err)
+	}
+
+	want := [][]string{
+		{"env", "up", "--remove-orphans"},
+		{"remote", "test", "staging"},
+		{"db", "import", "--yes", "--stream-db", "--environment", "staging"},
+		{"config", "auto"},
+	}
+	if !reflect.DeepEqual(calls, want) {
+		t.Fatalf("subcommand calls = %#v, want %#v", calls, want)
+	}
+}
+
 func TestBootstrapCommandRuntimeCloneCodeOnlySkipsDBAndMedia(t *testing.T) {
 	resetBootstrapFlagsForRuntimeTest(t)
 

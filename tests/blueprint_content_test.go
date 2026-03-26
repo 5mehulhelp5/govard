@@ -94,6 +94,41 @@ func TestRenderNextjsBlueprint(t *testing.T) {
 	})
 }
 
+func TestRenderNextjsBlueprintSkipsManagedWebServerAssets(t *testing.T) {
+	tempDir := t.TempDir()
+	homeDir := setTestGovardHome(t, tempDir)
+
+	_, filename, _, _ := runtime.Caller(0)
+	projectRoot := filepath.Join(filepath.Dir(filename), "..")
+	blueprintsDir := filepath.Join(projectRoot, "internal", "blueprints", "files")
+
+	destBlueprintsDir := filepath.Join(tempDir, "blueprints")
+	if err := copyDir(blueprintsDir, destBlueprintsDir); err != nil {
+		t.Fatalf("Failed to copy blueprints: %v", err)
+	}
+
+	config := engine.Config{
+		ProjectName: "test-nextjs-no-managed-web-assets",
+		Framework:   "nextjs",
+		Domain:      "nextjs.test",
+		Stack: engine.Stack{
+			NodeVersion: "24",
+			WebServer:   "nginx",
+		},
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("Failed to render nextjs blueprint: %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(homeDir, "nginx", config.ProjectName, "default.conf")); !os.IsNotExist(err) {
+		t.Fatalf("expected nextjs not to render managed nginx config, got err=%v", err)
+	}
+	if _, err := os.Stat(filepath.Join(homeDir, "apache", config.ProjectName, "httpd.conf")); !os.IsNotExist(err) {
+		t.Fatalf("expected nextjs not to render managed apache config, got err=%v", err)
+	}
+}
+
 func TestRenderMagento1Blueprint(t *testing.T) {
 	testBlueprintRender(t, "magento1", []string{
 		"image: ddtcorex/govard-nginx:1.28",
@@ -269,6 +304,374 @@ func TestRenderMagento2BlueprintHybridWebServer(t *testing.T) {
 	}
 	if !strings.Contains(contentStr, "image: ddtcorex/govard-apache:2.4") {
 		t.Fatalf("expected apache image in hybrid mode, got:\n%s", contentStr)
+	}
+}
+
+func TestRenderMagento2BlueprintWithMageRunMappings(t *testing.T) {
+	tempDir := t.TempDir()
+	homeDir := setTestGovardHome(t, tempDir)
+
+	_, filename, _, _ := runtime.Caller(0)
+	projectRoot := filepath.Join(filepath.Dir(filename), "..")
+	blueprintsDir := filepath.Join(projectRoot, "internal", "blueprints", "files")
+
+	destBlueprintsDir := filepath.Join(tempDir, "blueprints")
+	if err := copyDir(blueprintsDir, destBlueprintsDir); err != nil {
+		t.Fatalf("Failed to copy blueprints: %v", err)
+	}
+
+	config := engine.Config{
+		ProjectName: "test-magento2-mage-run-map",
+		Framework:   "magento2",
+		Domain:      "main.test",
+		StoreDomains: engine.StoreDomainMappings{
+			"brand-a.test": {
+				Code: "base",
+				Type: "website",
+			},
+			"brand-b.test": {
+				Code: "brand_b",
+				Type: "store",
+			},
+		},
+		Stack: engine.Stack{
+			PHPVersion: "8.4",
+			Services: engine.Services{
+				WebServer: "nginx",
+				Search:    "none",
+				Cache:     "none",
+				Queue:     "none",
+			},
+		},
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("Failed to render blueprint: %v", err)
+	}
+
+	content, err := os.ReadFile(engine.ComposeFilePath(tempDir, config.ProjectName))
+	if err != nil {
+		t.Fatalf("Failed to read generated compose file: %v", err)
+	}
+	contentStr := string(content)
+
+	if !strings.Contains(contentStr, "/etc/nginx/conf.d/mage-run-map.conf:ro") {
+		t.Fatalf("expected nginx mage-run mapping volume in compose output, got:\n%s", contentStr)
+	}
+
+	mapPath := filepath.Join(homeDir, "nginx", config.ProjectName, "mage-run-map.conf")
+	mapContent, err := os.ReadFile(mapPath)
+	if err != nil {
+		t.Fatalf("expected nginx mage-run map file at %s: %v", mapPath, err)
+	}
+	mapStr := string(mapContent)
+
+	for _, expected := range []string{"brand-a.test", "brand-b.test", "website", "store", "base", "brand_b"} {
+		if !strings.Contains(mapStr, expected) {
+			t.Fatalf("expected nginx mage-run map file to contain %q, got:\n%s", expected, mapStr)
+		}
+	}
+}
+
+func TestRenderMagento2BlueprintWithRenderedNginxConfig(t *testing.T) {
+	tempDir := t.TempDir()
+	homeDir := setTestGovardHome(t, tempDir)
+
+	_, filename, _, _ := runtime.Caller(0)
+	projectRoot := filepath.Join(filepath.Dir(filename), "..")
+	blueprintsDir := filepath.Join(projectRoot, "internal", "blueprints", "files")
+
+	destBlueprintsDir := filepath.Join(tempDir, "blueprints")
+	if err := copyDir(blueprintsDir, destBlueprintsDir); err != nil {
+		t.Fatalf("Failed to copy blueprints: %v", err)
+	}
+
+	config := engine.Config{
+		ProjectName: "test-magento2-nginx-default-conf",
+		Framework:   "magento2",
+		Domain:      "main.test",
+		Stack: engine.Stack{
+			PHPVersion: "8.4",
+			WebRoot:    "/pub",
+			Services: engine.Services{
+				WebServer: "nginx",
+				Search:    "none",
+				Cache:     "none",
+				Queue:     "none",
+			},
+		},
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("Failed to render blueprint: %v", err)
+	}
+
+	content, err := os.ReadFile(engine.ComposeFilePath(tempDir, config.ProjectName))
+	if err != nil {
+		t.Fatalf("Failed to read generated compose file: %v", err)
+	}
+	contentStr := string(content)
+
+	if !strings.Contains(contentStr, "/etc/nginx/templates/magento2.conf:ro") {
+		t.Fatalf("expected rendered nginx template volume mount in compose output, got:\n%s", contentStr)
+	}
+
+	configPath := filepath.Join(homeDir, "nginx", config.ProjectName, "default.conf")
+	configContent, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("expected rendered nginx default.conf at %s: %v", configPath, err)
+	}
+	configStr := string(configContent)
+
+	for _, expected := range []string{"root $MAGE_ROOT/pub;", "fastcgi_param  MAGE_RUN_CODE $mage_run_code;", "location ~ (index|get|static|report|404|503|health_check)\\.php$"} {
+		if !strings.Contains(configStr, expected) {
+			t.Fatalf("expected rendered nginx default.conf to contain %q, got:\n%s", expected, configStr)
+		}
+	}
+}
+
+func TestRenderMagento2BlueprintHybridWithRenderedNginxConfig(t *testing.T) {
+	tempDir := t.TempDir()
+	homeDir := setTestGovardHome(t, tempDir)
+
+	_, filename, _, _ := runtime.Caller(0)
+	projectRoot := filepath.Join(filepath.Dir(filename), "..")
+	blueprintsDir := filepath.Join(projectRoot, "internal", "blueprints", "files")
+
+	destBlueprintsDir := filepath.Join(tempDir, "blueprints")
+	if err := copyDir(blueprintsDir, destBlueprintsDir); err != nil {
+		t.Fatalf("Failed to copy blueprints: %v", err)
+	}
+
+	config := engine.Config{
+		ProjectName: "test-magento2-hybrid-nginx-default-conf",
+		Framework:   "magento2",
+		Domain:      "main.test",
+		Stack: engine.Stack{
+			PHPVersion: "8.4",
+			Services: engine.Services{
+				WebServer: "hybrid",
+				Search:    "none",
+				Cache:     "none",
+				Queue:     "none",
+			},
+		},
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("Failed to render blueprint: %v", err)
+	}
+
+	content, err := os.ReadFile(engine.ComposeFilePath(tempDir, config.ProjectName))
+	if err != nil {
+		t.Fatalf("Failed to read generated compose file: %v", err)
+	}
+	contentStr := string(content)
+
+	if !strings.Contains(contentStr, "/etc/nginx/templates/hybrid.conf:ro") {
+		t.Fatalf("expected hybrid web service to mount rendered nginx template, got:\n%s", contentStr)
+	}
+
+	configPath := filepath.Join(homeDir, "nginx", config.ProjectName, "default.conf")
+	configContent, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("expected rendered hybrid nginx default.conf at %s: %v", configPath, err)
+	}
+	configStr := string(configContent)
+
+	if !strings.Contains(configStr, "proxy_pass http://$apache_backend:80;") {
+		t.Fatalf("expected hybrid nginx default.conf to proxy to apache backend, got:\n%s", configStr)
+	}
+}
+
+func TestRenderMagento1BlueprintApacheWithMageRunMappings(t *testing.T) {
+	tempDir := t.TempDir()
+	homeDir := setTestGovardHome(t, tempDir)
+
+	_, filename, _, _ := runtime.Caller(0)
+	projectRoot := filepath.Join(filepath.Dir(filename), "..")
+	blueprintsDir := filepath.Join(projectRoot, "internal", "blueprints", "files")
+
+	destBlueprintsDir := filepath.Join(tempDir, "blueprints")
+	if err := copyDir(blueprintsDir, destBlueprintsDir); err != nil {
+		t.Fatalf("Failed to copy blueprints: %v", err)
+	}
+
+	config := engine.Config{
+		ProjectName: "test-magento1-mage-run-map",
+		Framework:   "magento1",
+		Domain:      "main.test",
+		StoreDomains: engine.StoreDomainMappings{
+			"brand-a.test": {
+				Code: "base",
+				Type: "website",
+			},
+			"brand-b.test": {
+				Code: "brand_b",
+				Type: "store",
+			},
+		},
+		Stack: engine.Stack{
+			PHPVersion: "8.1",
+			Services: engine.Services{
+				WebServer: "apache",
+				Search:    "none",
+				Cache:     "none",
+				Queue:     "none",
+			},
+		},
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("Failed to render blueprint: %v", err)
+	}
+
+	content, err := os.ReadFile(engine.ComposeFilePath(tempDir, config.ProjectName))
+	if err != nil {
+		t.Fatalf("Failed to read generated compose file: %v", err)
+	}
+	contentStr := string(content)
+
+	if !strings.Contains(contentStr, "/usr/local/apache2/conf") {
+		t.Fatalf("expected apache config directory volume in compose output, got:\n%s", contentStr)
+	}
+
+	mapPath := filepath.Join(homeDir, "apache", config.ProjectName, "mage-run-map.conf")
+	mapContent, err := os.ReadFile(mapPath)
+	if err != nil {
+		t.Fatalf("expected apache mage-run map file at %s: %v", mapPath, err)
+	}
+	mapStr := string(mapContent)
+
+	for _, expected := range []string{"brand-a\\.test", "brand-b\\.test", "MAGE_RUN_TYPE=website", "MAGE_RUN_TYPE=store", "MAGE_RUN_CODE=base", "MAGE_RUN_CODE=brand_b"} {
+		if !strings.Contains(mapStr, expected) {
+			t.Fatalf("expected apache mage-run map file to contain %q, got:\n%s", expected, mapStr)
+		}
+	}
+
+	mirroredPath := filepath.Join(homeDir, "apache", config.ProjectName, "extra", "mage-run-map.conf")
+	mirroredContent, err := os.ReadFile(mirroredPath)
+	if err != nil {
+		t.Fatalf("expected mirrored apache mage-run map file at %s: %v", mirroredPath, err)
+	}
+	if string(mirroredContent) != mapStr {
+		t.Fatalf("expected mirrored apache mage-run map file to match root file, got:\nroot:\n%s\nmirrored:\n%s", mapStr, string(mirroredContent))
+	}
+}
+
+func TestRenderMagento1BlueprintApacheWithRenderedHTTPDConfig(t *testing.T) {
+	tempDir := t.TempDir()
+	homeDir := setTestGovardHome(t, tempDir)
+
+	_, filename, _, _ := runtime.Caller(0)
+	projectRoot := filepath.Join(filepath.Dir(filename), "..")
+	blueprintsDir := filepath.Join(projectRoot, "internal", "blueprints", "files")
+
+	destBlueprintsDir := filepath.Join(tempDir, "blueprints")
+	if err := copyDir(blueprintsDir, destBlueprintsDir); err != nil {
+		t.Fatalf("Failed to copy blueprints: %v", err)
+	}
+
+	config := engine.Config{
+		ProjectName: "test-magento1-apache-httpd",
+		Framework:   "magento1",
+		Domain:      "main.test",
+		Stack: engine.Stack{
+			PHPVersion: "8.1",
+			Services: engine.Services{
+				WebServer: "apache",
+				Search:    "none",
+				Cache:     "none",
+				Queue:     "none",
+			},
+		},
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("Failed to render blueprint: %v", err)
+	}
+
+	content, err := os.ReadFile(engine.ComposeFilePath(tempDir, config.ProjectName))
+	if err != nil {
+		t.Fatalf("Failed to read generated compose file: %v", err)
+	}
+	contentStr := string(content)
+
+	if !strings.Contains(contentStr, "/usr/local/apache2/conf") {
+		t.Fatalf("expected apache config directory volume mount in compose output, got:\n%s", contentStr)
+	}
+
+	configPath := filepath.Join(homeDir, "apache", config.ProjectName, "httpd.conf")
+	configContent, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("expected rendered apache httpd.conf at %s: %v", configPath, err)
+	}
+	configStr := string(configContent)
+
+	for _, expected := range []string{`DocumentRoot "/var/www/html/"`, `IncludeOptional conf/extra/mage-run-map.conf`, `<Directory "/var/www/html/">`} {
+		if !strings.Contains(configStr, expected) {
+			t.Fatalf("expected rendered apache httpd.conf to contain %q, got:\n%s", expected, configStr)
+		}
+	}
+
+	mimeTypesPath := filepath.Join(homeDir, "apache", config.ProjectName, "mime.types")
+	if _, err := os.Stat(mimeTypesPath); err != nil {
+		t.Fatalf("expected rendered apache mime.types at %s: %v", mimeTypesPath, err)
+	}
+}
+
+func TestRenderMagento2BlueprintHybridWithRenderedApacheHTTPDConfig(t *testing.T) {
+	tempDir := t.TempDir()
+	homeDir := setTestGovardHome(t, tempDir)
+
+	_, filename, _, _ := runtime.Caller(0)
+	projectRoot := filepath.Join(filepath.Dir(filename), "..")
+	blueprintsDir := filepath.Join(projectRoot, "internal", "blueprints", "files")
+
+	destBlueprintsDir := filepath.Join(tempDir, "blueprints")
+	if err := copyDir(blueprintsDir, destBlueprintsDir); err != nil {
+		t.Fatalf("Failed to copy blueprints: %v", err)
+	}
+
+	config := engine.Config{
+		ProjectName: "test-magento2-hybrid-httpd",
+		Framework:   "magento2",
+		Domain:      "main.test",
+		Stack: engine.Stack{
+			PHPVersion: "8.4",
+			WebRoot:    "/pub",
+			Services: engine.Services{
+				WebServer: "hybrid",
+				Search:    "none",
+				Cache:     "none",
+				Queue:     "none",
+			},
+		},
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("Failed to render blueprint: %v", err)
+	}
+
+	content, err := os.ReadFile(engine.ComposeFilePath(tempDir, config.ProjectName))
+	if err != nil {
+		t.Fatalf("Failed to read generated compose file: %v", err)
+	}
+	contentStr := string(content)
+
+	if !strings.Contains(contentStr, "/usr/local/apache2/conf") {
+		t.Fatalf("expected hybrid apache service to mount rendered config directory, got:\n%s", contentStr)
+	}
+
+	configPath := filepath.Join(homeDir, "apache", config.ProjectName, "httpd.conf")
+	configContent, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("expected rendered hybrid apache httpd.conf at %s: %v", configPath, err)
+	}
+	configStr := string(configContent)
+
+	if !strings.Contains(configStr, `DocumentRoot "/var/www/html/pub"`) {
+		t.Fatalf("expected hybrid apache httpd.conf to render Magento 2 docroot /var/www/html/pub, got:\n%s", configStr)
 	}
 }
 
