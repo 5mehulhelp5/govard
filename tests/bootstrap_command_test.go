@@ -36,7 +36,7 @@ framework: magento2
 
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
-	root.SetArgs([]string{"bootstrap", "--yes", "--clone=false", "--skip-up", "--no-db", "--no-media", "--no-composer"})
+	root.SetArgs([]string{"bootstrap", "--yes", "--skip-up", "--no-db", "--no-media", "--no-composer"})
 
 	// IMPORTANT: Mock the subcommand runner to prevent recursion/fork-bomb during tests
 	defer cmd.SetGovardSubcommandRunnerForTest(func(subCmd *cobra.Command, args ...string) error {

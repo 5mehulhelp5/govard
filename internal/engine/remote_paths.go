@@ -16,8 +16,10 @@ func ResolveRemotePathsForConfig(framework string, remote RemoteConfig) (string,
 		return root, remote.Paths.Media
 	}
 	switch framework {
-	case "magento2", "magento1":
+	case "magento2":
 		return root, root + "/pub/media"
+	case "magento1", "openmage":
+		return root, root + "/media"
 	case "wordpress":
 		return root, root + "/wp-content/uploads"
 	case "drupal":

@@ -79,8 +79,7 @@ func TestBootstrapValidationCodeOnlyRequiresClone(t *testing.T) {
 
 	localDir := env.CreateTempProject(t, "local")
 
-	// --clone defaults to true, so we must explicitly set --clone=false to trigger the validation.
-	result := env.RunGovard(t, localDir, "bootstrap", "--code-only", "--clone=false", "--skip-up")
+	result := env.RunGovard(t, localDir, "bootstrap", "--code-only", "--skip-up")
 	result.AssertFailure(t)
 	result.AssertOutputContains(t, "--code-only requires --clone")
 }

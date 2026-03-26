@@ -19,7 +19,7 @@ func TestBootstrapValidationMatrix(t *testing.T) {
 
 	t.Run("CodeOnlyRequiresClone", func(t *testing.T) {
 		projectDir := env.CreateProjectFromFixture(t, "magento2/options-dev", "bootstrap-validate-code-only")
-		result := env.RunGovard(t, projectDir, "bootstrap", "--clone=false", "--code-only", "--skip-up", "--yes")
+		result := env.RunGovard(t, projectDir, "bootstrap", "--code-only", "--skip-up", "--yes")
 		assertBootstrapContains(t, result.Stdout+result.Stderr, "--code-only requires --clone")
 	})
 

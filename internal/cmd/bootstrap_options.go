@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -74,16 +72,6 @@ func resolveBootstrapOptions(cmd *cobra.Command) (bootstrapRuntimeOptions, error
 	cloneFlagExplicit := false
 	if cmd != nil {
 		cloneFlagExplicit = cmd.Flags().Changed("clone")
-	}
-
-	if !cloneFlagExplicit && !opts.Fresh {
-		cwd, _ := os.Getwd()
-		hasSource := fileExists(filepath.Join(cwd, "composer.json")) ||
-			fileExists(filepath.Join(cwd, "package.json")) ||
-			fileExists(filepath.Join(cwd, "wp-config.php"))
-		if !hasSource {
-			opts.Clone = true
-		}
 	}
 
 	if opts.MetaVersion != "" {
