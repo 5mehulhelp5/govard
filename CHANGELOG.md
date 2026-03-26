@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.31.0] - 2026-03-27
+
+### ✨ New Features
+
+- **Comprehensive Web Server Support**: Introduced new Nginx and Apache templates with improved asset management and framework bootstrapping.
+- **OpenMage Support**: Added dedicated support for the OpenMage framework and adjusted Magento 1 media paths.
+- **Magento Cron Support**: Added `cronie` and `crond` to the PHP container for automated cron task execution.
+
+### 🛠 Improvements
+
+- **Nginx Backend Resolution**: Standardized PHP backend resolution and enhanced Varnish support across all web server modes.
+- **Dashboard UI Refinement**: Modernized the desktop dashboard environment list using CSS Grid and optimized color contrast for status indicators.
+- **HTTPS & TLS Enhancements**: Improved HTTPS detection for Magento 1 and added configurable TLS policies for local development domains.
+
+### 🐛 Bug Fixes
+
+- **Header Cleanup**: Removed redundant `X-Forwarded-Proto` directives for cleaner protocol detection.
+- **Test Stability**: Enhanced integration test coverage and adjusted assertions for blueprint content verification.
+
 ## [1.30.0] - 2026-03-26
 
 ### ✨ New Features
