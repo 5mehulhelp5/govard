@@ -27,8 +27,14 @@ func TestNginxTemplatesIncludeXdebugRouting(t *testing.T) {
 		if !strings.Contains(content, "XDEBUG_SESSION=") {
 			t.Fatalf("Expected Xdebug routing in %s", name)
 		}
-		if !strings.Contains(content, "php_debug_backend") {
-			t.Fatalf("Expected php_debug_backend in %s", name)
+		if !strings.Contains(content, "resolver 127.0.0.11 ipv6=off valid=30s;") {
+			t.Fatalf("Expected Docker DNS resolver in %s", name)
+		}
+		if !strings.Contains(content, "php-debug:9000") {
+			t.Fatalf("Expected php-debug upstream target in %s", name)
+		}
+		if !strings.Contains(content, "default php:9000;") {
+			t.Fatalf("Expected php upstream target in %s", name)
 		}
 	}
 }
@@ -39,8 +45,11 @@ func TestMagento2TemplateHasLiveReloadRoute(t *testing.T) {
 	if !strings.Contains(content, "location = /livereload.js") {
 		t.Fatalf("Expected /livereload.js route in magento2.conf")
 	}
-	if !strings.Contains(content, "proxy_pass http://php:35729/livereload.js") {
-		t.Fatalf("Expected livereload proxy_pass in magento2.conf")
+	if !strings.Contains(content, "set $php_live_reload_backend php;") {
+		t.Fatalf("Expected Magento 2 livereload backend variable in magento2.conf")
+	}
+	if !strings.Contains(content, "proxy_pass http://$php_live_reload_backend:35729/livereload.js;") {
+		t.Fatalf("Expected dynamic livereload proxy_pass in magento2.conf")
 	}
 }
 

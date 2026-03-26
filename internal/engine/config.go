@@ -1,6 +1,9 @@
 package engine
 
-import "strings"
+import (
+	"sort"
+	"strings"
+)
 
 type Features struct {
 	Xdebug        bool `yaml:"xdebug"`
@@ -74,8 +77,10 @@ type HookStep struct {
 	Run  string `yaml:"run"`
 }
 
-// AllDomains returns the primary Domain followed by any non-duplicate ExtraDomains.
-// It trims whitespace from each domain and skips empty strings.
+// AllDomains returns the primary Domain followed by any non-duplicate
+// ExtraDomains and StoreDomains. It trims whitespace from each domain,
+// skips empty strings, and keeps StoreDomains in sorted order so
+// downstream config rendering stays deterministic.
 func (c Config) AllDomains() []string {
 	seen := make(map[string]bool)
 	domains := []string{}
@@ -95,7 +100,13 @@ func (c Config) AllDomains() []string {
 		seen[trimmed] = true
 	}
 
+	storeDomains := make([]string, 0, len(c.StoreDomains))
 	for domain := range c.StoreDomains {
+		storeDomains = append(storeDomains, domain)
+	}
+	sort.Strings(storeDomains)
+
+	for _, domain := range storeDomains {
 		trimmed := strings.TrimSpace(domain)
 		if trimmed == "" || seen[trimmed] {
 			continue

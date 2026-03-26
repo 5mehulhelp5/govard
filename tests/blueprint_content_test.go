@@ -307,6 +307,111 @@ func TestRenderMagento2BlueprintHybridWebServer(t *testing.T) {
 	}
 }
 
+func TestRenderMagento2BlueprintWithVarnishAcrossWebServers(t *testing.T) {
+	cases := []struct {
+		name                string
+		webServer           string
+		expectedWebImage    string
+		expectApacheSidecar bool
+	}{
+		{
+			name:             "nginx",
+			webServer:        "nginx",
+			expectedWebImage: "image: ddtcorex/govard-nginx:1.28",
+		},
+		{
+			name:             "apache",
+			webServer:        "apache",
+			expectedWebImage: "image: ddtcorex/govard-apache:2.4",
+		},
+		{
+			name:                "hybrid",
+			webServer:           "hybrid",
+			expectedWebImage:    "image: ddtcorex/govard-nginx:1.28",
+			expectApacheSidecar: true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			tempDir := t.TempDir()
+			homeDir := setTestGovardHome(t, tempDir)
+
+			_, filename, _, _ := runtime.Caller(0)
+			projectRoot := filepath.Join(filepath.Dir(filename), "..")
+			blueprintsDir := filepath.Join(projectRoot, "internal", "blueprints", "files")
+
+			destBlueprintsDir := filepath.Join(tempDir, "blueprints")
+			if err := copyDir(blueprintsDir, destBlueprintsDir); err != nil {
+				t.Fatalf("Failed to copy blueprints: %v", err)
+			}
+
+			config := engine.Config{
+				ProjectName: "test-magento-varnish-" + tc.name,
+				Framework:   "magento2",
+				Domain:      "magento-varnish-" + tc.name + ".test",
+				Stack: engine.Stack{
+					PHPVersion: "8.4",
+					Features: engine.Features{
+						Varnish: true,
+					},
+					Services: engine.Services{
+						WebServer: tc.webServer,
+						Search:    "none",
+						Cache:     "none",
+						Queue:     "none",
+					},
+				},
+			}
+
+			if err := engine.RenderBlueprint(tempDir, config); err != nil {
+				t.Fatalf("Failed to render blueprint: %v", err)
+			}
+
+			content, err := os.ReadFile(engine.ComposeFilePath(tempDir, config.ProjectName))
+			if err != nil {
+				t.Fatalf("Failed to read generated compose file: %v", err)
+			}
+			contentStr := string(content)
+
+			if !strings.Contains(contentStr, "varnish:") {
+				t.Fatalf("expected varnish service in compose output, got:\n%s", contentStr)
+			}
+			if !strings.Contains(contentStr, tc.expectedWebImage) {
+				t.Fatalf("expected web image %q, got:\n%s", tc.expectedWebImage, contentStr)
+			}
+			if !strings.Contains(contentStr, "image: ddtcorex/govard-varnish:7.6") {
+				t.Fatalf("expected managed varnish image, got:\n%s", contentStr)
+			}
+			if !strings.Contains(contentStr, "- web") {
+				t.Fatalf("expected varnish to depend on web service, got:\n%s", contentStr)
+			}
+
+			hasApacheSidecar := strings.Contains(contentStr, "\n    apache:\n")
+			if tc.expectApacheSidecar && !hasApacheSidecar {
+				t.Fatalf("expected apache sidecar for hybrid mode, got:\n%s", contentStr)
+			}
+			if !tc.expectApacheSidecar && hasApacheSidecar {
+				t.Fatalf("did not expect apache sidecar for %s mode, got:\n%s", tc.webServer, contentStr)
+			}
+
+			vclPath := filepath.Join(homeDir, "varnish", config.ProjectName, "default.vcl")
+			vclContent, err := os.ReadFile(vclPath)
+			if err != nil {
+				t.Fatalf("expected varnish VCL at %s: %v", vclPath, err)
+			}
+			vclStr := string(vclContent)
+
+			if !strings.Contains(vclStr, `.host = "`+config.ProjectName+`-web-1"`) {
+				t.Fatalf("expected varnish VCL backend host to target web service, got:\n%s", vclStr)
+			}
+			if !strings.Contains(vclStr, `.url = "/health_check.php"`) {
+				t.Fatalf("expected varnish VCL health probe, got:\n%s", vclStr)
+			}
+		})
+	}
+}
+
 func TestRenderMagento2BlueprintWithMageRunMappings(t *testing.T) {
 	tempDir := t.TempDir()
 	homeDir := setTestGovardHome(t, tempDir)

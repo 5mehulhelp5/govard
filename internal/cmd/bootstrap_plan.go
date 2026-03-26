@@ -76,7 +76,8 @@ func buildBootstrapRemotePlan(config engine.Config, opts bootstrapRuntimeOptions
 	}
 
 	// 6. Framework specific post-steps
-	if framework == "magento2" {
+	switch framework {
+	case "magento2":
 		plan.Descriptions = append(plan.Descriptions, "Configuring Magento 2 environment (env.php)...")
 		plan.Commands = append(plan.Commands, "govard config auto")
 
@@ -87,7 +88,7 @@ func buildBootstrapRemotePlan(config engine.Config, opts bootstrapRuntimeOptions
 
 		plan.Descriptions = append(plan.Descriptions, "Reindexing Magento 2 data...")
 		plan.Commands = append(plan.Commands, "govard tool magento indexer:reindex")
-	} else if framework == "magento1" || framework == "openmage" {
+	case "magento1", "openmage":
 		plan.Descriptions = append(plan.Descriptions, "Configuring Magento 1 environment (base URLs and scoped website/store URLs)...")
 		plan.Commands = append(plan.Commands, "govard config auto")
 	}

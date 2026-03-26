@@ -149,6 +149,24 @@ func blueprintsFingerprint(blueprintsFS fs.FS) (string, error) {
 	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
+func projectComposeOverrideFingerprint(root string) (string, error) {
+	overridePath := filepath.Join(root, ProjectComposeOverridePath)
+	data, err := os.ReadFile(overridePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", nil
+		}
+		return "", err
+	}
+
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:]), nil
+}
+
+func renderEnvironmentFingerprint() string {
+	return strings.TrimSpace(os.Getenv("SSH_AUTH_SOCK"))
+}
+
 // RenderBlueprint renders layered blueprints into a single docker-compose file
 func RenderBlueprint(root string, config Config) error {
 	return RenderBlueprintWithProfile(root, config, config.Profile)
@@ -171,12 +189,17 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 	if err != nil {
 		return fmt.Errorf("fingerprint blueprints: %w", err)
 	}
+	overrideFingerprint, err := projectComposeOverrideFingerprint(root)
+	if err != nil {
+		return fmt.Errorf("fingerprint compose override: %w", err)
+	}
+	envFingerprint := renderEnvironmentFingerprint()
 
 	outputPath := ComposeFilePathWithProfile(root, config.ProjectName, profile)
 	hashPath := outputPath + ".hash"
 
 	hashData, _ := json.Marshal(config)
-	hashSum := sha256.Sum256(append(hashData, []byte(profile+BlueprintVersion+blueprintFingerprint)...))
+	hashSum := sha256.Sum256(append(hashData, []byte(profile+BlueprintVersion+blueprintFingerprint+overrideFingerprint+envFingerprint)...))
 	currentHash := hex.EncodeToString(hashSum[:])
 
 	if existingHash, err := os.ReadFile(hashPath); err == nil && string(existingHash) == currentHash {

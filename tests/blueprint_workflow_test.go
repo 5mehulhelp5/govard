@@ -169,3 +169,125 @@ func TestRenderBlueprintReRendersWhenBlueprintContentsChange(t *testing.T) {
 		t.Fatalf("expected compose output to re-render after blueprint change, got:\n%s", string(after))
 	}
 }
+
+func TestRenderBlueprintReRendersWhenProjectComposeOverrideChanges(t *testing.T) {
+	tempDir := t.TempDir()
+	setTestGovardHome(t, tempDir)
+
+	_, filename, _, _ := runtime.Caller(0)
+	projectRoot := filepath.Join(filepath.Dir(filename), "..")
+	blueprintsDir := filepath.Join(projectRoot, "internal", "blueprints", "files")
+
+	destBlueprintsDir := filepath.Join(tempDir, "blueprints")
+	if err := copyDir(blueprintsDir, destBlueprintsDir); err != nil {
+		t.Fatalf("Failed to copy blueprints: %v", err)
+	}
+
+	config := engine.Config{
+		ProjectName: "sample-project",
+		Framework:   "custom",
+		Domain:      "sample-project.test",
+		Stack: engine.Stack{
+			PHPVersion: "8.4",
+			Services: engine.Services{
+				WebServer: "nginx",
+				Search:    "none",
+				Cache:     "none",
+				Queue:     "none",
+			},
+		},
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("first render failed: %v", err)
+	}
+
+	composePath := engine.ComposeFilePath(tempDir, config.ProjectName)
+	before, err := os.ReadFile(composePath)
+	if err != nil {
+		t.Fatalf("read first compose file: %v", err)
+	}
+	if strings.Contains(string(before), "OVERRIDE_FLAG") {
+		t.Fatalf("expected initial compose output to exclude override marker, got:\n%s", string(before))
+	}
+
+	overridePath := filepath.Join(tempDir, engine.ProjectComposeOverridePath)
+	if err := os.MkdirAll(filepath.Dir(overridePath), 0o755); err != nil {
+		t.Fatalf("create override dir: %v", err)
+	}
+	overrideContent := "services:\n  web:\n    environment:\n      OVERRIDE_FLAG: enabled\n"
+	if err := os.WriteFile(overridePath, []byte(overrideContent), 0o644); err != nil {
+		t.Fatalf("write compose override: %v", err)
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("second render failed: %v", err)
+	}
+
+	after, err := os.ReadFile(composePath)
+	if err != nil {
+		t.Fatalf("read second compose file: %v", err)
+	}
+	if !strings.Contains(string(after), "OVERRIDE_FLAG: enabled") {
+		t.Fatalf("expected compose output to re-render after compose override change, got:\n%s", string(after))
+	}
+}
+
+func TestRenderBlueprintReRendersWhenSSHAuthSockChanges(t *testing.T) {
+	tempDir := t.TempDir()
+	setTestGovardHome(t, tempDir)
+
+	_, filename, _, _ := runtime.Caller(0)
+	projectRoot := filepath.Join(filepath.Dir(filename), "..")
+	blueprintsDir := filepath.Join(projectRoot, "internal", "blueprints", "files")
+
+	destBlueprintsDir := filepath.Join(tempDir, "blueprints")
+	if err := copyDir(blueprintsDir, destBlueprintsDir); err != nil {
+		t.Fatalf("Failed to copy blueprints: %v", err)
+	}
+
+	config := engine.Config{
+		ProjectName: "sample-project",
+		Framework:   "custom",
+		Domain:      "sample-project.test",
+		Stack: engine.Stack{
+			PHPVersion: "8.4",
+			Services: engine.Services{
+				WebServer: "nginx",
+				Search:    "none",
+				Cache:     "none",
+				Queue:     "none",
+			},
+		},
+	}
+
+	t.Setenv("SSH_AUTH_SOCK", "/tmp/ssh-old.sock")
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("first render failed: %v", err)
+	}
+
+	composePath := engine.ComposeFilePath(tempDir, config.ProjectName)
+	before, err := os.ReadFile(composePath)
+	if err != nil {
+		t.Fatalf("read first compose file: %v", err)
+	}
+	if !strings.Contains(string(before), "/tmp/ssh-old.sock:/ssh-agent") {
+		t.Fatalf("expected compose output to contain first SSH_AUTH_SOCK mount, got:\n%s", string(before))
+	}
+
+	t.Setenv("SSH_AUTH_SOCK", "/tmp/ssh-new.sock")
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("second render failed: %v", err)
+	}
+
+	after, err := os.ReadFile(composePath)
+	if err != nil {
+		t.Fatalf("read second compose file: %v", err)
+	}
+	if !strings.Contains(string(after), "/tmp/ssh-new.sock:/ssh-agent") {
+		t.Fatalf("expected compose output to re-render after SSH_AUTH_SOCK change, got:\n%s", string(after))
+	}
+	if strings.Contains(string(after), "/tmp/ssh-old.sock:/ssh-agent") {
+		t.Fatalf("expected old SSH_AUTH_SOCK mount to be replaced, got:\n%s", string(after))
+	}
+}

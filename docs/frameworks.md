@@ -81,6 +81,7 @@ Common services:
 - search: OpenSearch by default
 - cache/session: Redis or Valkey depending on selected runtime profile
 - queue: optional RabbitMQ
+- Varnish: optional and supported in front of `nginx`, `apache`, and `hybrid` web server modes
 
 ### Magento 2 multiple websites / stores
 
