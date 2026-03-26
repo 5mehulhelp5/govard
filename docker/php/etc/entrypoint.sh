@@ -41,4 +41,9 @@ fi
 # Ensure specific PHP directories are correct
 sudo chown -R www-data:www-data /var/log/php /var/lib/php 2>/dev/null || true
 
+# Start cron so Magento cron:install entries can execute inside the container.
+if command -v crond >/dev/null 2>&1; then
+  sudo crond -P
+fi
+
 exec "$@"

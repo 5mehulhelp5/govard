@@ -61,9 +61,12 @@ Highlights:
 
 - `govard config auto` injects DB, cache, search, Varnish, and base URL settings into `app/etc/env.php`
 - `govard tool magento [command]` runs Magento CLI commands
+- `govard tool magento cron:install` is supported inside the PHP container because Govard ships cron tooling in the Magento PHP runtime
 - optional Selenium support for MFTF
 - optional frontend watcher support for Grunt or Vite workflows
 - dedicated `php-debug` routing when Xdebug is enabled
+
+Note: Magento crontabs installed with `bin/magento cron:install` live inside the PHP container. If you recreate that container, rerun the command.
 
 Typical flow:
 

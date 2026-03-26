@@ -51,6 +51,7 @@ RUN set -eux; \
     unzip \
     bash \
     sudo \
+    cronie \
     linux-headers \
     patch \
     openssh-client \

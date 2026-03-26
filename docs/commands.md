@@ -353,6 +353,8 @@ For deeper remote policy and sync behavior, see [Remotes and Sync](remotes-and-s
 govard tool magento [command]
 ```
 
+Magento CLI runs inside the PHP container as the project user. This includes `govard tool magento cron:install`, which installs crontab entries inside that container.
+
 ### Magento 1 (OpenMage)
 
 ```bash
