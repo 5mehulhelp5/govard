@@ -648,3 +648,26 @@ func reportRemoteCommandFailure(step string, err error, output []byte, duration 
 func formatDuration(duration time.Duration) string {
 	return duration.Round(time.Millisecond).String()
 }
+
+// ResolveAutoRemote determines the source environment to use.
+// If requested is provided, it tries to find it.
+// If requested is empty, it prioritizes "staging" then "dev".
+func ResolveAutoRemote(config engine.Config, requested string) (string, error) {
+	requested = strings.ToLower(strings.TrimSpace(requested))
+	if requested != "" {
+		if remoteName, ok := findRemoteByNameOrEnvironment(config, requested); ok {
+			return remoteName, nil
+		}
+		return "", fmt.Errorf("unknown remote: %s", requested)
+	}
+
+	// Priority: staging then dev
+	if remoteName, ok := findRemoteByNameOrEnvironment(config, "staging"); ok {
+		return remoteName, nil
+	}
+	if remoteName, ok := findRemoteByNameOrEnvironment(config, "dev"); ok {
+		return remoteName, nil
+	}
+
+	return "", fmt.Errorf("no remote environment found (tried staging, dev). Please specify one with -e (e.g., -e staging) or add a remote with 'govard remote add staging'")
+}

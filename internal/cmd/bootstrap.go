@@ -142,10 +142,12 @@ Note: -e/--environment accepts remote name aliases (e.g. 'dev' matches a remote 
 		}
 		configForObservability = config
 
-		if remoteName, ok := findRemoteByNameOrEnvironment(config, opts.Source); ok {
-			opts.Source = remoteName
-			operationSource = opts.Source
+		resolvedRemote, err := ResolveAutoRemote(config, opts.Source)
+		if err != nil {
+			return err
 		}
+		opts.Source = resolvedRemote
+		operationSource = opts.Source
 
 		supportedFrameworks := []string{"magento2", "magento1", "openmage", "laravel", "symfony", "wordpress"}
 		if opts.Fresh {
@@ -403,8 +405,8 @@ func init() {
 	bootstrapCmd.Flags().BoolVar(&bootstrapSkipComposer, "no-composer", false, "Skip composer install")
 	bootstrapCmd.Flags().BoolVar(&bootstrapSkipAdmin, "no-admin", false, "Skip admin user creation (Magento only)")
 	bootstrapCmd.Flags().BoolVar(&bootstrapNoStreamDB, "no-stream-db", false, "Disable stream-db import mode")
-	bootstrapCmd.Flags().StringVarP(&bootstrapEnv, "environment", "e", "dev", "Source environment")
-	bootstrapCmd.Flags().StringVar(&bootstrapEnv, "remote", "dev", "Alias for --environment")
+	bootstrapCmd.Flags().StringVarP(&bootstrapEnv, "environment", "e", "", "Source environment (default: auto-select staging or dev)")
+	bootstrapCmd.Flags().StringVar(&bootstrapEnv, "remote", "", "Alias for --environment")
 	bootstrapCmd.Flags().StringVar(&bootstrapFramework, "framework", "", "Framework to use when init is required")
 	bootstrapCmd.Flags().StringVar(&bootstrapFrameworkVersion, "framework-version", "", "Framework version (e.g. 2.4.7 for Magento, 11 for Laravel)")
 	bootstrapCmd.Flags().BoolVar(&bootstrapSkipUp, "skip-up", false, "Skip starting local containers before bootstrap steps")

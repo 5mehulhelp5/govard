@@ -144,10 +144,19 @@ They are ignored for DB-only sync.
 
 ## Remote Name Resolution
 
-Remote flags support:
+Remote flags (`--source`, `--from`, `-e`, `--environment`) support:
 
 - exact remote key lookup
 - normalized aliases such as `stg` -> `staging`
+
+### Auto-select Remote Priority
+
+When no remote is explicitly provided for `bootstrap` or `sync`, Govard automatically attempts to resolve a source remote based on the following priority:
+
+1. **`staging`** (and its aliases: `stg`, `stage`, `qa`, `uat`, `test`)
+2. **`dev`** (and its aliases: `development`, `local`)
+
+If your project only has a `staging` remote, Govard will use it automatically. If it has both, `staging` is prioritized. If neither exists, you must specify the remote explicitly or add one.
 
 These are equivalent when the remote exists:
 

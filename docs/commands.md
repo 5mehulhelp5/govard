@@ -49,9 +49,11 @@ Run bootstrap flows for clone or fresh-install setups.
 
 ```bash
 govard bootstrap
-govard bootstrap --clone --environment dev --yes
+govard bootstrap --clone --environment staging --yes
 govard bootstrap --framework magento2 --fresh --framework-version 2.4.9
 ```
+
+By default, if no `--environment` is provided, Govard **auto-selects** your `staging` remote if it exists, falling back to `dev` (or its aliases). If neither is found, it will prompt for confirmation or error out if non-interactive.
 
 Bootstrap shows a review step before environment startup unless you skip prompts with `--yes`.
 
@@ -274,8 +276,10 @@ Synchronize files, media, or databases between local and named remotes.
 govard sync --source staging --destination local --full --plan
 govard sync --from staging --to local --media
 govard sync -s prod --file --path app/etc/config.php
-govard sync -s dev --db --no-noise --no-pii
+govard sync --db --no-noise --no-pii
 ```
+
+By default, if no `--source` is provided, Govard **auto-selects** your `staging` remote if it exists, falling back to `dev` (or its aliases).
 
 Key flags:
 

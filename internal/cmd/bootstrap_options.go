@@ -103,16 +103,12 @@ func resolveBootstrapOptions(cmd *cobra.Command) (bootstrapRuntimeOptions, error
 }
 
 func normalizeBootstrapSource(raw string) string {
-	value := strings.ToLower(strings.TrimSpace(raw))
-	if value == "" {
-		return "dev"
-	}
-	return value
+	return strings.ToLower(strings.TrimSpace(raw))
 }
 
 func DefaultBootstrapRuntimeOptionsForTest() bootstrapRuntimeOptions {
 	return bootstrapRuntimeOptions{
-		Source:          "dev",
+		Source:          "",
 		DBImport:        true,
 		MediaSync:       true,
 		ComposerInstall: true,
@@ -135,7 +131,7 @@ func ResetBootstrapFlags() {
 	bootstrapSkipComposer = false
 	bootstrapSkipAdmin = false
 	bootstrapNoStreamDB = false
-	bootstrapEnv = "dev"
+	bootstrapEnv = ""
 	bootstrapFramework = ""
 	bootstrapFrameworkVersion = ""
 	bootstrapSkipUp = false

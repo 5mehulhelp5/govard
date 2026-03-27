@@ -45,7 +45,7 @@ At a glance, these are the areas where Govard delivers stronger day-to-day value
 - **Magento 2 Optimized**: Deep integration for Magento 2, including automated `env.php` configuration, Varnish 7.x support, and Redis caching.
 - **Remote Management (Flagship)**: Manage named remotes for sync/deploy/db workflows with scope-based capabilities (`files,media,db,deploy`) and flexible auth modes (`keychain`, `ssh-agent`, `keyfile`).
 - **Remote Safety Guardrails**: Production remotes are write-protected by default, with policy checks to block risky destination writes and explicit capability enforcement per operation.
-- **Safe Cross-Environment Sync**: Bi-directional file/media/database sync with dry-run planning (`--plan`), resumable rsync by default (`--partial --append-verify`), include/exclude filters, and risk warnings for destructive flags.
+- **Safe Cross-Environment Sync**: Bi-directional file/media/database sync with dry-run planning (`--plan`), auto-selection of the `staging` remote by default, resumable rsync by default (`--partial --append-verify`), include/exclude filters, and risk warnings for destructive flags.
 - **Remote Auditability & Observability**: Remote operations are logged to `~/.govard/remote.log` and also emitted to `~/.govard/operations.log` for command traceability and desktop notifications.
 - **Remote Connectivity Diagnostics**: `govard remote test` validates SSH + `rsync`, reports probe latency, and classifies failures (`network`, `auth`, `permission`, `host_key`, `dependency`) with remediation hints.
 - **Smart Cleanup**: Automaticaly prunes stale Docker Compose files in the background once a day and provides a `govard env cleanup` command for immediate maintenance. Use `govard doctor` to monitor directory saturation.
@@ -141,10 +141,13 @@ If you are contributing to Govard, follow these steps to set up your environment
 1. **Go 1.25+**: Install from [go.dev](https://go.dev/dl/).
 2. **Yarn**: Enable with `corepack enable` or `npm install -g yarn`.
 3. **golangci-lint**: Install the latest version:
+
    ```bash
    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
    ```
+
 4. **Wails v2.11+** (for desktop app development):
+
    ```bash
    go install github.com/wailsapp/wails/v2/cmd/wails@latest
    wails version
@@ -478,18 +481,23 @@ Govard CI runs these checks on every push and pull request:
 To ensure your contribution passes the GitHub CI pipeline, run the following sequence before pushing:
 
 #### 1. Fast Validation
+
 Runs linting, formatting checks, vet, frontend tests, and unit tests:
+
 ```bash
 make test-fast
 ```
 
 #### 2. Full Validation (requires Docker)
+
 Runs the full suite including integration tests:
+
 ```bash
 make test
 ```
 
 If the CI pipeline fails and you want to reproduce the exact check that failed locally, you can use these granular commands:
+
 - `make lint` — Checks code style and static analysis (synchronized with CI version).
 - `make fmt-check` — Checks if any files need `go fmt -s`.
 - `make vet` — Runs `go vet`.

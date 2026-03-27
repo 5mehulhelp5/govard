@@ -108,18 +108,17 @@ Case Studies:
 		excludePatterns := normalizeSyncPatterns(excludePatternsRaw)
 		resumeTransfers := resolveSyncResumeMode(resume, noResume)
 
-		if source == "" {
-			source = "staging"
+		if source != "local" {
+			resolvedSource, err := ResolveAutoRemote(config, source)
+			if err != nil {
+				return err
+			}
+			source = resolvedSource
 		}
 		if destination == "" {
 			destination = "local"
 		}
 
-		if source != "local" {
-			if remoteName, ok := findRemoteByNameOrEnvironment(config, source); ok {
-				source = remoteName
-			}
-		}
 		if destination != "local" {
 			if remoteName, ok := findRemoteByNameOrEnvironment(config, destination); ok {
 				destination = remoteName
@@ -318,9 +317,9 @@ func init() {
 	syncCmd.Flags().SortFlags = false
 
 	// Environment & Scopes
-	syncCmd.Flags().StringP("source", "s", "staging", "Source environment")
+	syncCmd.Flags().StringP("source", "s", "", "Source environment (default: auto-select staging or dev)")
 	syncCmd.Flags().String("from", "", "Source environment alias for --source")
-	syncCmd.Flags().StringP("environment", "e", "staging", "Source environment alias for --source")
+	syncCmd.Flags().StringP("environment", "e", "", "Source environment alias for --source")
 	syncCmd.Flags().StringP("destination", "d", "local", "Destination environment")
 	syncCmd.Flags().String("to", "", "Destination environment alias for --destination")
 	syncCmd.Flags().BoolP("full", "A", false, "Sync files, media, and database")
