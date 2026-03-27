@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/pterm/pterm"
@@ -88,15 +89,36 @@ var domainListCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		config := loadConfig()
 		pterm.DefaultSection.Println("Project Domains")
-		pterm.Info.Printf("Primary: %s\n", config.Domain)
+		pterm.Info.Printfln("Primary: %s", pterm.Cyan(config.Domain))
+		fmt.Println()
+
 		if len(config.ExtraDomains) > 0 {
-			pterm.Info.Println("Extra Domains:")
+			pterm.DefaultSection.WithLevel(2).Println("Extra Domains")
+			var items []pterm.BulletListItem
 			for _, d := range config.ExtraDomains {
-				_ = pterm.DefaultBulletList.WithItems([]pterm.BulletListItem{
-					{Level: 0, Text: d},
-				}).Render()
+				items = append(items, pterm.BulletListItem{Level: 0, Text: d})
 			}
+			_ = pterm.DefaultBulletList.WithItems(items).Render()
 		}
+
+		if len(config.StoreDomains) > 0 {
+			pterm.DefaultSection.WithLevel(2).Println("Store Domains")
+			hosts := make([]string, 0, len(config.StoreDomains))
+			for host := range config.StoreDomains {
+				hosts = append(hosts, host)
+			}
+			sort.Strings(hosts)
+
+			tableData := pterm.TableData{
+				{"DOMAIN", "CODE", "TYPE"},
+			}
+			for _, host := range hosts {
+				m := config.StoreDomains[host]
+				tableData = append(tableData, []string{host, m.Code, m.Type})
+			}
+			_ = pterm.DefaultTable.WithHasHeader().WithData(tableData).Render()
+		}
+
 		return nil
 	},
 }
