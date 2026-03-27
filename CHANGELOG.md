@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.35.0] - 2026-03-28
+
+### ✨ New Features
+
+- **Real-time Desktop Logs**: Re-engineered the desktop log streaming engine to support carriage returns (`\r`). This enables real-time progress bar animations and spinner updates in the Desktop UI, providing immediate visual feedback for long-running synchronization tasks.
+- **Enhanced Database Probing**: Extended the remote environment probe to support `MYSQL_` prefixed environment variables in `.env` files. This improves compatibility with Symfony, ensuring seamless database credentials resolution.
+
+### 🛠 Improvements
+
+- **Optimized Environment Actions**: The Desktop dashboard now automatically includes `--force-recreate` and `--remove-orphans` flags for all "Start" and "Restart" actions, ensuring a clean and predictable environment state.
+- **Streamlined Sync Workflow**: Defaulted all automated "Pull" and "Sync" actions to use the `--yes` flag to bypass interactive prompts in background tasks. Removed the redundant "Assume Yes" option from the UI modals for a cleaner experience.
+
 ## [1.34.1] - 2026-03-28
 
 ### 🐛 Bug Fixes
