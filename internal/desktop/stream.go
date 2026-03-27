@@ -207,12 +207,38 @@ func scanLogPipe(ctx context.Context, pipe interface{}, event string, done chan<
 	}
 
 	scanner := bufio.NewScanner(reader)
+	// Progress bars and spinners use \r to update the same line.
+	// We want to treat \r as a line ending so that progress is reflected in the UI.
+	scanner.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+		if atEOF && len(data) == 0 {
+			return 0, nil, nil
+		}
+		if i := bytes.IndexAny(data, "\r\n"); i >= 0 {
+			if data[i] == '\r' && i+1 < len(data) && data[i+1] == '\n' {
+				return i + 2, data[0:i], nil
+			}
+			return i + 1, data[0:i], nil
+		}
+		if atEOF {
+			return len(data), data, nil
+		}
+		return 0, nil, nil
+	})
+
+	// Increase buffer for very long log lines (e.g. detailed SQL or JSON)
+	const maxLogLine = 1024 * 1024
+	buf := make([]byte, 64*1024)
+	scanner.Buffer(buf, maxLogLine)
+
 	for scanner.Scan() {
 		line := sanitizeStreamLine(scanner.Bytes())
 		if strings.TrimSpace(line) == "" {
 			continue
 		}
 		runtime.EventsEmit(ctx, event, line)
+	}
+	if err := scanner.Err(); err != nil {
+		runtime.EventsEmit(ctx, "logs:error", "Log scanner error: "+err.Error())
 	}
 	done <- struct{}{}
 }

@@ -37,6 +37,11 @@ type dotenvDBProbePayload struct {
 	DBUser           string `json:"db_user"`
 	DBUsername       string `json:"db_username"`
 	DBPassword       string `json:"db_password"`
+	MysqlUser        string `json:"mysql_user"`
+	MysqlDatabase    string `json:"mysql_database"`
+	MysqlPassword    string `json:"mysql_password"`
+	MysqlHost        string `json:"mysql_host"`
+	MysqlPort        string `json:"mysql_port"`
 }
 
 func ProbeDotenvEnvironment(remoteName string, remoteCfg engine.RemoteConfig) (DotenvEnvironment, error) {
@@ -77,13 +82,13 @@ func resolveDotenvDBInfo(payload dotenvDBProbePayload) (DotenvDBInfo, error) {
 		return parseDotenvDatabaseURL(databaseURL)
 	}
 
-	host := firstNonEmpty(payload.DatabaseHost, payload.DBHost)
+	host := firstNonEmpty(payload.DatabaseHost, payload.DBHost, payload.MysqlHost)
 	if host == "" {
 		host = "127.0.0.1"
 	}
 
 	port := 3306
-	portRaw := strings.TrimSpace(firstNonEmpty(payload.DatabasePort, payload.DBPort))
+	portRaw := strings.TrimSpace(firstNonEmpty(payload.DatabasePort, payload.DBPort, payload.MysqlPort))
 	if portRaw != "" {
 		parsed, err := strconv.Atoi(portRaw)
 		if err != nil || parsed <= 0 {
@@ -92,8 +97,8 @@ func resolveDotenvDBInfo(payload dotenvDBProbePayload) (DotenvDBInfo, error) {
 		port = parsed
 	}
 
-	username := strings.TrimSpace(firstNonEmpty(payload.DatabaseUser, payload.DBUsername, payload.DBUser))
-	database := strings.TrimSpace(firstNonEmpty(payload.DatabaseName, payload.DBDatabase, payload.DBName))
+	username := strings.TrimSpace(firstNonEmpty(payload.DatabaseUser, payload.DBUsername, payload.DBUser, payload.MysqlUser))
+	database := strings.TrimSpace(firstNonEmpty(payload.DatabaseName, payload.DBDatabase, payload.DBName, payload.MysqlDatabase))
 	if username == "" || database == "" {
 		return DotenvDBInfo{}, fmt.Errorf("remote dotenv is missing database username or database name")
 	}
@@ -102,7 +107,7 @@ func resolveDotenvDBInfo(payload dotenvDBProbePayload) (DotenvDBInfo, error) {
 		Host:     host,
 		Port:     port,
 		Username: username,
-		Password: firstNonEmpty(payload.DatabasePassword, payload.DBPassword),
+		Password: firstNonEmpty(payload.DatabasePassword, payload.DBPassword, payload.MysqlPassword),
 		Database: database,
 	}, nil
 }
@@ -270,6 +275,11 @@ $out = [
 	'db_user' => (string)($vars['DB_USER'] ?? ''),
 	'db_username' => (string)($vars['DB_USERNAME'] ?? ''),
 	'db_password' => (string)($vars['DB_PASSWORD'] ?? ''),
+	'mysql_user' => (string)($vars['MYSQL_USER'] ?? ''),
+	'mysql_database' => (string)($vars['MYSQL_DATABASE'] ?? ''),
+	'mysql_password' => (string)($vars['MYSQL_PASSWORD'] ?? ''),
+	'mysql_host' => (string)($vars['MYSQL_HOST'] ?? ''),
+	'mysql_port' => (string)($vars['MYSQL_PORT'] ?? ''),
 ];
 echo base64_encode(json_encode($out));
 `
