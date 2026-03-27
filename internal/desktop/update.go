@@ -159,11 +159,12 @@ var defaultRestartDesktopBinary = func(binaryPath string) error {
 	// We must delay the child process launch slightly so that the parent Wails process
 	// has time to quit and release the SingleInstanceLock. If the child attempts to lock
 	// immediately, it will be rejected because the parent hasn't fully shut down yet.
-	if runtime.GOOS == "windows" {
+	switch runtime.GOOS {
+	case "windows":
 		cmd = exec.Command("cmd.exe", "/c", "timeout /t 2 /nobreak > nul & start \"\" \""+binaryPath+"\"")
-	} else if runtime.GOOS == "darwin" {
+	case "darwin":
 		cmd = exec.Command("sh", "-c", "sleep 1.5 && exec \"$0\" \"$@\"", binaryPath)
-	} else {
+	default:
 		// Linux: use gtk-launch to maintain desktop environment integration (dock icons),
 		// falling back to direct binary execution if gtk-launch isn't available.
 		cmdStr := `sleep 1.5 && (command -v gtk-launch >/dev/null 2>&1 && gtk-launch govard || exec "$0" "$@")`
