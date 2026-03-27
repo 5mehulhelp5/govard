@@ -37,7 +37,12 @@ export const createActionsController = ({
       renderSkeletons();
       loadingToast = onToastLoading?.(loadingLabel, "info", "Please wait...");
       loadingStartedAt = Date.now();
-      const message = await fn(project);
+      
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Operation timed out on frontend. Checkout Logs or restart app if issue persists.")), 300000); // 5 minute safety timeout
+      });
+
+      const message = await Promise.race([fn(project), timeoutPromise]);
       onStatus(message || fallbackMessage);
       if (loadingToast) {
         await waitForToastVisibility();

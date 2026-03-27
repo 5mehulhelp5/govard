@@ -316,33 +316,33 @@ Case Studies:
 func init() {
 	syncCmd.Flags().SortFlags = false
 
-	// Environment & Scopes
+	// 1. Source & Destination
 	syncCmd.Flags().StringP("source", "s", "", "Source environment (default: auto-select staging or dev)")
 	syncCmd.Flags().String("from", "", "Source environment alias for --source")
 	syncCmd.Flags().StringP("environment", "e", "", "Source environment alias for --source")
 	syncCmd.Flags().StringP("destination", "d", "local", "Destination environment")
 	syncCmd.Flags().String("to", "", "Destination environment alias for --destination")
+
+	// 2. Resource Scopes
 	syncCmd.Flags().BoolP("full", "A", false, "Sync files, media, and database")
 	syncCmd.Flags().BoolP("file", "f", false, "Sync source code/files")
 	syncCmd.Flags().BoolP("media", "m", false, "Sync media files")
 	syncCmd.Flags().BoolP("db", "b", false, "Sync database")
 
-	// Filters
+	// 3. Filters & Paths
 	syncCmd.Flags().StringP("path", "p", "", "Sync a specific path")
 	syncCmd.Flags().StringArrayP("include", "I", nil, "Rsync include pattern (repeatable)")
 	syncCmd.Flags().StringArrayP("exclude", "X", nil, "Rsync exclude pattern (repeatable)")
 
-	// Database Options
+	// 4. Database Privacy & Protection
 	syncCmd.Flags().BoolP("no-noise", "N", false, "Exclude ephemeral/noise tables from database sync (logs, caches, etc)")
 	syncCmd.Flags().BoolP("no-pii", "P", false, "Exclude PII/sensitive tables from database sync (users, orders, passwords, etc)")
 
-	// Rsync & Transfer Options
+	// 5. Transfer & Execution Control
 	syncCmd.Flags().BoolP("delete", "D", false, "Delete destination files missing on source")
 	syncCmd.Flags().BoolP("resume", "R", true, "Enable resumable rsync transfers (--partial --append-verify)")
 	syncCmd.Flags().Bool("no-resume", false, "Disable resumable rsync transfers")
 	syncCmd.Flags().BoolP("no-compress", "C", false, "Disable rsync compression")
-
-	// Execution Control
 	syncCmd.Flags().Bool("plan", false, "Print the sync plan and exit")
 	syncCmd.Flags().BoolP("yes", "y", false, "Skip confirmation and proceed with synchronization")
 

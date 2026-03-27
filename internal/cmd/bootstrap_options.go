@@ -33,6 +33,9 @@ type bootstrapRuntimeOptions struct {
 	Plan            bool
 	NoNoise         bool
 	NoPII           bool
+	DeleteSync      bool
+	NoCompress      bool
+	ExcludePatterns []string
 }
 
 func resolveBootstrapOptions(cmd *cobra.Command) (bootstrapRuntimeOptions, error) {
@@ -61,6 +64,9 @@ func resolveBootstrapOptions(cmd *cobra.Command) (bootstrapRuntimeOptions, error
 		Plan:            bootstrapPlan,
 		NoNoise:         bootstrapNoNoise,
 		NoPII:           bootstrapNoPII,
+		DeleteSync:      bootstrapDelete,
+		NoCompress:      bootstrapNoCompress,
+		ExcludePatterns: bootstrapExclude,
 	}
 
 	if opts.MetaPackage == "" {
@@ -147,6 +153,9 @@ func ResetBootstrapFlags() {
 	bootstrapPlan = false
 	bootstrapNoNoise = false
 	bootstrapNoPII = false
+	bootstrapDelete = false
+	bootstrapNoCompress = false
+	bootstrapExclude = []string{}
 
 	bootstrapCmd.Flags().VisitAll(func(flag *pflag.Flag) {
 		_ = flag.Value.Set(flag.DefValue)

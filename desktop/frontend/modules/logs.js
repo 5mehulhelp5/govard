@@ -150,7 +150,7 @@ export const syncServiceSelector = (
       const activeClass =
         "bg-primary/20 text-primary border-primary/30 shadow-[0_0_12px_rgba(13,242,89,0.1)]";
       const inactiveClass =
-        "text-slate-500 dark:text-primary border-transparent hover:text-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[var(--border-primary)]/60";
+        "text-text-tertiary dark:text-primary border-transparent hover:text-text-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[var(--border-primary)]/60";
 
       return `<button 
       data-action="filter-service" 
@@ -181,7 +181,7 @@ export const syncSeveritySelector = (container, selectedSeverity = "all") => {
       "h-7 px-3 text-[10px] font-bold uppercase tracking-wide rounded-md border transition-colors";
     const activeClass = "bg-primary/20 text-primary border-primary/30";
     const inactiveClass =
-      "bg-slate-50 dark:bg-surface-secondary text-slate-500 dark:text-primary border-transparent hover:bg-slate-100 dark:hover:bg-surface-primary hover:text-primary dark:hover:text-white";
+      "bg-surface-secondary dark:bg-surface-secondary text-text-tertiary dark:text-primary border-transparent hover:bg-slate-100 dark:hover:bg-surface-primary hover:text-text-primary dark:hover:text-white";
 
     btn.className = `${baseClass} ${isActive ? activeClass : inactiveClass}`;
   });
@@ -423,7 +423,7 @@ export const renderLogsTab = (container) => {
                     >receipt_long</span
                   >
                   <h3 class="text-sm font-semibold text-slate-800 dark:text-white">Logs</h3>
-                  <span class="text-[10px] uppercase tracking-wide text-slate-600 dark:text-primary bg-slate-100 dark:bg-surface-secondary border border-slate-200 dark:border-border-primary px-3 py-1 rounded-full font-bold">Live Stream</span>
+                  <span class="text-[10px] uppercase tracking-wide text-text-tertiary bg-surface-secondary dark:bg-surface-secondary border border-border-primary px-3 py-1 rounded-full font-bold">Live Stream</span>
                 </div>
                 <div class="flex items-center gap-2 ml-auto">
                   <div class="relative">
@@ -434,7 +434,7 @@ export const renderLogsTab = (container) => {
                       >
                     </span>
                     <input
-                      class="bg-slate-50 dark:bg-surface-secondary text-xs text-slate-900 dark:text-white pl-8 pr-3 py-2 rounded-md border border-slate-200 dark:border-border-primary focus:border-primary/50 focus:outline-none placeholder-slate-400 dark:placeholder-[var(--text-tertiary)] w-44 md:w-56"
+                      class="bg-surface-secondary text-xs text-text-primary dark:text-white pl-8 pr-3 py-2 rounded-md border border-border-primary focus:border-primary/50 focus:outline-none placeholder-text-tertiary w-44 md:w-56"
                       placeholder="Filter logs..."
                       type="text"
                       id="logSearch"
@@ -451,7 +451,7 @@ export const renderLogsTab = (container) => {
                   </button>
                   <button
                     data-action="download-logs"
-                    class="p-2 rounded-md text-slate-500 dark:text-primary hover:text-primary hover:bg-slate-100 dark:hover:bg-[var(--border-primary)]/50 transition-colors"
+                    class="p-2 rounded-md text-text-tertiary dark:text-primary hover:text-text-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[var(--border-primary)]/50 transition-colors"
                     title="Download Logs"
                   >
                     <span class="material-symbols-outlined text-lg"
@@ -463,7 +463,7 @@ export const renderLogsTab = (container) => {
               <div class="mt-3 flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
                 <div class="flex flex-col gap-2 min-w-0 flex-1 lg:flex-row lg:items-center">
                   <div
-                    class="flex items-center gap-2 bg-slate-50 dark:bg-surface-secondary rounded-lg p-1.5 border border-slate-200 dark:border-border-primary min-w-0 flex-1"
+                    class="flex items-center gap-2 bg-surface-secondary dark:bg-surface-secondary rounded-lg p-1.5 border border-border-primary min-w-0 flex-1"
                   >
                     <span class="h-7 inline-flex items-center leading-none text-[10px] uppercase tracking-wide text-text-tertiary px-1 shrink-0"
                       >Service</span
@@ -476,14 +476,14 @@ export const renderLogsTab = (container) => {
                       <button
                         data-action="filter-service"
                         data-service="all"
-                        class="h-7 px-3 rounded-md text-xs font-semibold whitespace-nowrap border bg-primary/20 text-primary border-primary/30"
+                        class="h-7 px-3 rounded-md text-xs font-semibold whitespace-nowrap border bg-primary/20 text-text-primary dark:text-primary border-primary/30"
                       >
                         all
                       </button>
                     </div>
                   </div>
                   <div
-                    class="flex items-center gap-2 bg-slate-50 dark:bg-surface-secondary rounded-lg p-1.5 border border-slate-200 dark:border-border-primary shrink-0"
+                    class="flex items-center gap-2 bg-surface-secondary dark:bg-surface-secondary rounded-lg p-1.5 border border-border-primary shrink-0"
                   >
                     <span class="text-[10px] uppercase tracking-wide text-text-tertiary px-1 shrink-0"
                       >Severity</span
@@ -495,21 +495,21 @@ export const renderLogsTab = (container) => {
                       <button
                         data-action="filter-severity"
                         data-severity="all"
-                        class="h-7 px-3 text-[10px] font-bold uppercase tracking-wide rounded-md border transition-colors bg-primary/20 text-primary border-primary/30"
+                        class="h-7 px-3 text-[10px] font-bold uppercase tracking-wide rounded-md border transition-colors bg-primary/20 text-text-primary dark:text-primary border-primary/30"
                       >
                         All
                       </button>
                       <button
                         data-action="filter-severity"
                         data-severity="error"
-                        class="h-7 px-3 text-[10px] font-bold uppercase tracking-wide rounded-md border transition-colors bg-slate-50 dark:bg-surface-secondary text-slate-500 dark:text-primary border-transparent hover:bg-slate-100 dark:hover:bg-surface-primary hover:text-primary dark:hover:text-white"
+                        class="h-7 px-3 text-[10px] font-bold uppercase tracking-wide rounded-md border transition-colors bg-surface-secondary dark:bg-surface-secondary text-text-tertiary dark:text-primary border-transparent hover:bg-slate-100 dark:hover:bg-surface-primary hover:text-text-primary dark:hover:text-white"
                       >
                         Error
                       </button>
                       <button
                         data-action="filter-severity"
                         data-severity="warn"
-                        class="h-7 px-3 text-[10px] font-bold uppercase tracking-wide rounded-md border transition-colors bg-slate-50 dark:bg-surface-secondary text-slate-500 dark:text-primary border-transparent hover:bg-slate-100 dark:hover:bg-surface-primary hover:text-primary dark:hover:text-white"
+                        class="h-7 px-3 text-[10px] font-bold uppercase tracking-wide rounded-md border transition-colors bg-surface-secondary dark:bg-surface-secondary text-text-tertiary dark:text-primary border-transparent hover:bg-slate-100 dark:hover:bg-surface-primary hover:text-text-primary dark:hover:text-white"
                       >
                         Warn
                       </button>
@@ -520,13 +520,13 @@ export const renderLogsTab = (container) => {
                   <button
                     id="toggleLive"
                     data-action="toggle-live"
-                    class="h-8 px-3 rounded-md text-xs font-semibold bg-primary text-slate-900 hover:bg-primary/90 transition-colors"
+                    class="h-8 px-3 rounded-md text-xs font-semibold bg-primary text-text-primary hover:bg-primary/90 transition-colors"
                   >
                     Live: Off
                   </button>
                   <button
                     data-action="refresh-logs"
-                    class="h-8 px-3 rounded-md text-xs font-semibold text-slate-600 dark:text-primary hover:text-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[var(--border-primary)]/50 transition-colors"
+                    class="h-8 px-3 rounded-md text-xs font-semibold text-text-tertiary dark:text-primary hover:text-text-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[var(--border-primary)]/50 transition-colors"
                   >
                     Refresh
                   </button>
@@ -556,31 +556,31 @@ export const renderLogsTab = (container) => {
             >
               <div class="flex items-center gap-2">
                 <span
-                  class="material-symbols-outlined text-slate-400 text-sm"
+                  class="material-symbols-outlined text-text-tertiary text-sm"
                   >terminal</span
                 >
-                <span class="text-xs font-semibold text-slate-800 dark:text-slate-300"
+                <span class="text-xs font-semibold text-text-primary dark:text-slate-300"
                   >Terminal</span
                 >
               </div>
               <div class="flex items-center gap-2">
                 <button
                   data-action="start-embedded-terminal"
-                  class="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+                  class="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 text-text-tertiary dark:text-slate-400 hover:text-text-primary dark:hover:text-white transition-colors"
                   title="Open Shell"
                 >
                   <span class="material-symbols-outlined text-[18px]">terminal</span>
                 </button>
                 <button
                   data-action="restart-terminal-session"
-                  class="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+                  class="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 text-text-tertiary dark:text-slate-400 hover:text-text-primary dark:hover:text-white transition-colors"
                   title="Restart Session"
                 >
                   <span class="material-symbols-outlined text-[18px]">restart_alt</span>
                 </button>
                 <button
                   data-action="toggle-terminal-modal"
-                  class="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+                  class="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 text-text-tertiary dark:text-slate-400 hover:text-text-primary dark:hover:text-white transition-colors"
                   title="Expand Terminal"
                 >
                   <span

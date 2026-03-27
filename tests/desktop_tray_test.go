@@ -61,8 +61,8 @@ func TestDesktopWailsOptionsStandardModeKeepsDefaultCloseBehavior(t *testing.T) 
 	if wailsOptions.HideWindowOnClose {
 		t.Fatalf("expected HideWindowOnClose disabled by default")
 	}
-	if wailsOptions.SingleInstanceLock != nil {
-		t.Fatalf("expected no single instance lock by default")
+	if wailsOptions.SingleInstanceLock == nil {
+		t.Fatalf("expected single instance lock by default")
 	}
 	if wailsOptions.OnBeforeClose != nil {
 		t.Fatalf("expected OnBeforeClose unset by default")

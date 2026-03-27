@@ -7,14 +7,15 @@ import (
 	"sync"
 )
 
-func (app *App) GetUserInfo() (UserInfo, error) {
-	res := UserInfo{
+func (app *App) GetUserInfo() (res UserInfo, err error) {
+	defer RecoverPanic(&err, "GetUserInfo")
+	res = UserInfo{
 		Username: "unknown",
 		Name:     "Unknown User",
 	}
-	u, err := user.Current()
-	if err != nil {
-		return res, err
+	u, errCurrent := user.Current()
+	if errCurrent != nil {
+		return res, errCurrent
 	}
 	res.Username = u.Username
 	res.Name = u.Name
@@ -53,7 +54,8 @@ func NewApp() *App {
 	}
 }
 
-func (app *App) GetVersion() (string, error) {
+func (app *App) GetVersion() (v string, err error) {
+	defer RecoverPanic(&err, "GetVersion")
 	return Version, nil
 }
 
@@ -112,31 +114,36 @@ func (app *App) Status() string {
 	return "Govard Desktop ready."
 }
 
-func (app *App) OpenDocs(path string) (string, error) {
+func (app *App) OpenDocs(path string) (res string, err error) {
+	defer RecoverPanic(&err, "OpenDocs")
 	if path == "" {
 		return "", fmt.Errorf("no docs path provided")
 	}
-	if err := openDocs(app.ctx, path); err != nil {
-		return "", fmt.Errorf("failed to open docs: %w", err)
+	if errOpen := openDocs(app.ctx, path); errOpen != nil {
+		return "", fmt.Errorf("failed to open docs: %w", errOpen)
 	}
 	return "Opening docs...", nil
 }
 
-func (app *App) QuickAction(action string) (string, error) {
+func (app *App) QuickAction(action string) (res string, err error) {
+	defer RecoverPanic(&err, "QuickAction")
 	return quickAction(app.ctx, action, "")
 }
 
-func (app *App) QuickActionForProject(action string, project string) (string, error) {
+func (app *App) QuickActionForProject(action string, project string) (res string, err error) {
+	defer RecoverPanic(&err, "QuickActionForProject")
 	return quickAction(app.ctx, action, project)
 }
 
-func (app *App) GetShellUser(project string) (string, error) {
+func (app *App) GetShellUser(project string) (res string, err error) {
+	defer RecoverPanic(&err, "GetShellUser")
 	return getShellUser(project)
 }
 
-func (app *App) SetShellUser(project string, user string) (string, error) {
-	if err := setShellUser(project, user); err != nil {
-		return "", err
+func (app *App) SetShellUser(project string, user string) (res string, err error) {
+	defer RecoverPanic(&err, "SetShellUser")
+	if errSet := setShellUser(project, user); errSet != nil {
+		return "", errSet
 	}
 	if user == "" {
 		return "Cleared shell user for " + project, nil
@@ -144,9 +151,10 @@ func (app *App) SetShellUser(project string, user string) (string, error) {
 	return "Saved shell user for " + project, nil
 }
 
-func (app *App) ResetShellUsers() (string, error) {
-	if err := resetShellUsers(); err != nil {
-		return "", err
+func (app *App) ResetShellUsers() (res string, err error) {
+	defer RecoverPanic(&err, "ResetShellUsers")
+	if errReset := resetShellUsers(); errReset != nil {
+		return "", errReset
 	}
 	return "Shell user preferences reset", nil
 }

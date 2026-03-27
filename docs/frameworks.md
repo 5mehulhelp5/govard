@@ -167,7 +167,7 @@ govard domain add store-a.test
 govard domain add store-b.test
 govard domain add store-c.test
 govard env up
-govard bootstrap --clone --yes
+govard bootstrap --clone --no-pii --no-noise --yes
 ```
 
 Like Magento 2, `store_domains` hostnames are routed automatically during render. Persist them to `extra_domains` only if you want them listed there explicitly.

@@ -25,6 +25,7 @@ func ResetStateForTest() {
 	desktopGovardLookPath = exec.LookPath
 	desktopPrivilegedCommandLookPath = exec.LookPath
 	runGovardCommandForDesktop = defaultRunGovardCommandForDesktop
+	runGovardCommandForDesktopWithTimeout = defaultRunGovardCommandForDesktopWithTimeout
 	startGovardCommandForDesktop = defaultStartGovardCommandForDesktop
 	validateGitConnectionForDesktop = defaultValidateGitConnectionForDesktop
 	cloneGitRepoForDesktop = defaultCloneGitRepoForDesktop
@@ -259,8 +260,8 @@ func BuildRemoteSyncPlanArgsWithOptionsForTest(
 }
 
 // BuildPresetSyncOptionDefsForTest exposes preset option definitions for tests.
-func BuildPresetSyncOptionDefsForTest(preset string) presetSyncOptions {
-	return buildPresetSyncOptionDefs(preset)
+func BuildPresetSyncOptionDefsForTest(project, preset string) presetSyncOptions {
+	return buildPresetSyncOptionDefs(project, preset)
 }
 
 // BuildBootstrapArgsWithOptionsForTest exposes bootstrap arguments builder for tests.
@@ -350,6 +351,19 @@ func SetRunGovardCommandForDesktopForTest(fn func(root string, args []string) (s
 	}
 	return func() {
 		runGovardCommandForDesktop = previous
+	}
+}
+
+// SetRunGovardCommandForDesktopWithTimeoutForTest overrides the desktop timeout-aware govard command runner.
+func SetRunGovardCommandForDesktopWithTimeoutForTest(fn func(root string, args []string, timeout time.Duration) (string, error)) func() {
+	previous := runGovardCommandForDesktopWithTimeout
+	if fn == nil {
+		runGovardCommandForDesktopWithTimeout = defaultRunGovardCommandForDesktopWithTimeout
+	} else {
+		runGovardCommandForDesktopWithTimeout = fn
+	}
+	return func() {
+		runGovardCommandForDesktopWithTimeout = previous
 	}
 }
 

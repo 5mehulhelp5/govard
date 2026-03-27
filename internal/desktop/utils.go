@@ -17,6 +17,13 @@ func titleCase(s string) string {
 	return strings.ToUpper(s[:1]) + strings.ToLower(s[1:])
 }
 
+// RecoverPanic is a helper to catch panics in bridge methods and return a clean error.
+func RecoverPanic(err *error, actionName string) {
+	if r := recover(); r != nil {
+		*err = fmt.Errorf("internal error during %s: %v", actionName, r)
+	}
+}
+
 // uniqueStrings returns a slice with unique strings from the input.
 func uniqueStrings(values []string) []string {
 	keys := make(map[string]bool)

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"govard/internal/desktop"
 	"govard/internal/engine"
@@ -65,7 +66,7 @@ remotes:
 	}
 
 	capturedArgs := []string{}
-	restore := desktop.SetRunGovardCommandForDesktopForTest(func(root string, args []string) (string, error) {
+	restore := desktop.SetRunGovardCommandForDesktopWithTimeoutForTest(func(root string, args []string, timeout time.Duration) (string, error) {
 		if root != projectRoot {
 			t.Fatalf("unexpected root path %q", root)
 		}

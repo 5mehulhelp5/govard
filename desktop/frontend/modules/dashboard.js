@@ -241,10 +241,10 @@ const classifyEnvironmentStatus = (env = {}) => {
     status,
     active,
     iconName: "stop_circle",
-    iconClass: "text-slate-500",
+    iconClass: "text-text-tertiary",
     iconStyle: "",
-    detailClass: "text-slate-500",
-    dotClass: "bg-slate-500",
+    detailClass: "text-text-tertiary",
+    dotClass: "bg-text-tertiary",
     detailText: "Stopped",
     showPulseDot: false,
   };
@@ -294,8 +294,8 @@ const renderEnvironmentItem = (env, { selectedProject, sidebarMode }) => {
   const isSelected = sidebarMode === "environments" && key === selectedProject;
 
   const baseClass = `group grid w-full items-center gap-x-2 py-2.5 px-3 rounded-lg text-left cursor-pointer relative overflow-hidden transition-all ${isSelected
-    ? "active-env bg-primary/10 border border-primary/20 text-slate-900 shadow-[0_2px_8px_rgba(var(--primary-rgb),0.08)]"
-    : "text-slate-600 dark:text-slate-200 hover:bg-background-primary/80 dark:hover:text-white"
+    ? "active-env bg-primary/10 border border-primary/20 text-text-primary shadow-[0_2px_8px_rgba(var(--primary-rgb),0.08)]"
+    : "text-text-tertiary dark:text-slate-200 hover:bg-background-primary/80 dark:hover:text-white"
     } ${!meta.active ? "dark:opacity-50" : "opacity-100"}`;
 
   const selectionIndicator = isSelected
@@ -316,7 +316,7 @@ const renderEnvironmentItem = (env, { selectedProject, sidebarMode }) => {
       </div>
       <div class="min-w-0 flex flex-col justify-center pointer-events-none">
         <div class="text-sm font-semibold leading-tight truncate ${titleClass}">${escapeHTML(domain)}</div>
-        <div class="text-[11px] ${meta.active ? meta.detailClass : "text-slate-600 dark:text-slate-500"} flex items-center gap-1 font-medium">
+        <div class="text-[11px] ${meta.active ? meta.detailClass : "text-text-tertiary"} flex items-center gap-1 font-medium">
           <span class="w-1 h-1 rounded-full ${meta.dotClass}"></span>
           <span>${escapeHTML(meta.detailText)}</span>
         </div>
@@ -423,14 +423,14 @@ export const renderEnvironmentList = (
   });
 
   const rdGrp = (title, items, empty, tone, mt) => `
-    <div class="px-1 ${mt || "mt-6"} pb-2 text-[10px] font-bold ${tone || "text-slate-400"} uppercase tracking-[0.12em]">${title}</div>
+    <div class="px-1 ${mt || "mt-6"} pb-2 text-[10px] font-bold ${tone || "text-text-tertiary"} uppercase tracking-[0.12em]">${title}</div>
     ${items.length
       ? items
         .map((env) =>
           renderEnvironmentItem(env, { selectedProject, sidebarMode }),
         )
         .join("")
-      : `<div class="px-3 py-2 text-xs text-slate-400 italic">${empty}</div>`
+      : `<div class="px-3 py-2 text-xs text-text-tertiary italic">${empty}</div>`
     }
   `;
 
@@ -689,7 +689,7 @@ export const renderActiveServices = (container, env) => {
 
   if (services.length === 0) {
     container.innerHTML = `
-      <div class="p-6 text-center text-slate-400 border border-dashed border-border-primary rounded-xl bg-surface-primary/30">
+      <div class="p-6 text-center text-text-tertiary border border-dashed border-border-primary rounded-xl bg-surface-primary/30">
         <span class="material-symbols-outlined text-3xl mb-2 opacity-20">inventory_2</span>
         <div class="text-sm italic">No active services detected</div>
       </div>`;
@@ -786,7 +786,7 @@ export const renderEnvVars = (container, env) => {
   const keys = Object.keys(envVars);
 
   if (keys.length === 0) {
-    container.innerHTML = `<div class="text-xs text-slate-500 italic">No environment variables defined</div>`;
+    container.innerHTML = `<div class="text-xs text-text-tertiary italic">No environment variables defined</div>`;
     return;
   }
 

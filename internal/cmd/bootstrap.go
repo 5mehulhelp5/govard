@@ -46,6 +46,9 @@ var (
 	bootstrapPlan             bool
 	bootstrapNoNoise          bool
 	bootstrapNoPII            bool
+	bootstrapDelete           bool
+	bootstrapNoCompress       bool
+	bootstrapExclude          []string
 )
 
 var bootstrapCmd = &cobra.Command{
@@ -415,30 +418,48 @@ func SetPHPContainerShellRunnerForTest(fn func(config engine.Config, commandLine
 }
 
 func init() {
+	bootstrapCmd.Flags().SortFlags = false
+
+	// 1. Clone Mode
 	bootstrapCmd.Flags().BoolVarP(&bootstrapClone, "clone", "c", false, "Rsync source files from remote before composer/DB/media steps (use when you have no local git checkout)")
 	bootstrapCmd.Flags().BoolVar(&bootstrapCodeOnly, "code-only", false, "Clone code only (skip DB/media)")
+
+	// 2. Fresh Mode
 	bootstrapCmd.Flags().BoolVar(&bootstrapFresh, "fresh", false, "Create a fresh project install")
-	bootstrapCmd.Flags().BoolVar(&bootstrapIncludeSample, "include-sample", false, "Install sample data (fresh install, Magento only)")
-	bootstrapCmd.Flags().BoolVar(&bootstrapSkipDB, "no-db", false, "Skip database import")
-	bootstrapCmd.Flags().BoolVar(&bootstrapSkipMedia, "no-media", false, "Skip media sync")
-	bootstrapCmd.Flags().BoolVar(&bootstrapSkipComposer, "no-composer", false, "Skip composer install")
-	bootstrapCmd.Flags().BoolVar(&bootstrapSkipAdmin, "no-admin", false, "Skip admin user creation (Magento only)")
-	bootstrapCmd.Flags().BoolVar(&bootstrapNoStreamDB, "no-stream-db", false, "Disable stream-db import mode")
-	bootstrapCmd.Flags().StringVarP(&bootstrapEnv, "environment", "e", "", "Source environment (default: auto-select staging or dev)")
-	bootstrapCmd.Flags().StringVar(&bootstrapEnv, "remote", "", "Alias for --environment")
 	bootstrapCmd.Flags().StringVar(&bootstrapFramework, "framework", "", "Framework to use when init is required")
 	bootstrapCmd.Flags().StringVar(&bootstrapFrameworkVersion, "framework-version", "", "Framework version (e.g. 2.4.7 for Magento, 11 for Laravel)")
-	bootstrapCmd.Flags().BoolVar(&bootstrapSkipUp, "skip-up", false, "Skip starting local containers before bootstrap steps")
 	bootstrapCmd.Flags().StringVarP(&bootstrapMetaPackage, "meta-package", "p", defaultBootstrapMetaPackage, "Composer meta-package for fresh install (Magento only)")
-	bootstrapCmd.Flags().StringVar(&bootstrapDBDump, "db-dump", "", "Import database from a local dump file")
-	bootstrapCmd.Flags().BoolVar(&bootstrapFixDeps, "fix-deps", false, "Run project custom fix-deps command before bootstrap")
-	bootstrapCmd.Flags().BoolVar(&bootstrapHyvaInstall, "hyva-install", false, "Install Hyva default theme (Magento only)")
-	bootstrapCmd.Flags().StringVar(&bootstrapHyvaToken, "hyva-token", defaultBootstrapHyvaToken, "Hyva repository token (Magento only)")
 	bootstrapCmd.Flags().StringVar(&bootstrapMageUsername, "mage-username", "", "Magento repo username for auth.json bootstrap (Magento only)")
 	bootstrapCmd.Flags().StringVar(&bootstrapMagePassword, "mage-password", "", "Magento repo password for auth.json bootstrap (Magento only)")
-	bootstrapCmd.Flags().BoolVarP(&bootstrapAssumeYes, "yes", "y", false, "Assume yes for non-critical bootstrap prompts")
-	bootstrapCmd.Flags().BoolVar(&bootstrapIncludeProduct, "include-product", false, "Include catalog product images during media sync (Magento only)")
-	bootstrapCmd.Flags().BoolVar(&bootstrapPlan, "plan", false, "Print the bootstrap plan and exit")
+	bootstrapCmd.Flags().BoolVar(&bootstrapIncludeSample, "include-sample", false, "Install sample data (fresh install, Magento only)")
+	bootstrapCmd.Flags().BoolVar(&bootstrapHyvaInstall, "hyva-install", false, "Install Hyva default theme (Magento only)")
+	bootstrapCmd.Flags().StringVar(&bootstrapHyvaToken, "hyva-token", defaultBootstrapHyvaToken, "Hyva repository token (Magento only)")
+
+	// 3. Source Selection
+	bootstrapCmd.Flags().StringVarP(&bootstrapEnv, "environment", "e", "", "Source environment (default: auto-select staging or dev)")
+	bootstrapCmd.Flags().StringVar(&bootstrapEnv, "remote", "", "Alias for --environment")
+	bootstrapCmd.Flags().StringVar(&bootstrapDBDump, "db-dump", "", "Import database from a local dump file")
+
+	// 4. Scopes & Framework Special
+	bootstrapCmd.Flags().BoolVar(&bootstrapSkipComposer, "no-composer", false, "Skip composer install")
+	bootstrapCmd.Flags().BoolVar(&bootstrapSkipDB, "no-db", false, "Skip database import")
+	bootstrapCmd.Flags().BoolVar(&bootstrapNoStreamDB, "no-stream-db", false, "Disable stream-db import mode")
+	bootstrapCmd.Flags().BoolVar(&bootstrapSkipMedia, "no-media", false, "Skip media sync")
+	bootstrapCmd.Flags().BoolVar(&bootstrapSkipAdmin, "no-admin", false, "Skip admin user creation (Magento only)")
+
+	// 5. Privacy & Data Filtering
 	bootstrapCmd.Flags().BoolVarP(&bootstrapNoNoise, "no-noise", "N", false, "Exclude ephemeral/noise tables and directories from sync (logs, caches, etc)")
 	bootstrapCmd.Flags().BoolVarP(&bootstrapNoPII, "no-pii", "S", false, "Exclude PII/sensitive tables from database sync (users, orders, passwords, etc)")
+
+	// 6. Transfer & Sync Options
+	bootstrapCmd.Flags().BoolVar(&bootstrapDelete, "delete", false, "Delete files on destination that are missing on source (media/files sync)")
+	bootstrapCmd.Flags().BoolVar(&bootstrapNoCompress, "no-compress", false, "Disable rsync compression during transfer")
+	bootstrapCmd.Flags().BoolVar(&bootstrapIncludeProduct, "include-product", false, "Include catalog product images during media sync (Magento only)")
+	bootstrapCmd.Flags().StringSliceVar(&bootstrapExclude, "exclude", []string{}, "Exclude patterns for file/media sync")
+
+	// 7. UX & Execution Control
+	bootstrapCmd.Flags().BoolVar(&bootstrapFixDeps, "fix-deps", false, "Run project custom fix-deps command before bootstrap")
+	bootstrapCmd.Flags().BoolVar(&bootstrapSkipUp, "skip-up", false, "Skip starting local containers before bootstrap steps")
+	bootstrapCmd.Flags().BoolVar(&bootstrapPlan, "plan", false, "Print the bootstrap plan and exit")
+	bootstrapCmd.Flags().BoolVarP(&bootstrapAssumeYes, "yes", "y", false, "Assume yes for non-critical bootstrap prompts")
 }

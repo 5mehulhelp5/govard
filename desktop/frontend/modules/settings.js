@@ -392,8 +392,8 @@ export const renderSettingsDrawer = (container) => {
                 <span class="material-symbols-outlined text-[28px]">settings</span>
               </div>
               <div>
-                <h3 class="text-slate-900 dark:text-white text-xl font-bold tracking-tight">Application Settings</h3>
-                <p class="text-slate-500 dark:text-slate-500 text-xs mt-0.5 font-medium">Customize your workspace environment</p>
+                <h3 class="text-text-primary text-xl font-bold tracking-tight">Application Settings</h3>
+                <p class="text-text-tertiary text-xs mt-0.5 font-medium">Customize your workspace environment</p>
               </div>
             </div>
             <button
@@ -410,12 +410,12 @@ export const renderSettingsDrawer = (container) => {
             <section class="flex flex-col gap-6">
               <div class="flex items-center gap-2.5 px-1">
                  <div class="w-1.5 h-4 bg-primary rounded-full"></div>
-                 <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400">Environment & Workspace</p>
+                 <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-tertiary">Environment & Workspace</p>
               </div>
               
               <div class="grid grid-cols-1 gap-5">
                 <div class="flex flex-col gap-2 group">
-                  <label for="themeSelect" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1 group-focus-within:text-primary transition-colors">Interface Theme</label>
+                  <label for="themeSelect" class="text-[11px] font-bold text-text-tertiary uppercase tracking-wider ml-1 group-focus-within:text-primary transition-colors">Interface Theme</label>
                   <div class="relative">
                     <select
                       id="themeSelect"
@@ -425,50 +425,50 @@ export const renderSettingsDrawer = (container) => {
                       <option value="light">Light Mode</option>
                       <option value="dark">Dark Mode</option>
                     </select>
-                    <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-xl">unfold_more</span>
+                    <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-text-tertiary pointer-events-none text-xl">unfold_more</span>
                   </div>
                 </div>
                 <div class="flex flex-col gap-2 group">
-                  <label for="proxyTarget" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1 group-focus-within:text-primary transition-colors">Proxy Gateway URL</label>
+                  <label for="proxyTarget" class="text-[11px] font-bold text-text-tertiary uppercase tracking-wider ml-1 group-focus-within:text-primary transition-colors">Proxy Gateway URL</label>
                   <div class="relative">
                     <input
                       id="proxyTarget"
                       type="text"
                       placeholder="govard.test"
-                      class="w-full bg-slate-50 dark:bg-[#162a1d] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3.5 text-slate-900 dark:text-white outline-none focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 hover:bg-slate-100 dark:hover:bg-surface-primary font-medium"
+                      class="w-full bg-surface-secondary dark:bg-[#162a1d] border border-border-primary dark:border-white/10 rounded-xl px-4 py-3.5 text-text-primary dark:text-white outline-none focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-text-tertiary dark:placeholder:text-slate-600 hover:bg-slate-100 dark:hover:bg-surface-primary font-medium"
                      />
-                     <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 pointer-events-none text-xl">dns</span>
+                     <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-text-tertiary dark:text-slate-600 pointer-events-none text-xl">dns</span>
                   </div>
                 </div>
 
                 <div class="flex flex-col gap-2 group">
-                  <label for="codeEditor" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1 group-focus-within:text-primary transition-colors">Favorite IDE Command</label>
+                  <label for="codeEditor" class="text-[11px] font-bold text-text-tertiary uppercase tracking-wider ml-1 group-focus-within:text-primary transition-colors">Favorite IDE Command</label>
                   <div class="relative">
                     <input
                       id="codeEditor"
                       type="text"
                       placeholder="code"
-                      class="w-full bg-slate-50 dark:bg-[#162a1d] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3.5 text-slate-900 dark:text-white outline-none focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 hover:bg-slate-100 dark:hover:bg-surface-primary font-medium"
+                      class="w-full bg-surface-secondary dark:bg-[#162a1d] border border-border-primary dark:border-white/10 rounded-xl px-4 py-3.5 text-text-primary dark:text-white outline-none focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-text-tertiary dark:placeholder:text-slate-600 hover:bg-slate-100 dark:hover:bg-surface-primary font-medium"
                      />
-                     <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 pointer-events-none text-xl">code</span>
+                     <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-text-tertiary dark:text-slate-600 pointer-events-none text-xl">code</span>
                   </div>
                 </div>
 
                 <div class="flex flex-col gap-2 group">
-                  <label for="preferredBrowser" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1 group-focus-within:text-primary transition-colors">Primary Web Browser</label>
+                  <label for="preferredBrowser" class="text-[11px] font-bold text-text-tertiary uppercase tracking-wider ml-1 group-focus-within:text-primary transition-colors">Primary Web Browser</label>
                   <div class="relative">
                     <input
                       id="preferredBrowser"
                       type="text"
                       placeholder="firefox"
-                      class="w-full bg-slate-50 dark:bg-[#162a1d] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3.5 text-slate-900 dark:text-white outline-none focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 hover:bg-slate-100 dark:hover:bg-surface-primary font-medium"
+                      class="w-full bg-surface-secondary dark:bg-[#162a1d] border border-border-primary dark:border-white/10 rounded-xl px-4 py-3.5 text-text-primary dark:text-white outline-none focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-text-tertiary dark:placeholder:text-slate-600 hover:bg-slate-100 dark:hover:bg-surface-primary font-medium"
                      />
-                     <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 pointer-events-none text-xl">open_in_new</span>
+                     <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-text-tertiary dark:text-slate-600 pointer-events-none text-xl">open_in_new</span>
                   </div>
                 </div>
 
                 <div class="flex flex-col gap-2 group">
-                  <label for="dbClientPreference" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1 group-focus-within:text-primary transition-colors">Database Access Method</label>
+                  <label for="dbClientPreference" class="text-[11px] font-bold text-text-tertiary uppercase tracking-wider ml-1 group-focus-within:text-primary transition-colors">Database Access Method</label>
                   <div class="relative">
                     <select
                       id="dbClientPreference"
@@ -477,7 +477,7 @@ export const renderSettingsDrawer = (container) => {
                       <option value="pma">Built-in PHPMyAdmin</option>
                       <option value="desktop">Local App (TablePlus/BeeKeeper)</option>
                     </select>
-                    <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-xl">database</span>
+                    <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-text-tertiary pointer-events-none text-xl">database</span>
                   </div>
                 </div>
               </div>
@@ -487,7 +487,7 @@ export const renderSettingsDrawer = (container) => {
             <section class="flex flex-col gap-6">
               <div class="flex items-center gap-2.5 px-1">
                  <div class="w-1.5 h-4 bg-primary rounded-full"></div>
-                 <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400">System Behavior</p>
+                 <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-tertiary">System Behavior</p>
               </div>
               
               <div class="bg-slate-100/70 dark:bg-[#162a1d]/40 border border-slate-200 dark:border-white/5 rounded-2xl p-6 flex items-center justify-between hover:bg-slate-200/60 dark:hover:bg-[#162a1d]/60 transition-all cursor-default group hover:border-primary/10">
@@ -496,8 +496,8 @@ export const renderSettingsDrawer = (container) => {
                     <span class="material-symbols-outlined text-[20px]">background_replace</span>
                   </div>
                   <div class="flex flex-col gap-0.5">
-                     <span class="text-sm font-bold text-slate-800 dark:text-slate-200">Run in background</span>
-                    <span class="text-[11px] text-slate-500 font-medium leading-relaxed max-w-[200px]">Keep services active in tray when closing window</span>
+                     <span class="text-sm font-bold text-text-primary dark:text-slate-200">Run in background</span>
+                    <span class="text-[11px] text-text-tertiary font-medium leading-relaxed max-w-[200px]">Keep services active in tray when closing window</span>
                   </div>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer group/toggle">
@@ -515,7 +515,7 @@ export const renderSettingsDrawer = (container) => {
             <section class="flex flex-col gap-6">
               <div class="flex items-center gap-2.5 px-1">
                  <div class="w-1.5 h-4 bg-primary rounded-full"></div>
-                 <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400">Maintenance & Updates</p>
+                 <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-tertiary">Maintenance & Updates</p>
               </div>
 
               <div class="relative overflow-hidden rounded-2xl border border-primary/20 bg-primary/5 p-6 pb-5">
@@ -528,7 +528,7 @@ export const renderSettingsDrawer = (container) => {
                       </div>
                       <div>
                         <h4 class="text-sm font-bold text-slate-900 dark:text-white tracking-tight">Software Updates</h4>
-                        <p class="text-[11px] text-slate-500 font-medium mt-0.5">Automated version control</p>
+                        <p class="text-[11px] text-text-tertiary font-medium mt-0.5">Automated version control</p>
                       </div>
                     </div>
                     <span
@@ -578,7 +578,7 @@ export const renderSettingsDrawer = (container) => {
           <footer class="p-8 bg-slate-50/90 dark:bg-black/40 border-t border-slate-200 dark:border-white/5 backdrop-blur-xl relative z-20 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.3)]">
             <div class="grid grid-cols-2 gap-4">
               <button
-                class="flex items-center justify-center gap-2.5 px-4 py-3.5 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-[13px] font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-white/20 transition-all active:scale-[0.98] group"
+                class="flex items-center justify-center gap-2.5 px-4 py-3.5 bg-surface-secondary dark:bg-white/5 border border-border-primary dark:border-white/10 rounded-xl text-[13px] font-bold text-text-secondary dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 hover:text-text-primary dark:hover:text-white hover:border-slate-300 dark:hover:border-white/20 transition-all active:scale-[0.98] group"
                 data-action="reset-settings"
                 type="button"
               >

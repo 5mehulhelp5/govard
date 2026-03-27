@@ -578,7 +578,7 @@ export const createOnboardingController = ({
     promptRefs.options.innerHTML = "";
     if (!pendingBootstrapContext || bootstrapOptionDefs.length === 0) {
       const empty = document.createElement("p");
-      empty.className = "text-xs text-slate-500 dark:text-slate-400";
+      empty.className = "text-xs text-text-tertiary";
       empty.textContent = "No additional bootstrap flags available.";
       promptRefs.options.appendChild(empty);
       return;
@@ -596,7 +596,7 @@ export const createOnboardingController = ({
         "text-sm font-medium text-slate-800 dark:text-slate-100";
       title.textContent = String(option.label || option.key || "Option");
       const description = document.createElement("div");
-      description.className = "text-xs text-slate-500 dark:text-slate-400";
+      description.className = "text-xs text-text-tertiary";
       description.textContent = String(option.description || "");
       left.appendChild(title);
       left.appendChild(description);
@@ -802,14 +802,16 @@ export const createOnboardingController = ({
     onStatus("Onboarding complete. Bootstrap skipped.");
   };
 
-  const toggleBootstrapOption = (optionKey, nextValue) => {
+  const toggleBootstrapOption = (optionKey) => {
     if (!pendingBootstrapContext || !optionKey) {
       return;
     }
+    const currentConfig = pendingBootstrapContext.config || {};
     pendingBootstrapContext.config = {
-      ...(pendingBootstrapContext.config || {}),
-      [optionKey]: Boolean(nextValue),
+      ...currentConfig,
+      [optionKey]: !currentConfig[optionKey],
     };
+    renderBootstrapOptions();
   };
 
   const confirmBootstrapPrompt = async () => {
@@ -999,37 +1001,37 @@ export const renderOnboardingModal = (container) => {
                   >
                     <div class="flex items-center justify-between mb-4">
                       <div class="flex items-center gap-3">
-                        <div class="size-10 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 dark:text-slate-400 group-hover:text-primary group-hover:bg-primary/10 transition-all">
+                        <div class="size-10 rounded-xl bg-surface-secondary dark:bg-white/5 flex items-center justify-center text-text-tertiary dark:text-slate-400 group-hover:text-primary group-hover:bg-primary/10 transition-all">
                           <span class="material-symbols-outlined text-[22px]">folder_open</span>
                         </div>
-                        <span class="text-sm font-black text-slate-700 dark:text-slate-200">Local Path</span>
+                        <span class="text-sm font-black text-text-primary dark:text-slate-200">Local Path</span>
                       </div>
                     </div>
-                    <div class="rounded-xl border border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-black/40 p-4 min-h-[60px] flex items-center shadow-inner">
-                      <div id="displayProjectPath" class="font-mono text-xs text-slate-600 dark:text-slate-300 break-all leading-relaxed line-clamp-2">No folder selected</div>
+                    <div class="rounded-xl border border-border-primary dark:border-white/5 bg-surface-secondary dark:bg-black/40 p-4 min-h-[60px] flex items-center shadow-inner">
+                      <div id="displayProjectPath" class="font-mono text-xs text-text-secondary dark:text-slate-300 break-all leading-relaxed line-clamp-2">No folder selected</div>
                     </div>
                     <input type="hidden" id="projectPath" />
-                    <p id="projectPathHint" class="text-[10px] text-slate-400 dark:text-slate-400/60 mt-4 px-1 font-medium italic"></p>
+                    <p id="projectPathHint" class="text-[10px] text-text-tertiary dark:text-slate-400/60 mt-4 px-1 font-medium italic"></p>
                   </div>
                 </section>
 
                 <section class="flex flex-col gap-4 mt-2">
                   <div class="flex items-center gap-2.5">
                     <span class="material-symbols-outlined text-primary/60 text-[20px]">assignment_turned_in</span>
-                    <h3 class="text-xs font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-300/60">Environment Summary</h3>
+                    <h3 class="text-xs font-black uppercase tracking-[0.2em] text-text-tertiary dark:text-slate-300/60">Environment Summary</h3>
                   </div>
                   
                   <div class="rounded-2xl bg-primary/5 border border-primary/10 p-6 flex flex-col gap-4 shadow-sm relative overflow-hidden">
                     <div class="absolute -right-4 -bottom-4 size-24 bg-primary/5 rounded-full blur-2xl pointer-events-none"></div>
                     <div class="grid grid-cols-[100px_1fr] gap-x-4 gap-y-3 relative z-10">
-                      <div class="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400/60">Project</div>
-                      <div id="onboardingSummaryProject" class="text-xs font-black text-slate-800 dark:text-white truncate">Not selected</div>
+                      <div class="text-[10px] font-black uppercase tracking-widest text-text-tertiary dark:text-slate-400/60">Project</div>
+                      <div id="onboardingSummaryProject" class="text-xs font-black text-text-primary dark:text-white truncate">Not selected</div>
                       
-                      <div class="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500">Framework</div>
+                      <div class="text-[10px] font-black uppercase tracking-widest text-text-tertiary dark:text-slate-500">Framework</div>
                       <div id="onboardingSummaryFramework" class="text-xs font-black text-primary">Auto-detect</div>
                       
-                      <div class="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400/60">Domain</div>
-                      <div id="onboardingSummaryDomain" class="font-mono text-[11px] font-black text-slate-800 dark:text-white truncate">-</div>
+                      <div class="text-[10px] font-black uppercase tracking-widest text-text-tertiary dark:text-slate-400/60">Domain</div>
+                      <div id="onboardingSummaryDomain" class="font-mono text-[11px] font-black text-text-primary dark:text-white truncate">-</div>
                     </div>
                   </div>
                 </section>
@@ -1045,31 +1047,31 @@ export const renderOnboardingModal = (container) => {
             <div class="min-w-0 overflow-y-auto custom-scrollbar dark:bg-transparent">
               <div class="p-8 lg:p-12 max-w-4xl mx-auto w-full flex flex-col gap-12 pb-32">
                 <header class="flex flex-col gap-2">
-                  <h3 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Configuration</h3>
-                  <p class="text-slate-500 dark:text-slate-400 font-medium">Fine-tune your local domain and services for this environment.</p>
+                  <h3 class="text-3xl font-black text-text-primary dark:text-white tracking-tight">Configuration</h3>
+                  <p class="text-text-secondary dark:text-slate-400 font-medium">Fine-tune your local domain and services for this environment.</p>
                 </header>
 
-                <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 pt-4 border-t border-slate-100 dark:border-white/5">
+                <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 pt-4 border-t border-border-primary dark:border-white/5">
                   <div class="flex flex-col gap-3 group">
-                    <label class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1 group-focus-within:text-primary transition-colors">Local Domain</label>
+                    <label class="text-[11px] font-black uppercase tracking-[0.2em] text-text-tertiary dark:text-slate-500 ml-1 group-focus-within:text-primary transition-colors">Local Domain</label>
                     <div class="relative">
                       <input
                         id="projectDomain"
-                        class="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-slate-900 dark:text-white font-bold focus:ring-4 focus:ring-primary/15 transition-all text-sm outline-none"
+                        class="w-full bg-surface-secondary dark:bg-black/40 border border-border-primary dark:border-white/10 rounded-2xl px-5 py-4 text-text-primary dark:text-white font-bold focus:ring-4 focus:ring-primary/15 transition-all text-sm outline-none placeholder:text-text-tertiary"
                         placeholder="e.g. project-name"
                         type="text"
                       />
-                      <span class="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 text-xl font-light">language</span>
+                      <span class="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-text-tertiary dark:text-slate-600 text-xl font-light">language</span>
                     </div>
-                    <p id="projectDomainHint" class="text-[10px] font-medium text-slate-400/80 ml-1"></p>
+                    <p id="projectDomainHint" class="text-[10px] font-medium text-text-tertiary dark:text-slate-400/80 ml-1"></p>
                   </div>
 
                   <div class="flex flex-col gap-3 group">
-                    <label class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1 group-focus-within:text-primary transition-colors">Framework Type</label>
+                    <label class="text-[11px] font-black uppercase tracking-[0.2em] text-text-tertiary dark:text-slate-500 ml-1 group-focus-within:text-primary transition-colors">Framework Type</label>
                     <div class="relative">
                       <select
                         id="projectFramework"
-                        class="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-slate-900 dark:text-white font-bold focus:ring-4 focus:ring-primary/15 transition-all text-sm outline-none appearance-none cursor-pointer"
+                        class="w-full bg-surface-secondary dark:bg-black/40 border border-border-primary dark:border-white/10 rounded-2xl px-5 py-4 text-text-primary dark:text-white font-bold focus:ring-4 focus:ring-primary/15 transition-all text-sm outline-none appearance-none cursor-pointer"
                       >
                         <option value="auto">🔍 Auto-detect</option>
                         <option value="magento2">Magento 2</option>
@@ -1080,23 +1082,23 @@ export const renderOnboardingModal = (container) => {
                         <option value="nextjs">Next.js</option>
                         <option value="custom">Custom System</option>
                       </select>
-                      <span class="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none text-xl">expand_more</span>
+                      <span class="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-text-tertiary dark:text-slate-500 pointer-events-none text-xl">expand_more</span>
                     </div>
-                    <p class="text-[10px] font-medium text-slate-400/80 dark:text-slate-500 ml-1">Govard optimizes settings based on framework.</p>
+                    <p class="text-[10px] font-medium text-text-tertiary dark:text-slate-500 ml-1">Govard optimizes settings based on framework.</p>
                   </div>
 
                   <div class="flex flex-col gap-3 group">
-                    <label class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1 group-focus-within:text-primary transition-colors">Framework Version</label>
+                    <label class="text-[11px] font-black uppercase tracking-[0.2em] text-text-tertiary dark:text-slate-500 ml-1 group-focus-within:text-primary transition-colors">Framework Version</label>
                     <div class="relative">
                       <input
                         id="projectFrameworkVersion"
-                        class="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-slate-900 dark:text-white font-bold focus:ring-4 focus:ring-primary/15 transition-all text-sm outline-none"
+                        class="w-full bg-surface-secondary dark:bg-black/40 border border-border-primary dark:border-white/10 rounded-2xl px-5 py-4 text-text-primary dark:text-white font-bold focus:ring-4 focus:ring-primary/15 transition-all text-sm outline-none placeholder:text-text-tertiary"
                         placeholder="Optional"
                         type="text"
                       />
-                      <span class="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 text-xl font-light">tune</span>
+                      <span class="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-text-tertiary dark:text-slate-600 text-xl font-light">tune</span>
                     </div>
-                    <p id="projectFrameworkVersionHint" class="text-[10px] font-medium text-slate-400/80 dark:text-slate-500 ml-1">Optional: lock Govard to a specific framework profile version.</p>
+                    <p id="projectFrameworkVersionHint" class="text-[10px] font-medium text-text-tertiary dark:text-slate-500 ml-1">Optional: lock Govard to a specific framework profile version.</p>
                   </div>
                 </section>
 
@@ -1104,40 +1106,40 @@ export const renderOnboardingModal = (container) => {
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
                       <div class="size-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                      <h4 class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Optional Stack Components</h4>
+                      <h4 class="text-[11px] font-black uppercase tracking-[0.2em] text-text-tertiary dark:text-slate-500">Optional Stack Components</h4>
                     </div>
-                    <span class="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest bg-slate-100 dark:bg-white/5 px-2 py-1 rounded">Scale as needed</span>
+                    <span class="text-[10px] font-black text-text-tertiary dark:text-slate-400 uppercase tracking-widest bg-surface-secondary dark:bg-white/5 px-2 py-1 rounded">Scale as needed</span>
                   </div>
                   
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <label class="group relative flex items-center justify-between rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-black/20 p-5 cursor-pointer hover:border-primary/40 hover:bg-white dark:hover:bg-primary/5 transition-all duration-300">
                       <div class="flex flex-col gap-1">
-                        <div class="text-sm font-black text-slate-800 dark:text-slate-100">Varnish Cache</div>
-                        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Edge Acceleration</div>
+                        <div class="text-sm font-black text-text-primary dark:text-slate-100">Varnish Cache</div>
+                        <div class="text-[10px] text-text-tertiary font-bold uppercase tracking-wider">Edge Acceleration</div>
                       </div>
                       <input id="onboardVarnish" type="checkbox" value="varnish" class="size-5 accent-primary rounded-md transition-transform active:scale-90" />
                     </label>
 
                     <label class="group relative flex items-center justify-between rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-black/20 p-5 cursor-pointer hover:border-primary/40 hover:bg-white dark:hover:bg-primary/5 transition-all duration-300">
                       <div class="flex flex-col gap-1">
-                        <div class="text-sm font-black text-slate-800 dark:text-slate-100">Redis</div>
-                        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Key-Value Storage</div>
+                        <div class="text-sm font-black text-text-primary dark:text-slate-100">Redis</div>
+                        <div class="text-[10px] text-text-tertiary font-bold uppercase tracking-wider">Key-Value Storage</div>
                       </div>
                       <input id="onboardRedis" type="checkbox" value="redis" checked class="size-5 accent-primary rounded-md transition-transform active:scale-90" />
                     </label>
 
                     <label class="group relative flex items-center justify-between rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-black/20 p-5 cursor-pointer hover:border-primary/40 hover:bg-white dark:hover:bg-primary/5 transition-all duration-300">
                       <div class="flex flex-col gap-1">
-                        <div class="text-sm font-black text-slate-800 dark:text-slate-100">RabbitMQ</div>
-                        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Message Broker</div>
+                        <div class="text-sm font-black text-text-primary dark:text-slate-100">RabbitMQ</div>
+                        <div class="text-[10px] text-text-tertiary font-bold uppercase tracking-wider">Message Broker</div>
                       </div>
                       <input id="onboardRabbitMQ" type="checkbox" value="rabbitmq" class="size-5 accent-primary rounded-md transition-transform active:scale-90" />
                     </label>
 
                     <label class="group relative flex items-center justify-between rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-black/20 p-5 cursor-pointer hover:border-primary/40 hover:bg-white dark:hover:bg-primary/5 transition-all duration-300">
                       <div class="flex flex-col gap-1">
-                        <div class="text-sm font-black text-slate-800 dark:text-slate-100">Elasticsearch</div>
-                        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Search Engine</div>
+                        <div class="text-sm font-black text-text-primary dark:text-slate-100">Elasticsearch</div>
+                        <div class="text-[10px] text-text-tertiary font-bold uppercase tracking-wider">Search Engine</div>
                       </div>
                       <input id="onboardElasticsearch" type="checkbox" value="elasticsearch" checked class="size-5 accent-primary rounded-md transition-transform active:scale-90" />
                     </label>
@@ -1148,7 +1150,7 @@ export const renderOnboardingModal = (container) => {
                   <span class="material-symbols-outlined text-blue-500 text-[24px]">info</span>
                   <div class="flex flex-col gap-1">
                     <div class="text-xs font-black text-blue-900 dark:text-blue-300 uppercase tracking-widest leading-none mt-1">Note on Initialization</div>
-                    <p class="text-[11px] text-blue-800/70 dark:text-blue-400 font-medium leading-relaxed">
+                    <p class="text-[11px] text-blue-800/80 dark:text-blue-400 font-medium leading-relaxed">
                       Govard will automatically generate necessary SSH keys, local host entries, and Docker configuration based on your framework selection.
                     </p>
                   </div>
@@ -1162,12 +1164,12 @@ export const renderOnboardingModal = (container) => {
               <div id="onboardingSubmitSpinner" class="hidden relative">
                 <div class="size-5 rounded-full border-2 border-primary/20 border-t-primary animate-spin"></div>
               </div>
-              <p id="onboardingSubmitHint" class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.05em]">Select a project path to continue.</p>
+              <p id="onboardingSubmitHint" class="text-xs font-bold text-text-tertiary dark:text-slate-500 uppercase tracking-[0.05em]">Select a project path to continue.</p>
             </div>
             <div class="flex items-center gap-4">
               <button
                 data-action="close-onboarding"
-                class="px-8 py-3 rounded-2xl text-slate-500 dark:text-slate-400 text-sm font-black uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-white/5 transition-all active:scale-95"
+                class="px-8 py-3 rounded-2xl text-text-tertiary dark:text-slate-400 text-sm font-black uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-white/5 transition-all active:scale-95"
               >
                 Cancel
               </button>
@@ -1188,9 +1190,9 @@ export const renderOnboardingModal = (container) => {
             class="hidden absolute inset-0 z-[120] bg-black/60 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in"
           >
             <div class="w-full max-w-xl rounded-[2.5rem] border border-white/10 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden shadow-black/80">
-              <div class="px-10 py-8 border-b border-slate-100 dark:border-white/5 relative bg-primary/5">
-                <h3 class="text-slate-900 dark:text-white text-2xl font-black tracking-tight">Sync Services Now?</h3>
-                <p class="text-xs text-slate-500 dark:text-primary/60 mt-1 font-bold uppercase tracking-widest">
+              <div class="px-10 py-8 border-b border-border-primary dark:border-white/5 relative bg-primary/5">
+                <h3 class="text-text-primary dark:text-white text-2xl font-black tracking-tight">Sync Services Now?</h3>
+                <p class="text-xs text-text-tertiary dark:text-primary/60 mt-1 font-bold uppercase tracking-widest">
                   Found configured remotes for this project
                 </p>
               </div>
@@ -1198,18 +1200,18 @@ export const renderOnboardingModal = (container) => {
                 <p id="onboardingBootstrapSummary" class="text-sm font-medium text-slate-500 dark:text-slate-300 leading-relaxed"></p>
                 
                 <div class="flex flex-col gap-3">
-                  <label for="onboardingBootstrapRemote" class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Select Remote Target</label>
+                  <label for="onboardingBootstrapRemote" class="text-[10px] font-black uppercase tracking-[0.2em] text-text-tertiary dark:text-slate-500 ml-1">Select Remote Target</label>
                   <div class="relative">
                     <select
                       id="onboardingBootstrapRemote"
-                      class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-slate-900 dark:text-white font-black text-sm outline-none focus:ring-4 focus:ring-primary/15 transition-all appearance-none cursor-pointer"
+                      class="w-full bg-surface-secondary dark:bg-slate-800 border border-border-primary dark:border-white/10 rounded-2xl px-5 py-4 text-text-primary dark:text-white font-black text-sm outline-none focus:ring-4 focus:ring-primary/15 transition-all appearance-none cursor-pointer"
                     ></select>
-                    <span class="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none text-xl font-light">database</span>
+                    <span class="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-text-tertiary dark:text-slate-500 pointer-events-none text-xl font-light">database</span>
                   </div>
                 </div>
 
                 <div class="flex flex-col gap-4">
-                  <div class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Bootstrap Options</div>
+                  <div class="text-[10px] font-black uppercase tracking-[0.2em] text-text-tertiary dark:text-slate-500 ml-1">Bootstrap Options</div>
                   <div id="onboardingBootstrapOptions" class="grid grid-cols-1 gap-3"></div>
                 </div>
               </div>

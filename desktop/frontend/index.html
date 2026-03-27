@@ -78,8 +78,19 @@
             <div class="flex items-center gap-4 ml-6">
               <button
                 class="h-8 w-8 inline-flex items-center justify-center text-text-tertiary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                id="hardReset"
+                title="Restart Application"
+                data-action="restart-app"
+              >
+                <span class="material-symbols-outlined leading-none"
+                  >restart_alt</span
+                >
+              </button>
+              <button
+                class="h-8 w-8 inline-flex items-center justify-center text-text-tertiary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                 id="openSettings"
                 data-action="open-settings"
+                title="Settings"
               >
                 <span class="material-symbols-outlined leading-none"
                   >settings</span
@@ -156,7 +167,7 @@
                         </h2>
                         <span
                           id="projectStatusBadge"
-                          class="px-3 py-1 rounded-full bg-slate-500/20 border border-slate-500/30 text-slate-400 text-xs font-bold uppercase tracking-wide neon-glow flex items-center gap-1.5 hidden"
+                          class="px-3 py-1 rounded-full bg-slate-500/10 dark:bg-slate-500/20 border border-slate-500/30 text-text-secondary dark:text-slate-400 text-xs font-bold uppercase tracking-wide neon-glow flex items-center gap-1.5 hidden"
                         >
                           <span
                             data-role="project-status-dot"
@@ -294,7 +305,7 @@
                           Ops Control Deck
                         </p>
                         <span
-                          class="text-[11px] uppercase tracking-[0.12em] text-slate-600 dark:text-slate-400 font-bold"
+                          class="text-[11px] uppercase tracking-[0.12em] text-text-tertiary font-bold"
                           >Global Services</span
                         >
                       </div>
@@ -315,7 +326,7 @@
                           <div class="mt-2 flex items-end gap-2">
                             <span
                               id="globalServiceHealthPercent"
-                              class="text-4xl font-black text-slate-800 dark:text-white leading-none ops-kpi-value"
+                              class="text-4xl font-black text-text-primary dark:text-white leading-none ops-kpi-value"
                               >--%</span
                             >
                             <span
@@ -361,7 +372,7 @@
                               >
                               All Actions
                             </p>
-                            <span class="text-[10px] text-slate-500 dark:text-slate-300"
+                            <span class="text-[10px] text-text-tertiary"
                               >Applies to every global service</span
                             >
                           </div>
@@ -505,12 +516,12 @@
                                   class="material-symbols-outlined text-primary text-[18px]"
                                   >receipt_long</span
                                 >
-                                <span class="text-xs font-bold text-slate-800 dark:text-white"
+                                <span class="text-xs font-bold text-text-primary dark:text-white"
                                   >Global Logs</span
                                 >
                                 <span
                                   id="globalLogServiceName"
-                                  class="text-[10px] text-slate-500 truncate"
+                                  class="text-[10px] text-text-tertiary truncate"
                                   >Select service</span
                                 >
                               </div>
@@ -526,7 +537,7 @@
                                   </span>
                                   <input
                                     id="globalLogSearch"
-                                    class="bg-surface-secondary text-xs text-white pl-8 pr-3 py-2 rounded-md border border-border-primary focus:border-primary/50 focus:outline-none placeholder-text-tertiary w-40 md:w-52"
+                                    class="bg-surface-secondary text-xs text-text-primary dark:text-white pl-8 pr-3 py-2 rounded-md border border-border-primary focus:border-primary/50 focus:outline-none placeholder-text-tertiary w-40 md:w-52"
                                     placeholder="Filter logs..."
                                     type="text"
                                   />
@@ -865,6 +876,53 @@ Select a global service to view logs.</pre
       <!-- Mount point for Settings Drawer -->
       <div id="settingsDrawerMount"></div>
 
+      <!-- Custom Confirmation Modal -->
+      <div
+        id="confirmModal"
+        class="fixed inset-0 z-[10001] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300"
+      >
+        <div
+          class="bg-background-secondary border border-border-primary rounded-2xl shadow-2xl w-full max-w-md transform scale-95 transition-all duration-300 overflow-hidden"
+        >
+          <div class="p-6">
+            <div class="flex items-center gap-4 mb-4">
+              <div
+                class="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0"
+              >
+                <span
+                  id="confirmIcon"
+                  class="material-symbols-outlined text-primary text-2xl"
+                  >help</span
+                >
+              </div>
+              <h3 id="confirmTitle" class="text-xl font-bold text-text-primary">
+                Confirm Action
+              </h3>
+            </div>
+            <p
+              id="confirmMessage"
+              class="text-text-secondary text-sm leading-relaxed mb-8"
+            >
+              Are you sure you want to proceed?
+            </p>
+            <div class="flex items-center justify-end gap-3">
+              <button
+                id="confirmCancelBtn"
+                class="px-5 py-2.5 rounded-lg text-sm font-bold text-text-tertiary hover:text-text-primary hover:bg-surface-primary transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                id="confirmConfirmBtn"
+                class="px-6 py-2.5 rounded-lg text-sm font-bold bg-primary text-slate-900 hover:bg-primary-hover shadow-lg shadow-primary/10 transition-all active:scale-95"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <footer
         class="h-8 bg-background-primary border-t border-border-primary flex items-center justify-between px-4 shrink-0 z-[60]"
       >
@@ -882,20 +940,20 @@ Select a global service to view logs.</pre
         </div>
         <div class="flex items-center gap-4 shrink-0">
           <div
-            class="flex items-center gap-1.5 text-[10px] text-slate-500 font-mono shrink-0"
+            class="flex items-center gap-1.5 text-[10px] text-text-tertiary font-mono shrink-0"
           >
             <span class="material-symbols-outlined text-[14px]">terminal</span>
             Govard Engine <span id="footerVersion">v--</span>
           </div>
           <div class="h-3 w-px bg-border-primary shrink-0"></div>
           <div
-            class="flex items-center gap-1 text-[10px] text-slate-500 font-mono"
+            class="flex items-center gap-1 text-[10px] text-text-tertiary font-mono"
           >
             <span class="material-symbols-outlined text-[14px]">memory</span>
             <span id="footerCPU">0%</span>
           </div>
           <div
-            class="flex items-center gap-1 text-[10px] text-slate-500 font-mono"
+            class="flex items-center gap-1 text-[10px] text-text-tertiary font-mono"
           >
             <span class="material-symbols-outlined text-[14px]"
               >hard_drive</span

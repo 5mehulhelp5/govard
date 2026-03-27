@@ -195,35 +195,35 @@ func containsString(items []string, expected string) bool {
 }
 
 func TestBuildPresetSyncOptionDefs_DB(t *testing.T) {
-	opts := desktop.BuildPresetSyncOptionDefsForTest("db")
-	if opts.Command != "sync" {
-		t.Fatalf("expected command 'sync', got %s", opts.Command)
-	}
-	if len(opts.Options) != 0 {
-		t.Fatalf("expected no options for db preset, got %d", len(opts.Options))
-	}
-}
-
-func TestBuildPresetSyncOptionDefs_Media(t *testing.T) {
-	opts := desktop.BuildPresetSyncOptionDefsForTest("media")
+	opts := desktop.BuildPresetSyncOptionDefsForTest("", "db")
 	if opts.Command != "sync" {
 		t.Fatalf("expected command 'sync', got %s", opts.Command)
 	}
 	if len(opts.Options) != 2 {
-		t.Fatalf("expected 2 options, got %d", len(opts.Options))
+		t.Fatalf("expected 2 options for db preset, got %d", len(opts.Options))
 	}
-	if opts.Options[0].Key != "compress" || opts.Options[1].Key != "delete" {
-		t.Fatalf("unexpected options for media preset")
+}
+
+func TestBuildPresetSyncOptionDefs_Media(t *testing.T) {
+	opts := desktop.BuildPresetSyncOptionDefsForTest("", "media")
+	if opts.Command != "sync" {
+		t.Fatalf("expected command 'sync', got %s", opts.Command)
+	}
+	if len(opts.Options) != 3 {
+		t.Fatalf("expected 3 options, got %d", len(opts.Options))
+	}
+	if opts.Options[0].Key != "compress" || opts.Options[1].Key != "delete" || opts.Options[2].Key != "excludeLogs" {
+		t.Fatalf("unexpected options for media preset: %#v", opts.Options)
 	}
 }
 
 func TestBuildPresetSyncOptionDefs_Full(t *testing.T) {
-	opts := desktop.BuildPresetSyncOptionDefsForTest("full")
+	opts := desktop.BuildPresetSyncOptionDefsForTest("", "full")
 	if opts.Command != "bootstrap" {
 		t.Fatalf("expected command 'bootstrap', got %s", opts.Command)
 	}
-	if len(opts.Options) != 8 {
-		t.Fatalf("expected 8 options, got %d", len(opts.Options))
+	if len(opts.Options) != 11 {
+		t.Fatalf("expected 11 options, got %d", len(opts.Options))
 	}
 }
 

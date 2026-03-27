@@ -2,6 +2,7 @@ package desktop
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -32,16 +33,26 @@ type SyncInput struct {
 }
 
 var defaultRunGovardCommandForDesktop = func(root string, args []string) (string, error) {
+	return runGovardCommandForDesktopWithTimeout(root, args, 2*time.Minute)
+}
+
+var defaultRunGovardCommandForDesktopWithTimeout = func(root string, args []string, timeout time.Duration) (string, error) {
 	binary, err := exec.LookPath("govard")
 	if err != nil {
 		return "", fmt.Errorf("govard CLI not found in PATH")
 	}
 
-	cmd := exec.Command(binary, args...)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, binary, args...)
 	cmd.Dir = filepath.Clean(root)
 	output, err := cmd.CombinedOutput()
 	trimmed := strings.TrimSpace(string(output))
 	if err != nil {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return "", fmt.Errorf("command timed out after %v: %s", timeout, trimmed)
+		}
 		if trimmed != "" {
 			return "", fmt.Errorf("%v: %s", err, trimmed)
 		}
@@ -49,6 +60,8 @@ var defaultRunGovardCommandForDesktop = func(root string, args []string) (string
 	}
 	return trimmed, nil
 }
+
+var runGovardCommandForDesktopWithTimeout = defaultRunGovardCommandForDesktopWithTimeout
 
 var runGovardCommandForDesktop = defaultRunGovardCommandForDesktop
 
@@ -157,7 +170,7 @@ func testRemote(project string, remoteName string) (string, error) {
 		return "", fmt.Errorf("%s", message)
 	}
 
-	output, err := runGovardCommandForDesktop(root, []string{"remote", "test", remoteName})
+	output, err := runGovardCommandForDesktopWithTimeout(root, []string{"remote", "test", remoteName}, 2*time.Minute)
 	if err != nil {
 		message = err.Error()
 		return "", fmt.Errorf("remote test failed: %w", err)
@@ -710,7 +723,7 @@ func runRemoteSyncPresetWithOptions(
 		return "", err
 	}
 
-	output, err := runGovardCommandForDesktop(root, args)
+	output, err := runGovardCommandForDesktopWithTimeout(root, args, 15*time.Minute)
 	if err != nil {
 		message = err.Error()
 		return "", fmt.Errorf("sync plan failed: %w", err)
@@ -1042,23 +1055,19 @@ func buildRemoteSyncArgsWithOptions(
 		return nil, fmt.Errorf("unsupported sync preset '%s'", normalizedPreset)
 	}
 
-	if options["sanitize"] {
-		for _, pattern := range defaultSyncSanitizeExcludePatterns {
-			args = append(args, "--exclude", pattern)
-		}
-	}
-
-	if options["excludeLogs"] {
-		for _, pattern := range defaultSyncLogExcludePatterns {
-			args = append(args, "--exclude", pattern)
-		}
-	}
-
 	// Default to true for compress unless explicitly set to false
 	compress, hasCompress := options["compress"]
 	// Compression toggle only applies to rsync scopes (files/media/full).
 	if hasCompress && !compress && (normalizedPreset == "files" || normalizedPreset == "media" || normalizedPreset == "full") {
 		args = append(args, "--no-compress")
+	}
+
+	if options["noNoise"] && (normalizedPreset == "db" || normalizedPreset == "full" || normalizedPreset == "files") {
+		args = append(args, "--no-noise")
+	}
+
+	if options["noPii"] && (normalizedPreset == "db" || normalizedPreset == "full") {
+		args = append(args, "--no-pii")
 	}
 
 	// Delete toggle only applies to rsync scopes (files/media/full).
@@ -1085,48 +1094,83 @@ type presetOptionDef struct {
 	DefaultValue bool   `json:"defaultValue"`
 }
 
-func buildPresetSyncOptionDefs(preset string) presetSyncOptions {
+func buildPresetSyncOptionDefs(project, preset string) presetSyncOptions {
 	normalizedPreset, _ := normalizeRemoteSyncPreset(preset)
+
+	framework := ""
+	if root, err := resolveProjectRootForRemotes(project); err == nil {
+		if cfg, _, err := engine.LoadConfigFromDir(root, true); err == nil {
+			framework = strings.ToLower(strings.TrimSpace(cfg.Framework))
+		}
+	}
+
+	isMagento := framework == "magento2" || framework == "magento1" || framework == "openmage"
 
 	switch normalizedPreset {
 	case "db":
+		opts := []presetOptionDef{
+			{Key: "noNoise", Label: "Exclude Noise", Description: "Exclude ephemeral/noise tables (logs, caches, etc)", DefaultValue: false},
+			{Key: "noPii", Label: "Exclude PII", Description: "Exclude PII/sensitive tables (users, orders, etc)", DefaultValue: false},
+		}
 		return presetSyncOptions{
 			Preset:  "db",
 			Command: "sync",
-			Options: []presetOptionDef{},
+			Options: opts,
 		}
 	case "media":
+		opts := []presetOptionDef{
+			{Key: "compress", Label: "Use Compression", Description: "Compress data during transfer", DefaultValue: true},
+			{Key: "delete", Label: "Delete Missing Files", Description: "Delete files on destination that are missing on source", DefaultValue: false},
+		}
 		return presetSyncOptions{
 			Preset:  "media",
 			Command: "sync",
-			Options: []presetOptionDef{
-				{Key: "compress", Label: "Use Compression", Description: "Compress data during transfer", DefaultValue: true},
-				{Key: "delete", Label: "Delete Missing Files", Description: "Delete files on destination that are missing on source", DefaultValue: false},
-			},
+			Options: opts,
 		}
 	case "full":
+		opts := []presetOptionDef{
+			// 1. Scopes
+			{Key: "noDb", Label: "Skip DB Import", Description: "Do not import the database", DefaultValue: false},
+			{Key: "noMedia", Label: "Skip Media Sync", Description: "Do not sync media files", DefaultValue: false},
+			{Key: "noComposer", Label: "Skip Composer", Description: "Do not run composer install", DefaultValue: false},
+		}
+		if isMagento {
+			opts = append(opts,
+				presetOptionDef{Key: "noAdmin", Label: "Skip Admin Creation", Description: "Do not create an admin user", DefaultValue: false},
+				presetOptionDef{Key: "includeProduct", Label: "Include Product Images", Description: "Include catalog product images in media sync", DefaultValue: false},
+			)
+		}
+
+		opts = append(opts,
+			// 2. Privacy & Scrubbing
+			presetOptionDef{Key: "noNoise", Label: "Exclude Noise", Description: "Exclude ephemeral/noise tables, logs, and sensitive metadata", DefaultValue: false},
+			presetOptionDef{Key: "noPii", Label: "Exclude PII", Description: "Exclude PII/sensitive database tables", DefaultValue: false},
+
+			// 3. Transfer & Performance
+			presetOptionDef{Key: "delete", Label: "Delete Missing Files", Description: "Delete files on destination missing on source (media/files)", DefaultValue: false},
+			presetOptionDef{Key: "noStreamDb", Label: "Disable Stream DB", Description: "Do not stream database via pipe", DefaultValue: false},
+
+			// 4. UX & Execution
+			presetOptionDef{Key: "skipUp", Label: "Skip Govard Up", Description: "Do not run govard up before bootstrap", DefaultValue: false},
+			presetOptionDef{Key: "assumeYes", Label: "Assume Yes", Description: "Automatically answer yes to all prompts", DefaultValue: false},
+		)
+
 		return presetSyncOptions{
 			Preset:  "full",
 			Command: "bootstrap",
-			Options: []presetOptionDef{
-				{Key: "noDb", Label: "Skip DB Import", Description: "Do not import the database", DefaultValue: false},
-				{Key: "noMedia", Label: "Skip Media Sync", Description: "Do not sync media files", DefaultValue: false},
-				{Key: "noComposer", Label: "Skip Composer", Description: "Do not run composer install", DefaultValue: false},
-				{Key: "noAdmin", Label: "Skip Admin Creation", Description: "Do not create an admin user", DefaultValue: false},
-				{Key: "skipUp", Label: "Skip Govard Up", Description: "Do not run govard up before bootstrap", DefaultValue: false},
-				{Key: "noStreamDb", Label: "Disable Stream DB", Description: "Do not stream database via pipe, use intermediate files instead", DefaultValue: false},
-				{Key: "includeProduct", Label: "Include Product Images", Description: "Include product images in media sync", DefaultValue: false},
-				{Key: "assumeYes", Label: "Assume Yes", Description: "Automatically answer yes to all prompts", DefaultValue: false},
-			},
+			Options: opts,
 		}
 	default:
 		// Fallback for "files" or unknown presets
+		opts := []presetOptionDef{
+			{Key: "noNoise", Label: "Exclude Noise", Description: "Exclude logs and sensitive configs (.env, keys, etc)", DefaultValue: true},
+			{Key: "compress", Label: "Use Compression", Description: "Compress data during transfer", DefaultValue: true},
+			{Key: "delete", Label: "Delete Missing Files", Description: "Delete files on destination missing on source", DefaultValue: false},
+		}
 		return presetSyncOptions{
 			Preset:  normalizedPreset,
 			Command: "sync",
-			Options: []presetOptionDef{
-				{Key: "compress", Label: "Use Compression", Description: "Compress data during transfer", DefaultValue: true},
-			},
+			Options: opts,
 		}
 	}
 }
@@ -1158,6 +1202,12 @@ func buildBootstrapArgsWithOptions(remoteName string, options map[string]bool, p
 	}
 	if options["includeProduct"] {
 		args = append(args, "--include-product")
+	}
+	if options["noNoise"] {
+		args = append(args, "--no-noise")
+	}
+	if options["noPii"] {
+		args = append(args, "--no-pii")
 	}
 	if options["assumeYes"] {
 		args = append(args, "--yes")
@@ -1256,8 +1306,8 @@ func (s *RemoteService) OpenRemoteShell(project string, remoteName string) (stri
 	return message, nil
 }
 
-func (s *RemoteService) GetSyncOptions(preset string) presetSyncOptions {
-	return buildPresetSyncOptionDefs(preset)
+func (s *RemoteService) GetSyncOptions(project, preset string) presetSyncOptions {
+	return buildPresetSyncOptionDefs(project, preset)
 }
 
 func (s *RemoteService) RunRemoteSyncPreset(project string, remoteName string, preset string, options map[string]bool) (string, error) {

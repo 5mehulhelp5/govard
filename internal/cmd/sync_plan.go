@@ -324,8 +324,15 @@ func resolveSyncResumeMode(resume bool, noResume bool) bool {
 }
 
 func getSyncNoiseExcludes(framework string, isMedia bool) []string {
-	// Global ignores for any project
-	globalIgnores := []string{".git/", ".idea/", ".vscode/", ".DS_Store", "thumbs.db", "node_modules/"}
+	// 1. Global Metadata & Noise (IDE, OS, Version Control)
+	globalIgnores := []string{
+		".git/", ".idea/", ".vscode/", ".DS_Store", "thumbs.db", "node_modules/",
+	}
+
+	// 2. Sensitive Security/Config Patterns (The "Sanitize" logic)
+	sensitivePatterns := []string{
+		".env", "*.pem", "*.key", "auth.json",
+	}
 
 	if isMedia {
 		mediaIgnores := []string{"cache/", "tmp/"}
@@ -336,14 +343,27 @@ func getSyncNoiseExcludes(framework string, isMedia bool) []string {
 		return mediaIgnores
 	}
 
-	excludes := globalIgnores
+	excludes := append(globalIgnores, sensitivePatterns...)
 	switch strings.ToLower(framework) {
 	case "magento2":
-		excludes = append(excludes, "var/cache/", "var/page_cache/", "var/view_preprocessed/", "pub/static/_cache/", "generated/code/", "generated/metadata/")
+		excludes = append(excludes,
+			"var/cache/", "var/page_cache/", "var/view_preprocessed/", "var/log/",
+			"pub/static/_cache/", "generated/code/", "generated/metadata/",
+		)
 	case "magento1", "openmage":
-		excludes = append(excludes, "var/cache/", "var/full_page_cache/", "var/session/", "var/tmp/")
+		excludes = append(excludes,
+			"var/cache/", "var/full_page_cache/", "var/session/", "var/tmp/", "var/log/",
+		)
 	case "laravel":
-		excludes = append(excludes, "storage/framework/cache/data/*", "storage/framework/sessions/*", "storage/framework/views/*", "storage/logs/*")
+		excludes = append(excludes,
+			"storage/framework/cache/data/*", "storage/framework/sessions/*",
+			"storage/framework/views/*", "storage/logs/*",
+		)
+	case "wordpress":
+		excludes = append(excludes, "wp-content/cache/", "wp-content/logs/")
+	default:
+		// Fallback: exclude generic log and cache dirs if present
+		excludes = append(excludes, "var/log/", "var/cache/", "logs/", "cache/")
 	}
 	return excludes
 }

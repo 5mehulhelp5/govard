@@ -97,19 +97,49 @@ govard sync -s prod --file --path app/etc/config.php
 ### Transfer flags
 
 - `--plan`
-- `-y, --yes`
-- `--delete`
-- `--resume`
-- `--no-resume`
-- `--no-compress`
-- `--path`
-- `--include`
-- `--exclude`
+### Source & Destination
 
-### Database filter flags
+- `-s, --source`: The source environment (defaults to `staging`).
+- `-d, --destination`: The target environment (defaults to `local`).
+- `-e, -f, --environment, --from`: Aliases for `--source`.
+- `--to`: Alias for `--destination`.
 
-- `-N, --no-noise`
-- `-P, --no-pii`
+### Resource Scopes
+
+- `-A, --full`: Sync all supported resources (files, media, database).
+- `-f, --file`: Sync source code and generic files.
+- `-m, --media`: Sync framework-specific media assets.
+- `-b, --db`: Sync the project database.
+
+### Filters & Paths
+
+- `-p, --path`: Sync a specific file or directory relative to the project root.
+- `-I, --include`: Rsync include pattern (repeatable).
+- `-X, --exclude`: Rsync exclude pattern (repeatable).
+
+### Database Privacy & Protection
+
+- `-N, --no-noise`: Exclude ephemeral/noise tables (logs, cache, etc.).
+### Transfer & Execution Control
+
+- `-D, --delete`: Delete files on destination that are missing on source.
+- `-R, --resume`: Enable resumable transfers (default: `true`).
+- `--no-resume`: Disable resumable Transfers.
+- `-C, --no-compress`: Disable rsync compression.
+- `-y, --yes`: Skip confirmation prompts for all sync operations.
+- `--plan`: Print the plan and exit without executing.
+
+### Database Filter Policy
+
+The `--no-noise` and `--no-pii` flags use context-aware rules to exclude specific tables and directories:
+
+| Flag | Category | Key Exclusions (Magento 2) | Key Exclusions (Laravel) | Key Exclusions (WordPress) |
+| :--- | :--- | :--- | :--- | :--- |
+| `--no-noise` | **Ephemeral Data** | `cron_schedule`, `session`, `cache_tag`, `report_event`, `adminnotification_inbox` | `cache`, `sessions`, `failed_jobs`, `telescope_entries` | `redirection_404`, `wflogs` |
+| `--no-pii` | **Sensitive Data** | `customer_entity`, `sales_order`, `quote`, `newsletter_subscriber`, `admin_user`, `wishlist` | `users`, `password_resets`, `personal_access_tokens` | `users`, `usermeta`, `comments` |
+
+> [!NOTE]
+> Database filters are currently optimized for Magento 2. For non-supported frameworks, `--no-noise` and `--no-pii` will fall back to safe default patterns when possible.
 
 ## Sync Behavior
 
@@ -141,6 +171,16 @@ Disable that behavior with `--no-resume`.
 - `--media`
 
 They are ignored for DB-only sync.
+
+### Integration with `bootstrap`
+
+The `govard bootstrap` command leverages these same sync and filter flags to perform safe, high-performance environment initialization:
+
+```bash
+govard bootstrap --clone -e staging --no-pii --no-noise --delete
+```
+
+This applies the privacy filters to the database import and enables the `--delete` policy for the initial file clone.
 
 ## Remote Name Resolution
 

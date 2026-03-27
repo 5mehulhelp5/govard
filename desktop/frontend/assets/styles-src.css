@@ -291,8 +291,8 @@
   --bg-accent: #ecfdf5;
 
   --text-primary: #0f172a;
-  --text-secondary: #334155; /* Darker Slate 700 */
-  --text-tertiary: #64748b;  /* Darker Slate 500 */
+  --text-secondary: #1e293b; /* Stronger Slate 800 for better secondary contrast */
+  --text-tertiary: #475569;  /* Stronger Slate 600 for better tertiary contrast */
 
   --border-primary: #e2e8f0;
   --border-secondary: #f1f5f9;
@@ -798,6 +798,16 @@ select::-ms-expand {
 /* Modals */
 #onboardingModal {
   transition: opacity 0.3s ease;
+}
+
+/* Custom Confirmation Modal */
+#confirmModal.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#confirmModal.is-visible > div {
+  transform: scale(1);
 }
 #onboardingModal.hidden {
   display: none !important;

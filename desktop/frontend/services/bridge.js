@@ -188,9 +188,9 @@ export const desktopBridge = {
       syncConfig || {},
     );
   },
-  async getSyncPresetOptions(preset) {
+  async getSyncPresetOptions(project, preset) {
     const bridge = getBridge();
-    return call(bridge?.GetSyncPresetOptions?.bind(bridge), preset);
+    return call(bridge?.GetSyncPresetOptions?.bind(bridge), project, preset);
   },
   async startEnvironment(project) {
     const bridge = getBridge();

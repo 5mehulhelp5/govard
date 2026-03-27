@@ -94,6 +94,7 @@ const getLiveRefs = () => ({
   warningList: byId("warningList"),
   openSettings: byId("openSettings"),
   closeSettings: byId("closeSettings"),
+  hardReset: byId("hardReset"),
   settingsDrawer: byId("settingsDrawer"),
   themeSelect: byId("themeSelect"),
   proxyTarget: byId("proxyTarget"),
@@ -118,6 +119,12 @@ const getLiveRefs = () => ({
   terminalBackdrop: byId("terminalBackdrop"),
   terminalExpandIcon: byId("terminalExpandIcon"),
   toastContainer: byId("toastContainer"),
+  confirmModal: byId("confirmModal"),
+  confirmIcon: byId("confirmIcon"),
+  confirmTitle: byId("confirmTitle"),
+  confirmMessage: byId("confirmMessage"),
+  confirmCancelBtn: byId("confirmCancelBtn"),
+  confirmConfirmBtn: byId("confirmConfirmBtn"),
   onboardingModal: byId("onboardingModal"),
   projectPath: byId("projectPath"),
   displayProjectPath: byId("displayProjectPath"),
@@ -145,6 +152,12 @@ const getLiveRefs = () => ({
   onboardRedis: byId("onboardRedis"),
   onboardRabbitMQ: byId("onboardRabbitMQ"),
   onboardElasticsearch: byId("onboardElasticsearch"),
+  confirmModal: byId("confirmModal"),
+  confirmIcon: byId("confirmIcon"),
+  confirmTitle: byId("confirmTitle"),
+  confirmMessage: byId("confirmMessage"),
+  confirmCancelBtn: byId("confirmCancelBtn"),
+  confirmConfirmBtn: byId("confirmConfirmBtn"),
   newRemoteModal: byId("newRemoteModal"),
   projectTitle: byId("projectTitle"),
   projectStatusBadge: byId("projectStatusBadge"),
@@ -249,6 +262,53 @@ const loadFooterVersion = async () => {
 
 const showToast = (message, type = "success") => {
   toast.show(message, type);
+};
+
+const showConfirm = ({
+  title,
+  message,
+  icon = "help",
+  confirmText = "Confirm",
+  cancelText = "Cancel",
+}) => {
+  return new Promise((resolve) => {
+    if (
+      !refs.confirmModal ||
+      !refs.confirmTitle ||
+      !refs.confirmMessage ||
+      !refs.confirmConfirmBtn ||
+      !refs.confirmCancelBtn
+    ) {
+      // Fallback if elements are missing
+      resolve(confirm(message || "Are you sure?"));
+      return;
+    }
+
+    refs.confirmTitle.textContent = title || "Confirm Action";
+    refs.confirmMessage.innerHTML =
+      message || "Are you sure you want to proceed?";
+    if (refs.confirmIcon) refs.confirmIcon.textContent = icon;
+    refs.confirmConfirmBtn.textContent = confirmText;
+    refs.confirmCancelBtn.textContent = cancelText;
+
+    const onConfirm = () => {
+      cleanup();
+      resolve(true);
+    };
+    const onCancel = () => {
+      cleanup();
+      resolve(false);
+    };
+    const cleanup = () => {
+      refs.confirmModal.classList.remove("is-visible");
+      refs.confirmConfirmBtn.removeEventListener("click", onConfirm);
+      refs.confirmCancelBtn.removeEventListener("click", onCancel);
+    };
+
+    refs.confirmConfirmBtn.addEventListener("click", onConfirm);
+    refs.confirmCancelBtn.addEventListener("click", onCancel);
+    refs.confirmModal.classList.add("is-visible");
+  });
 };
 
 const showLoadingToast = (
@@ -488,10 +548,11 @@ const runRemoteSyncWithProgressToast = async ({
 };
 
 const resolveSyncConfigForPreset = async (preset) => {
-  const payload = await desktopBridge.getSyncPresetOptions(preset);
+  const state = getState();
+  const project = state.selectedProject;
+  const payload = await desktopBridge.getSyncPresetOptions(project || "", preset);
   const optionsDef = Array.isArray(payload?.options) ? payload.options : [];
 
-  const state = getState();
   const currentConfigs = state.syncConfigs || {};
   const currentConfig = { ...(currentConfigs[preset] || {}) };
 
@@ -1348,7 +1409,6 @@ document.addEventListener("click", async (event) => {
   if (action === "toggle-onboarding-bootstrap-option") {
     onboardingController.toggleBootstrapOption(
       String(targetElement.dataset.option || ""),
-      Boolean(targetElement.checked),
     );
     return;
   }
@@ -1446,7 +1506,18 @@ document.addEventListener("click", async (event) => {
     return;
   }
   if (action === "reset-settings") {
-    await settingsController.reset();
+    const confirmed = await showConfirm({
+      title: "Reset Settings",
+      message:
+        "Are you sure you want to reset all settings to defaults?<br><small class='text-text-tertiary opacity-70'>This will overwrite your proxy, IDE, and UI preferences.</small>",
+      icon: "restart_alt",
+      confirmText: "Reset Defaults",
+      cancelText: "Cancel",
+    });
+
+    if (confirmed) {
+      await settingsController.reset();
+    }
     return;
   }
   if (action === "check-updates") {
@@ -1484,10 +1555,11 @@ document.addEventListener("click", async (event) => {
     }
 
     try {
-      const payload = await desktopBridge.getSyncPresetOptions(preset);
+      const state = getState();
+      const project = state.selectedProject;
+      const payload = await desktopBridge.getSyncPresetOptions(project || "", preset);
       const optionsDef = payload.options || [];
 
-      const state = getState();
       const presetConfigs = state.syncConfigs || {};
       let config = presetConfigs[preset] || {};
       let changed = false;
@@ -1675,7 +1747,18 @@ document.addEventListener("click", async (event) => {
   }
   // (filter-service and filter-severity are handled above)
   if (action === "reset-settings") {
-    await settingsController.reset();
+    const confirmed = await showConfirm({
+      title: "Reset Settings",
+      message:
+        "Are you sure you want to reset all settings to defaults?<br><small class='text-text-tertiary opacity-70'>This will overwrite your proxy, IDE, and UI preferences.</small>",
+      icon: "restart_alt",
+      confirmText: "Reset Defaults",
+      cancelText: "Cancel",
+    });
+
+    if (confirmed) {
+      await settingsController.reset();
+    }
     return;
   }
 
@@ -1739,6 +1822,29 @@ const bindRuntimeListeners = () => {
     refs.openSettings.addEventListener("click", () =>
       setSettingsDrawerOpen(true),
     );
+  }
+
+  if (refs.hardReset) {
+    refs.hardReset.addEventListener("click", async () => {
+      const confirmed = await showConfirm({
+        title: "Restart Govard Desktop",
+        message:
+          "Are you sure you want to restart Govard Desktop?<br><small class='text-text-tertiary opacity-70'>This will reload the application process.</small>",
+        icon: "restart_alt",
+        confirmText: "Restart",
+        cancelText: "Cancel",
+      });
+
+      if (!confirmed) {
+        return;
+      }
+      showToast("Restarting application...", "info");
+      try {
+        await desktopBridge.restartDesktopApp();
+      } catch (err) {
+        showToast(`Restart failed: ${err}`, "error");
+      }
+    });
   }
 
   if (refs.closeSettings) {

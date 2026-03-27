@@ -47,6 +47,13 @@ func BuildWailsOptions(app *App, assets fs.FS, launch LaunchOptions) *options.Ap
 		},
 	}
 
+	wailsOptions.SingleInstanceLock = &options.SingleInstanceLock{
+		UniqueId: desktopSingleInstanceLockID,
+		OnSecondInstanceLaunch: func(options.SecondInstanceData) {
+			app.showWindow()
+		},
+	}
+
 	if !launch.Background {
 		return wailsOptions
 	}
@@ -56,12 +63,6 @@ func BuildWailsOptions(app *App, assets fs.FS, launch LaunchOptions) *options.Ap
 	wailsOptions.OnBeforeClose = func(ctx context.Context) bool {
 		app.hideWindow(ctx)
 		return true // prevent close; hide to tray instead
-	}
-	wailsOptions.SingleInstanceLock = &options.SingleInstanceLock{
-		UniqueId: desktopSingleInstanceLockID,
-		OnSecondInstanceLaunch: func(options.SecondInstanceData) {
-			app.showWindow()
-		},
 	}
 	return wailsOptions
 }

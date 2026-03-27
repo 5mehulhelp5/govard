@@ -555,17 +555,14 @@ export const createRemotesController = ({
       return;
     }
 
-    const syncConfig = getSyncConfig?.() || {};
+    const state = getState();
+    const presetConfig = (state.syncConfigs || {})[normalizedPreset] || {};
     try {
       const message = await bridge.runRemoteSyncPreset(
         project,
         remoteName,
         normalizedPreset,
-        {
-          sanitize: Boolean(syncConfig.sanitize),
-          excludeLogs: Boolean(syncConfig.excludeLogs),
-          compress: Boolean(syncConfig.compress),
-        },
+        presetConfig,
       );
       onStatus(`Sync plan for ${remoteName} is ready`);
       onToast(message || `Sync plan for ${remoteName} prepared.`, "success");
@@ -643,7 +640,7 @@ export const renderSyncModal = (container) => {
           <div
             class="px-6 py-4 border-b border-border-primary flex justify-between items-center bg-surface-secondary/50"
           >
-            <h3 class="text-white text-lg font-bold flex items-center gap-2">
+            <h3 class="text-text-primary dark:text-white text-lg font-bold flex items-center gap-2">
               <span
                 class="material-symbols-outlined text-primary"
                 id="syncModalIcon"
@@ -661,9 +658,9 @@ export const renderSyncModal = (container) => {
 
           <!-- Step 1: Options -->
           <div id="syncModalStep1" class="p-6 space-y-4">
-            <p class="text-slate-300 text-sm">
+            <p class="text-text-secondary dark:text-slate-300 text-sm">
               You are about to sync data from the
-              <strong id="syncModalRemoteName" class="text-white"></strong>
+              <strong id="syncModalRemoteName" class="text-text-primary dark:text-white font-black"></strong>
               environment. Configure your sync options below:
             </p>
 
@@ -675,7 +672,7 @@ export const renderSyncModal = (container) => {
               class="px-0 pt-4 flex gap-3 justify-end items-center border-t border-border-primary"
             >
               <button
-                class="px-4 py-2 rounded-lg text-sm text-slate-300 font-medium hover:bg-white/5 transition-colors"
+                class="px-4 py-2 rounded-lg text-sm text-text-secondary dark:text-slate-300 font-medium hover:bg-primary/10 transition-colors"
                 data-action="close-sync-modal"
               >
                 Cancel
@@ -683,7 +680,7 @@ export const renderSyncModal = (container) => {
               <button
                 data-action="preview-sync-plan"
                 id="previewSyncPlanBtn"
-                class="px-5 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-500 rounded-lg text-sm text-white font-medium transition-all group flex items-center gap-2"
+                class="px-5 py-2 bg-surface-secondary dark:bg-slate-700 hover:bg-primary/10 dark:hover:bg-slate-600 border border-border-primary dark:border-slate-500 rounded-lg text-sm text-text-primary dark:text-white font-medium transition-all group flex items-center gap-2"
               >
                 <span
                   class="material-symbols-outlined text-[16px] group-hover:text-primary transition-colors"
@@ -696,7 +693,7 @@ export const renderSyncModal = (container) => {
 
           <!-- Step 2: Plan Preview -->
           <div id="syncModalStep2" class="hidden p-6 space-y-4">
-            <div class="flex items-center gap-2 text-sm text-slate-300">
+            <div class="flex items-center gap-2 text-sm text-text-secondary dark:text-slate-300">
               <span class="material-symbols-outlined text-[18px] text-primary"
                 >fact_check</span
               >
@@ -706,7 +703,7 @@ export const renderSyncModal = (container) => {
             <!-- Plan output -->
             <div
               id="syncPlanOutput"
-              class="bg-background-primary border border-border-primary/60 rounded-lg p-4 font-mono text-xs text-slate-300 max-h-64 overflow-y-auto leading-relaxed whitespace-pre-wrap"
+              class="bg-background-primary border border-border-primary/60 rounded-lg p-4 font-mono text-xs text-text-secondary dark:text-slate-300 max-h-64 overflow-y-auto leading-relaxed whitespace-pre-wrap"
             >
               <!-- Plan output injected here -->
             </div>
@@ -726,7 +723,7 @@ export const renderSyncModal = (container) => {
             >
               <button
                 data-action="back-to-sync-options"
-                class="px-4 py-2 rounded-lg text-sm text-slate-300 font-medium hover:bg-white/5 transition-colors flex items-center gap-1"
+                class="px-4 py-2 rounded-lg text-sm text-text-secondary dark:text-slate-300 font-medium hover:bg-primary/10 transition-colors flex items-center gap-1"
               >
                 <span class="material-symbols-outlined text-[16px]"
                   >arrow_back</span
@@ -735,7 +732,7 @@ export const renderSyncModal = (container) => {
               </button>
               <div class="flex gap-3">
                 <button
-                  class="px-4 py-2 rounded-lg text-sm text-slate-300 font-medium hover:bg-white/5 transition-colors"
+                  class="px-4 py-2 rounded-lg text-sm text-text-secondary dark:text-slate-300 font-medium hover:bg-primary/10 transition-colors"
                   data-action="close-sync-modal"
                 >
                   Cancel

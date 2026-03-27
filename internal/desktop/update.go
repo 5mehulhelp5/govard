@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -156,6 +157,15 @@ var runDesktopSelfUpdate = defaultRunDesktopSelfUpdate
 var defaultRestartDesktopBinary = func(binaryPath string) error {
 	cmd := exec.Command(binaryPath)
 	cmd.Env = os.Environ()
+
+	// Detach process on Unix-like systems to prevent it being killed with the parent
+	// and to ensure the window manager sees it as a fresh top-level application instance.
+	if runtime.GOOS != "windows" {
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			Setsid: true,
+		}
+	}
+
 	return cmd.Start()
 }
 

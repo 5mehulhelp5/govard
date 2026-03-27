@@ -51,11 +51,52 @@ Run bootstrap flows for clone or fresh-install setups.
 govard bootstrap
 govard bootstrap --clone --environment staging --yes
 govard bootstrap --framework magento2 --fresh --framework-version 2.4.9
+govard bootstrap -e staging --no-pii --no-noise
 ```
 
-By default, if no `--environment` is provided, Govard **auto-selects** your `staging` remote if it exists, falling back to `dev` (or its aliases). If neither is found, it will prompt for confirmation or error out if non-interactive.
+### Mode and Framework Selection
 
-Bootstrap shows a review step before environment startup unless you skip prompts with `--yes`.
+Two primary ways to use `bootstrap`:
+
+- **Fresh Install**: Use `--fresh` with `--framework` and `--framework-version` to create a clean, vanilla project from a composer meta-package.
+- **Remote Clone**: Use `--clone` with `--environment` to rsync the entire source code from a remote server. Use this when you don't have a local git repository.
+
+### Source Selection
+
+- `-e, --environment`: The source remote name (e.g., `staging`, `production`, `dev`). Govard auto-selects `staging` or `dev` if omitted.
+- `--remote`: Alias for `--environment`.
+- `--db-dump`: Import the database from a local SQL file path rather than syncing from a remote.
+
+### Interactive Confirmation and Plan Preview
+
+Bootstrap shows a **Review Plan** step before starting sync or environment operations. This summary includes:
+- Source and Destination endpoints
+- Scopes (Code, DB, Media)
+- Risks (e.g., if local files will be overwritten or DB reset)
+
+You must explicitly confirm the plan to proceed. Use the `-y, --yes` flag to skip this check in CI or non-interactive environments.
+
+Use `--plan` to print the summary and exit immediately without starting any services or transfers.
+
+### Privacy and Performance Filters
+
+- `-N, --no-noise`: Excludes ephemeral data (logs, session tables, cache tags, cron history).
+- `-S, --no-pii`: Excludes sensitive information (customers, orders, admin users, passwords).
+- `--delete`: Deletes files on the destination that do not exist on the source (media/file sync).
+- `--no-compress`: Disables rsync compression (useful if CPU is a bottleneck).
+- `--exclude`: Pass custom rsync-style patterns to exclude specific directories or files.
+- `--no-db`: Skip database import entirely.
+- `--no-media`: Skip media asset sync entirely.
+- `--no-composer`: Skip automated `composer install`.
+- `--no-admin`: Skip admin user creation (Magento 2 only).
+- `--no-stream-db`: Disable piped DB transfer (use local temp file).
+
+### Framework Special (Magento 2 / Magento 1)
+
+- `--include-sample`: Install sample data during a fresh install.
+- `--hyva-install`: Automatically install the Hyva theme during bootstrap.
+- `--include-product`: Specifically sync catalog product images during media sync.
+- `--fix-deps`: Run a project-specific `fix-deps` command before bootstrap starts.
 
 During remote bootstrap flows, Govard runs `govard config auto` automatically for Magento 2, Magento 1, and OpenMage unless you use `--skip-up`.
 

@@ -259,6 +259,15 @@ func bootstrapFileSyncArgs(opts bootstrapRuntimeOptions) []string {
 	if opts.NoNoise {
 		args = append(args, "--no-noise")
 	}
+	if opts.DeleteSync {
+		args = append(args, "--delete")
+	}
+	if opts.NoCompress {
+		args = append(args, "--no-compress")
+	}
+	for _, pattern := range opts.ExcludePatterns {
+		args = append(args, "--exclude", pattern)
+	}
 
 	// Default excludes for bootstrap (to protect local config)
 	args = append(args,
