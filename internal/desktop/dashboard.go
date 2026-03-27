@@ -243,7 +243,7 @@ func (s *EnvironmentService) StartEnvironment(project string) (string, error) {
 	// 'up' can take a while, but we want to show output if possible.
 	// However, Wails calls usually expect a relatively quick response or use events.
 	// For now, let's use the CLI runner which captures output.
-	output, err := runGovardCommandForDesktop(root, []string{"up"})
+	output, err := runGovardCommandForDesktop(root, []string{"up", "--force-recreate", "--remove-orphans"})
 	if err != nil {
 		return "", err
 	}
@@ -271,7 +271,7 @@ func (s *EnvironmentService) RestartEnvironment(project string) (string, error) 
 	if err != nil {
 		// Fallback if restart fails or is not implemented as expected
 		_, _ = runGovardCommandForDesktop(root, []string{"env", "stop"})
-		output, err = runGovardCommandForDesktop(root, []string{"up"})
+		output, err = runGovardCommandForDesktop(root, []string{"up", "--force-recreate", "--remove-orphans"})
 		if err != nil {
 			return "", err
 		}

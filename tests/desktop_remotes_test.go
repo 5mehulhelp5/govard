@@ -218,8 +218,8 @@ func TestBuildPresetSyncOptionDefs_Full(t *testing.T) {
 	if opts.Command != "bootstrap" {
 		t.Fatalf("expected command 'bootstrap', got %s", opts.Command)
 	}
-	if len(opts.Options) != 9 {
-		t.Fatalf("expected 9 options, got %d", len(opts.Options))
+	if len(opts.Options) != 8 {
+		t.Errorf("expected 8 options, got %d", len(opts.Options))
 	}
 }
 

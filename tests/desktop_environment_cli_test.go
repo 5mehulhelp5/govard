@@ -64,7 +64,7 @@ func TestDesktopStartEnvironmentUsesGovardUpForProjectForTest(t *testing.T) {
 	if gotDir != root {
 		t.Fatalf("expected govard dir %q, got %q", root, gotDir)
 	}
-	if !reflect.DeepEqual(gotArgs, []string{"up"}) {
+	if !reflect.DeepEqual(gotArgs, []string{"up", "--force-recreate", "--remove-orphans"}) {
 		t.Fatalf("unexpected govard args: %#v", gotArgs)
 	}
 	if !strings.Contains(message, "env started via cli") {
