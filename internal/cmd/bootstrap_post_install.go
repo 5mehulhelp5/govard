@@ -176,7 +176,7 @@ func runBootstrapAdminCreate(cmd *cobra.Command, config engine.Config) {
 			"--admin-password="+engine.DefaultMagentoAdminPassword,
 			"--admin-firstname=Govard",
 			"--admin-lastname=Admin",
-			"--admin-email="+engine.DefaultMagentoAdminEmail,
+			"--admin-email=admin@"+emailDomain,
 		)...,
 	)
 	if err != nil {

@@ -99,7 +99,6 @@ func ensureBootstrapAuthJSON(config engine.Config, opts bootstrapRuntimeOptions)
 	cwd, _ := os.Getwd()
 	authPath := filepath.Join(cwd, "auth.json")
 	if _, err := os.Stat(authPath); err == nil {
-		ensureAuthInGitignore(cwd)
 		return nil
 	}
 
@@ -113,21 +112,16 @@ func ensureBootstrapAuthJSON(config engine.Config, opts bootstrapRuntimeOptions)
 		}
 
 		if useGlobal {
-			data, readErr := os.ReadFile(globalAuthPath)
-			if readErr != nil {
-				return fmt.Errorf("failed reading global auth.json: %w", readErr)
-			}
-			if writeErr := os.WriteFile(authPath, data, 0600); writeErr != nil {
-				return fmt.Errorf("failed writing project auth.json: %w", writeErr)
-			}
-			pterm.Success.Printf("Copied global auth.json from %s\n", globalAuthPath)
-			ensureAuthInGitignore(cwd)
+			// Instead of copying, we just acknowledge it's there.
+			// If we need to write project-specific logic later, we can,
+			// but for now we rely on the mount handled in Render.
+			pterm.Success.Printf("Using global auth.json from %s\n", globalAuthPath)
 			return nil
 		}
 	}
 
 	if opts.MageUsername != "" && opts.MagePassword != "" {
-		return createAuthJSONFromCredentials(authPath, opts.MageUsername, opts.MagePassword, cwd)
+		return createAuthJSONFromCredentials(globalAuthPath, opts.MageUsername, opts.MagePassword, cwd)
 	}
 
 	if config.Framework == "magento2" && !shouldUseGlobalAuthByDefault() && !opts.AssumeYes {
@@ -138,7 +132,7 @@ func ensureBootstrapAuthJSON(config engine.Config, opts bootstrapRuntimeOptions)
 		password, _ := pterm.DefaultInteractiveTextInput.WithMask("*").Show("Magento Private Key")
 
 		if username != "" && password != "" {
-			return createAuthJSONFromCredentials(authPath, username, password, cwd)
+			return createAuthJSONFromCredentials(globalAuthPath, username, password, cwd)
 		}
 	}
 
@@ -148,30 +142,14 @@ func ensureBootstrapAuthJSON(config engine.Config, opts bootstrapRuntimeOptions)
 
 func createAuthJSONFromCredentials(path, username, password, cwd string) error {
 	payload := fmt.Sprintf("{\n    \"http-basic\": {\n        \"repo.magento.com\": {\n            \"username\": %q,\n            \"password\": %q\n        }\n    }\n}\n", username, password)
+	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+		return fmt.Errorf("failed to ensure directory for auth.json: %w", err)
+	}
 	if err := os.WriteFile(path, []byte(payload), 0600); err != nil {
-		return fmt.Errorf("failed writing auth.json: %w", err)
+		return fmt.Errorf("failed writing auth.json to %s: %w", path, err)
 	}
-	ensureAuthInGitignore(cwd)
-	pterm.Success.Println("✅ Created auth.json with provided credentials.")
+	pterm.Success.Printf("✅ Created auth.json in %s with provided credentials.\n", path)
 	return nil
-}
-
-func ensureAuthInGitignore(cwd string) {
-	gitignorePath := filepath.Join(cwd, ".gitignore")
-	data, err := os.ReadFile(gitignorePath)
-	if err != nil {
-		return
-	}
-	content := string(data)
-	if strings.Contains(content, "auth.json") {
-		return
-	}
-	lines := content
-	if !strings.HasSuffix(lines, "\n") {
-		lines += "\n"
-	}
-	lines += "/auth.json\n"
-	_ = os.WriteFile(gitignorePath, []byte(lines), 0644)
 }
 
 func shouldUseGlobalAuthByDefault() bool {

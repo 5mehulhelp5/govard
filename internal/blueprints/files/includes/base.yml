@@ -86,6 +86,9 @@ services:
       {{ if .HostComposerCacheDir }}
       - "{{ .HostComposerCacheDir }}:/home/www-data/.cache/composer"
       {{ end }}
+      {{ if .HostComposerConfigDir }}
+      - "{{ .HostComposerConfigDir }}:/home/www-data/.composer:ro"
+      {{ end }}
     networks:
       - govard-net
     environment:
@@ -121,6 +124,9 @@ services:
       {{ end }}
       {{ if .HostComposerCacheDir }}
       - "{{ .HostComposerCacheDir }}:/home/www-data/.cache/composer"
+      {{ end }}
+      {{ if .HostComposerConfigDir }}
+      - "{{ .HostComposerConfigDir }}:/home/www-data/.composer:ro"
       {{ end }}
     networks:
       - govard-net

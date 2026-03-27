@@ -127,7 +127,8 @@ func TestEnsureBootstrapAuthJSONForTestCreatesAuthFromCredentials(t *testing.T) 
 		t.Fatalf("EnsureBootstrapAuthJSONForTest() error = %v", err)
 	}
 
-	authContent, err := os.ReadFile(filepath.Join(tempDir, "auth.json"))
+	// The new logic saves to global ~/.composer/auth.json (host)
+	authContent, err := os.ReadFile(filepath.Join(tempDir, ".composer", "auth.json"))
 	if err != nil {
 		t.Fatalf("read auth.json: %v", err)
 	}
@@ -143,8 +144,8 @@ func TestEnsureBootstrapAuthJSONForTestCreatesAuthFromCredentials(t *testing.T) 
 	if err != nil {
 		t.Fatalf("read .gitignore: %v", err)
 	}
-	if !strings.Contains(string(gitignoreContent), "/auth.json") {
-		t.Fatalf(".gitignore missing /auth.json entry: %s", string(gitignoreContent))
+	if strings.Contains(string(gitignoreContent), "/auth.json") {
+		t.Fatalf(".gitignore should NOT contain /auth.json entry anymore: %s", string(gitignoreContent))
 	}
 }
 

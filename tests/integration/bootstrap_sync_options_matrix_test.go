@@ -158,10 +158,11 @@ func TestBootstrapOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 			"rsync":  0,
 		})
 
+		homeVars := isolatedHomeEnv(t)
 		result := env.RunGovardWithEnv(
 			t,
 			projectDir,
-			append(shim.Env(), isolatedHomeEnv(t)...),
+			append(shim.Env(), homeVars...),
 			"bootstrap",
 			"--fresh",
 			"--skip-up",
@@ -185,10 +186,18 @@ func TestBootstrapOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 		assertMatrixContains(t, logs, "sample:deploy")
 		assertMatrixNotContains(t, logs, "admin:user:create")
 
-		authPath := filepath.Join(projectDir, "auth.json")
+		// The new logic saves to global ~/.composer/auth.json (host)
+		homeDir := ""
+		for _, envVar := range homeVars {
+			if strings.HasPrefix(envVar, "HOME=") {
+				homeDir = strings.TrimPrefix(envVar, "HOME=")
+			}
+		}
+
+		authPath := filepath.Join(homeDir, ".composer", "auth.json")
 		data, err := os.ReadFile(authPath)
 		if err != nil {
-			t.Fatalf("expected auth.json generated from mage credentials: %v", err)
+			t.Fatalf("expected auth.json generated from mage credentials in %s: %v", authPath, err)
 		}
 		assertMatrixContains(t, string(data), "\"username\": \"mage-user\"")
 		assertMatrixContains(t, string(data), "\"password\": \"mage-pass\"")

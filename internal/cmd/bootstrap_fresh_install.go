@@ -308,9 +308,6 @@ func runBootstrapFreshInstall(cmd *cobra.Command, config engine.Config, opts boo
 			return err
 		}
 	}
-	if opts.AdminCreate {
-		runBootstrapAdminCreate(cmd, config)
-	}
 
 	pterm.Success.Println("Fresh Magento bootstrap completed.")
 	return nil

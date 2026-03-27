@@ -257,6 +257,13 @@ var phpContainerShellRunner = func(config engine.Config, commandLine string) err
 
 	cwd, _ := os.Getwd()
 	authPath := filepath.Join(cwd, "auth.json")
+	if !fileExists(authPath) {
+		// Fallback to global composer auth on host if project-specific is missing
+		if home, err := os.UserHomeDir(); err == nil {
+			authPath = filepath.Join(home, ".composer", "auth.json")
+		}
+	}
+
 	if data, err := os.ReadFile(authPath); err == nil {
 		dockerArgs = append(dockerArgs, "-e", "COMPOSER_AUTH="+string(data))
 	}

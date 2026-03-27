@@ -21,7 +21,6 @@ type magentoCommand struct {
 const (
 	DefaultMagentoAdminUser     = "admin"
 	DefaultMagentoAdminPassword = "Admin123$"
-	DefaultMagentoAdminEmail    = "admin@example.com"
 )
 
 // MagentoConfigCommandsForTest exposes command planning for tests.
