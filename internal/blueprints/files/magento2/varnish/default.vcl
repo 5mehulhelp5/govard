@@ -29,6 +29,11 @@ sub vcl_recv {
         set req.hash_always_miss = true;
     }
 
+    # Bypass Varnish for Xdebug sessions
+    if (req.http.cookie ~ "XDEBUG_SESSION") {
+        return (pass);
+    }
+
     # Sorting query string parameters
     if (req.url ~ "\?.+&.+") {
         set req.url = std.querysort(req.url);
