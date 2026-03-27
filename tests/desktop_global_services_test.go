@@ -1,12 +1,11 @@
 package tests
 
 import (
-	"context"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
-	"time"
 
 	"govard/internal/desktop"
 
@@ -119,35 +118,17 @@ func TestDesktopStopGlobalServiceRunsComposeForTargetServiceForTest(t *testing.T
 	}
 }
 
-func TestDesktopRestartGlobalServicesReconcilesComposeForTest(t *testing.T) {
+func TestDesktopRestartGlobalServicesUsesGovardSvcRestartForTest(t *testing.T) {
 	desktop.ResetStateForTest()
-	restoreEnsure := desktop.SetEnsureGlobalServicesForDesktopForTest(func() error {
-		return nil
-	})
-	defer restoreEnsure()
 
-	var capturedCalls [][]string
-	restoreRun := desktop.SetRunGlobalServicesComposeForDesktopForTest(
-		func(args ...string) (string, error) {
-			capturedCalls = append(capturedCalls, append([]string{}, args...))
-			return "", nil
+	var gotArgs []string
+	restoreRun := desktop.SetRunGovardCommandForDesktopForTest(
+		func(_ string, args []string) (string, error) {
+			gotArgs = append([]string{}, args...)
+			return "services restarted via cli", nil
 		},
 	)
 	defer restoreRun()
-
-	restoreWait := desktop.SetWaitForGlobalProxyReadyForDesktopForTest(
-		func(_ context.Context, _ time.Duration) bool {
-			return true
-		},
-	)
-	defer restoreWait()
-
-	routeRefreshCalls := 0
-	restoreRefresh := desktop.SetRefreshGlobalServiceRoutesForDesktopForTest(func() error {
-		routeRefreshCalls++
-		return nil
-	})
-	defer restoreRefresh()
 
 	app := desktop.NewApp()
 	message, err := app.RestartGlobalServices()
@@ -158,54 +139,23 @@ func TestDesktopRestartGlobalServicesReconcilesComposeForTest(t *testing.T) {
 		t.Fatalf("unexpected message: %q", message)
 	}
 
-	expectedCalls := [][]string{
-		{"down"},
-		{"up", "-d"},
-	}
-	if len(capturedCalls) != len(expectedCalls) {
-		t.Fatalf("unexpected compose calls: got %v want %v", capturedCalls, expectedCalls)
-	}
-	for i := range expectedCalls {
-		got := strings.Join(capturedCalls[i], " ")
-		want := strings.Join(expectedCalls[i], " ")
-		if got != want {
-			t.Fatalf("unexpected compose call %d: got %q want %q", i, got, want)
-		}
-	}
-	if routeRefreshCalls != 1 {
-		t.Fatalf("expected route refresh to run once, got %d", routeRefreshCalls)
+	expected := []string{"svc", "restart"}
+	if !reflect.DeepEqual(gotArgs, expected) {
+		t.Fatalf("unexpected govard args: got %v want %v", gotArgs, expected)
 	}
 }
 
-func TestDesktopStartGlobalServicesRefreshesRoutesForTest(t *testing.T) {
+func TestDesktopStartGlobalServicesUsesGovardSvcUpForTest(t *testing.T) {
 	desktop.ResetStateForTest()
-	restoreEnsure := desktop.SetEnsureGlobalServicesForDesktopForTest(func() error {
-		return nil
-	})
-	defer restoreEnsure()
 
-	var capturedCalls [][]string
-	restoreRun := desktop.SetRunGlobalServicesComposeForDesktopForTest(
-		func(args ...string) (string, error) {
-			capturedCalls = append(capturedCalls, append([]string{}, args...))
-			return "", nil
+	var gotArgs []string
+	restoreRun := desktop.SetRunGovardCommandForDesktopForTest(
+		func(_ string, args []string) (string, error) {
+			gotArgs = append([]string{}, args...)
+			return "services started via cli", nil
 		},
 	)
 	defer restoreRun()
-
-	restoreWait := desktop.SetWaitForGlobalProxyReadyForDesktopForTest(
-		func(_ context.Context, _ time.Duration) bool {
-			return true
-		},
-	)
-	defer restoreWait()
-
-	routeRefreshCalls := 0
-	restoreRefresh := desktop.SetRefreshGlobalServiceRoutesForDesktopForTest(func() error {
-		routeRefreshCalls++
-		return nil
-	})
-	defer restoreRefresh()
 
 	app := desktop.NewApp()
 	message, err := app.StartGlobalServices()
@@ -216,21 +166,9 @@ func TestDesktopStartGlobalServicesRefreshesRoutesForTest(t *testing.T) {
 		t.Fatalf("unexpected message: %q", message)
 	}
 
-	expectedCalls := [][]string{
-		{"up", "-d"},
-	}
-	if len(capturedCalls) != len(expectedCalls) {
-		t.Fatalf("unexpected compose calls: got %v want %v", capturedCalls, expectedCalls)
-	}
-	for i := range expectedCalls {
-		got := strings.Join(capturedCalls[i], " ")
-		want := strings.Join(expectedCalls[i], " ")
-		if got != want {
-			t.Fatalf("unexpected compose call %d: got %q want %q", i, got, want)
-		}
-	}
-	if routeRefreshCalls != 1 {
-		t.Fatalf("expected route refresh to run once, got %d", routeRefreshCalls)
+	expected := []string{"svc", "up"}
+	if !reflect.DeepEqual(gotArgs, expected) {
+		t.Fatalf("unexpected govard args: got %v want %v", gotArgs, expected)
 	}
 }
 

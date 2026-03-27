@@ -108,6 +108,7 @@ export const desktopBridge = {
       return call(bridge?.OnboardProject?.bind(bridge), {
         projectPath: String(input.projectPath || "").trim(),
         framework: String(input.framework || "").trim(),
+        frameworkVersion: String(input.frameworkVersion || "").trim(),
         domain: String(input.domain || "").trim(),
         cloneFromGit: Boolean(input.cloneFromGit),
         gitProtocol: String(input.gitProtocol || "").trim(),
@@ -129,6 +130,7 @@ export const desktopBridge = {
     return call(bridge?.OnboardProject?.bind(bridge), {
       projectPath: String(inputOrPath || "").trim(),
       framework: String(framework || "").trim(),
+      frameworkVersion: "",
       domain: String(domain || "").trim(),
       cloneFromGit: false,
       gitProtocol: "",

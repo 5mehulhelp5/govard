@@ -183,7 +183,7 @@ func handleSvcUp(cmd *cobra.Command, args []string) error {
 
 	if err != nil && fallback {
 		pterm.Warning.Printf("Start failed: %v. Attempting local build fallback...\n", err)
-		built, _ := fallbackBuildMissingGovardImagesFromCompose(composeFile, cmd.OutOrStdout(), cmd.ErrOrStderr())
+		built, _ := engine.FallbackBuildMissingGovardImagesFromCompose(composeFile, cmd.OutOrStdout(), cmd.ErrOrStderr())
 		if len(built) > 0 {
 			pterm.Info.Println("Retrying start...")
 			err = engine.RunCompose(ctx, engine.ComposeOptions{

@@ -125,6 +125,8 @@ const getLiveRefs = () => ({
   projectDomain: byId("projectDomain"),
   projectDomainHint: byId("projectDomainHint"),
   projectFramework: byId("projectFramework"),
+  projectFrameworkVersion: byId("projectFrameworkVersion"),
+  projectFrameworkVersionHint: byId("projectFrameworkVersionHint"),
   onboardFromGit: byId("onboardFromGit"),
   gitCloneFields: byId("gitCloneFields"),
   gitProtocol: byId("gitProtocol"),
@@ -1872,6 +1874,12 @@ const bindDynamicControlListeners = () => {
 
   if (refs.projectFramework) {
     refs.projectFramework.addEventListener("change", () => {
+      onboardingController.handleInputChange();
+    });
+  }
+
+  if (refs.projectFrameworkVersion) {
+    refs.projectFrameworkVersion.addEventListener("input", () => {
       onboardingController.handleInputChange();
     });
   }

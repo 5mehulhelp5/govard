@@ -186,7 +186,7 @@ func proxyEnvToCompose(cmd *cobra.Command, args []string) error {
 			pterm.Warning.Printf("docker compose pull failed: %v\n", err)
 			pterm.Info.Println("Attempting local Govard image build fallback...")
 
-			built, fallbackErr := fallbackBuildMissingGovardImagesFromCompose(composePath, cmd.OutOrStdout(), cmd.ErrOrStderr())
+			built, fallbackErr := engine.FallbackBuildMissingGovardImagesFromCompose(composePath, cmd.OutOrStdout(), cmd.ErrOrStderr())
 			if fallbackErr != nil {
 				return fmt.Errorf("pull project images: %w (local fallback failed: %v)", err, fallbackErr)
 			}

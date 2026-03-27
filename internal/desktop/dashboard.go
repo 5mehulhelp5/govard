@@ -236,23 +236,67 @@ func (s *EnvironmentService) GetDashboard() (Dashboard, error) {
 }
 
 func (s *EnvironmentService) StartEnvironment(project string) (string, error) {
-	return startEnvironment(project)
+	root, err := resolveProjectRootForRemotes(project)
+	if err != nil {
+		return "", err
+	}
+	// 'up' can take a while, but we want to show output if possible.
+	// However, Wails calls usually expect a relatively quick response or use events.
+	// For now, let's use the CLI runner which captures output.
+	output, err := runGovardCommandForDesktop(root, []string{"up"})
+	if err != nil {
+		return "", err
+	}
+	return withCommandOutput("Environment started.", output), nil
 }
 
 func (s *EnvironmentService) StopEnvironment(project string) (string, error) {
-	return stopEnvironment(project)
+	root, err := resolveProjectRootForRemotes(project)
+	if err != nil {
+		return "", err
+	}
+	output, err := runGovardCommandForDesktop(root, []string{"env", "stop"})
+	if err != nil {
+		return "", err
+	}
+	return withCommandOutput("Environment stopped.", output), nil
 }
 
 func (s *EnvironmentService) RestartEnvironment(project string) (string, error) {
-	return restartEnvironment(project)
+	root, err := resolveProjectRootForRemotes(project)
+	if err != nil {
+		return "", err
+	}
+	output, err := runGovardCommandForDesktop(root, []string{"env", "restart"})
+	if err != nil {
+		// Fallback if restart fails or is not implemented as expected
+		_, _ = runGovardCommandForDesktop(root, []string{"env", "stop"})
+		output, err = runGovardCommandForDesktop(root, []string{"up"})
+		if err != nil {
+			return "", err
+		}
+	}
+	return withCommandOutput("Environment restarted.", output), nil
 }
 
 func (s *EnvironmentService) PullEnvironment(project string) (string, error) {
-	return pullEnvironment(project)
+	root, err := resolveProjectRootForRemotes(project)
+	if err != nil {
+		return "", err
+	}
+	output, err := runGovardCommandForDesktop(root, []string{"env", "pull"})
+	if err != nil {
+		return "", err
+	}
+	return withCommandOutput("Environment images pulled.", output), nil
 }
 
 func (s *EnvironmentService) ToggleEnvironment(project string) (string, error) {
-	return toggleEnvironment(project)
+	info, err := loadProjectInfo(project)
+	if err == nil && info.runningCount > 0 {
+		return s.StopEnvironment(project)
+	}
+	return s.StartEnvironment(project)
 }
 
 func (s *EnvironmentService) GetEnvironmentURL(project string) (string, error) {
@@ -470,51 +514,6 @@ func environmentURL(project string) (string, error) {
 		return "https://" + info.config.Domain, nil
 	}
 	return "", fmt.Errorf("domain not found")
-}
-
-func toggleEnvironment(project string) (string, error) {
-	ctx := context.Background()
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		return "", err
-	}
-
-	args := filters.NewArgs(filters.Arg("label", "com.docker.compose.project="+project))
-	containers, err := cli.ContainerList(ctx, container.ListOptions{All: true, Filters: args})
-	if err != nil {
-		return "", err
-	}
-	if len(containers) == 0 {
-		return "", fmt.Errorf("no containers found")
-	}
-
-	running := false
-	for _, c := range containers {
-		if c.State == "running" {
-			running = true
-			break
-		}
-	}
-
-	if running {
-		timeout := 10
-		for _, c := range containers {
-			if c.State != "running" {
-				continue
-			}
-			if err := cli.ContainerStop(ctx, c.ID, container.StopOptions{Timeout: &timeout}); err != nil {
-				return "", err
-			}
-		}
-		return "Stopped environment " + project, nil
-	}
-
-	for _, c := range containers {
-		if err := cli.ContainerStart(ctx, c.ID, container.StartOptions{}); err != nil {
-			return "", err
-		}
-	}
-	return "Started environment " + project, nil
 }
 
 func loadProjectInfo(project string) (*projectInfo, error) {

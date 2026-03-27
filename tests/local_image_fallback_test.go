@@ -3,11 +3,11 @@ package tests
 import (
 	"testing"
 
-	"govard/internal/cmd"
+	"govard/internal/engine"
 )
 
 func TestParseGovardImageReference(t *testing.T) {
-	repositoryPrefix, service, tag, ok := cmd.ParseGovardImageReferenceForTest("ddtcorex/govard-php:8.3")
+	repositoryPrefix, service, tag, ok := engine.ParseGovardImageReferenceForTest("ddtcorex/govard-php:8.3")
 	if !ok {
 		t.Fatal("expected govard image reference parse to succeed")
 	}
@@ -23,14 +23,14 @@ func TestParseGovardImageReference(t *testing.T) {
 }
 
 func TestParseGovardImageReferenceRejectsThirdParty(t *testing.T) {
-	_, _, _, ok := cmd.ParseGovardImageReferenceForTest("node:24-alpine")
+	_, _, _, ok := engine.ParseGovardImageReferenceForTest("node:24-alpine")
 	if ok {
 		t.Fatal("expected parse to reject non-govard image")
 	}
 }
 
 func TestLocalBuildSpecPHPMagento2(t *testing.T) {
-	spec, err := cmd.ResolveLocalBuildSpecForTest("php-magento2", "8.4", "local/govard-")
+	spec, err := engine.ResolveLocalBuildSpecForTest("php-magento2", "8.4", "local/govard-")
 	if err != nil {
 		t.Fatalf("local build spec: %v", err)
 	}
@@ -53,7 +53,7 @@ func TestLocalBuildSpecPHPMagento2(t *testing.T) {
 }
 
 func TestLocalBuildSpecVarnishLatest(t *testing.T) {
-	spec, err := cmd.ResolveLocalBuildSpecForTest("varnish", "latest", "ddtcorex/govard-")
+	spec, err := engine.ResolveLocalBuildSpecForTest("varnish", "latest", "ddtcorex/govard-")
 	if err != nil {
 		t.Fatalf("local build spec: %v", err)
 	}
@@ -70,13 +70,13 @@ func TestLocalBuildSpecVarnishLatest(t *testing.T) {
 }
 
 func TestLocalBuildSpecUnsupportedService(t *testing.T) {
-	if _, err := cmd.ResolveLocalBuildSpecForTest("unknown", "latest", "ddtcorex/govard-"); err == nil {
+	if _, err := engine.ResolveLocalBuildSpecForTest("unknown", "latest", "ddtcorex/govard-"); err == nil {
 		t.Fatal("expected unsupported service to return error")
 	}
 }
 
 func TestLocalBuildSpecPHPMagento2Debug(t *testing.T) {
-	spec, err := cmd.ResolveLocalBuildSpecForTest("php-magento2", "8.3-debug", "ddtcorex/govard-")
+	spec, err := engine.ResolveLocalBuildSpecForTest("php-magento2", "8.3-debug", "ddtcorex/govard-")
 	if err != nil {
 		t.Fatalf("local build spec: %v", err)
 	}

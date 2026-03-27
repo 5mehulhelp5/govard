@@ -267,80 +267,51 @@ func (s *GlobalServiceService) GetGlobalServices() (GlobalServicesSnapshot, erro
 }
 
 func (s *GlobalServiceService) StartGlobalServices() (string, error) {
-	return runGlobalServicesStartFlowForDesktop(false)
+	root, err := resolveDesktopGovardCommandDir()
+	if err != nil {
+		return "", err
+	}
+	output, err := runGovardCommandForDesktop(root, []string{"svc", "up"})
+	if err != nil {
+		return "", err
+	}
+	return withCommandOutput("Global services started.", output), nil
 }
 
 func (s *GlobalServiceService) StopGlobalServices() (string, error) {
-	if err := ensureGlobalComposeFileExists(); err != nil {
+	root, err := resolveDesktopGovardCommandDir()
+	if err != nil {
 		return "", err
 	}
-	out, err := runGlobalServicesComposeForDesktop("stop")
+	output, err := runGovardCommandForDesktop(root, []string{"svc", "stop"})
 	if err != nil {
-		return "", fmt.Errorf("stop global services: %w", err)
+		return "", err
 	}
-	return withCommandOutput("Global services stopped.", out), nil
+	return withCommandOutput("Global services stopped.", output), nil
 }
 
 func (s *GlobalServiceService) RestartGlobalServices() (string, error) {
-	return runGlobalServicesStartFlowForDesktop(true)
-}
-
-func runGlobalServicesStartFlowForDesktop(restart bool) (string, error) {
-	if err := ensureGlobalServicesForDesktop(); err != nil {
+	root, err := resolveDesktopGovardCommandDir()
+	if err != nil {
 		return "", err
 	}
-
-	action := "start"
-	message := "Global services started."
-	commandOutputs := []string{}
-	if restart {
-		action = "restart"
-		message = "Global services restarted."
-
-		downOutput, err := runGlobalServicesComposeForDesktop("down")
-		if err != nil {
-			return "", fmt.Errorf("%s global services: %w", action, err)
-		}
-		downOutput = strings.TrimSpace(downOutput)
-		if downOutput != "" {
-			commandOutputs = append(commandOutputs, downOutput)
-		}
-	}
-
-	upOutput, err := runGlobalServicesComposeForDesktop("up", "-d")
+	output, err := runGovardCommandForDesktop(root, []string{"svc", "restart"})
 	if err != nil {
-		return "", fmt.Errorf("%s global services: %w", action, err)
+		return "", err
 	}
-	upOutput = strings.TrimSpace(upOutput)
-	if upOutput != "" {
-		commandOutputs = append(commandOutputs, upOutput)
-	}
-
-	warnings := []string{}
-	if !waitForGlobalProxyReadyForDesktop(context.Background(), 8*time.Second) {
-		warnings = append(
-			warnings,
-			"routing services are not ready yet (check listeners on ports 53/80/443, then retry)",
-		)
-	} else if err := refreshGlobalServiceRoutesForDesktop(); err != nil {
-		warnings = append(warnings, fmt.Sprintf("could not refresh global routes: %v", err))
-	}
-
-	return withCommandOutput(
-		withDesktopWarnings(message, warnings),
-		strings.Join(commandOutputs, "\n"),
-	), nil
+	return withCommandOutput("Global services restarted.", output), nil
 }
 
 func (s *GlobalServiceService) PullGlobalServices() (string, error) {
-	if err := ensureGlobalServicesForDesktop(); err != nil {
+	root, err := resolveDesktopGovardCommandDir()
+	if err != nil {
 		return "", err
 	}
-	out, err := runGlobalServicesComposeForDesktop("pull")
+	output, err := runGovardCommandForDesktop(root, []string{"svc", "pull"})
 	if err != nil {
-		return "", fmt.Errorf("pull global services: %w", err)
+		return "", err
 	}
-	return withCommandOutput("Global services images pulled.", out), nil
+	return withCommandOutput("Global services images pulled.", output), nil
 }
 
 func (s *GlobalServiceService) StartGlobalService(serviceID string) (string, error) {
@@ -363,7 +334,7 @@ func (s *GlobalServiceService) StopGlobalService(serviceID string) (string, erro
 	if err != nil {
 		return "", err
 	}
-	if err := ensureGlobalComposeFileExists(); err != nil {
+	if err := ensureGlobalServicesForDesktop(); err != nil {
 		return "", err
 	}
 	out, err := runGlobalServicesComposeForDesktop("stop", spec.ComposeService)
@@ -402,26 +373,6 @@ func (s *GlobalServiceService) OpenGlobalService(serviceID string) (string, erro
 		return "Open manually: " + url, nil
 	}
 	return "Opening " + url + "...", nil
-}
-
-func withCommandOutput(base string, commandOutput string) string {
-	trimmed := strings.TrimSpace(commandOutput)
-	if trimmed == "" {
-		return base
-	}
-	return base + "\n" + trimmed
-}
-
-func withDesktopWarnings(base string, warnings []string) string {
-	lines := []string{strings.TrimSpace(base)}
-	for _, warning := range warnings {
-		trimmed := strings.TrimSpace(warning)
-		if trimmed == "" {
-			continue
-		}
-		lines = append(lines, "Warning: "+trimmed)
-	}
-	return strings.Join(lines, "\n")
 }
 
 func resolveGlobalServiceSpec(serviceID string) (globalServiceSpec, error) {
@@ -947,6 +898,25 @@ func reviveRunningProjectRoutesForDesktop() error {
 	}
 
 	return nil
+}
+
+func resolveDesktopGovardCommandDir() (string, error) {
+	// For global services, we can run from home or any repo path.
+	// Usually ~/.govard/proxy, but the CLI handles it via internal engine.
+	// We just need a working directory where the CLI can function.
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return home, nil
+}
+
+func withCommandOutput(base string, commandOutput string) string {
+	trimmed := strings.TrimSpace(commandOutput)
+	if trimmed == "" {
+		return base
+	}
+	return base + "\n" + trimmed
 }
 
 func resolveDesktopUpProxyTarget(config engine.Config) string {

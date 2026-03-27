@@ -157,6 +157,27 @@ const formatFrameworkLabel = (framework = "") => {
   return labels[normalized] || framework || "Auto-detect";
 };
 
+const normalizeOnboardingFrameworkVersion = (frameworkVersion = "") =>
+  String(frameworkVersion || "").trim();
+
+const formatFrameworkSummary = (framework = "", frameworkVersion = "") => {
+  const label = formatFrameworkLabel(framework);
+  const version = normalizeOnboardingFrameworkVersion(frameworkVersion);
+  if (!version) {
+    return label;
+  }
+  return `${label} (${version})`;
+};
+
+const frameworkVersionPlaceholderByFramework = {
+  magento2: "2.4.7-p3",
+  magento1: "1.9.4",
+  laravel: "11",
+  symfony: "7.0",
+  wordpress: "6.5",
+  nextjs: "15",
+};
+
 const defaultServiceOptions = {
   varnish: false,
   redis: true,
@@ -279,6 +300,9 @@ export const createOnboardingController = ({
         : "";
 
     let framework = String(refs.projectFramework?.value || "").trim();
+    const frameworkVersion = normalizeOnboardingFrameworkVersion(
+      refs.projectFrameworkVersion?.value,
+    );
     if ((!framework || framework === "auto") && projectPath) {
       const inferredFramework = inferFrameworkFromPath(projectPath);
       if (inferredFramework && refs.projectFramework) {
@@ -286,6 +310,7 @@ export const createOnboardingController = ({
         framework = inferredFramework;
       }
     }
+    const normalizedFramework = normalizeOnboardingFramework(framework);
 
     const normalizedDomain = normalizeOnboardingDomain(
       refs.projectDomain?.value || "",
@@ -302,7 +327,7 @@ export const createOnboardingController = ({
     }
     if (refs.onboardingSummaryFramework) {
       refs.onboardingSummaryFramework.textContent =
-        formatFrameworkLabel(framework);
+        formatFrameworkSummary(normalizedFramework, frameworkVersion);
     }
     if (refs.onboardingSummaryDomain) {
       refs.onboardingSummaryDomain.textContent = normalizedDomain || "-";
@@ -320,6 +345,11 @@ export const createOnboardingController = ({
     }
     if (refs.gitConfirmContainer) {
       refs.gitConfirmContainer.classList.toggle("hidden", !cloneFromGit);
+    }
+    if (refs.projectFrameworkVersion) {
+      refs.projectFrameworkVersion.placeholder =
+        frameworkVersionPlaceholderByFramework[normalizedFramework] ||
+        "Optional";
     }
 
     if (!projectPath && shouldShowErrors) {
@@ -394,6 +424,20 @@ export const createOnboardingController = ({
       setHint(refs.gitConfirmHint, "Folder override confirmed.", "success");
     }
 
+    if (!frameworkVersion) {
+      setHint(
+        refs.projectFrameworkVersionHint,
+        "Optional: lock Govard to a specific framework profile version.",
+        "muted",
+      );
+    } else {
+      setHint(
+        refs.projectFrameworkVersionHint,
+        `Govard will initialize with framework version ${frameworkVersion}.`,
+        "success",
+      );
+    }
+
     if (!projectPath && shouldShowErrors) {
       setSubmitState({
         canSubmit: false,
@@ -441,7 +485,8 @@ export const createOnboardingController = ({
     return {
       projectPath,
       normalizedDomain,
-      framework: normalizeOnboardingFramework(framework),
+      framework: normalizedFramework,
+      frameworkVersion,
       duplicateMessage,
       cloneFromGit,
       gitProtocol,
@@ -460,6 +505,7 @@ export const createOnboardingController = ({
     }
     if (refs.projectDomain) refs.projectDomain.value = "";
     if (refs.projectFramework) refs.projectFramework.value = "auto";
+    if (refs.projectFrameworkVersion) refs.projectFrameworkVersion.value = "";
     if (refs.onboardFromGit) refs.onboardFromGit.checked = false;
     if (refs.gitProtocol) refs.gitProtocol.value = "ssh";
     if (refs.gitUrl) refs.gitUrl.value = "";
@@ -701,6 +747,7 @@ export const createOnboardingController = ({
         (await bridge.onboardProject({
           projectPath: preview.projectPath,
           framework: preview.framework,
+          frameworkVersion: preview.frameworkVersion,
           domain: preview.normalizedDomain,
           cloneFromGit: preview.cloneFromGit,
           gitProtocol: preview.gitProtocol,
@@ -1002,7 +1049,7 @@ export const renderOnboardingModal = (container) => {
                   <p class="text-slate-500 dark:text-slate-400 font-medium">Fine-tune your local domain and services for this environment.</p>
                 </header>
 
-                <section class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-slate-100 dark:border-white/5">
+                <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 pt-4 border-t border-slate-100 dark:border-white/5">
                   <div class="flex flex-col gap-3 group">
                     <label class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1 group-focus-within:text-primary transition-colors">Local Domain</label>
                     <div class="relative">
@@ -1036,6 +1083,20 @@ export const renderOnboardingModal = (container) => {
                       <span class="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none text-xl">expand_more</span>
                     </div>
                     <p class="text-[10px] font-medium text-slate-400/80 dark:text-slate-500 ml-1">Govard optimizes settings based on framework.</p>
+                  </div>
+
+                  <div class="flex flex-col gap-3 group">
+                    <label class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1 group-focus-within:text-primary transition-colors">Framework Version</label>
+                    <div class="relative">
+                      <input
+                        id="projectFrameworkVersion"
+                        class="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-slate-900 dark:text-white font-bold focus:ring-4 focus:ring-primary/15 transition-all text-sm outline-none"
+                        placeholder="Optional"
+                        type="text"
+                      />
+                      <span class="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 text-xl font-light">tune</span>
+                    </div>
+                    <p id="projectFrameworkVersionHint" class="text-[10px] font-medium text-slate-400/80 dark:text-slate-500 ml-1">Optional: lock Govard to a specific framework profile version.</p>
                   </div>
                 </section>
 

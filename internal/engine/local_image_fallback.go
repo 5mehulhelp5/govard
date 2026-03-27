@@ -1,4 +1,4 @@
-package cmd
+package engine
 
 import (
 	"fmt"
@@ -12,7 +12,6 @@ import (
 	"sync"
 
 	dockerassets "govard/docker"
-	"govard/internal/engine"
 )
 
 const (
@@ -46,8 +45,13 @@ type LocalBuildSpecForTest struct {
 	Dependencies  []string
 }
 
+// FallbackBuildMissingGovardImagesFromCompose builds Govard-managed images locally if pulling fails.
+func FallbackBuildMissingGovardImagesFromCompose(composePath string, out io.Writer, errOut io.Writer) ([]string, error) {
+	return fallbackBuildMissingGovardImagesFromCompose(composePath, out, errOut)
+}
+
 func fallbackBuildMissingGovardImagesFromCompose(composePath string, out io.Writer, errOut io.Writer) ([]string, error) {
-	serviceImages, err := engine.ReadServiceImagesFromCompose(composePath)
+	serviceImages, err := ReadServiceImagesFromCompose(composePath)
 	if err != nil {
 		return nil, fmt.Errorf("read compose service images: %w", err)
 	}

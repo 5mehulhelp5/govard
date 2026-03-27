@@ -29,6 +29,10 @@ The lightweight desktop surface is intentionally focused on operational essentia
 - Native notifications for operation success/failure updates
 - Settings drawer for theme, proxy target, preferred browser, and database client preference
 
+Desktop environment start/stop/pull and global-services start/stop/restart/pull now call the Govard CLI command surface instead of bypassing it with desktop-only compose shortcuts. This keeps desktop behavior aligned with the current `govard up`, `govard env ...`, and `govard svc ...` flows, including newer hook, proxy, trust, and fallback behavior added in CLI updates.
+
+Desktop onboarding also supports an optional framework version field and forwards it to `govard init --framework-version ...` when provided.
+
 Removed from the desktop surface:
 
 - operations history UI

@@ -540,6 +540,52 @@ domain: warden-demo.test
 	}
 }
 
+func TestDesktopPkgOnboardProjectForPathForTestPassesFrameworkVersion(t *testing.T) {
+	root := t.TempDir()
+	registryPath := filepath.Join(t.TempDir(), "projects.json")
+	t.Setenv(engine.ProjectRegistryPathEnvVar, registryPath)
+
+	var initArgs []string
+	restore := desktop.SetRunGovardCommandForDesktopForTest(func(dir string, args []string) (string, error) {
+		if dir != root {
+			t.Fatalf("unexpected command dir %s", dir)
+		}
+		initArgs = append([]string{}, args...)
+		content := strings.TrimSpace(`
+project_name: framework-version-demo
+framework: laravel
+domain: framework-version-demo.test
+`) + "\n"
+		if err := os.WriteFile(filepath.Join(dir, ".govard.yml"), []byte(content), 0o644); err != nil {
+			return "", err
+		}
+		return "init ok", nil
+	})
+	defer restore()
+
+	message, err := desktop.OnboardProjectWithOptionsForPathForTest(
+		root,
+		"laravel",
+		"",
+		false,
+		true,
+		false,
+		true,
+		"11",
+	)
+	if err != nil {
+		t.Fatalf("onboard project: %v", err)
+	}
+
+	expected := []string{"init", "--framework", "laravel", "--framework-version", "11"}
+	if !reflect.DeepEqual(initArgs, expected) {
+		t.Fatalf("unexpected init args: %#v", initArgs)
+	}
+	if !strings.Contains(strings.ToLower(message), "initialized") {
+		t.Fatalf("expected initialized message, got %q", message)
+	}
+}
+
 func TestDesktopPkgOnboardProjectForPathForTestDoesNotAutoBootstrapWhenRemotesExist(t *testing.T) {
 	root := t.TempDir()
 	registryPath := filepath.Join(t.TempDir(), "projects.json")

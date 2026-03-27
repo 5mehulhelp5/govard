@@ -99,16 +99,6 @@ func ParseContainerIPAddressesForTest(raw string) []string {
 	return parseContainerIPAddresses(raw)
 }
 
-// RunComposeForTest exposes desktop compose-up execution wiring for tests.
-func RunComposeForTest(dir, project, composeFile string, removeOrphans bool) error {
-	return runCompose(dir, project, composeFile, removeOrphans)
-}
-
-// RunComposePullForTest exposes desktop compose-pull execution wiring for tests.
-func RunComposePullForTest(dir, project, composeFile string) error {
-	return runComposePull(dir, project, composeFile)
-}
-
 type testTerminalPTY struct {
 	closed bool
 }
@@ -671,10 +661,16 @@ func OnboardProjectWithOptionsForPathForTest(
 	redisEnabled bool,
 	rabbitMQEnabled bool,
 	elasticsearchEnabled bool,
+	frameworkVersion ...string,
 ) (string, error) {
+	version := ""
+	if len(frameworkVersion) > 0 {
+		version = strings.TrimSpace(frameworkVersion[0])
+	}
 	return onboardProjectWithOptionsInternal(OnboardInput{
 		ProjectPath:          projectPath,
 		Framework:            framework,
+		FrameworkVersion:     version,
 		Domain:               domain,
 		VarnishEnabled:       varnishEnabled,
 		RedisEnabled:         redisEnabled,
@@ -712,6 +708,7 @@ func OnboardProjectFromGitWithConfirmationForPathForTest(
 	return onboardProjectWithOptionsInternal(OnboardInput{
 		ProjectPath:           projectPath,
 		Framework:             framework,
+		FrameworkVersion:      "",
 		Domain:                "",
 		CloneFromGit:          true,
 		GitProtocol:           gitProtocol,

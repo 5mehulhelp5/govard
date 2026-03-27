@@ -173,7 +173,7 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 					pterm.Warning.Printf("docker compose pull failed: %v\n", err)
 					pterm.Info.Println("Attempting local Govard image build fallback...")
 
-					built, fallbackErr := fallbackBuildMissingGovardImagesFromCompose(context.Compose, context.Out, context.Err)
+					built, fallbackErr := engine.FallbackBuildMissingGovardImagesFromCompose(context.Compose, context.Out, context.Err)
 					if fallbackErr != nil {
 						return fmt.Errorf("docker compose pull failed: %w (local fallback failed: %v)", err, fallbackErr)
 					}
@@ -215,7 +215,7 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 					pterm.Warning.Printf("docker compose up failed: %v\n", err)
 					pterm.Info.Println("Attempting local Govard image build fallback...")
 
-					built, fallbackErr := fallbackBuildMissingGovardImagesFromCompose(context.Compose, context.Out, context.Err)
+					built, fallbackErr := engine.FallbackBuildMissingGovardImagesFromCompose(context.Compose, context.Out, context.Err)
 					if fallbackErr != nil {
 						return fmt.Errorf("docker compose up failed: %w (local fallback failed: %v)", err, fallbackErr)
 					}

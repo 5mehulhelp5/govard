@@ -14,6 +14,7 @@ import (
 type OnboardInput struct {
 	ProjectPath           string `json:"projectPath"`
 	Framework             string `json:"framework"`
+	FrameworkVersion      string `json:"frameworkVersion"`
 	Domain                string `json:"domain"`
 	CloneFromGit          bool   `json:"cloneFromGit"`
 	GitProtocol           string `json:"gitProtocol"`
@@ -52,6 +53,7 @@ func onboardProject(projectPath string, framework string) (string, error) {
 	return onboardProjectWithOptionsInternal(OnboardInput{
 		ProjectPath:          projectPath,
 		Framework:            framework,
+		FrameworkVersion:     "",
 		Domain:               "",
 		VarnishEnabled:       false,
 		RedisEnabled:         false,
@@ -144,7 +146,7 @@ func onboardProjectWithOptionsInternalWithContext(
 	ranInit := false
 	if !hasConfig {
 		migrateFrom := detectOnboardingMigrationSource(root)
-		args := buildInitArgs(framework, migrateFrom)
+		args := buildInitArgs(framework, input.FrameworkVersion, migrateFrom)
 		reportProgress("govard.init", "Running Govard init...")
 		if _, err := runGovardCommandForDesktop(root, args); err != nil {
 			message = err.Error()
@@ -238,10 +240,13 @@ func loadProjectConfigForOnboarding(root string) (engine.Config, bool, error) {
 	return cfg, true, nil
 }
 
-func buildInitArgs(framework string, migrateFrom string) []string {
+func buildInitArgs(framework string, frameworkVersion string, migrateFrom string) []string {
 	args := []string{"init"}
 	if normalized := normalizeOnboardingFramework(framework); normalized != "" {
 		args = append(args, "--framework", normalized)
+	}
+	if normalized := strings.TrimSpace(frameworkVersion); normalized != "" {
+		args = append(args, "--framework-version", normalized)
 	}
 	if normalized := normalizeOnboardingMigrationSource(migrateFrom); normalized != "" {
 		args = append(args, "--migrate-from", normalized)

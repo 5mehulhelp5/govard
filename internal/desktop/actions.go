@@ -16,11 +16,7 @@ import (
 
 	"govard/internal/engine"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/client"
 	"github.com/pkg/browser"
-	"gopkg.in/yaml.v3"
 )
 
 var defaultOpenExternalURLForDesktop = browser.OpenURL
@@ -396,269 +392,28 @@ func toggleXdebug(project string) (string, error) {
 	if !info.configLoaded {
 		return "", fmt.Errorf(".govard.yml not found for %s", info.name)
 	}
-	config := info.config
-	if config.ProjectName == "" {
-		config.ProjectName = info.name
-	}
-	config.Stack.Features.Xdebug = !config.Stack.Features.Xdebug
 
-	if info.configPath == "" {
-		return "", fmt.Errorf(".govard.yml path unavailable")
-	}
-	writableConfig := engine.PrepareConfigForWrite(config)
-
-	data, err := yaml.Marshal(&writableConfig)
+	root, err := resolveProjectRootForRemotes(project)
 	if err != nil {
 		return "", err
 	}
-	if err := os.WriteFile(info.configPath, data, 0644); err != nil {
-		return "", err
+
+	// Determine toggle action
+	action := "on"
+	if info.config.Stack.Features.Xdebug {
+		action = "off"
 	}
 
-	if err := engine.RenderBlueprint(info.workingDir, config); err != nil {
-		return "", err
-	}
-
-	composePath := engine.ComposeFilePath(info.workingDir, config.ProjectName)
-	if err := runCompose(info.workingDir, config.ProjectName, composePath, false); err != nil {
+	output, err := runGovardCommandForDesktop(root, []string{"debug", action})
+	if err != nil {
 		return "", err
 	}
 
 	state := "enabled"
-	if !config.Stack.Features.Xdebug {
+	if action == "off" {
 		state = "disabled"
 	}
-	return "Xdebug " + state + " for " + info.name, nil
-}
-
-func startEnvironment(project string) (string, error) {
-	info, err := loadProjectInfo(project)
-	if err != nil {
-		if isNoContainersError(err) {
-			return startEnvironmentFromConfig(project)
-		}
-		return "", err
-	}
-
-	if info.configLoaded && strings.TrimSpace(info.workingDir) != "" {
-		config := info.config
-		if strings.TrimSpace(config.ProjectName) == "" {
-			config.ProjectName = info.name
-		}
-		engine.NormalizeConfig(&config, info.workingDir)
-
-		composePath := engine.ComposeFilePath(info.workingDir, config.ProjectName)
-		if _, statErr := os.Stat(composePath); statErr != nil {
-			if !os.IsNotExist(statErr) {
-				return "", fmt.Errorf("inspect compose file: %w", statErr)
-			}
-			if renderErr := engine.RenderBlueprint(info.workingDir, config); renderErr != nil {
-				return "", fmt.Errorf("render compose blueprint: %w", renderErr)
-			}
-		}
-
-		if runErr := runCompose(info.workingDir, config.ProjectName, composePath, true); runErr != nil {
-			return "", runErr
-		}
-		return "Started environment " + info.name, nil
-	}
-
-	// If Docker labels do not include config metadata, try resolving the project
-	// root from registry/path and reconcile through compose before container-level start.
-	if message, resolveErr := startEnvironmentFromConfig(info.name); resolveErr == nil {
-		return message, nil
-	}
-
-	ctx := context.Background()
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		return "", err
-	}
-	args := filters.NewArgs(filters.Arg("label", "com.docker.compose.project="+info.name))
-	containers, err := cli.ContainerList(ctx, container.ListOptions{All: true, Filters: args})
-	if err != nil {
-		return "", err
-	}
-	if len(containers) == 0 {
-		return "", fmt.Errorf("no containers found")
-	}
-	for _, c := range containers {
-		if c.State == "running" {
-			continue
-		}
-		if err := cli.ContainerStart(ctx, c.ID, container.StartOptions{}); err != nil {
-			return "", err
-		}
-	}
-	return "Started environment " + info.name, nil
-}
-
-func startEnvironmentFromConfig(project string) (string, error) {
-	root, err := resolveProjectRootForRemotes(project)
-	if err != nil {
-		return "", err
-	}
-
-	info, err := loadProjectInfoFromPath(root)
-	if err != nil {
-		return "", err
-	}
-
-	config := info.config
-	if strings.TrimSpace(config.ProjectName) == "" {
-		config.ProjectName = filepath.Base(root)
-	}
-	engine.NormalizeConfig(&config, root)
-
-	composePath := engine.ComposeFilePath(root, config.ProjectName)
-	if _, err := os.Stat(composePath); err != nil {
-		if !os.IsNotExist(err) {
-			return "", fmt.Errorf("inspect compose file: %w", err)
-		}
-		if err := engine.RenderBlueprint(root, config); err != nil {
-			return "", fmt.Errorf("render compose blueprint: %w", err)
-		}
-	}
-
-	if err := runCompose(root, config.ProjectName, composePath, true); err != nil {
-		return "", err
-	}
-	return "Started environment " + config.ProjectName, nil
-}
-
-func pullEnvironment(project string) (string, error) {
-	info, err := loadProjectInfo(project)
-	if err != nil {
-		if isNoContainersError(err) {
-			return pullEnvironmentFromConfig(project)
-		}
-		return "", err
-	}
-
-	if info.configLoaded && strings.TrimSpace(info.workingDir) != "" {
-		config := info.config
-		if strings.TrimSpace(config.ProjectName) == "" {
-			config.ProjectName = info.name
-		}
-		engine.NormalizeConfig(&config, info.workingDir)
-
-		composePath := engine.ComposeFilePath(info.workingDir, config.ProjectName)
-		if _, statErr := os.Stat(composePath); statErr != nil {
-			if !os.IsNotExist(statErr) {
-				return "", fmt.Errorf("inspect compose file: %w", statErr)
-			}
-			if renderErr := engine.RenderBlueprint(info.workingDir, config); renderErr != nil {
-				return "", fmt.Errorf("render compose blueprint: %w", renderErr)
-			}
-		}
-
-		if runErr := runComposePull(info.workingDir, config.ProjectName, composePath); runErr != nil {
-			return "", runErr
-		}
-		return "Pulled images for environment " + info.name, nil
-	}
-
-	return pullEnvironmentFromConfig(project)
-}
-
-func pullEnvironmentFromConfig(project string) (string, error) {
-	root, err := resolveProjectRootForRemotes(project)
-	if err != nil {
-		return "", err
-	}
-
-	info, err := loadProjectInfoFromPath(root)
-	if err != nil {
-		return "", err
-	}
-
-	config := info.config
-	if strings.TrimSpace(config.ProjectName) == "" {
-		config.ProjectName = filepath.Base(root)
-	}
-	engine.NormalizeConfig(&config, root)
-
-	composePath := engine.ComposeFilePath(root, config.ProjectName)
-	if _, err := os.Stat(composePath); err != nil {
-		if !os.IsNotExist(err) {
-			return "", fmt.Errorf("inspect compose file: %w", err)
-		}
-		if err := engine.RenderBlueprint(root, config); err != nil {
-			return "", fmt.Errorf("render compose blueprint: %w", err)
-		}
-	}
-
-	if err := runComposePull(root, config.ProjectName, composePath); err != nil {
-		return "", err
-	}
-	return "Pulled images for environment " + config.ProjectName, nil
-}
-
-func isNoContainersError(err error) bool {
-	if err == nil {
-		return false
-	}
-	return strings.Contains(strings.ToLower(err.Error()), "no containers found")
-}
-
-func stopEnvironment(project string) (string, error) {
-	info, err := loadProjectInfo(project)
-	if err != nil {
-		return "", err
-	}
-
-	if info.configLoaded && strings.TrimSpace(info.workingDir) != "" {
-		config := info.config
-		if strings.TrimSpace(config.ProjectName) == "" {
-			config.ProjectName = info.name
-		}
-		composePath := engine.ComposeFilePath(info.workingDir, config.ProjectName)
-
-		err := engine.RunCompose(context.Background(), engine.ComposeOptions{
-			ProjectDir:  info.workingDir,
-			ProjectName: config.ProjectName,
-			ComposeFile: composePath,
-			Args:        []string{"stop"},
-		})
-		if err != nil {
-			return "", err
-		}
-		return "Stopped environment " + info.name, nil
-	}
-
-	ctx := context.Background()
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		return "", err
-	}
-	args := filters.NewArgs(filters.Arg("label", "com.docker.compose.project="+info.name))
-	containers, err := cli.ContainerList(ctx, container.ListOptions{All: true, Filters: args})
-	if err != nil {
-		return "", err
-	}
-	if len(containers) == 0 {
-		return "", fmt.Errorf("no containers found")
-	}
-	timeout := 10
-	for _, c := range containers {
-		if c.State != "running" {
-			continue
-		}
-		if err := cli.ContainerStop(ctx, c.ID, container.StopOptions{Timeout: &timeout}); err != nil {
-			return "", err
-		}
-	}
-	return "Stopped environment " + info.name, nil
-}
-
-func restartEnvironment(project string) (string, error) {
-	if _, err := stopEnvironment(project); err != nil {
-		return "", fmt.Errorf("stop phase: %w", err)
-	}
-	if _, err := startEnvironment(project); err != nil {
-		return "", fmt.Errorf("start phase: %w", err)
-	}
-	return "Restarted environment " + project, nil
+	return withCommandOutput("Xdebug "+state+" for "+info.name, output), nil
 }
 
 func checkHealth() (string, error) {
@@ -691,21 +446,6 @@ func selectProject(project string) (*projectInfo, error) {
 	}
 
 	return loadProjectInfo(selected)
-}
-
-func runCompose(dir, project, composeFile string, removeOrphans bool) error {
-	args := []string{"up", "-d"}
-	if removeOrphans {
-		args = append(args, "--remove-orphans")
-	}
-
-	fullArgs := engine.BuildComposeArgs(dir, project, composeFile, args)
-	return runEnvironmentComposeForDesktop(dir, fullArgs)
-}
-
-func runComposePull(dir, project, composeFile string) error {
-	fullArgs := engine.BuildComposeArgs(dir, project, composeFile, []string{"pull"})
-	return runEnvironmentComposeForDesktop(dir, fullArgs)
 }
 
 func openDestination(ctx context.Context, url string, message string) (string, error) {

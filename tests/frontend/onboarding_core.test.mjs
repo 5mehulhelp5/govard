@@ -7,6 +7,7 @@ import {
   normalizeOnboardingFramework,
   renderOnboardingModal,
 } from "../../desktop/frontend/modules/onboarding.js";
+import { desktopBridge } from "../../desktop/frontend/services/bridge.js";
 
 test("normalizeOnboardingFramework canonicalizes empty and aliases", () => {
   assert.equal(normalizeOnboardingFramework(""), "");
@@ -57,6 +58,16 @@ test("renderOnboardingModal exposes streamlined onboarding UI contract", () => {
     markup.includes('id="onboardingSummaryDomain"'),
     true,
     "missing summary domain field",
+  );
+  assert.equal(
+    markup.includes('id="projectFrameworkVersion"'),
+    true,
+    "missing framework version field",
+  );
+  assert.equal(
+    markup.includes('id="projectFrameworkVersionHint"'),
+    true,
+    "missing framework version hint",
   );
   assert.equal(
     markup.includes('id="onboardingSubmitHint"'),
@@ -136,4 +147,34 @@ test("renderOnboardingModal exposes streamlined onboarding UI contract", () => {
     true,
     "expected exactly one browse action target",
   );
+});
+
+test("desktopBridge onboarding forwards framework version", async () => {
+  const previousWindow = global.window;
+  let capturedPayload = null;
+  global.window = {
+    go: {
+      desktop: {
+        App: {
+          OnboardProject: async (payload) => {
+            capturedPayload = payload;
+            return "ok";
+          },
+        },
+      },
+    },
+  };
+
+  try {
+    await desktopBridge.onboardProject({
+      projectPath: "/tmp/sample-project",
+      framework: "laravel",
+      frameworkVersion: "11",
+      domain: "sample-project.test",
+    });
+  } finally {
+    global.window = previousWindow;
+  }
+
+  assert.equal(capturedPayload?.frameworkVersion, "11");
 });
