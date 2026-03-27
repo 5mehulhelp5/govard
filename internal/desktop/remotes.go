@@ -1066,6 +1066,8 @@ func buildRemoteSyncArgsWithOptions(
 
 	if planOnly {
 		args = append(args, "--plan")
+	} else {
+		args = append(args, "--yes")
 	}
 	return args, nil
 }
@@ -1142,7 +1144,6 @@ func buildPresetSyncOptionDefs(project, preset string) presetSyncOptions {
 
 			// 4. UX & Execution
 			presetOptionDef{Key: "skipUp", Label: "Skip Govard Up", Description: "Do not run govard up before bootstrap", DefaultValue: false},
-			presetOptionDef{Key: "assumeYes", Label: "Assume Yes", Description: "Automatically answer yes to all prompts", DefaultValue: false},
 		)
 
 		return presetSyncOptions{
@@ -1199,7 +1200,7 @@ func buildBootstrapArgsWithOptions(remoteName string, options map[string]bool, p
 	if options["noPii"] {
 		args = append(args, "--no-pii")
 	}
-	if options["assumeYes"] {
+	if !planOnly {
 		args = append(args, "--yes")
 	}
 
