@@ -58,6 +58,7 @@ type DoctorDependencies struct {
 	CheckNetworkConnectivity func() error
 	CheckSearchIndexBlock    func() error
 	CheckSSHAgentStatus      func() (string, error)
+	CheckComposeSpam         func() error
 }
 
 func RunDoctorDiagnostics(dependencies DoctorDependencies) DoctorReport {
@@ -84,6 +85,9 @@ func RunDoctorDiagnostics(dependencies DoctorDependencies) DoctorReport {
 	}
 	if dependencies.CheckSSHAgentStatus == nil {
 		dependencies.CheckSSHAgentStatus = CheckSSHAgentStatus
+	}
+	if dependencies.CheckComposeSpam == nil {
+		dependencies.CheckComposeSpam = func() error { return CheckComposeSpam(1000) }
 	}
 
 	report := DoctorReport{
@@ -249,6 +253,24 @@ func RunDoctorDiagnostics(dependencies DoctorDependencies) DoctorReport {
 			Title:   "SSH Agent forwarding",
 			Status:  DoctorStatusPass,
 			Message: msg,
+		})
+	}
+
+	if err := dependencies.CheckComposeSpam(); err != nil {
+		report.Checks = append(report.Checks, DoctorCheck{
+			ID:               "host.compose.spam",
+			Title:            "Compose directory saturation",
+			Status:           DoctorStatusWarn,
+			Message:          fmt.Sprintf("Too many compose files found in ~/.govard/compose: %v", err),
+			Hint:             "Run doctor --fix to purge stale compose files.",
+			SuggestedCommand: "govard doctor --fix",
+		})
+	} else {
+		report.Checks = append(report.Checks, DoctorCheck{
+			ID:      "host.compose.spam",
+			Title:   "Compose directory saturation",
+			Status:  DoctorStatusPass,
+			Message: "Compose directory count is healthy.",
 		})
 	}
 

@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"govard/internal/engine"
 
@@ -35,6 +36,7 @@ type doctorFixHandler func(check engine.DoctorCheck) DoctorFixResult
 var doctorFixHandlers = map[string]doctorFixHandler{
 	"host.govard.home":        fixGovardHomeDirectory,
 	"host.search.index_block": unblockSearchIndex,
+	"host.compose.spam":       purgeStaleComposeFiles,
 }
 
 func runDoctorDiagnostics() engine.DoctorReport {
@@ -131,6 +133,27 @@ func unblockSearchIndex(check engine.DoctorCheck) DoctorFixResult {
 		return result
 	}
 
+	return result
+}
+
+func purgeStaleComposeFiles(check engine.DoctorCheck) DoctorFixResult {
+	result := DoctorFixResult{
+		CheckID: strings.TrimSpace(check.ID),
+		Title:   strings.TrimSpace(check.Title),
+		Status:  DoctorFixStatusApplied,
+		Message: "Stale govard compose files purged.",
+		Actions: []string{},
+	}
+
+	result.Actions = append(result.Actions, "Purging compose files older than 7 days")
+	count, err := engine.CleanupStaleComposeFiles(7 * 24 * time.Hour)
+	if err != nil {
+		result.Status = DoctorFixStatusFailed
+		result.Message = err.Error()
+		return result
+	}
+
+	result.Message = fmt.Sprintf("Removed %d stale compose file(s).", count)
 	return result
 }
 

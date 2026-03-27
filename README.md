@@ -48,6 +48,7 @@ At a glance, these are the areas where Govard delivers stronger day-to-day value
 - **Safe Cross-Environment Sync**: Bi-directional file/media/database sync with dry-run planning (`--plan`), resumable rsync by default (`--partial --append-verify`), include/exclude filters, and risk warnings for destructive flags.
 - **Remote Auditability & Observability**: Remote operations are logged to `~/.govard/remote.log` and also emitted to `~/.govard/operations.log` for command traceability and desktop notifications.
 - **Remote Connectivity Diagnostics**: `govard remote test` validates SSH + `rsync`, reports probe latency, and classifies failures (`network`, `auth`, `permission`, `host_key`, `dependency`) with remediation hints.
+- **Smart Cleanup**: Automaticaly prunes stale Docker Compose files in the background once a day and provides a `govard env cleanup` command for immediate maintenance. Use `govard doctor` to monitor directory saturation.
 - **Secrets-Aware Remote Config**: Remote fields support `op://...` references resolved through 1Password CLI for safer credential handling.
 - **SSL Management**: Professional CA management for "Green Lock" HTTPS on local `.test` domains.
 - **Rich CLI UX**: Powered by `pterm` for terminal output, progress bars, and interactive prompts.
@@ -426,7 +427,7 @@ Common command aliases:
 | `govard remote`      | Manage remote environments                                         |
 | `govard sync`        | Synchronize files, media, and databases between environments       |
 | `govard status`      | List running project environments across workspace                 |
-| `govard doctor`      | Run system diagnostics and remediation helpers                     |
+| `govard doctor`      | Run system diagnostics (including compose directory saturation) and remediation helpers |
 | `govard config`      | Manage `.govard.yml` configuration from CLI                        |
 | `govard deploy`      | Run deploy lifecycle hooks (pre/post deploy)                      |
 | `govard snapshot`    | Manage local snapshots for database and media                      |

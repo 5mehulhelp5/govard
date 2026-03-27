@@ -8,6 +8,7 @@ import (
 
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
+	"govard/internal/engine"
 	"govard/internal/ui"
 )
 
@@ -52,6 +53,9 @@ Documentation: https://github.com/ddtcorex/govard`,
 		if cmd.Name() == "help" {
 			ui.PrintBrand(Version)
 		}
+
+		// Cleanup stale compose files in background once a day
+		engine.AutoCleanupComposeFiles()
 	},
 }
 

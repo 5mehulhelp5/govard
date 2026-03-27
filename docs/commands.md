@@ -71,6 +71,7 @@ govard env ps
 govard env logs php -f
 govard env pull
 govard env build
+govard env cleanup
 ```
 
 `govard env up` supports:
@@ -457,7 +458,7 @@ govard doctor fix-deps
 govard doctor trust
 ```
 
-Checks include Docker, Compose, ports, disk sanity, Govard home readiness, and outbound connectivity.
+Checks include Docker, Compose, ports, disk sanity, Govard home readiness, compose directory saturation, and outbound connectivity.
 
 ### `govard doctor fix-deps`
 

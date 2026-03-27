@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"govard/internal/engine"
 	"govard/internal/proxy"
@@ -198,6 +199,16 @@ func proxyEnvToCompose(cmd *cobra.Command, args []string) error {
 		}
 		pterm.Success.Println("✅ Images pulled.")
 		return nil
+	case "cleanup":
+		fmt.Println()
+		pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Println(" Cleaning Up Compose Cache ")
+		fmt.Println()
+		count, err := engine.CleanupStaleComposeFiles(7 * 24 * time.Hour)
+		if err != nil {
+			return fmt.Errorf("cleanup compose cache: %w", err)
+		}
+		pterm.Success.Printf("✅ Removed %d stale compose file(s).\n", count)
+		return nil
 	}
 
 	// Default proxy for everything else
@@ -224,4 +235,14 @@ func init() {
 	envCmd.AddCommand(elasticsearchCmd)
 	envCmd.AddCommand(opensearchCmd)
 	envCmd.AddCommand(varnishCmd)
+
+	envCmd.AddCommand(envCleanupCmd)
+}
+
+var envCleanupCmd = &cobra.Command{
+	Use:   "cleanup",
+	Short: "Prune stale docker-compose files and manifests from Govard home",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return proxyEnvToCompose(cmd, []string{"cleanup"})
+	},
 }
