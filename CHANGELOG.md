@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.34.1] - 2026-03-28
+
+### 🐛 Bug Fixes
+
+- **Desktop Auto-Restart**: Fixed an issue where the desktop application failed to restart seamlessly after an update on Linux due to the `SingleInstanceLock`. The app now correctly yields the lock and relaunches via `gtk-launch` to preserve dock integration.
+- **Update UI Alignment**: Fixed the flex alignment of the "Installing..." button in the desktop settings pane.
+
 ## [1.34.0] - 2026-03-28
 
 ### ✨ New Features
