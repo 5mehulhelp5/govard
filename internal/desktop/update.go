@@ -154,7 +154,22 @@ func runDesktopPrivilegedSelfUpdate(pkexecPath string, baseArgs []string) ([]byt
 var runDesktopSelfUpdate = defaultRunDesktopSelfUpdate
 
 var defaultRestartDesktopBinary = func(binaryPath string) error {
-	cmd := exec.Command(binaryPath)
+	var cmd *exec.Cmd
+
+	// We must delay the child process launch slightly so that the parent Wails process
+	// has time to quit and release the SingleInstanceLock. If the child attempts to lock
+	// immediately, it will be rejected because the parent hasn't fully shut down yet.
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command("cmd.exe", "/c", "timeout /t 2 /nobreak > nul & start \"\" \""+binaryPath+"\"")
+	} else if runtime.GOOS == "darwin" {
+		cmd = exec.Command("sh", "-c", "sleep 1.5 && exec \"$0\" \"$@\"", binaryPath)
+	} else {
+		// Linux: use gtk-launch to maintain desktop environment integration (dock icons),
+		// falling back to direct binary execution if gtk-launch isn't available.
+		cmdStr := `sleep 1.5 && (command -v gtk-launch >/dev/null 2>&1 && gtk-launch govard || exec "$0" "$@")`
+		cmd = exec.Command("sh", "-c", cmdStr, binaryPath)
+	}
+
 	cmd.Env = os.Environ()
 
 	// Detach process to prevent it being killed with the parent
@@ -392,9 +407,10 @@ func (app *App) RestartDesktopApp() (string, error) {
 	}
 
 	if app != nil && app.ctx != nil {
-		// Give the RPC layer a moment to flush the response before quitting.
+		// Give the child process time to initialize and the RPC layer
+		// a moment to flush the response before quitting the parent.
 		go func() {
-			time.Sleep(250 * time.Millisecond)
+			time.Sleep(800 * time.Millisecond)
 			quitApplication(app.ctx)
 		}()
 	}

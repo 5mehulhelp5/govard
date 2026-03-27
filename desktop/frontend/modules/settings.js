@@ -561,7 +561,7 @@ export const renderSettingsDrawer = (container) => {
                       <span>Scan for updates</span>
                     </button>
                     <button
-                      class="hidden w-full items-center justify-center gap-2.5 rounded-xl bg-primary px-4 py-3 text-[13px] font-black text-slate-900 shadow-[0_12px_24px_rgba(13,242,89,0.2)] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                      class="hidden flex w-full items-center justify-center gap-2.5 rounded-xl bg-primary px-4 py-3 text-[13px] font-black text-slate-900 shadow-[0_12px_24px_rgba(13,242,89,0.2)] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
                       data-action="install-update"
                       id="installUpdateButton"
                       type="button"

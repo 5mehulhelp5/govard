@@ -8,5 +8,6 @@ Exec=govard-desktop
 Icon=govard
 Terminal=false
 StartupNotify=true
+StartupWMClass=govard-desktop
 Categories=Development;Utility;
 Keywords=govard;docker;php;local;development;
