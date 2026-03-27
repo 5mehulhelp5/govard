@@ -79,7 +79,7 @@ func buildDatabaseSyncAction(config engine.Config, source syncEndpoint, destinat
 		if probeErr != nil {
 			pterm.Warning.Println(formatRemoteDBProbeWarning(source.Name, probeErr))
 		}
-		dumpCmdStr := buildRemoteMySQLDumpCommandString(remoteCredentials, noNoise, noPII, config.Framework)
+		dumpCmdStr := buildRemoteMySQLDumpCommandString(remoteCredentials, noNoise, noPII, config.Framework, true)
 		importCmdStr := buildLocalMySQLClientCommandScript(localCredentials, true)
 
 		desc := fmt.Sprintf("ssh %s \"%s\" | docker exec -i %s sh -lc \"%s\"", remote.RemoteTarget(source.RemoteCfg), dumpCmdStr, localDBContainer, importCmdStr)

@@ -39,17 +39,42 @@ func SanitizeSQLDump(input io.Reader, output io.Writer) error {
 }
 
 func SanitizeSQLLine(line string) (string, bool) {
-	if strings.Contains(line, "@@GLOBAL.GTID_PURGED") || strings.Contains(line, "@@SESSION.SQL_LOG_BIN") {
-		return "", false
+	// Optimization: Skip regex calls for the 99% of lines (INSERT data) that don't need changes.
+	// We handle few special session variables first.
+	if strings.Contains(line, "@@") {
+		if strings.Contains(line, "@@GLOBAL.GTID_PURGED") || strings.Contains(line, "@@SESSION.SQL_LOG_BIN") {
+			return "", false
+		}
 	}
-	if sqlSandboxPattern.MatchString(line) {
+
+	// Pattern checking with strings.Contains is much faster than running multiple regexes on every line.
+	hasDefiner := strings.Contains(line, "DEFINER")
+	hasRowFormat := strings.Contains(line, "ROW_FORMAT")
+	has0900 := strings.Contains(line, "utf8mb4_0900_ai_ci")
+	has520 := strings.Contains(line, "_unicode_520_ci")
+	hasSandbox := strings.Contains(line, "sandbox")
+
+	// If none of these exist, return the line as-is immediately.
+	if !hasDefiner && !hasRowFormat && !has0900 && !has520 && !hasSandbox {
+		return line, true
+	}
+
+	if hasSandbox && sqlSandboxPattern.MatchString(line) {
 		return "", false
 	}
 
-	line = sqlDefinerPattern.ReplaceAllString(line, "*")
-	line = sqlRowFormatPattern.ReplaceAllString(line, "")
-	line = sqlCollation0900Pattern.ReplaceAllString(line, "utf8mb4_general_ci")
-	line = sqlCollation520Pattern.ReplaceAllString(line, "utf8${1}_general_ci")
+	if hasDefiner {
+		line = sqlDefinerPattern.ReplaceAllString(line, "*")
+	}
+	if hasRowFormat {
+		line = sqlRowFormatPattern.ReplaceAllString(line, "")
+	}
+	if has0900 {
+		line = sqlCollation0900Pattern.ReplaceAllString(line, "utf8mb4_general_ci")
+	}
+	if has520 {
+		line = sqlCollation520Pattern.ReplaceAllString(line, "utf8${1}_general_ci")
+	}
 
 	return line, true
 }

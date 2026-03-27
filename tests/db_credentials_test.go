@@ -25,7 +25,7 @@ func TestParseEnvMapForTest(t *testing.T) {
 }
 
 func TestBuildRemoteMySQLDumpCommandForTest(t *testing.T) {
-	command := cmd.BuildRemoteMySQLDumpCommandForTest("remote-host", 3306, "remote-user", "remote-pass", "remote-db")
+	command := cmd.BuildRemoteMySQLDumpCommandForTest("remote-host", 3306, "remote-user", "remote-pass", "remote-db", false)
 	checks := []string{
 		"export MYSQL_PWD='remote-pass';",
 		"DUMP_BIN",
@@ -45,7 +45,7 @@ func TestBuildRemoteMySQLDumpCommandForTest(t *testing.T) {
 }
 
 func TestBuildRemoteMySQLDumpCommandWithoutHostPort(t *testing.T) {
-	command := cmd.BuildRemoteMySQLDumpCommandForTest("", 0, "remote_user", "", "remote_db")
+	command := cmd.BuildRemoteMySQLDumpCommandForTest("", 0, "remote_user", "", "remote_db", false)
 	if strings.Contains(command, "-h") {
 		t.Fatalf("did not expect host flag when host is empty: %s", command)
 	}

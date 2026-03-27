@@ -59,7 +59,7 @@ func runStreamDBImport(cmd *cobra.Command, config engine.Config, options dbComma
 		pterm.Success.Println("Local database reset successful.")
 	}
 
-	sourceDumpCmd := remote.BuildSSHExecCommand(options.Environment, remoteCfg, true, buildRemoteMySQLDumpCommandString(remoteCredentials, options.NoNoise, options.NoPII, config.Framework))
+	sourceDumpCmd := remote.BuildSSHExecCommand(options.Environment, remoteCfg, true, buildRemoteMySQLDumpCommandString(remoteCredentials, options.NoNoise, options.NoPII, config.Framework, true))
 	destinationImportCmd := buildLocalDBImportCommand(containerName, localCredentials)
 	sanitizeStreamDump := options.StreamDB
 	var totalSize int64

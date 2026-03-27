@@ -201,6 +201,9 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrap
 			if config.Framework == "magento2" {
 				args = append(args, bootstrapMagentoMediaSyncArgs(opts)...)
 			}
+			if opts.NoNoise {
+				args = append(args, "--no-noise")
+			}
 			if err := runGovardSubcommand(cmd, append(args, "--yes")...); err != nil {
 				return fmt.Errorf("media sync failed: %w", err)
 			}
@@ -251,6 +254,14 @@ func bootstrapFileSyncArgs(opts bootstrapRuntimeOptions) []string {
 		"sync",
 		"--source", opts.Source,
 		"--file",
+	}
+
+	if opts.NoNoise {
+		args = append(args, "--no-noise")
+	}
+
+	// Default excludes for bootstrap (to protect local config)
+	args = append(args,
 		"--exclude", ".git",
 		"--exclude", ".env",
 		"--exclude", ".idea",
@@ -263,7 +274,7 @@ func bootstrapFileSyncArgs(opts bootstrapRuntimeOptions) []string {
 		"--exclude", "pub/media",
 		"--exclude", "media",
 		"--exclude", "var",
-	}
+	)
 	return args
 }
 

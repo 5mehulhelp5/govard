@@ -46,7 +46,7 @@ func BuildRsyncCommand(
 	if !noCompress {
 		rsyncMode = "-avz"
 	}
-	args := []string{rsyncMode, "--timeout=60"}
+	args := []string{rsyncMode, "--timeout=60", "--numeric-ids"}
 	if deleteFiles {
 		args = append(args, "--delete")
 	}
@@ -68,7 +68,12 @@ func BuildRsyncCommand(
 		args = append(args, "--exclude", trimmed)
 	}
 
+	// Performance-optimized SSH arguments:
+	// - aes128-ctr is usually faster and has lower CPU overhead.
+	// - Compression=no avoids double-compression if rsync -z is already used.
+	sshOptArgs := []string{"-o", "Cipher=aes128-ctr", "-o", "Compression=no"}
 	sshArgs := append([]string{"ssh"}, BuildSSHArgs(remoteName, remoteCfg, false, false)...)
+	sshArgs = append(sshArgs, sshOptArgs...)
 	args = append(args, "-e", strings.Join(sshArgs, " "))
 	args = append(args, source, destination)
 

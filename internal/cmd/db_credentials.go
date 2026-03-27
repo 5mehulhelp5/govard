@@ -174,7 +174,7 @@ func parseEnvMap(raw string) map[string]string {
 	return result
 }
 
-func buildRemoteMySQLDumpCommandString(credentials dbCredentials, noNoise bool, noPII bool, framework string) string {
+func buildRemoteMySQLDumpCommandString(credentials dbCredentials, noNoise bool, noPII bool, framework string, compress bool) string {
 	credentials = credentials.withDefaults()
 
 	dbCliDetect := `if command -v mariadb-dump >/dev/null 2>&1; then DUMP_BIN=mariadb-dump; else DUMP_BIN=mysqldump; fi`
@@ -203,6 +203,9 @@ func buildRemoteMySQLDumpCommandString(credentials dbCredentials, noNoise bool, 
 
 	// Combine passes
 	dumpCmd := fmt.Sprintf("{ %s; %s; }", strings.Join(metadataArgs, " "), strings.Join(dataArgs, " "))
+	if compress {
+		dumpCmd += " | gzip -c"
+	}
 
 	return dbCliDetect + " && " + mysqlPasswordExportPrefix(credentials.Password) + dumpCmd
 }
@@ -691,14 +694,14 @@ func formatRemoteDBProbeWarning(remoteName string, err error) string {
 	return fmt.Sprintf("Could not auto-detect DB credentials for '%s' from remote metadata (.env/env.php) (%v). Falling back to default credentials.", remoteName, err)
 }
 
-func BuildRemoteMySQLDumpCommandForTest(host string, port int, username string, password string, database string) string {
+func BuildRemoteMySQLDumpCommandForTest(host string, port int, username string, password string, database string, compress bool) string {
 	return buildRemoteMySQLDumpCommandString(dbCredentials{
 		Host:     host,
 		Port:     port,
 		Username: username,
 		Password: password,
 		Database: database,
-	}, false, false, "magento2")
+	}, false, false, "magento2", compress)
 }
 
 func BuildLocalDBImportCommandForTest(containerName string, username string, password string, database string) []string {
@@ -766,8 +769,8 @@ func GetDatabaseSize(config engine.Config, remoteName string, remoteCfg engine.R
 		whereClause += fmt.Sprintf(" AND table_name NOT IN (%s)", strings.Join(quotedTables, ","))
 	}
 
-	// query the total logical size
-	query := fmt.Sprintf("SELECT SUM(table_rows * avg_row_length) FROM information_schema.tables %s", whereClause)
+	// query the total logical size (data_length is better for estimating dump size than avg_row_length)
+	query := fmt.Sprintf("SELECT SUM(data_length) FROM information_schema.tables %s", whereClause)
 
 	credentials = credentials.withDefaults()
 	mysqlArgs := []string{"\"$DB_CLI\"", "-BN"}

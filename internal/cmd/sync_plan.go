@@ -51,6 +51,11 @@ func buildSyncExecutionPlan(config engine.Config, endpoints resolvedSyncEndpoint
 				}
 			}
 		}
+		excludes := opts.Exclude
+		if opts.NoNoise {
+			excludes = append(excludes, getSyncNoiseExcludes(config.Framework, false)...)
+		}
+
 		rsyncCmd, _, err := buildRsyncForEndpoints(
 			endpoints.Source,
 			endpoints.Destination,
@@ -61,7 +66,7 @@ func buildSyncExecutionPlan(config engine.Config, endpoints resolvedSyncEndpoint
 			opts.Resume,
 			opts.NoCompress,
 			opts.Include,
-			opts.Exclude,
+			excludes,
 		)
 		if err != nil {
 			return syncExecutionPlan{}, err
@@ -72,6 +77,11 @@ func buildSyncExecutionPlan(config engine.Config, endpoints resolvedSyncEndpoint
 	}
 
 	if opts.Media {
+		excludes := opts.Exclude
+		if opts.NoNoise {
+			excludes = append(excludes, getSyncNoiseExcludes(config.Framework, true)...)
+		}
+
 		rsyncCmd, _, err := buildRsyncForEndpoints(
 			endpoints.Source,
 			endpoints.Destination,
@@ -82,7 +92,7 @@ func buildSyncExecutionPlan(config engine.Config, endpoints resolvedSyncEndpoint
 			opts.Resume,
 			opts.NoCompress,
 			opts.Include,
-			opts.Exclude,
+			excludes,
 		)
 		if err != nil {
 			return syncExecutionPlan{}, err
@@ -311,4 +321,29 @@ func resolveSyncResumeMode(resume bool, noResume bool) bool {
 		return false
 	}
 	return resume
+}
+
+func getSyncNoiseExcludes(framework string, isMedia bool) []string {
+	// Global ignores for any project
+	globalIgnores := []string{".git/", ".idea/", ".vscode/", ".DS_Store", "thumbs.db", "node_modules/"}
+
+	if isMedia {
+		mediaIgnores := []string{"cache/", "tmp/"}
+		switch strings.ToLower(framework) {
+		case "magento2", "magento1", "openmage":
+			mediaIgnores = append(mediaIgnores, "catalog/product/cache/")
+		}
+		return mediaIgnores
+	}
+
+	excludes := globalIgnores
+	switch strings.ToLower(framework) {
+	case "magento2":
+		excludes = append(excludes, "var/cache/", "var/page_cache/", "var/view_preprocessed/", "pub/static/_cache/", "generated/code/", "generated/metadata/")
+	case "magento1", "openmage":
+		excludes = append(excludes, "var/cache/", "var/full_page_cache/", "var/session/", "var/tmp/")
+	case "laravel":
+		excludes = append(excludes, "storage/framework/cache/data/*", "storage/framework/sessions/*", "storage/framework/views/*", "storage/logs/*")
+	}
+	return excludes
 }

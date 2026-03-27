@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"bytes"
 	"compress/gzip"
 	"context"
@@ -442,7 +443,7 @@ func buildDBDumpCommand(config engine.Config, options dbCommandOptions) (*exec.C
 		pterm.Warning.Println(formatRemoteDBProbeWarning(options.Environment, probeErr))
 	}
 
-	dumpStr := buildRemoteMySQLDumpCommandString(credentials, options.NoNoise, options.NoPII, config.Framework)
+	dumpStr := buildRemoteMySQLDumpCommandString(credentials, options.NoNoise, options.NoPII, config.Framework, true)
 
 	// If not local, we dump to a file on the remote server
 	if !options.Local {
@@ -531,11 +532,24 @@ func runDumpToWriter(dumpCmd *exec.Cmd, writer io.Writer, sanitize bool, stderr 
 		return err
 	}
 
+	// Automatic gzip detection to handle remote compressed streams
+	var finalReader io.Reader
+	if r, isGzipped, err := detectGzipReader(stdout); err == nil && isGzipped {
+		gzReader, err := gzip.NewReader(r)
+		if err != nil {
+			return fmt.Errorf("create gzip reader for dump stream: %w", err)
+		}
+		defer func() { _ = gzReader.Close() }()
+		finalReader = gzReader
+	} else {
+		finalReader = r
+	}
+
 	var copyErr error
 	if sanitize {
-		copyErr = engine.SanitizeSQLDump(stdout, writer)
+		copyErr = engine.SanitizeSQLDump(finalReader, writer)
 	} else {
-		_, copyErr = io.Copy(writer, stdout)
+		_, copyErr = io.Copy(writer, finalReader)
 	}
 
 	waitErr := dumpCmd.Wait()
@@ -557,31 +571,55 @@ func RunImportFromReaderWithProgress(importCmd *exec.Cmd, reader io.Reader, tota
 	importCmd.Stdout = stdout
 	importCmd.Stderr = stderr
 
-	// Handle decompression if needed
-	var progressReader = reader
-	var bar *pterm.ProgressbarPrinter
-
-	if totalSize > 0 {
-		bar, _ = pterm.DefaultProgressbar.WithTotal(int(totalSize)).WithTitle("Importing DB").Start()
-		progressReader = engine.NewProgressReader(reader, bar)
+	// Check for gzip via magic number or file extension
+	isGzip := false
+	var readerWithPeek = reader
+	if r, ok := reader.(*os.File); ok && strings.HasSuffix(strings.ToLower(r.Name()), ".gz") {
+		isGzip = true
+	} else if r, g, err := detectGzipReader(reader); err == nil {
+		readerWithPeek = r
+		isGzip = g
 	}
 
-	// Check for gzip
-	isGzip := false
-	if r, ok := reader.(*os.File); ok {
-		if strings.HasSuffix(strings.ToLower(r.Name()), ".gz") {
-			isGzip = true
+	// Progress tracking and Gzip detection logic
+	var bar *pterm.ProgressbarPrinter
+	var finalReader io.Reader
+
+	// Heuristic: If we are reading a compressed source and totalSize equals the source size,
+	// we track progress on the COMPRESSED reader (common for local .sql.gz files).
+	// Otherwise, we track on the UNCOMPRESSED stream (common for remote stream syncs).
+	trackCompressed := false
+	if totalSize > 0 && isGzip {
+		if f, ok := reader.(*os.File); ok {
+			if stat, err := f.Stat(); err == nil && stat.Size() == totalSize {
+				trackCompressed = true
+			}
 		}
 	}
 
-	var finalReader = progressReader
+	if totalSize > 0 {
+		bar, _ = pterm.DefaultProgressbar.WithTotal(int(totalSize)).WithTitle("Importing DB").Start()
+
+		if trackCompressed {
+			// track progress on the COMPRESSED source (local .sql.gz file)
+			readerWithPeek = engine.NewProgressReader(readerWithPeek, bar)
+		}
+	}
+
 	if isGzip {
-		gzReader, err := gzip.NewReader(progressReader)
+		gzReader, err := gzip.NewReader(readerWithPeek)
 		if err != nil {
 			return fmt.Errorf("create gzip reader: %w", err)
 		}
 		defer func() { _ = gzReader.Close() }()
 		finalReader = gzReader
+	} else {
+		finalReader = readerWithPeek
+	}
+
+	if totalSize > 0 && !trackCompressed {
+		// Track against uncompressed stream (remote sync case)
+		finalReader = engine.NewProgressReader(finalReader, bar)
 	}
 
 	if err := importCmd.Start(); err != nil {
@@ -658,9 +696,31 @@ func RunDumpToImportWithProgress(dumpCmd *exec.Cmd, importCmd *exec.Cmd, totalSi
 
 	var bar *pterm.ProgressbarPrinter
 	var reader io.Reader = dumpStdout
+	isGzip := false
+
+	// Automatic gzip detection for the stream
+	if r, g, err := detectGzipReader(dumpStdout); err == nil {
+		reader = r
+		isGzip = g
+	}
+
+	if isGzip {
+		gzReader, err := gzip.NewReader(reader)
+		if err != nil {
+			return fmt.Errorf("create gzip reader for stream: %w", err)
+		}
+		defer func() { _ = gzReader.Close() }()
+		reader = gzReader
+	}
+
+	// Progress tracking logic
 	if totalSize > 0 {
 		bar, _ = pterm.DefaultProgressbar.WithTotal(int(totalSize)).WithTitle("Syncing DB").Start()
-		reader = engine.NewProgressReader(dumpStdout, bar)
+
+		// In RunDumpToImport, the source is always a pipe from the remote dump command.
+		// If totalSize is provided here, it's always the logical/uncompressed size
+		// from GetDatabaseSize(), so we ALWAYS track uncompressed progress.
+		reader = engine.NewProgressReader(reader, bar)
 	}
 
 	// Wrap the reader with performance-optimized session variables
@@ -707,6 +767,18 @@ func RunDumpToImportWithProgress(dumpCmd *exec.Cmd, importCmd *exec.Cmd, totalSi
 		return fmt.Errorf("database import failed: %w\nOutput: %s", importErr, importStderr.String())
 	}
 	return nil
+}
+
+func detectGzipReader(r io.Reader) (io.Reader, bool, error) {
+	br := bufio.NewReader(r)
+	peek, err := br.Peek(2)
+	if err != nil && err != io.EOF {
+		return br, false, err
+	}
+	if len(peek) == 2 && peek[0] == 0x1f && peek[1] == 0x8b {
+		return br, true, nil
+	}
+	return br, false, nil
 }
 
 // SetStdinIsTerminalForTest overrides terminal detection for tests.
