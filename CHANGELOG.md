@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.34.0] - 2026-03-28
+
+### ✨ New Features
+
+- **Store Domain Management**: Enhanced the `domain list` command with sorted tables and clear distinction between primary and extra domains for multi-store Magento environments.
+- **Improved Onboarding UX**: Added explicit framework version selection (e.g., Magento 2.4.7, Laravel 11) to the project onboarding flow, ensuring the stack is correctly tuned from the start.
+
+### 🛠 Improvements
+
+- **Desktop Stability**: Implemented automatic panic recovery for desktop bridge proxies, preventing the application from crashing due to unexpected backend errors.
+- **Image Fallback Engineering**: Refactored the local image fallback logic into the core engine, improving the reliability of environment startups in offline or air-gapped scenarios.
+
+### 🔄 Refactors
+
+- **Unified Synchronization Options**: Consolidated the legacy `sanitize` and `excludeLogs` options into a single, high-performance `--no-noise` flag for both CLI and Desktop sync operations. This simplifies the interface while providing more robust data protection and smaller transfer sizes.
+
+
 ## [1.33.0] - 2026-03-27
 
 ### ✨ New Features
