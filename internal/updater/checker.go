@@ -55,6 +55,16 @@ func shouldNotifyUpdate(currentVersion, latestTag string) bool {
 	if current == "" {
 		return true
 	}
+
+	// If current version is a development build (e.g. 1.31.0-2-gf2a0be7),
+	// check if the base version matches the latest tag to avoid redundant warnings.
+	if strings.Contains(current, "-") {
+		base := strings.SplitN(current, "-", 2)[0]
+		if latest == "v"+base {
+			return false
+		}
+	}
+
 	return latest != "v"+current
 }
 

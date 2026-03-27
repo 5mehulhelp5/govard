@@ -45,6 +45,24 @@ func TestShouldNotifyUpdateForTest(t *testing.T) {
 			latestTag:      " v1.0.1 ",
 			want:           false,
 		},
+		{
+			name:           "dev build of same version",
+			currentVersion: "1.31.0-2-gf2a0be7",
+			latestTag:      "v1.31.0",
+			want:           false,
+		},
+		{
+			name:           "dev build of newer version available",
+			currentVersion: "1.31.0-dev",
+			latestTag:      "v1.32.0",
+			want:           true,
+		},
+		{
+			name:           "pre-release build of same version",
+			currentVersion: "1.31.0-beta1",
+			latestTag:      "v1.31.0",
+			want:           false,
+		},
 	}
 
 	for _, testCase := range testCases {
