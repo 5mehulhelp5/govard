@@ -22,12 +22,14 @@ type LockDependencies struct {
 	ReadDockerVersion        func() (string, error)
 	ReadDockerComposeVersion func() (string, error)
 	ReadServiceImages        func(composePath string) (map[string]string, error)
+	ReadCurrentUser          func() (string, error)
 	Now                      func() time.Time
 }
 
 type LockFile struct {
 	Version     int               `yaml:"version"`
 	GeneratedAt string            `yaml:"generated_at"`
+	GeneratedBy string            `yaml:"generated_by,omitempty"`
 	Govard      LockGovardInfo    `yaml:"govard"`
 	Host        LockHostInfo      `yaml:"host"`
 	Project     LockProjectInfo   `yaml:"project"`
@@ -47,11 +49,12 @@ type LockHostInfo struct {
 }
 
 type LockProjectInfo struct {
-	Name             string   `yaml:"name"`
-	Domain           string   `yaml:"domain,omitempty"`
-	ExtraDomains     []string `yaml:"extra_domains,omitempty"`
-	Framework        string   `yaml:"framework,omitempty"`
-	FrameworkVersion string   `yaml:"framework_version,omitempty"`
+	Name             string            `yaml:"name"`
+	Domain           string            `yaml:"domain,omitempty"`
+	ExtraDomains     []string          `yaml:"extra_domains,omitempty"`
+	StoreDomains     map[string]string `yaml:"store_domains,omitempty"`
+	Framework        string            `yaml:"framework,omitempty"`
+	FrameworkVersion string            `yaml:"framework_version,omitempty"`
 }
 
 type LockStackInfo struct {
@@ -107,6 +110,7 @@ func BuildLockFileFromConfig(cwd string, config Config, govardVersion string, de
 	lock := LockFile{
 		Version:     1,
 		GeneratedAt: now,
+		GeneratedBy: getGeneratedBy(resolvedDeps),
 		Govard: LockGovardInfo{
 			Version: strings.TrimSpace(govardVersion),
 		},
@@ -120,6 +124,7 @@ func BuildLockFileFromConfig(cwd string, config Config, govardVersion string, de
 			Name:             normalizeLockProjectName(config, cwd),
 			Domain:           strings.TrimSpace(config.Domain),
 			ExtraDomains:     config.ExtraDomains,
+			StoreDomains:     flattenStoreDomainsForLock(config.StoreDomains),
 			Framework:        strings.TrimSpace(config.Framework),
 			FrameworkVersion: strings.TrimSpace(config.FrameworkVersion),
 		},
@@ -182,9 +187,17 @@ func ReadLockFile(path string) (LockFile, error) {
 	return lock, nil
 }
 
-func CompareLockFile(expected LockFile, current LockFile) LockCompliance {
+func CompareLockFile(expected LockFile, current LockFile, ignoreFields []string) LockCompliance {
+	ignored := make(map[string]bool, len(ignoreFields))
+	for _, field := range ignoreFields {
+		ignored[strings.TrimSpace(strings.ToLower(field))] = true
+	}
+
 	mismatches := make([]string, 0)
 	appendMismatch := func(field, expectedValue, currentValue string) {
+		if ignored[strings.ToLower(field)] {
+			return
+		}
 		if strings.TrimSpace(expectedValue) == strings.TrimSpace(currentValue) {
 			return
 		}
@@ -198,6 +211,50 @@ func CompareLockFile(expected LockFile, current LockFile) LockCompliance {
 	appendMismatch("host.docker_compose_version", expected.Host.DockerComposeVersion, current.Host.DockerComposeVersion)
 	appendMismatch("project.name", expected.Project.Name, current.Project.Name)
 	appendMismatch("project.domain", expected.Project.Domain, current.Project.Domain)
+
+	// extra_domains comparison (order independent)
+	if !ignored["project.extra_domains"] {
+		e := make([]string, len(expected.Project.ExtraDomains))
+		copy(e, expected.Project.ExtraDomains)
+		sort.Strings(e)
+		c := make([]string, len(current.Project.ExtraDomains))
+		copy(c, current.Project.ExtraDomains)
+		sort.Strings(c)
+		expectedStr := strings.Join(e, ",")
+		currentStr := strings.Join(c, ",")
+		if expectedStr != currentStr {
+			mismatches = append(mismatches, fmt.Sprintf("project.extra_domains mismatch: expected=%q current=%q", expectedStr, currentStr))
+		}
+	}
+
+	// store_domains comparison (deep equality via sorted map)
+	if !ignored["project.store_domains"] {
+		expectedHosts := make([]string, 0, len(expected.Project.StoreDomains))
+		for h := range expected.Project.StoreDomains {
+			expectedHosts = append(expectedHosts, h)
+		}
+		sort.Strings(expectedHosts)
+
+		currentHosts := make([]string, 0, len(current.Project.StoreDomains))
+		for h := range current.Project.StoreDomains {
+			currentHosts = append(currentHosts, h)
+		}
+		sort.Strings(currentHosts)
+
+		expectedStr := ""
+		for _, h := range expectedHosts {
+			expectedStr += fmt.Sprintf("%s:%s,", h, expected.Project.StoreDomains[h])
+		}
+		currentStr := ""
+		for _, h := range currentHosts {
+			currentStr += fmt.Sprintf("%s:%s,", h, current.Project.StoreDomains[h])
+		}
+
+		if expectedStr != currentStr {
+			mismatches = append(mismatches, fmt.Sprintf("project.store_domains mismatch: expected=%q current=%q", expectedStr, currentStr))
+		}
+	}
+
 	appendMismatch("project.framework", expected.Project.Framework, current.Project.Framework)
 	appendMismatch("project.framework_version", expected.Project.FrameworkVersion, current.Project.FrameworkVersion)
 	appendMismatch("stack.php_version", expected.Stack.PHPVersion, current.Stack.PHPVersion)
@@ -212,7 +269,9 @@ func CompareLockFile(expected LockFile, current LockFile) LockCompliance {
 	currentServices := normalizeServiceImages(current.Services)
 	serviceNames := make([]string, 0, len(expectedServices))
 	for name := range expectedServices {
-		serviceNames = append(serviceNames, name)
+		if !ignored["services."+strings.ToLower(name)] {
+			serviceNames = append(serviceNames, name)
+		}
 	}
 	sort.Strings(serviceNames)
 	for _, name := range serviceNames {
@@ -339,6 +398,21 @@ func normalizeServiceImages(raw map[string]string) map[string]string {
 	return normalized
 }
 
+func flattenStoreDomainsForLock(mappings StoreDomainMappings) map[string]string {
+	if len(mappings) == 0 {
+		return nil
+	}
+	result := make(map[string]string, len(mappings))
+	for host, mapping := range mappings {
+		h := strings.TrimSpace(host)
+		if h == "" {
+			continue
+		}
+		result[h] = strings.TrimSpace(mapping.Code)
+	}
+	return result
+}
+
 func resolveLockDependencies(deps LockDependencies) LockDependencies {
 	if deps.ReadDockerVersion == nil {
 		deps.ReadDockerVersion = DetectDockerVersionForLock
@@ -349,8 +423,26 @@ func resolveLockDependencies(deps LockDependencies) LockDependencies {
 	if deps.ReadServiceImages == nil {
 		deps.ReadServiceImages = ReadServiceImagesFromCompose
 	}
+	if deps.ReadCurrentUser == nil {
+		deps.ReadCurrentUser = DetectCurrentUserForLock
+	}
 	if deps.Now == nil {
 		deps.Now = time.Now
 	}
 	return deps
+}
+
+func getGeneratedBy(deps LockDependencies) string {
+	if deps.ReadCurrentUser == nil {
+		return ""
+	}
+	user, _ := deps.ReadCurrentUser()
+	return user
+}
+
+func DetectCurrentUserForLock() (string, error) {
+	if user := os.Getenv("USER"); user != "" {
+		return user, nil
+	}
+	return "unknown", nil
 }

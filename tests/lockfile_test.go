@@ -113,7 +113,7 @@ func TestCompareLockFileDetectsMismatches(t *testing.T) {
 	current.Stack.DBVersion = "11.5"
 	current.Services = map[string]string{"db": "mariadb:11.5"}
 
-	result := engine.CompareLockFile(expected, current)
+	result := engine.CompareLockFile(expected, current, nil)
 	if result.Compliant {
 		t.Fatal("expected non-compliant result")
 	}
@@ -122,6 +122,57 @@ func TestCompareLockFileDetectsMismatches(t *testing.T) {
 		if !strings.Contains(joined, token) {
 			t.Fatalf("expected mismatch token %q in %q", token, joined)
 		}
+	}
+}
+
+func TestCompareLockFileRespectsIgnoreFields(t *testing.T) {
+	expected := engine.LockFile{
+		Govard:  engine.LockGovardInfo{Version: "1.2.3"},
+		Host:    engine.LockHostInfo{DockerVersion: "27.2.1", DockerComposeVersion: "2.29.7"},
+		Project: engine.LockProjectInfo{Framework: "magento2"},
+		Stack:   engine.LockStackInfo{PHPVersion: "8.4", DBVersion: "11.4"},
+	}
+	current := expected
+	current.Host.DockerVersion = "28.0.0"
+	current.Host.DockerComposeVersion = "2.30.0"
+
+	// Without ignore — should have mismatches
+	result := engine.CompareLockFile(expected, current, nil)
+	if result.Compliant {
+		t.Fatal("expected non-compliant without ignore")
+	}
+
+	// With ignore — should be compliant
+	ignore := []string{"host.docker_version", "host.docker_compose_version"}
+	result = engine.CompareLockFile(expected, current, ignore)
+	if !result.Compliant {
+		t.Fatalf("expected compliant with ignore fields, got mismatches: %v", result.Mismatches)
+	}
+}
+
+func TestCompareLockFileDetectsDomainMismatches(t *testing.T) {
+	expected := engine.LockFile{
+		Project: engine.LockProjectInfo{
+			Domain:       "main.test",
+			ExtraDomains: []string{"extra1.test", "extra2.test"},
+			StoreDomains: map[string]string{"fr": "fr.test", "de": "de.test"},
+		},
+	}
+	current := expected
+
+	// 1. Mismatch in extra_domains (order change should be OK but value change not)
+	current.Project.ExtraDomains = []string{"extra1.test", "extra3.test"}
+	result := engine.CompareLockFile(expected, current, nil)
+	if result.Compliant {
+		t.Fatal("expected non-compliant for extra_domains mismatch")
+	}
+
+	// 2. Mismatch in store_domains
+	current = expected
+	current.Project.StoreDomains = map[string]string{"fr": "fr.test", "de": "changed.test"}
+	result = engine.CompareLockFile(expected, current, nil)
+	if result.Compliant {
+		t.Fatal("expected non-compliant for store_domains mismatch")
 	}
 }
 

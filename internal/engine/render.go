@@ -164,7 +164,15 @@ func projectComposeOverrideFingerprint(root string) (string, error) {
 }
 
 func renderEnvironmentFingerprint() string {
-	return strings.TrimSpace(os.Getenv("SSH_AUTH_SOCK"))
+	var sb strings.Builder
+	sb.WriteString(strings.TrimSpace(os.Getenv("SSH_AUTH_SOCK")))
+	sb.WriteString("|")
+	sb.WriteString(strings.TrimSpace(os.Getenv("HOME")))
+	sb.WriteString("|")
+	sb.WriteString(strings.TrimSpace(os.Getenv("GOVARD_IMAGE_REPOSITORY")))
+	sb.WriteString("|")
+	sb.WriteString(strings.TrimSpace(os.Getenv("GOVARD_BLUEPRINTS_DIR")))
+	return sb.String()
 }
 
 // RenderBlueprint renders layered blueprints into a single docker-compose file
@@ -462,18 +470,32 @@ func renderLegacyBlueprint(root string, blueprintsFS fs.FS, config Config) error
 		return fmt.Errorf("parse legacy template %s: %w", tmplPath, err)
 	}
 
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, config); err != nil {
+		return fmt.Errorf("execute legacy template %s: %w", tmplPath, err)
+	}
+
+	var merged map[string]interface{}
+	if err := yaml.Unmarshal(buf.Bytes(), &merged); err != nil {
+		return fmt.Errorf("parse rendered legacy yaml %s: %w", tmplPath, err)
+	}
+
+	if err := mergeProjectComposeOverride(root, merged); err != nil {
+		return err
+	}
+
 	outputPath := ComposeFilePath(root, config.ProjectName)
 	if err := EnsureComposePathReady(outputPath); err != nil {
 		return fmt.Errorf("failed to prepare compose output path: %w", err)
 	}
-	f, err := os.Create(outputPath)
-	if err != nil {
-		return fmt.Errorf("create legacy compose output %s: %w", outputPath, err)
-	}
-	defer f.Close()
 
-	if err := tmpl.Execute(f, config); err != nil {
-		return fmt.Errorf("execute legacy template %s: %w", tmplPath, err)
+	out, err := yaml.Marshal(merged)
+	if err != nil {
+		return fmt.Errorf("marshal legacy rendered compose: %w", err)
+	}
+
+	if err := os.WriteFile(outputPath, out, 0644); err != nil {
+		return fmt.Errorf("write legacy legacy compose output %s: %w", outputPath, err)
 	}
 
 	return nil

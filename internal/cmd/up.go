@@ -58,6 +58,7 @@ type upRuntimeContext struct {
 	FallbackLocal bool
 	RemoveOrphans bool
 	ForceRecreate bool
+	UpdateLock    bool
 	Out           io.Writer
 	Err           io.Writer
 }
@@ -97,7 +98,7 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 				}
 				context.Compose = engine.ComposeFilePathWithProfile(context.Cwd, context.Config.ProjectName, context.Profile)
 				pterm.Info.Printf("Loaded config layers: %d\n", len(context.Loaded))
-				lockWarnings, lockErr := evaluateUpLockPolicy(context.Cwd, context.Config)
+				lockWarnings, lockErr := evaluateUpLockPolicy(context.Cwd, context.Config, context.UpdateLock)
 				for _, warning := range lockWarnings {
 					pterm.Warning.Println(warning)
 				}
@@ -419,6 +420,7 @@ func runUpCommand(cmd *cobra.Command, args []string) (err error) {
 	fallbackLocalBuild := boolFlagOrDefault(cmd, "fallback-local-build", true)
 	removeOrphans, _ := cmd.Flags().GetBool("remove-orphans")
 	forceRecreate, _ := cmd.Flags().GetBool("force-recreate")
+	updateLock, _ := cmd.Flags().GetBool("update-lock")
 	cwd, _ := os.Getwd()
 	context := upRuntimeContext{
 		Cwd:           cwd,
@@ -428,6 +430,7 @@ func runUpCommand(cmd *cobra.Command, args []string) (err error) {
 		FallbackLocal: fallbackLocalBuild,
 		RemoveOrphans: removeOrphans,
 		ForceRecreate: forceRecreate,
+		UpdateLock:    updateLock,
 		Out:           cmd.OutOrStdout(),
 		Err:           cmd.ErrOrStderr(),
 	}
@@ -467,6 +470,7 @@ func addUpFlags(command *cobra.Command) {
 	command.Flags().Bool("fallback-local-build", true, "When pull/start fails due missing Govard images, build missing Govard-managed images locally and retry")
 	command.Flags().Bool("remove-orphans", false, "Remove containers for services not defined in the compose file")
 	command.Flags().Bool("force-recreate", false, "Recreate containers even if their configuration and image haven't changed")
+	command.Flags().Bool("update-lock", false, "Automatically update govard.lock if mismatches are found")
 }
 
 func init() {

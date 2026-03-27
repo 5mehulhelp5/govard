@@ -163,7 +163,7 @@ func TestBuildUpLockWarningsForTest(t *testing.T) {
 	current := expected
 	current.Host.DockerComposeVersion = "2.30.0"
 
-	warnings := cmd.BuildUpLockWarningsForTest(expected, current)
+	warnings := cmd.BuildUpLockWarningsForTest(expected, current, nil)
 	if len(warnings) == 0 {
 		t.Fatal("expected warnings for lock mismatch")
 	}

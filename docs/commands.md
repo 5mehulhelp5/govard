@@ -80,6 +80,7 @@ govard env cleanup
 - `--fallback-local-build`
 - `--remove-orphans`
 - `--quickstart`
+- `--update-lock`: automatically update `govard.lock` on mismatches
 
 Before starting containers, `govard env up` re-renders the per-project compose file and the generated web-server config assets under `~/.govard/`, including:
 
@@ -148,6 +149,17 @@ Desktop highlights:
 - Native notifications and settings drawer
 
 For the full desktop surface and dev-mode notes, see [Desktop](desktop.md).
+
+## Blueprint Commands
+
+### `govard blueprint cache`
+
+Manage the remote blueprint registry cache.
+
+```bash
+govard blueprint cache list
+govard blueprint cache clear
+```
 
 ## Development Commands
 
@@ -482,6 +494,7 @@ Generate or validate `govard.lock` snapshots.
 ```bash
 govard lock generate
 govard lock check
+govard lock diff
 govard lock generate --file .govard/govard.lock
 ```
 

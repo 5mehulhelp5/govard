@@ -546,3 +546,51 @@ func sha256HexBytes(payload []byte) string {
 func ResolveBlueprintRegistryForTest(cfg BlueprintRegistryConfig) (string, error) {
 	return resolveBlueprintRegistryBlueprintsDir(cfg)
 }
+
+type BlueprintCacheEntry struct {
+	Key      string
+	Path     string
+	Size     int64
+	CachedAt time.Time
+}
+
+func ListBlueprintCache() ([]BlueprintCacheEntry, error) {
+	root, err := blueprintRegistryCacheRoot()
+	if err != nil {
+		return nil, err
+	}
+	if _, err := os.Stat(root); os.IsNotExist(err) {
+		return nil, nil
+	}
+
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		return nil, err
+	}
+
+	var results []BlueprintCacheEntry
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		path := filepath.Join(root, entry.Name())
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+		results = append(results, BlueprintCacheEntry{
+			Key:      entry.Name(),
+			Path:     path,
+			CachedAt: info.ModTime(),
+		})
+	}
+	return results, nil
+}
+
+func ClearBlueprintCache() error {
+	root, err := blueprintRegistryCacheRoot()
+	if err != nil {
+		return err
+	}
+	return os.RemoveAll(root)
+}

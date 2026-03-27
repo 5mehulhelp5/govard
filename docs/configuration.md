@@ -153,6 +153,7 @@ Each key is a local hostname. Govard routes those hostnames through the local pr
 ### Safety and reproducibility
 
 - `lock.strict`: fail `govard env up` when lock state is missing or mismatched
+- `lock.ignore_fields`: list of fields (e.g., `host.docker_version`) to skip during compliance checks
 - `blueprint_registry.*`: opt-in remote blueprint source with strict checksum and trust requirements
 
 ### Remotes

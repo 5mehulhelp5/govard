@@ -1,23 +1,27 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
 	"govard/internal/engine"
+
+	"github.com/pterm/pterm"
 )
 
-func evaluateUpLockPolicy(cwd string, config engine.Config) ([]string, error) {
+func evaluateUpLockPolicy(cwd string, config engine.Config, update bool) ([]string, error) {
 	lockPath := engine.LockFilePath(cwd)
 	expected, err := engine.ReadLockFile(lockPath)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			if !config.Lock.Strict {
 				return nil, nil
 			}
 			warning := fmt.Sprintf("Lock strict mode: required lock file missing at %s", lockPath)
 			return []string{warning}, fmt.Errorf("lock strict mode enabled: missing %s (run `govard lock generate`)", lockPath)
 		}
+		// Any other error (e.g. permission or corruption) should still be a warning/error.
 		warning := fmt.Sprintf("Lock check skipped: %v", err)
 		if !config.Lock.Strict {
 			return []string{warning}, nil
@@ -33,18 +37,27 @@ func evaluateUpLockPolicy(cwd string, config engine.Config) ([]string, error) {
 		}
 		return []string{warning}, fmt.Errorf("lock strict mode enabled: %w", err)
 	}
-	warnings := buildUpLockWarnings(expected, current)
+	warnings := buildUpLockWarnings(expected, current, config.Lock.IgnoreFields)
 	if len(warnings) == 0 {
 		return nil, nil
 	}
-	if !config.Lock.Strict {
-		return warnings, nil
+	if !update {
+		if !config.Lock.Strict {
+			return warnings, nil
+		}
+		return warnings, fmt.Errorf("lock strict mode enabled: found %d mismatch(es); run `govard lock diff` for details or use `govard env up --update-lock` to sync", len(warnings))
 	}
-	return warnings, fmt.Errorf("lock strict mode enabled: found %d mismatch(es); run `govard lock check`", len(warnings))
+
+	pterm.Info.Println("Auto-updating lock file due to --update-lock flag...")
+	if err := engine.WriteLockFile(lockPath, current); err != nil {
+		return warnings, fmt.Errorf("failed to auto-update lock file: %w", err)
+	}
+	pterm.Success.Println("Lock file updated.")
+	return nil, nil
 }
 
-func buildUpLockWarnings(expected engine.LockFile, current engine.LockFile) []string {
-	result := engine.CompareLockFile(expected, current)
+func buildUpLockWarnings(expected engine.LockFile, current engine.LockFile, ignoreFields []string) []string {
+	result := engine.CompareLockFile(expected, current, ignoreFields)
 	if result.Compliant {
 		return nil
 	}
@@ -56,11 +69,11 @@ func buildUpLockWarnings(expected engine.LockFile, current engine.LockFile) []st
 }
 
 // BuildUpLockWarningsForTest exposes lock warning rendering for tests.
-func BuildUpLockWarningsForTest(expected engine.LockFile, current engine.LockFile) []string {
-	return buildUpLockWarnings(expected, current)
+func BuildUpLockWarningsForTest(expected engine.LockFile, current engine.LockFile, ignoreFields []string) []string {
+	return buildUpLockWarnings(expected, current, ignoreFields)
 }
 
 // EvaluateUpLockPolicyForTest exposes lock policy evaluation for tests.
-func EvaluateUpLockPolicyForTest(cwd string, config engine.Config) ([]string, error) {
-	return evaluateUpLockPolicy(cwd, config)
+func EvaluateUpLockPolicyForTest(cwd string, config engine.Config, update bool) ([]string, error) {
+	return evaluateUpLockPolicy(cwd, config, update)
 }

@@ -63,7 +63,7 @@ func TestEvaluateUpLockPolicyStrictDisabledDoesNotBlockOnMismatch(t *testing.T) 
 		t.Fatalf("write lock fixture: %v", err)
 	}
 
-	warnings, err := cmd.EvaluateUpLockPolicyForTest(tempDir, config)
+	warnings, err := cmd.EvaluateUpLockPolicyForTest(tempDir, config, false)
 	if err != nil {
 		t.Fatalf("expected no strict error, got: %v", err)
 	}
@@ -96,7 +96,7 @@ func TestEvaluateUpLockPolicyStrictEnabledBlocksOnMismatch(t *testing.T) {
 		t.Fatalf("write lock fixture: %v", err)
 	}
 
-	warnings, err := cmd.EvaluateUpLockPolicyForTest(tempDir, config)
+	warnings, err := cmd.EvaluateUpLockPolicyForTest(tempDir, config, false)
 	if err == nil {
 		t.Fatal("expected strict mode mismatch error")
 	}
@@ -116,7 +116,7 @@ func TestEvaluateUpLockPolicyStrictEnabledRequiresLockFile(t *testing.T) {
 	restore := withDeterministicLockDeps(t)
 	defer restore()
 
-	warnings, err := cmd.EvaluateUpLockPolicyForTest(tempDir, config)
+	warnings, err := cmd.EvaluateUpLockPolicyForTest(tempDir, config, false)
 	if err == nil {
 		t.Fatal("expected strict mode error when lock file is missing")
 	}
@@ -151,11 +151,27 @@ func TestEvaluateUpLockPolicyStrictEnabledPassesWhenCompliant(t *testing.T) {
 		t.Fatalf("write lock fixture: %v", err)
 	}
 
-	warnings, err := cmd.EvaluateUpLockPolicyForTest(tempDir, config)
+	warnings, err := cmd.EvaluateUpLockPolicyForTest(tempDir, config, false)
 	if err != nil {
 		t.Fatalf("expected compliant strict mode to pass, got: %v", err)
 	}
 	if len(warnings) != 0 {
 		t.Fatalf("expected no warnings for compliant lock, got: %v", warnings)
+	}
+}
+func TestEvaluateUpLockPolicyStrictDisabledQuietlySkipsMissingLock(t *testing.T) {
+	tempDir := t.TempDir()
+	config := testLockStrictConfig()
+	config.Lock.Strict = false
+
+	restore := withDeterministicLockDeps(t)
+	defer restore()
+
+	warnings, err := cmd.EvaluateUpLockPolicyForTest(tempDir, config, false)
+	if err != nil {
+		t.Fatalf("expected no error for missing lock when strict is off, got: %v", err)
+	}
+	if len(warnings) != 0 {
+		t.Fatalf("expected no warnings for missing lock when strict is off, got: %v", warnings)
 	}
 }

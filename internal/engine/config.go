@@ -61,7 +61,8 @@ type Config struct {
 }
 
 type LockConfig struct {
-	Strict bool `yaml:"strict,omitempty"`
+	Strict       bool     `yaml:"strict,omitempty"`
+	IgnoreFields []string `yaml:"ignore_fields,omitempty"`
 }
 
 type BlueprintRegistryConfig struct {

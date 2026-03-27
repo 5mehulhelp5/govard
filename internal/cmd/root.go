@@ -114,6 +114,7 @@ func init() {
 	rootCmd.AddCommand(customCmd)
 	rootCmd.AddCommand(selfUpdateCmd)
 	rootCmd.AddCommand(lockCmd)
+	rootCmd.AddCommand(blueprintCmd)
 	rootCmd.AddCommand(tunnelCmd)
 	rootCmd.AddCommand(versionCmd)
 }
