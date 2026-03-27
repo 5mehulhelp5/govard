@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.33.0] - 2026-03-27
+
+### ✨ New Features
+
+- **Smart Data Synchronization**: Introduced the `--no-noise` flag for `bootstrap` and `sync` commands. It automatically excludes ephemeral data (caches, logs, sessions, and media thumbnails) for Magento, Laravel, and WordPress, drastically reducing transfer volume.
+- **Centralized Credential Management**: Transitioned to using the global `~/.composer/auth.json` on the host, eliminating project-level `auth.json` files and stopping automatic `.gitignore` modifications for better security and hygiene.
+- **Advanced Debugging**: Integrated Xdebug routing for Apache environments and added Varnish bypass logic for active debug sessions.
+
+### 🛠 Improvements
+
+- **Database Stream Compression**: Implemented automatic `gzip` streaming for all remote database transfers. This reduces network bandwidth usage by 80-90% during synchronization projects.
+- **High-Performance SQL Sanitization**: Refactored the SQL sanitization engine using fast-path string matching, significantly reducing CPU overhead and memory usage during database imports.
+- **SSH Transfer Tuning**: Standardized on the `aes128-ctr` cipher for remote operations and disabled redundant SSH-level compression to maximize throughput on high-speed networks.
+- **Intelligent Progress Tracking**: Enhanced database import progress bars to distinguish between compressed file sizes and logical database volume for more accurate ETAs.
+
+### 🐛 Bug Fixes
+
+- **Stream Integrity**: Resolved edge cases involving data corruption during piped database dumps by ensuring atomic stream handling and proper gzip detection.
+
 ## [1.32.0] - 2026-03-27
 
 ### ✨ New Features
