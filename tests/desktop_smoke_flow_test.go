@@ -81,9 +81,8 @@ remotes:
 		"staging",
 		"db",
 		map[string]bool{
-			"sanitize":    true,
-			"excludeLogs": true,
-			"compress":    false,
+			"noNoise":  true,
+			"compress": false,
 		},
 	)
 	if !strings.Contains(planMessage, "Sync plan generated.") {
@@ -96,9 +95,7 @@ remotes:
 		"--destination",
 		"local",
 		"--db",
-		"--exclude",
-		".env",
-		"var/log/**",
+		"--no-noise",
 		"--plan",
 	} {
 		if !containsToken(capturedArgs, expectedArg) {

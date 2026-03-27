@@ -244,17 +244,15 @@ func BuildRemoteSyncPlanArgsForTest(remoteName string, preset string) ([]string,
 func BuildRemoteSyncPlanArgsWithOptionsForTest(
 	remoteName string,
 	preset string,
-	sanitize bool,
-	excludeLogs bool,
+	noNoise bool,
 	compress bool,
 ) ([]string, error) {
 	return buildRemoteSyncPlanArgsWithOptions(
 		remoteName,
 		preset,
 		map[string]bool{
-			"sanitize":    sanitize,
-			"excludeLogs": excludeLogs,
-			"compress":    compress,
+			"noNoise":  noNoise,
+			"compress": compress,
 		},
 	)
 }

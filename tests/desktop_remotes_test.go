@@ -144,7 +144,6 @@ func TestDesktopPkgBuildRemoteSyncPlanArgsWithOptionsForTest(t *testing.T) {
 		"staging",
 		"files",
 		true,
-		true,
 		false,
 	)
 	if err != nil {
@@ -157,9 +156,7 @@ func TestDesktopPkgBuildRemoteSyncPlanArgsWithOptionsForTest(t *testing.T) {
 		"--destination",
 		"local",
 		"--file",
-		"--exclude",
-		".env",
-		"var/log/**",
+		"--no-noise",
 		"--no-compress",
 		"--plan",
 	} {
@@ -173,7 +170,6 @@ func TestDesktopPkgBuildRemoteSyncPlanArgsWithOptionsForTest_DBIgnoresCompressTo
 	args, err := desktop.BuildRemoteSyncPlanArgsWithOptionsForTest(
 		"staging",
 		"db",
-		false,
 		false,
 		false,
 	)
@@ -212,7 +208,7 @@ func TestBuildPresetSyncOptionDefs_Media(t *testing.T) {
 	if len(opts.Options) != 3 {
 		t.Fatalf("expected 3 options, got %d", len(opts.Options))
 	}
-	if opts.Options[0].Key != "compress" || opts.Options[1].Key != "delete" || opts.Options[2].Key != "excludeLogs" {
+	if opts.Options[0].Key != "noNoise" || opts.Options[1].Key != "compress" || opts.Options[2].Key != "delete" {
 		t.Fatalf("unexpected options for media preset: %#v", opts.Options)
 	}
 }
@@ -222,8 +218,8 @@ func TestBuildPresetSyncOptionDefs_Full(t *testing.T) {
 	if opts.Command != "bootstrap" {
 		t.Fatalf("expected command 'bootstrap', got %s", opts.Command)
 	}
-	if len(opts.Options) != 11 {
-		t.Fatalf("expected 11 options, got %d", len(opts.Options))
+	if len(opts.Options) != 9 {
+		t.Fatalf("expected 9 options, got %d", len(opts.Options))
 	}
 }
 
