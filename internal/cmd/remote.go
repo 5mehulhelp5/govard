@@ -658,7 +658,7 @@ func ResolveAutoRemote(config engine.Config, requested string) (string, error) {
 		if remoteName, ok := findRemoteByNameOrEnvironment(config, requested); ok {
 			return remoteName, nil
 		}
-		return "", fmt.Errorf("unknown remote: %s", requested)
+		return "", fmt.Errorf("remote '%s' is not configured", requested)
 	}
 
 	// Priority: staging then dev

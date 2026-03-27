@@ -43,7 +43,7 @@ func TestResolveAutoRemote(t *testing.T) {
 				},
 			},
 			requested: "prod",
-			wantErr:   "unknown remote: prod",
+			wantErr:   "remote 'prod' is not configured",
 		},
 		{
 			name: "Auto-select staging (primary focus)",

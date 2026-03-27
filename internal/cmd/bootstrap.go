@@ -142,13 +142,6 @@ Note: -e/--environment accepts remote name aliases (e.g. 'dev' matches a remote 
 		}
 		configForObservability = config
 
-		resolvedRemote, err := ResolveAutoRemote(config, opts.Source)
-		if err != nil {
-			return err
-		}
-		opts.Source = resolvedRemote
-		operationSource = opts.Source
-
 		supportedFrameworks := []string{"magento2", "magento1", "openmage", "laravel", "symfony", "wordpress"}
 		if opts.Fresh {
 			supportedFrameworks = []string{"magento2", "magento1", "laravel", "symfony", "openmage", "drupal", "wordpress", "nextjs", "shopware", "cakephp"}
@@ -158,6 +151,16 @@ Note: -e/--environment accepts remote name aliases (e.g. 'dev' matches a remote 
 			return fmt.Errorf("bootstrap currently supports these project types: %s (detected: %s)",
 				strings.Join(supportedFrameworks, ", "), config.Framework)
 		}
+
+		var resolvedRemote string
+		if needsRemoteEnvironment(opts) || opts.Source != "" {
+			resolvedRemote, err = ResolveAutoRemote(config, opts.Source)
+			if err != nil {
+				return err
+			}
+			opts.Source = resolvedRemote
+		}
+		operationSource = opts.Source
 
 		maybeAutoDetectBootstrapVersion(config, &opts)
 
@@ -308,6 +311,15 @@ func stringSliceContains(slice []string, item string) bool {
 		}
 	}
 	return false
+}
+
+func needsRemoteEnvironment(opts bootstrapRuntimeOptions) bool {
+	if opts.Fresh || opts.Plan {
+		return false
+	}
+	// Remote is needed if we're cloning files, syncing media, or importing DB from remote.
+	// We skip the requirement if --db-dump is provided and other remote-dependent flags are off.
+	return opts.Clone || (opts.DBImport && opts.DBDump == "") || opts.MediaSync
 }
 
 func shouldRunFrameworkPostClone(config engine.Config, opts bootstrapRuntimeOptions) bool {

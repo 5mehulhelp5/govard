@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.32.0] - 2026-03-27
+
+### ✨ New Features
+
+- **Automated Remote Selection**: `bootstrap` and `sync` commands now automatically prioritize `staging` then `dev` environments if not specified.
+- **Blueprint Inspection**: New `blueprint` command for enhanced environment fingerprinting and template review.
+- **Lock UX Enhancements**: Added `lock diff` command and `--update-lock` flag to `env up` for easier dependency tracking.
+- **Compose Hygiene**: Introduced background cleanup for stale Docker Compose files and a new `env cleanup` command to manage directory saturation.
+
+### 🛠 Improvements
+
+- **Intelligent Update Notifier**: Refined update checks to suppress redundant warnings for development and pre-release builds.
+- **Doctor Diagnostics**: Enhanced `govard doctor` with new checks for Docker Compose storage health.
+
+### 🐛 Bug Fixes
+
+- **CLI Stability**: Resolved various minor edge cases in command execution and internal configuration layering.
+
 ## [1.31.0] - 2026-03-27
 
 ### ✨ New Features

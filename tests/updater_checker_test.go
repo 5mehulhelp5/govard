@@ -47,20 +47,20 @@ func TestShouldNotifyUpdateForTest(t *testing.T) {
 		},
 		{
 			name:           "dev build of same version",
-			currentVersion: "1.31.0-2-gf2a0be7",
-			latestTag:      "v1.31.0",
+			currentVersion: "1.1.0-2-gf2a0be7",
+			latestTag:      "v1.1.0",
 			want:           false,
 		},
 		{
 			name:           "dev build of newer version available",
-			currentVersion: "1.31.0-dev",
-			latestTag:      "v1.32.0",
+			currentVersion: "1.1.0-dev",
+			latestTag:      "v1.2.0",
 			want:           true,
 		},
 		{
 			name:           "pre-release build of same version",
-			currentVersion: "1.31.0-beta1",
-			latestTag:      "v1.31.0",
+			currentVersion: "1.1.0-beta1",
+			latestTag:      "v1.1.0",
 			want:           false,
 		},
 	}
