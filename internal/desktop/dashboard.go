@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -174,6 +175,7 @@ func buildDashboardInternal() (Dashboard, error) {
 					env.Database = formatDatabase(info.config.Stack.DBType, info.config.Stack.DBVersion)
 					env.Services = deriveServices(info.config, info.serviceState)
 					env.ServiceTargets = collectServiceTargetsFromServices(info, env.Services)
+					env.GitBranch = getGitBranch(ent.Path)
 					env.Technologies = buildTechnologies(env)
 					if ent.Domain != "" {
 						env.Name = ent.Domain
@@ -445,6 +447,12 @@ func buildEnvironment(info *projectInfo) Environment {
 		env.ServiceTargets = collectServiceTargets(info)
 	}
 
+	if info.workingDir != "" {
+		env.GitBranch = getGitBranch(info.workingDir)
+	} else if info.configPath != "" {
+		env.GitBranch = getGitBranch(filepath.Dir(info.configPath))
+	}
+
 	env.Technologies = buildTechnologies(env)
 
 	return env
@@ -581,4 +589,17 @@ func loadProjectInfo(project string) (*projectInfo, error) {
 
 	_ = loadProjectConfig(info)
 	return info, nil
+}
+
+func getGitBranch(workingDir string) string {
+	if workingDir == "" {
+		return ""
+	}
+	cmd := exec.Command("git", "branch", "--show-current")
+	cmd.Dir = workingDir
+	out, err := cmd.Output()
+	if err == nil {
+		return strings.TrimSpace(string(out))
+	}
+	return ""
 }

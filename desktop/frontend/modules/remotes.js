@@ -183,7 +183,7 @@ export const renderRemotes = (container, remotes = []) => {
       const authMethodLabel = formatAuthMethodLabel(remote.authMethod);
 
       return `
-      <div class="glass-card rounded-xl p-0 overflow-hidden group mb-6 border ${borderColor} dark:bg-card-bg">
+      <div class="remote-card-hover glass-card rounded-xl p-0 overflow-hidden group mb-6 border ${borderColor} dark:bg-card-bg cursor-pointer transition-all hover:scale-[1.01] hover:border-primary/50" data-remote-name="${escapeHTML(remote.name)}" data-remote-host="${escapeHTML(remote.host)}" data-remote-protected="${isProtected ? 'true' : 'false'}">
         <div class="p-6 pb-4 border-b border-border-primary dark:border-[var(--bg-secondary)] bg-gradient-to-r from-surface-primary to-surface-primary/50 dark:from-[var(--surface-primary)] dark:to-[var(--surface-primary)]/50 relative overflow-hidden">
           <div class="relative z-10 flex flex-col gap-4">
             <div class="flex items-start justify-between gap-4">
@@ -279,6 +279,17 @@ export const renderRemotes = (container, remotes = []) => {
     })
     .join("");
 
+  const defaultRemote = remotes[0];
+  const defaultRemoteName = defaultRemote ? escapeHTML(defaultRemote.name) : "No Remotes";
+  const defaultRemoteHost = defaultRemote ? escapeHTML(defaultRemote.host || defaultRemote.name) : "Configure in Govard";
+  const isDefaultProtected = defaultRemote && defaultRemote.protected;
+  const centerRingColor = isDefaultProtected ? 'border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)]';
+  const centerIconColor = isDefaultProtected ? 'text-amber-500' : 'text-blue-500';
+  const centerIcon = isDefaultProtected ? 'gpp_bad' : 'cloud_sync';
+  const sourceBorderColor = isDefaultProtected ? 'border-amber-500/40' : 'border-blue-500/30';
+  const sourceBadgeBg = isDefaultProtected ? 'bg-amber-600 dark:bg-amber-500' : 'bg-blue-600 dark:bg-blue-500';
+  const sourceBadgeBorder = isDefaultProtected ? 'border-amber-400' : 'border-blue-400';
+
   container.innerHTML = `
     <div class="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
       <div class="lg:col-span-3 space-y-6">
@@ -290,39 +301,40 @@ export const renderRemotes = (container, remotes = []) => {
         ${cardsHtml}
       </div>
       <div class="lg:col-span-2">
-        <div class="sticky top-6 flex flex-col items-center justify-center bg-white dark:bg-background-primary border border-border-primary rounded-xl overflow-hidden shadow-xl py-8">
+        <div class="sticky top-6 flex flex-col items-center justify-center bg-white dark:bg-background-primary border border-border-primary rounded-xl overflow-hidden shadow-xl py-10">
             <div class="absolute inset-0 z-0 opacity-10" style="background-image: radial-gradient(var(--primary) 1px, transparent 1px); background-size: 20px 20px;"></div>
             <div class="relative z-10 w-full max-w-[200px]">
-              <div class="bg-surface-primary border border-blue-500/30 rounded-lg p-4 shadow-lg shadow-blue-500/5 relative">
-                <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 dark:bg-blue-500 px-3 py-0.5 text-[10px] text-white border border-blue-400 rounded-full uppercase font-black tracking-wider shadow-sm">Source</div>
+              <div id="visual-source-box" class="bg-surface-primary border ${sourceBorderColor} rounded-lg p-4 shadow-lg shadow-blue-500/5 relative transition-colors duration-300">
+                <div id="visual-source-badge" class="absolute -top-3 left-1/2 -translate-x-1/2 ${sourceBadgeBg} px-3 py-0.5 text-[10px] text-white border ${sourceBadgeBorder} rounded-full uppercase font-black tracking-wider shadow-sm transition-colors duration-300">Source</div>
                 <div class="flex items-center justify-center gap-3">
-                  <span class="material-symbols-outlined text-blue-400 text-3xl">cloud</span>
-                  <div class="text-left">
-                    <div class="text-slate-900 dark:text-white text-sm font-black">Remote</div>
-                    <div class="text-slate-600 dark:text-slate-500 text-xs">Dev/Staging/Prod</div>
+                  <span class="material-symbols-outlined text-blue-400 text-3xl shrink-0">cloud</span>
+                  <div class="text-left min-w-0 flex-1">
+                    <div id="visual-source-name" class="text-slate-900 dark:text-white text-sm font-black truncate" title="${defaultRemoteName}">${defaultRemoteName}</div>
+                    <div id="visual-source-host" class="text-slate-600 dark:text-slate-500 text-[10px] truncate" title="${defaultRemoteHost}">${defaultRemoteHost}</div>
                   </div>
                 </div>
               </div>
             </div>
-            <div class="h-12 w-px dashed-line relative my-2">
-              <div class="absolute top-0 left-1/2 -translate-x-1/2 -ml-[2px] w-1 h-3 bg-primary rounded-full animate-[bounce_2s_infinite]"></div>
+            <div class="h-8 w-px relative my-1 dashed-line bg-gradient-to-b from-transparent via-border-primary to-transparent">
+              <div class="absolute top-0 left-1/2 -translate-x-1/2 -ml-[2px] w-[5px] h-6 bg-primary rounded-full animate-[bounce_1.5s_infinite]"></div>
             </div>
             <div class="relative z-10">
-              <div class="bg-surface-secondary border border-[#366b47] rounded-full h-12 w-12 flex items-center justify-center shadow-[0_0_15px_rgba(13,242,89,0.2)]">
-                <span class="material-symbols-outlined text-primary animate-pulse">lock_open</span>
+              <div id="visual-center-ring" class="bg-surface-secondary border rounded-full h-12 w-12 flex items-center justify-center transition-all duration-300 ${centerRingColor}">
+                <span id="visual-center-icon" class="material-symbols-outlined text-2xl transition-colors duration-300 ${centerIconColor}">${centerIcon}</span>
               </div>
             </div>
-            <div class="h-12 w-px dashed-line relative my-2">
-              <div class="absolute bottom-0 left-1/2 -translate-x-1/2 -ml-[2px] w-1 h-3 bg-primary rounded-full animate-[bounce_2s_infinite_reverse]"></div>
+            <div class="h-8 w-px relative my-1 dashed-line bg-gradient-to-b from-transparent via-border-primary to-transparent">
+              <div class="absolute top-0 left-1/2 -translate-x-1/2 -ml-[2px] w-[5px] h-6 bg-primary rounded-full animate-[bounce_1.5s_infinite] delay-300"></div>
             </div>
-            <div class="relative z-10 w-full max-w-[200px]">
+            <div class="relative z-10 w-full max-w-[200px] group/dest">
               <div class="bg-background-secondary border border-primary/40 rounded-lg p-4 shadow-lg shadow-primary/10 relative">
+                <div class="absolute inset-0 bg-primary/5 opacity-0 group-hover/dest:opacity-100 animate-pulse transition-opacity rounded-lg"></div>
                 <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 dark:bg-primary px-3 py-0.5 text-[10px] text-slate-900 border border-emerald-400 dark:border-transparent rounded-full uppercase font-black tracking-wider shadow-sm">Destination</div>
                 <div class="flex items-center justify-center gap-3">
-                  <span class="material-symbols-outlined text-primary text-3xl">laptop_mac</span>
-                  <div class="text-left">
-                    <div class="text-slate-900 dark:text-white text-sm font-black">Local App</div>
-                    <div class="text-slate-600 dark:text-slate-500 text-xs">Your Machine</div>
+                  <span class="material-symbols-outlined text-primary text-3xl px-1 relative z-10 shrink-0">laptop_mac</span>
+                  <div class="text-left relative z-10 min-w-0 flex-1">
+                    <div class="text-slate-900 dark:text-white text-sm font-black truncate" title="local">local</div>
+                    <div class="text-slate-600 dark:text-slate-500 text-[10px] truncate" title="Your Machine">Your Machine</div>
                   </div>
                 </div>
               </div>
@@ -332,6 +344,69 @@ export const renderRemotes = (container, remotes = []) => {
       </div>
     </div>
   `;
+
+  // Attach hover event listeners
+  if (typeof container.querySelectorAll !== 'function') return;
+  const cards = container.querySelectorAll('.remote-card-hover');
+  const visualName = container.querySelector('#visual-source-name');
+  const visualHost = container.querySelector('#visual-source-host');
+  const visualRing = container.querySelector('#visual-center-ring');
+  const visualIcon = container.querySelector('#visual-center-icon');
+  const visualBox = container.querySelector('#visual-source-box');
+  const visualBadge = container.querySelector('#visual-source-badge');
+
+  cards.forEach((card) => {
+    card.addEventListener('mouseenter', () => {
+      const isProtected = card.dataset.remoteProtected === 'true';
+      if(visualName) visualName.textContent = card.dataset.remoteName;
+      if(visualHost) visualHost.textContent = card.dataset.remoteHost;
+      
+      if(visualRing) {
+         visualRing.className = isProtected 
+             ? 'bg-surface-secondary border rounded-full h-12 w-12 flex items-center justify-center transition-all duration-300 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+             : 'bg-surface-secondary border rounded-full h-12 w-12 flex items-center justify-center transition-all duration-300 border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)]';
+      }
+      if(visualIcon) {
+         visualIcon.className = `material-symbols-outlined text-2xl transition-colors duration-300 ${isProtected ? 'text-amber-500' : 'text-blue-500'}`;
+         visualIcon.textContent = isProtected ? 'gpp_bad' : 'cloud_sync';
+      }
+      if(visualBox && isProtected) {
+         visualBox.classList.replace('border-blue-500/30', 'border-amber-500/40');
+         visualBadge.classList.replace('bg-blue-600', 'bg-amber-600');
+         visualBadge.classList.replace('dark:bg-blue-500', 'dark:bg-amber-500');
+         visualBadge.classList.replace('border-blue-400', 'border-amber-400');
+      } else if(visualBox && !isProtected) {
+         visualBox.classList.replace('border-amber-500/40', 'border-blue-500/30');
+         visualBadge.classList.replace('bg-amber-600', 'bg-blue-600');
+         visualBadge.classList.replace('dark:bg-amber-500', 'dark:bg-blue-500');
+         visualBadge.classList.replace('border-amber-400', 'border-blue-400');
+      }
+    });
+
+    card.addEventListener('mouseleave', () => {
+      // Revert to default
+      if(visualName) visualName.textContent = defaultRemoteName;
+      if(visualHost) visualHost.textContent = defaultRemoteHost;
+      if(visualRing) visualRing.className = `bg-surface-secondary border rounded-full h-12 w-12 flex items-center justify-center transition-all duration-300 ${centerRingColor}`;
+      if(visualIcon) {
+         visualIcon.className = `material-symbols-outlined text-2xl transition-colors duration-300 ${centerIconColor}`;
+         visualIcon.textContent = centerIcon;
+      }
+      if(visualBox) {
+         if (isDefaultProtected) {
+            visualBox.classList.replace('border-blue-500/30', 'border-amber-500/40');
+            visualBadge.classList.replace('bg-blue-600', 'bg-amber-600');
+            visualBadge.classList.replace('dark:bg-blue-500', 'dark:bg-amber-500');
+            visualBadge.classList.replace('border-blue-400', 'border-amber-400');
+         } else {
+            visualBox.classList.replace('border-amber-500/40', 'border-blue-500/30');
+            visualBadge.classList.replace('bg-amber-600', 'bg-blue-600');
+            visualBadge.classList.replace('dark:bg-amber-500', 'dark:bg-blue-500');
+            visualBadge.classList.replace('border-amber-400', 'border-blue-400');
+         }
+      }
+    });
+  });
 };
 
 const safeRemotes = {

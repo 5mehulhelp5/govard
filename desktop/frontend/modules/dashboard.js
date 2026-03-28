@@ -536,6 +536,18 @@ export const renderProjectHero = (
     }
   }
 
+  const gitBranch = env.GitBranch || env.gitBranch || "";
+  const gitBranchBadge = document.getElementById("projectGitBranchBadge");
+  const gitBranchText = document.getElementById("projectGitBranchText");
+  if (gitBranchBadge && gitBranchText) {
+    if (gitBranch) {
+      gitBranchText.textContent = gitBranch;
+      gitBranchBadge.classList.remove("hidden");
+    } else {
+      gitBranchBadge.classList.add("hidden");
+    }
+  }
+
   if (refs.projectUrl) {
     refs.projectUrl.href = url || "#";
     refs.projectUrl.dataset.action = "env-open";
