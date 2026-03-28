@@ -20,7 +20,7 @@ Common command aliases:
 - `govard gui` -> `govard desktop`
 - `govard diag` -> `govard doctor`
 - `govard ext` -> `govard extensions`
-- `govard prj` -> `govard projects`
+- `govard prj` -> `govard project`
 - `govard rmt` -> `govard remote`
 - `govard sh` -> `govard shell`
 - `govard snap` -> `govard snapshot`

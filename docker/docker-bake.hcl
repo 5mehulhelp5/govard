@@ -114,7 +114,7 @@ target "php" {
   context    = "docker/php"
   dockerfile = "Dockerfile"
   matrix = {
-    version = ["8.4", "8.3", "8.2", "8.1", "7.4", "7.3", "7.2", "7.1"]
+    version = ["8.5", "8.4", "8.3", "8.2", "8.1", "7.4", "7.3", "7.2", "7.1", "7.0", "5.6"]
   }
   args = {
     PHP_VERSION = version
@@ -128,7 +128,10 @@ target "php-magento2" {
   context    = "docker/php"
   dockerfile = "magento2/Dockerfile"
   matrix = {
-    version = ["8.4", "8.3", "8.2", "8.1", "7.4", "7.3", "7.2", "7.1"]
+    version = ["8.5", "8.4", "8.3", "8.2", "8.1", "7.4", "7.3", "7.2"]
+  }
+  contexts = {
+    "${DOCKER_ORG}php:${version}" = "target:php-${replace(version, ".", "-")}"
   }
   args = {
     PHP_VERSION             = version
@@ -143,10 +146,13 @@ target "php-debug" {
   context    = "docker/php"
   dockerfile = "debug/Dockerfile"
   matrix = {
-    version = ["8.4", "8.3", "8.2", "8.1", "7.4", "7.3", "7.2", "7.1"]
+    version = ["8.5", "8.4", "8.3", "8.2", "8.1", "7.4", "7.3", "7.2", "7.1", "7.0", "5.6"]
   }
   args = {
     BASE_IMAGE = "${DOCKER_ORG}php:${version}"
+  }
+  contexts = {
+    "${DOCKER_ORG}php:${version}" = "target:php-${replace(version, ".", "-")}"
   }
   tags = ["${DOCKER_ORG}php:${version}-debug"]
 }
@@ -157,10 +163,13 @@ target "php-magento2-debug" {
   context    = "docker/php"
   dockerfile = "debug/Dockerfile"
   matrix = {
-    version = ["8.4", "8.3", "8.2", "8.1", "7.4", "7.3", "7.2", "7.1"]
+    version = ["8.5", "8.4", "8.3", "8.2", "8.1", "7.4", "7.3", "7.2"]
   }
   args = {
     BASE_IMAGE = "${DOCKER_ORG}php-magento2:${version}"
+  }
+  contexts = {
+    "${DOCKER_ORG}php-magento2:${version}" = "target:php-magento2-${replace(version, ".", "-")}"
   }
   tags = ["${DOCKER_ORG}php-magento2:${version}-debug"]
 }

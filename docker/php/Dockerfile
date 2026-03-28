@@ -24,6 +24,8 @@ RUN set -eux; \
     if [ "$PHP_VERSION_INT" -ge 74 ]; then ONIGURUMA="oniguruma-dev"; fi; \
     SSL_LIB="openssl-dev"; \
     if [ "$PHP_VERSION_INT" -lt 72 ]; then SSL_LIB="libressl-dev"; fi; \
+    CRON_PKG="cronie"; \
+    if [ "$PHP_VERSION_INT" -lt 73 ]; then CRON_PKG="dcron"; fi; \
     apk add --no-cache \
     freetype-dev \
     libjpeg-turbo-dev \
@@ -51,7 +53,7 @@ RUN set -eux; \
     unzip \
     bash \
     sudo \
-    cronie \
+    $CRON_PKG \
     linux-headers \
     patch \
     openssh-client \
@@ -71,11 +73,21 @@ RUN set -eux; \
     else \
     docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/; \
     fi; \
-    CORE_EXTS="bcmath bz2 calendar exif gd gettext gmp intl mysqli opcache pdo_mysql soap sockets xsl zip pcntl ftp"; \
     if [ "$PHP_VERSION_INT" -ge 72 ]; then \
-    CORE_EXTS="$CORE_EXTS sodium"; \
+    libsodium_opt="sodium"; \
+    else \
+    libsodium_opt=""; \
     fi; \
-    docker-php-ext-install -j$(nproc) $CORE_EXTS
+    WANTED_EXTS="bcmath bz2 calendar exif gd gettext gmp intl mysqli opcache pdo_mysql soap sockets xsl zip pcntl ftp $libsodium_opt"; \
+    MISSING_EXTS=""; \
+    for ext in $WANTED_EXTS; do \
+    if ! php -m | grep -qiE "^($ext|Zend $ext)$"; then \
+    MISSING_EXTS="$MISSING_EXTS $ext"; \
+    fi; \
+    done; \
+    if [ -n "$MISSING_EXTS" ]; then \
+    docker-php-ext-install -j$(nproc) $MISSING_EXTS; \
+    fi
 
 # Install PECL extensions
 RUN set -eux; \
@@ -85,6 +97,7 @@ RUN set -eux; \
     AMQP_VERSION="amqp"; \
     if [ "$PHP_VERSION_INT" -lt 74 ]; then \
     REDIS_VERSION="redis-5.3.7"; \
+    AMQP_VERSION="amqp-1.11.0"; \
     fi; \
     if [ "$PHP_VERSION_INT" -lt 72 ]; then \
     REDIS_VERSION="redis-4.3.0"; \
@@ -92,8 +105,10 @@ RUN set -eux; \
     if [ "$PHP_VERSION_INT" -lt 73 ]; then \
     IMAGICK_VERSION="imagick-3.4.4"; \
     fi; \
-    if [ "$PHP_VERSION_INT" -lt 74 ]; then \
-    AMQP_VERSION="amqp-1.11.0"; \
+    if [ "$PHP_VERSION_INT" -lt 70 ]; then \
+    REDIS_VERSION="redis-2.2.8"; \
+    IMAGICK_VERSION="imagick-3.4.4"; \
+    AMQP_VERSION="amqp-1.9.4"; \
     fi; \
     pecl install $REDIS_VERSION $IMAGICK_VERSION $AMQP_VERSION; \
     if [ "$PHP_VERSION_INT" -ge 70 ] && [ "$PHP_VERSION_INT" -lt 72 ]; then \
@@ -103,7 +118,13 @@ RUN set -eux; \
     docker-php-ext-enable redis imagick amqp
 
 # Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+RUN set -eux; \
+    PHP_VERSION_INT=$(echo $PHP_VERSION | cut -d. -f1,2 | tr -d .); \
+    if [ "$PHP_VERSION_INT" -lt 70 ]; then \
+    curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer --version=2.2.24; \
+    else \
+    curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer; \
+    fi
 
 # Install Mailpit sendmail as a replacement for mhsendmail
 RUN curl -sL https://raw.githubusercontent.com/axllent/mailpit/develop/install.sh | sh
