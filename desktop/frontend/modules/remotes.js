@@ -339,6 +339,26 @@ export const renderRemotes = (container, remotes = []) => {
                 </div>
               </div>
             </div>
+
+            <!-- Dashed line connecting Dest to Output -->
+            <div id="visual-sync-progress-line" class="h-6 w-px relative mt-2 dashed-line bg-gradient-to-b from-transparent via-border-primary to-transparent hidden">
+              <div class="absolute top-0 left-1/2 -translate-x-1/2 -ml-[2px] w-[5px] h-4 bg-primary rounded-full animate-[bounce_1.5s_infinite] delay-500"></div>
+            </div>
+
+            <!-- Sync Terminal Console -->
+            <div id="visual-sync-progress-container" class="mt-2 w-full max-w-2xl px-4 transition-all duration-500 hidden opacity-0 translate-y-4">
+              <div class="bg-slate-50 dark:bg-black/60 border border-slate-300 dark:border-slate-700/50 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] dark:shadow-2xl flex flex-col h-[400px] overflow-hidden relative group">
+                <div class="flex items-center justify-end px-4 py-3 shrink-0">
+                  <div class="flex items-center gap-1.5 opacity-80">
+                    <span class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_1px_2px_rgba(0,0,0,0.1)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3)] border border-black/5 dark:border-transparent"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_1px_2px_rgba(0,0,0,0.1)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3)] border border-black/5 dark:border-transparent"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-slate-400 dark:bg-slate-600 shadow-[0_1px_2px_rgba(0,0,0,0.1)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3)] transition-colors border border-black/5 dark:border-transparent" id="visual-sync-indicator"></span>
+                  </div>
+                </div>
+                <div id="visual-sync-terminal" class="px-5 pb-5 text-[11px] font-mono whitespace-pre-wrap leading-relaxed flex-1 overflow-y-auto w-full transition-colors break-words text-slate-700 dark:text-[#cdd6f4] selection:bg-slate-200 dark:selection:bg-primary/30"></div>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>

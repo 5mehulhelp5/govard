@@ -499,10 +499,23 @@ const runRemoteSyncWithProgressToast = async ({
   preset,
   config = {},
 }) => {
-  const streamingToast = toast.showStreaming(
-    getSyncPresetLabel(preset, remoteName),
-    "info",
-  );
+  const visualContainer = document.getElementById("visual-sync-progress-container");
+  const visualTerminal = document.getElementById("visual-sync-terminal");
+  const visualIndicator = document.getElementById("visual-sync-indicator");
+  const visualLine = document.getElementById("visual-sync-progress-line");
+
+  if (visualContainer && visualTerminal) {
+    if (visualLine) visualLine.classList.remove("hidden");
+    visualContainer.classList.remove("hidden");
+    // Trigger reflow to ensure CSS transition works
+    void visualContainer.offsetWidth;
+    visualContainer.classList.remove("opacity-0", "translate-y-4");
+    visualTerminal.textContent = "   Starting Sync Process\n   ---------------------\n";
+    visualTerminal.className = "px-5 pb-5 text-[11px] font-mono text-emerald-700 dark:text-emerald-400 whitespace-pre-wrap leading-relaxed flex-1 overflow-y-auto w-full transition-colors break-words text-slate-700 dark:text-[#cdd6f4] selection:bg-slate-200 dark:selection:bg-primary/30";
+    if (visualIndicator) {
+      visualIndicator.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse border border-black/5 dark:border-transparent shadow-[0_1px_2px_rgba(0,0,0,0.1)] dark:shadow-[0_0_8px_rgba(16,185,129,0.5)]";
+    }
+  }
 
   let offStream;
   let offCompleted;
@@ -511,6 +524,9 @@ const runRemoteSyncWithProgressToast = async ({
     if (offStream) offStream();
     if (offCompleted) offCompleted();
     if (offFailed) offFailed();
+    if (visualIndicator) {
+      visualIndicator.classList.remove("animate-pulse");
+    }
   };
 
   if (desktopBridge.runtime?.EventsOn) {
@@ -519,16 +535,29 @@ const runRemoteSyncWithProgressToast = async ({
       if (!normalized) {
         return;
       }
-      if (streamingToast) streamingToast.update(normalized);
+      if (visualTerminal) {
+        visualTerminal.textContent += normalized + "\n";
+        visualTerminal.scrollTop = visualTerminal.scrollHeight;
+      }
     });
     offCompleted = desktopBridge.runtime.EventsOn("sync:completed", (msg) => {
       const finalMessage = sanitizeSyncToastLine(msg) || "Sync completed ✔";
-      if (streamingToast) streamingToast.close(finalMessage, "success");
+      if (visualTerminal) {
+        visualTerminal.textContent += "\n[SUCCESS] " + finalMessage + "\n";
+        visualTerminal.scrollTop = visualTerminal.scrollHeight;
+      }
       cleanup();
     });
     offFailed = desktopBridge.runtime.EventsOn("sync:failed", (msg) => {
       const finalMessage = sanitizeSyncToastLine(msg) || "Sync failed";
-      if (streamingToast) streamingToast.close(finalMessage, "error");
+      if (visualTerminal) {
+        visualTerminal.className = "px-5 pb-5 text-[11px] font-mono text-rose-700 dark:text-rose-400 whitespace-pre-wrap leading-relaxed flex-1 overflow-y-auto w-full transition-colors break-words text-slate-700 dark:text-[#cdd6f4] selection:bg-slate-200 dark:selection:bg-primary/30";
+        visualTerminal.textContent += "\n[FAILED] " + finalMessage + "\n";
+        visualTerminal.scrollTop = visualTerminal.scrollHeight;
+      }
+      if (visualIndicator) {
+        visualIndicator.className = "w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_1px_2px_rgba(0,0,0,0.1)] dark:shadow-[0_0_10px_rgba(244,63,94,0.6)] border border-black/5 dark:border-transparent";
+      }
       cleanup();
     });
   }
@@ -542,7 +571,14 @@ const runRemoteSyncWithProgressToast = async ({
 
   if (result && result.startsWith("Remote sync background process failed:")) {
     const normalized = sanitizeSyncToastLine(result) || "Sync failed";
-    if (streamingToast) streamingToast.close(normalized, "error");
+    if (visualTerminal) {
+      visualTerminal.className = "px-5 pb-5 text-[11px] font-mono text-rose-700 dark:text-rose-400 whitespace-pre-wrap leading-relaxed flex-1 overflow-y-auto w-full transition-colors break-words text-slate-700 dark:text-[#cdd6f4] selection:bg-slate-200 dark:selection:bg-primary/30";
+      visualTerminal.textContent += "\n[FAILED] " + normalized + "\n";
+      visualTerminal.scrollTop = visualTerminal.scrollHeight;
+    }
+    if (visualIndicator) {
+        visualIndicator.className = "w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_1px_2px_rgba(0,0,0,0.1)] dark:shadow-[0_0_10px_rgba(244,63,94,0.6)] border border-black/5 dark:border-transparent";
+    }
     cleanup();
   }
 };
