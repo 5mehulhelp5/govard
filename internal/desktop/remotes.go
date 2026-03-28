@@ -1183,8 +1183,8 @@ func buildPresetSyncOptionDefs(project, preset string) presetSyncOptions {
 		}
 	case "media":
 		opts := []presetOptionDef{
-			{Key: "noNoise", Label: "Exclude Noise", Description: "Exclude logs and sensitive configs (.env, keys, etc)", DefaultValue: true},
-			{Key: "compress", Label: "Use Compression", Description: "Compress data during transfer", DefaultValue: true},
+			{Key: "noNoise", Label: "Exclude Noise", Description: "Exclude logs and sensitive configs (.env, keys, etc)", DefaultValue: false},
+			{Key: "compress", Label: "Use Compression", Description: "Compress data during transfer", DefaultValue: false},
 			{Key: "delete", Label: "Delete Missing Files", Description: "Delete files on destination that are missing on source", DefaultValue: false},
 		}
 		return presetSyncOptions{
@@ -1227,8 +1227,8 @@ func buildPresetSyncOptionDefs(project, preset string) presetSyncOptions {
 	default:
 		// Fallback for "files" or unknown presets
 		opts := []presetOptionDef{
-			{Key: "noNoise", Label: "Exclude Noise", Description: "Exclude logs and sensitive configs (.env, keys, etc)", DefaultValue: true},
-			{Key: "compress", Label: "Use Compression", Description: "Compress data during transfer", DefaultValue: true},
+			{Key: "noNoise", Label: "Exclude Noise", Description: "Exclude logs and sensitive configs (.env, keys, etc)", DefaultValue: false},
+			{Key: "compress", Label: "Use Compression", Description: "Compress data during transfer", DefaultValue: false},
 			{Key: "delete", Label: "Delete Missing Files", Description: "Delete files on destination missing on source", DefaultValue: false},
 		}
 		return presetSyncOptions{

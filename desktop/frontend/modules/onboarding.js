@@ -180,9 +180,9 @@ const frameworkVersionPlaceholderByFramework = {
 
 const defaultServiceOptions = {
   varnish: false,
-  redis: true,
+  redis: false,
   rabbitmq: false,
-  elasticsearch: true,
+  elasticsearch: false,
 };
 
 export const createOnboardingController = ({
@@ -644,7 +644,7 @@ export const createOnboardingController = ({
 
     let optionsDef = [];
     try {
-      const payload = await bridge.getSyncPresetOptions("full");
+      const payload = await bridge.getSyncPresetOptions(projectPath, "full");
       optionsDef = Array.isArray(payload?.options) ? payload.options : [];
     } catch (_err) {
       optionsDef = [];
@@ -789,7 +789,8 @@ export const createOnboardingController = ({
       }
 
       if (typeof onSelectProject === "function") {
-        await onSelectProject(preview.projectPath);
+        const projectName = inferProjectNameFromPath(preview.projectPath);
+        await onSelectProject(projectName);
       }
       toggleModal(false);
     } catch (err) {
@@ -803,7 +804,8 @@ export const createOnboardingController = ({
   const skipBootstrapPrompt = async () => {
     closeBootstrapPrompt();
     if (typeof onSelectProject === "function") {
-      await onSelectProject(pendingBootstrapContext.projectPath);
+      const projectName = inferProjectNameFromPath(pendingBootstrapContext.projectPath);
+      await onSelectProject(projectName);
     }
     toggleModal(false);
     onStatus("Onboarding complete. Bootstrap skipped.");

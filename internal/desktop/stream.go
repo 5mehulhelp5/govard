@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -230,17 +231,56 @@ func scanLogPipe(ctx context.Context, pipe interface{}, event string, done chan<
 	buf := make([]byte, 64*1024)
 	scanner.Buffer(buf, maxLogLine)
 
-	for scanner.Scan() {
-		line := sanitizeStreamLine(scanner.Bytes())
-		if strings.TrimSpace(line) == "" {
-			continue
+	// Throttle: batch lines and emit at most every 150ms to prevent IPC saturation
+	// which causes WebKitWebProcess crashes on high-volume syncs (e.g. large DB imports).
+	const (
+		flushInterval = 150 * time.Millisecond
+		maxBatchSize  = 50
+	)
+	var batch []string
+	ticker := time.NewTicker(flushInterval)
+	defer ticker.Stop()
+
+	flushBatch := func() {
+		if len(batch) == 0 {
+			return
 		}
-		runtime.EventsEmit(ctx, event, line)
+		runtime.EventsEmit(ctx, event, strings.Join(batch, "\n"))
+		batch = batch[:0]
 	}
-	if err := scanner.Err(); err != nil {
-		runtime.EventsEmit(ctx, "logs:error", "Log scanner error: "+err.Error())
+
+	linesCh := make(chan string, 512)
+	go func() {
+		for scanner.Scan() {
+			line := sanitizeStreamLine(scanner.Bytes())
+			if strings.TrimSpace(line) == "" {
+				continue
+			}
+			linesCh <- line
+		}
+		if err := scanner.Err(); err != nil {
+			runtime.EventsEmit(ctx, "logs:error", "Log scanner error: "+err.Error())
+		}
+		close(linesCh)
+	}()
+
+	for {
+		select {
+		case line, ok := <-linesCh:
+			if !ok {
+				// Scanner finished — flush remaining and signal done
+				flushBatch()
+				done <- struct{}{}
+				return
+			}
+			batch = append(batch, line)
+			if len(batch) >= maxBatchSize {
+				flushBatch()
+			}
+		case <-ticker.C:
+			flushBatch()
+		}
 	}
-	done <- struct{}{}
 }
 
 func sanitizeStreamLine(raw []byte) string {

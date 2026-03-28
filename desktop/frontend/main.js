@@ -531,18 +531,44 @@ const runRemoteSyncWithProgressToast = async ({
     }
   };
 
-  if (desktopBridge.runtime?.EventsOn) {
-    offStream = desktopBridge.runtime.EventsOn("sync:output", (line) => {
-      const normalized = sanitizeSyncToastLine(line);
-      if (!normalized) {
-        return;
+  const MAX_PROGRESS_LINES = 300;
+  let progressLines = [];
+
+  const flushProgressLines = () => {
+    if (visualLine) {
+      visualLine.textContent = progressLines.join("\n");
+      if (visualViewport) {
+        visualViewport.scrollTop = visualViewport.scrollHeight;
       }
-      if (visualLine) {
-        visualLine.textContent += normalized + "\n";
-        if (visualViewport) {
-          visualViewport.scrollTop = visualViewport.scrollHeight;
+    }
+  };
+
+  if (desktopBridge.runtime?.EventsOn) {
+    offStream = desktopBridge.runtime.EventsOn("sync:output", (payload) => {
+      // Go backend now sends batched lines joined by \n to throttle IPC events
+      const rawBatch = String(payload ?? "");
+      const batchLines = rawBatch.split("\n");
+
+      for (const raw of batchLines) {
+        // Handle carriage-return overwrite: keep only what's after the last \r
+        const crParts = raw.split("\r");
+        const lastPart = crParts[crParts.length - 1];
+        const normalized = sanitizeSyncToastLine(lastPart);
+        if (!normalized) continue;
+
+        const usesCarriageReturn = crParts.length > 1;
+        if (usesCarriageReturn && progressLines.length > 0) {
+          // Overwrite the last line (terminal-style \r behavior)
+          progressLines[progressLines.length - 1] = normalized;
+        } else {
+          progressLines.push(normalized);
+          // Cap the buffer to avoid OOM on very large syncs
+          if (progressLines.length > MAX_PROGRESS_LINES) {
+            progressLines = progressLines.slice(-MAX_PROGRESS_LINES);
+          }
         }
       }
+      flushProgressLines();
     });
 
     offCompleted = desktopBridge.runtime.EventsOn("sync:completed", (msg) => {
@@ -628,9 +654,14 @@ const resolveSyncConfigForPreset = async (preset) => {
 
 const selectProject = async (project) => {
   if (!project) return;
-  setState({ selectedProject: project });
-  if (refs.envSelector) refs.envSelector.value = project;
-  if (refs.logSelector) refs.logSelector.value = project;
+  // Normalize: if it's a path, use basename
+  const normalized = project.includes("/") || project.includes("\\") 
+    ? project.split(/[\\/]+/).filter(Boolean).pop() 
+    : project;
+
+  setState({ selectedProject: normalized });
+  if (refs.envSelector) refs.envSelector.value = normalized;
+  if (refs.logSelector) refs.logSelector.value = normalized;
 
   await switchSidebarMode("environments", { silent: true, skipLogs: true });
 
@@ -1252,14 +1283,15 @@ const onboardingController = createOnboardingController({
       return;
     }
 
-    // 1. Select the project
-    await selectProject(normalizedProjectPath);
+    // 1. Select the project (normalized name)
+    const projectName = normalizedProjectPath.split(/[\\/]+/).filter(Boolean).pop();
+    await selectProject(projectName || normalizedProjectPath);
 
-    // 2. Switch to Remotes tab
+    // 2. Switch to Remotes tab (this also calls remotesController.refresh() internally)
     switchTab("remotes");
 
-    // 3. Refresh remotes to prepare UI and populate the progress box container
-    await remotesController.refresh();
+    // 3. Wait for the Remotes panel DOM to be fully rendered before showing progress
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
     const resolvedConfig =
       config && Object.keys(config).length > 0
@@ -1268,7 +1300,7 @@ const onboardingController = createOnboardingController({
 
     // 4. Run sync which will unhide the progress container in Remotes tab
     await runRemoteSyncWithProgressToast({
-      project: normalizedProjectPath,
+      project: projectName || normalizedProjectPath,
       remoteName: normalizedRemote,
       preset: normalizedPreset,
       config: resolvedConfig,

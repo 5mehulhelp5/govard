@@ -79,15 +79,6 @@ func BuildWailsOptions(app *App, assets fs.FS, launch LaunchOptions) *options.Ap
 	return wailsOptions
 }
 
-func hasBackgroundFlag(args []string) bool {
-	for _, arg := range args {
-		if strings.EqualFold(strings.TrimSpace(arg), DesktopBackgroundFlag) {
-			return true
-		}
-	}
-	return false
-}
-
 func parseTruthyBool(raw string) bool {
 	switch strings.ToLower(strings.TrimSpace(raw)) {
 	case "1", "true", "yes", "on":
