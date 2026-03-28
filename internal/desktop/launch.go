@@ -14,7 +14,7 @@ import (
 const (
 	DesktopBackgroundFlag       = "--background"
 	DesktopBackgroundEnvVar     = "GOVARD_DESKTOP_BACKGROUND"
-	desktopSingleInstanceLockID = "govard.desktop.test.123"
+	desktopSingleInstanceLockID = "govard.desktop.app"
 )
 
 type LaunchOptions struct {
