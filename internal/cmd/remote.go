@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"sort"
 	"strings"
 	"time"
 
@@ -607,7 +606,7 @@ func findRemoteByNameOrEnvironment(config engine.Config, requested string) (stri
 	for name := range config.Remotes {
 		names = append(names, name)
 	}
-	sort.Strings(names)
+	engine.SortRemoteNames(names)
 	for _, name := range names {
 		if strings.EqualFold(engine.NormalizeRemoteEnvironment(name), requested) {
 			return name, true

@@ -26,7 +26,7 @@ type MigrationResult struct {
 	VarnishEnabled bool
 	VarnishVersion string
 	WebRoot        string
-	Remotes        map[string]RemoteConfig
+	Remotes        RemoteConfigMap
 }
 
 func MigrateFromDDEV(root string) (MigrationResult, error) {
@@ -81,7 +81,7 @@ func MigrateFromWarden(root string) (MigrationResult, error) {
 		DBVersion:      env["MYSQL_DISTRIBUTION_VERSION"],
 		VarnishVersion: env["VARNISH_VERSION"],
 		WebRoot:        env["WARDEN_WEB_ROOT"],
-		Remotes:        make(map[string]RemoteConfig),
+		Remotes:        make(RemoteConfigMap),
 	}
 
 	if result.ProjectName == "" {

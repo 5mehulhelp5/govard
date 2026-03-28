@@ -11,7 +11,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -851,7 +850,7 @@ func buildRemoteEntries(
 	for name := range remotes {
 		names = append(names, name)
 	}
-	sort.Strings(names)
+	engine.SortRemoteNames(names)
 
 	entries := make([]RemoteEntry, 0, len(names))
 	for _, name := range names {

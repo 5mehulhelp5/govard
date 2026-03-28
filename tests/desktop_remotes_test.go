@@ -40,14 +40,18 @@ func TestDesktopPkgBuildRemoteEntriesForTest(t *testing.T) {
 	if len(entries) != 2 {
 		t.Fatalf("expected 2 remotes, got %d", len(entries))
 	}
-	if entries[0].Name != "prod" {
-		t.Fatalf("expected sorted remotes with prod first, got %#v", entries)
+	// New sort order: staging (priority 20) before prod (priority 30)
+	if entries[0].Name != "staging" {
+		t.Fatalf("expected staging first (priority order), got %#v", entries)
 	}
-	if !entries[0].Protected {
+	if entries[1].Name != "prod" {
+		t.Fatalf("expected prod second (priority order), got %#v", entries)
+	}
+	if !entries[1].Protected {
 		t.Fatalf("expected prod remote to be protected")
 	}
-	if !reflect.DeepEqual(entries[0].Capabilities, []string{"files", "db"}) {
-		t.Fatalf("unexpected capabilities for prod: %#v", entries[0].Capabilities)
+	if !reflect.DeepEqual(entries[1].Capabilities, []string{"files", "db"}) {
+		t.Fatalf("unexpected capabilities for prod: %#v", entries[1].Capabilities)
 	}
 }
 

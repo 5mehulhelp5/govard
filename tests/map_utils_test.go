@@ -1,7 +1,9 @@
-package engine
+package tests
 
 import (
 	"testing"
+
+	"govard/internal/engine"
 )
 
 func TestMergeMap_NilValues(t *testing.T) {
@@ -16,7 +18,7 @@ func TestMergeMap_NilValues(t *testing.T) {
 		},
 	}
 
-	MergeMap(dst, src)
+	engine.MergeMap(dst, src)
 
 	vols := dst["volumes"].(map[string]any)
 	if _, ok := vols["search-data"]; !ok {

@@ -1,6 +1,10 @@
 package engine
 
-import "strings"
+import (
+	"gopkg.in/yaml.v3"
+	"sort"
+	"strings"
+)
 
 const (
 	RemoteAuthMethodSSHAgent = "ssh-agent"
@@ -39,6 +43,48 @@ type RemoteConfig struct {
 	Paths        RemotePaths        `yaml:"paths,omitempty"`
 }
 
+// RemoteConfigMap is a specialized map that preserves sort order during YAML marshaling.
+type RemoteConfigMap map[string]RemoteConfig
+
+// MarshalYAML implements the yaml.Marshaler interface to ensure remotes are written to
+// .govard.yml in a consistent priority order (dev => staging => prod).
+func (m RemoteConfigMap) MarshalYAML() (interface{}, error) {
+	if m == nil {
+		return nil, nil
+	}
+
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	SortRemoteNames(keys)
+
+	node := &yaml.Node{
+		Kind: yaml.MappingNode,
+		Tag:  "!!map",
+	}
+
+	for _, k := range keys {
+		v := m[k]
+
+		// Key node
+		node.Content = append(node.Content, &yaml.Node{
+			Kind:  yaml.ScalarNode,
+			Tag:   "!!str",
+			Value: k,
+		})
+
+		// Value node
+		valNode := &yaml.Node{}
+		if err := valNode.Encode(v); err != nil {
+			return nil, err
+		}
+		node.Content = append(node.Content, valNode)
+	}
+
+	return node, nil
+}
+
 // BoolPtr returns a pointer to a bool value, for use with RemoteConfig.Protected.
 func BoolPtr(v bool) *bool {
 	return &v
@@ -67,4 +113,32 @@ func IsSupportedRemoteAuthMethod(method string) bool {
 	default:
 		return false
 	}
+}
+
+// RemotePriority returns a priority number for sorting remotes.
+// Smaller numbers mean higher priority (earlier in the list).
+func RemotePriority(name string) int {
+	switch NormalizeRemoteEnvironment(name) {
+	case RemoteEnvDev:
+		return 10
+	case RemoteEnvStaging:
+		return 20
+	case RemoteEnvProd:
+		return 30
+	default:
+		return 100
+	}
+}
+
+// SortRemoteNames sorts a slice of remote names based on RemotePriority,
+// then alphabetically for names with equal priority.
+func SortRemoteNames(names []string) {
+	sort.Slice(names, func(i, j int) bool {
+		pi := RemotePriority(names[i])
+		pj := RemotePriority(names[j])
+		if pi != pj {
+			return pi < pj
+		}
+		return names[i] < names[j]
+	})
 }

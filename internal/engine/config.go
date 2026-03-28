@@ -56,7 +56,7 @@ type Config struct {
 	Lock              LockConfig              `yaml:"lock,omitempty"`
 	BlueprintRegistry BlueprintRegistryConfig `yaml:"blueprint_registry,omitempty"`
 	Stack             Stack                   `yaml:"stack"`
-	Remotes           map[string]RemoteConfig `yaml:"remotes"`
+	Remotes           RemoteConfigMap         `yaml:"remotes"`
 	Hooks             map[string][]HookStep   `yaml:"hooks,omitempty"`
 }
 
