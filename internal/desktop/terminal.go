@@ -45,7 +45,7 @@ func (s *LogService) StartTerminal(project string, service string, user string, 
 	chosenShell := normalizeShell(shell)
 	chosenUser := normalizeShellUser(info, targetService, user)
 
-	args := []string{"exec", "-it"}
+	args := []string{"exec", "-it", "-w", "/var/www/html", "-e", "TERM=xterm-256color"}
 	if chosenUser != "" {
 		args = append(args, "-u", chosenUser)
 	}
@@ -135,6 +135,38 @@ func (s *LogService) GetLogsForService(project string, service string, lines int
 		return "", err
 	}
 	return output, nil
+}
+
+func (s *LogService) StartServiceTerminalInOS(project, service, user, shell string) (string, error) {
+	info, err := loadProjectInfo(project)
+	if err != nil {
+		return "", err
+	}
+
+	targetService := resolveShellServiceName(info, service)
+	containerName := resolveShellContainer(info, targetService)
+	chosenShell := normalizeShell(shell)
+	chosenUser := normalizeShellUser(info, targetService, user)
+
+	args := []string{"exec", "-it", "-w", "/var/www/html", "-e", "TERM=xterm-256color"}
+	if chosenUser != "" {
+		args = append(args, "-u", chosenUser)
+	}
+	args = append(args, containerName, chosenShell)
+
+	// Combine into a single command string for LaunchInTerminal
+	dockerBinary, err := exec.LookPath("docker")
+	if err != nil {
+		return "", fmt.Errorf("docker binary not found: %w", err)
+	}
+
+	fullCmd := dockerBinary + " " + strings.Join(args, " ")
+	err = LaunchInTerminal(info.workingDir, fullCmd)
+	if err != nil {
+		return "", err
+	}
+
+	return "Terminal launched in OS window", nil
 }
 
 // Internal session management

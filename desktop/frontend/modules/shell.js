@@ -35,8 +35,8 @@ export const createShellController = ({
       lineHeight: 1.25,
       fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
       theme: {
-        background: "var(--bg-primary)",
-        foreground: "#cbd5e1",
+        background: "#0c1810",
+        foreground: "#f8fafc",
         cursor: "var(--primary)",
         selection: "rgba(16, 185, 129, 0.3)",
       },

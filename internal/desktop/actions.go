@@ -511,7 +511,7 @@ func normalizeShell(shell string) string {
 	case "bash", "sh":
 		return normalized
 	default:
-		return "sh"
+		return "bash"
 	}
 }
 
@@ -522,6 +522,10 @@ func normalizeShellUser(info *projectInfo, service string, user string) string {
 	if info != nil {
 		if saved, err := getShellUser(info.name); err == nil && saved != "" {
 			return saved
+		}
+		if info.configLoaded {
+			// Match CLI behavior: use ResolveProjectExecUser for consistency (UID:GID mapping)
+			return info.config.ResolveProjectExecUser("www-data")
 		}
 	}
 	if service == "php" || service == "" {

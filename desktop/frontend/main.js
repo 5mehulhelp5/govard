@@ -500,20 +500,22 @@ const runRemoteSyncWithProgressToast = async ({
   config = {},
 }) => {
   const visualContainer = document.getElementById("visual-sync-progress-container");
-  const visualTerminal = document.getElementById("visual-sync-terminal");
-  const visualIndicator = document.getElementById("visual-sync-indicator");
+  const visualViewport = document.getElementById("visual-sync-scroll-viewport"); // Use viewport for scrolling
   const visualLine = document.getElementById("visual-sync-progress-line");
+  const visualIndicator = visualContainer?.querySelector(".animate-pulse");
 
-  if (visualContainer && visualTerminal) {
-    if (visualLine) visualLine.classList.remove("hidden");
+  if (visualContainer && visualLine) {
     visualContainer.classList.remove("hidden");
     // Trigger reflow to ensure CSS transition works
     void visualContainer.offsetWidth;
     visualContainer.classList.remove("opacity-0", "translate-y-4");
-    visualTerminal.textContent = "   Starting Sync Process\n   ---------------------\n";
-    visualTerminal.className = "px-5 pb-5 text-[11px] font-mono text-emerald-700 dark:text-emerald-400 whitespace-pre-wrap leading-relaxed flex-1 overflow-y-auto w-full transition-colors break-words text-slate-700 dark:text-[#cdd6f4] selection:bg-slate-200 dark:selection:bg-primary/30";
+    
+    visualLine.textContent = "   Starting Sync Process\n   ---------------------\n";
+    visualLine.className = "m-0 font-mono text-[11px] leading-relaxed text-emerald-500/90 whitespace-pre-wrap break-all drop-shadow-[0_0_5px_rgba(16,185,129,0.2)]";
+
     if (visualIndicator) {
-      visualIndicator.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse border border-black/5 dark:border-transparent shadow-[0_1px_2px_rgba(0,0,0,0.1)] dark:shadow-[0_0_8px_rgba(16,185,129,0.5)]";
+      visualIndicator.classList.add("bg-primary");
+      visualIndicator.classList.remove("bg-rose-500");
     }
   }
 
@@ -535,50 +537,69 @@ const runRemoteSyncWithProgressToast = async ({
       if (!normalized) {
         return;
       }
-      if (visualTerminal) {
-        visualTerminal.textContent += normalized + "\n";
-        visualTerminal.scrollTop = visualTerminal.scrollHeight;
+      if (visualLine) {
+        visualLine.textContent += normalized + "\n";
+        if (visualViewport) {
+          visualViewport.scrollTop = visualViewport.scrollHeight;
+        }
       }
     });
+
     offCompleted = desktopBridge.runtime.EventsOn("sync:completed", (msg) => {
       const finalMessage = sanitizeSyncToastLine(msg) || "Sync completed ✔";
-      if (visualTerminal) {
-        visualTerminal.textContent += "\n[SUCCESS] " + finalMessage + "\n";
-        visualTerminal.scrollTop = visualTerminal.scrollHeight;
+      if (visualLine) {
+        visualLine.textContent += "\n[SUCCESS] " + finalMessage + "\n";
+        if (visualViewport) {
+          visualViewport.scrollTop = visualViewport.scrollHeight;
+        }
       }
       cleanup();
     });
+
     offFailed = desktopBridge.runtime.EventsOn("sync:failed", (msg) => {
       const finalMessage = sanitizeSyncToastLine(msg) || "Sync failed";
-      if (visualTerminal) {
-        visualTerminal.className = "px-5 pb-5 text-[11px] font-mono text-rose-700 dark:text-rose-400 whitespace-pre-wrap leading-relaxed flex-1 overflow-y-auto w-full transition-colors break-words text-slate-700 dark:text-[#cdd6f4] selection:bg-slate-200 dark:selection:bg-primary/30";
-        visualTerminal.textContent += "\n[FAILED] " + finalMessage + "\n";
-        visualTerminal.scrollTop = visualTerminal.scrollHeight;
+      if (visualLine) {
+        visualLine.classList.add("text-rose-500");
+        visualLine.classList.remove("text-emerald-500/90");
+        visualLine.textContent += "\n[FAILED] " + finalMessage + "\n";
+        if (visualViewport) {
+          visualViewport.scrollTop = visualViewport.scrollHeight;
+        }
       }
       if (visualIndicator) {
-        visualIndicator.className = "w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_1px_2px_rgba(0,0,0,0.1)] dark:shadow-[0_0_10px_rgba(244,63,94,0.6)] border border-black/5 dark:border-transparent";
+        visualIndicator.classList.remove("bg-primary");
+        visualIndicator.classList.add("bg-rose-500");
       }
       cleanup();
     });
   }
 
-  const result = await desktopBridge.runRemoteSyncBackground(
-    project,
-    remoteName,
-    preset,
-    config,
-  );
+  try {
+    const result = await desktopBridge.runRemoteSyncBackground(
+      project,
+      remoteName,
+      preset,
+      config,
+    );
 
-  if (result && result.startsWith("Remote sync background process failed:")) {
-    const normalized = sanitizeSyncToastLine(result) || "Sync failed";
-    if (visualTerminal) {
-      visualTerminal.className = "px-5 pb-5 text-[11px] font-mono text-rose-700 dark:text-rose-400 whitespace-pre-wrap leading-relaxed flex-1 overflow-y-auto w-full transition-colors break-words text-slate-700 dark:text-[#cdd6f4] selection:bg-slate-200 dark:selection:bg-primary/30";
-      visualTerminal.textContent += "\n[FAILED] " + normalized + "\n";
-      visualTerminal.scrollTop = visualTerminal.scrollHeight;
+    if (result && result.startsWith("Remote sync background process failed:")) {
+      const normalized = sanitizeSyncToastLine(result) || "Sync failed";
+      if (visualLine) {
+        visualLine.classList.add("text-rose-500");
+        visualLine.classList.remove("text-emerald-500/90");
+        visualLine.textContent += "\n[FAILED] " + normalized + "\n";
+        if (visualViewport) {
+          visualViewport.scrollTop = visualViewport.scrollHeight;
+        }
+      }
+      if (visualIndicator) {
+        visualIndicator.classList.remove("bg-primary");
+        visualIndicator.classList.add("bg-rose-500");
+      }
+      cleanup();
     }
-    if (visualIndicator) {
-        visualIndicator.className = "w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_1px_2px_rgba(0,0,0,0.1)] dark:shadow-[0_0_10px_rgba(244,63,94,0.6)] border border-black/5 dark:border-transparent";
-    }
+  } catch (err) {
+    console.error("Sync failed to start:", err);
     cleanup();
   }
 };
@@ -1489,6 +1510,18 @@ document.addEventListener("click", async (event) => {
       targetElement.dataset.service,
       "shell",
     );
+    return;
+  }
+  if (action === "start-service-terminal-os") {
+    const project = targetElement.dataset.project || "";
+    const service = targetElement.dataset.service || "";
+    if (project && service) {
+      try {
+        await desktopBridge.startServiceTerminalInOS(project, service, "", "sh");
+      } catch (err) {
+        showToast(`Failed to launch OS Terminal: ${err}`, "error");
+      }
+    }
     return;
   }
   if (action === "open-onboarding") {

@@ -470,7 +470,7 @@ const renderServiceCard = (service, selectedService) => {
           data-service="${service.id}"
           data-loading-label="Opening..."
           data-loading-icon-only="true"
-          class="${service.openable ? "h-8 w-8 rounded-lg bg-background-primary text-text-primary border border-border-primary hover:bg-background-secondary transition-all active:scale-95 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100 shadow-sm" : "h-8 w-8 rounded-lg border border-border-primary text-slate-500 dark:text-text-tertiary bg-background-secondary opacity-90 dark:opacity-60 flex items-center justify-center"}"
+          class="${service.openable ? "h-8 w-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/20 hover:bg-slate-200 dark:hover:bg-white/20 hover:text-primary dark:hover:text-white transition-all active:scale-95 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100 shadow-sm" : "h-8 w-8 rounded-lg border border-border-primary text-slate-500 dark:text-text-tertiary bg-background-secondary opacity-90 dark:opacity-60 flex items-center justify-center"}"
           title="Open"
           ${service.openable ? "" : "disabled"}
         >

@@ -542,6 +542,7 @@ export const renderProjectHero = (
   if (gitBranchBadge && gitBranchText) {
     if (gitBranch) {
       gitBranchText.textContent = gitBranch;
+      gitBranchBadge.title = `Git Branch: ${gitBranch}`;
       gitBranchBadge.classList.remove("hidden");
     } else {
       gitBranchBadge.classList.add("hidden");
@@ -782,8 +783,8 @@ export const renderActiveServices = (container, env) => {
             </button>
             <button
               class="p-1.5 rounded bg-slate-100 dark:bg-[var(--surface-secondary)] border border-slate-200 dark:border-border-primary text-slate-500 dark:text-slate-300 hover:text-primary dark:hover:text-white hover:bg-slate-200 dark:hover:bg-background-secondary transition-colors"
-              title="Open Terminal"
-              data-action="open-service-shell"
+              title="Open OS Terminal"
+              data-action="start-service-terminal-os"
               data-project="${escapeHTML(project)}"
               data-service="${escapeHTML(serviceTarget)}"
             >

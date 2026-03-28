@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 )
@@ -117,4 +118,11 @@ func (c Config) AllDomains() []string {
 	}
 
 	return domains
+}
+
+func (c Config) ResolveProjectExecUser(fallback string) string {
+	if c.Stack.UserID > 0 && c.Stack.GroupID > 0 {
+		return fmt.Sprintf("%d:%d", c.Stack.UserID, c.Stack.GroupID)
+	}
+	return fallback
 }

@@ -353,7 +353,7 @@ test("active services cards expose service actions and always-visible controls",
     "missing service logs action",
   );
   assert.equal(
-    dashboardJS.includes('data-action="open-service-shell"'),
+    dashboardJS.includes('data-action="start-service-terminal-os"'),
     true,
     "missing service shell action",
   );

@@ -6,9 +6,9 @@ import (
 	"govard/internal/desktop"
 )
 
-func TestDesktopPkgNormalizeShellForTest_DefaultsToSh(t *testing.T) {
-	if got := desktop.NormalizeShellForTest(""); got != "sh" {
-		t.Fatalf("expected sh, got %q", got)
+func TestDesktopPkgNormalizeShellForTest_DefaultsToBash(t *testing.T) {
+	if got := desktop.NormalizeShellForTest(""); got != "bash" {
+		t.Fatalf("expected bash, got %q", got)
 	}
 }
 

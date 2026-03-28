@@ -759,6 +759,11 @@ func runRemoteSyncBackgroundWithOptions(
 		return err
 	}
 
+	// We no longer run in the background with event emitting to the UI for some things,
+	// but for the visual-sync-console, we STILL need events.
+	// HOWEVER, the user also wants to be able to open the OS terminal.
+	// I will keep the background-with-events logic here, and add a SEPARATE bridge method for OS Terminal.
+
 	binary, err := exec.LookPath("govard")
 	if err != nil {
 		return fmt.Errorf("govard CLI not found in PATH")
@@ -780,6 +785,7 @@ func runRemoteSyncBackgroundWithOptions(
 		return fmt.Errorf("failed to start background sync: %w", err)
 	}
 
+	// We use two scanners to emit events to the frontend
 	done := make(chan struct{}, 2)
 	go scanLogPipe(ctx, stdout, "sync:output", done)
 	go scanLogPipe(ctx, stderr, "sync:output", done)
@@ -796,6 +802,86 @@ func runRemoteSyncBackgroundWithOptions(
 	}()
 
 	return nil
+}
+
+// LaunchInTerminal opens a new OS terminal window and executes the given command.
+func LaunchInTerminal(workingDir string, command string) error {
+	if runtime.GOOS != "linux" {
+		return fmt.Errorf("OS Terminal launch is currently only supported on Linux")
+	}
+
+	// Try to get user's shell, fallback to bash which has better colors than sh
+	userShell := os.Getenv("SHELL")
+	if userShell == "" {
+		userShell = "/bin/bash"
+	}
+
+	// Try to resolve the shell binary name to ensure it's valid
+	shellBin, err := exec.LookPath(userShell)
+	if err != nil {
+		shellBin = "/bin/bash"
+	}
+
+	// Construct the command string to run inside the shell
+	// We use 'read' to keep the terminal open for user inspection
+	shCmd := fmt.Sprintf("cd %s && %s; echo; echo '---------------------------------------'; echo 'Process finished. Press Enter to close.'; read", shellQuoteForDesktop(workingDir), command)
+
+	type launcher struct {
+		binary string
+		prefix []string
+	}
+
+	// List of supported terminal emulators with their specific execution flags
+	launchers := []launcher{
+		{binary: "gnome-terminal", prefix: []string{"--", shellBin, "-c", shCmd}},
+		{binary: "tilix", prefix: []string{"-e", shellBin, "-c", shCmd}},
+		{binary: "konsole", prefix: []string{"-e", shellBin, "-c", shCmd}},
+		{binary: "xfce4-terminal", prefix: []string{"-x", shellBin, "-c", shCmd}},
+		{binary: "alacritty", prefix: []string{"-e", shellBin, "-c", shCmd}},
+		{binary: "kitty", prefix: []string{"sh", "-c", shCmd}},
+		{binary: "x-terminal-emulator", prefix: []string{"-e", shellBin, "-c", shCmd}},
+	}
+
+	lastErr := error(nil)
+	launcherFound := false
+	for _, candidate := range launchers {
+		terminalBinary, lookupErr := exec.LookPath(candidate.binary)
+		if lookupErr != nil {
+			continue
+		}
+		launcherFound = true
+		args := append([]string{}, candidate.prefix...)
+
+		cmd := exec.Command(terminalBinary, args...)
+		if err := cmd.Start(); err != nil {
+			lastErr = err
+			continue
+		}
+
+		go func() {
+			_ = cmd.Wait()
+		}()
+		return nil
+	}
+
+	if launcherFound && lastErr != nil {
+		return fmt.Errorf("failed to start terminal: %w", lastErr)
+	}
+	return fmt.Errorf("no supported terminal emulator found")
+}
+
+func launchGovardInTerminal(root string, args []string) error {
+	binary, err := exec.LookPath("govard")
+	if err != nil {
+		return fmt.Errorf("govard CLI not found in PATH")
+	}
+
+	quotedArgs := make([]string, len(args))
+	for i, a := range args {
+		quotedArgs[i] = shellQuoteForDesktop(a)
+	}
+	syncCmd := binary + " " + strings.Join(quotedArgs, " ")
+	return LaunchInTerminal(root, syncCmd)
 }
 
 func resolveProjectRootForRemotes(project string) (string, error) {
@@ -1294,6 +1380,41 @@ func (s *RemoteService) RunRemoteSyncPreset(project string, remoteName string, p
 		return "", err
 	}
 	return message, nil
+}
+
+func (s *RemoteService) RunRemoteSyncInTerminal(project string, remoteName string, preset string, options map[string]bool) (string, error) {
+	remoteName = strings.TrimSpace(remoteName)
+	if remoteName == "" {
+		return "", fmt.Errorf("remote name is required")
+	}
+
+	root, err := resolveProjectRootForRemotes(project)
+	if err != nil {
+		return "", err
+	}
+
+	normalizedPreset, err := normalizeRemoteSyncPreset(preset)
+	if err != nil {
+		return "", err
+	}
+
+	var args []string
+	if normalizedPreset == "full" {
+		args, err = buildBootstrapArgsWithOptions(remoteName, options, false)
+	} else {
+		args, err = buildRemoteSyncArgsWithOptions(remoteName, preset, options, false)
+	}
+
+	if err != nil {
+		return "", err
+	}
+
+	err = launchGovardInTerminal(root, args)
+	if err != nil {
+		return "", err
+	}
+
+	return "Sync started in terminal", nil
 }
 
 func (s *RemoteService) RunRemoteSync(project string, remoteName string, preset string, options map[string]bool) (string, error) {

@@ -161,6 +161,11 @@ func (app *App) OpenShellForService(project, service, user, shell string) (res s
 	return app.Logs.StartTerminal(project, service, user, shell)
 }
 
+func (app *App) StartServiceTerminalInOS(project, service, user, shell string) (res string, err error) {
+	defer RecoverPanic(&err, "StartServiceTerminalInOS")
+	return app.Logs.StartServiceTerminalInOS(project, service, user, shell)
+}
+
 // -- RemoteService Proxies --
 
 func (app *App) GetRemotes(project string) (remotes RemoteSnapshot, err error) {
@@ -203,6 +208,12 @@ func (app *App) RunRemoteSyncBackground(project, remoteName, presetName string, 
 	var err error
 	defer RecoverPanic(&err, "RunRemoteSyncBackground")
 	return app.Remote.RunRemoteSync(project, remoteName, presetName, config)
+}
+
+func (app *App) RunRemoteSyncInTerminal(project, remoteName, presetName string, config map[string]bool) (string, error) {
+	var err error
+	defer RecoverPanic(&err, "RunRemoteSyncInTerminal")
+	return app.Remote.RunRemoteSyncInTerminal(project, remoteName, presetName, config)
 }
 
 func (app *App) GetSyncPresetOptions(project, presetName string) presetSyncOptions {

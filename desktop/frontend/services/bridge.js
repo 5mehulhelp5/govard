@@ -188,6 +188,16 @@ export const desktopBridge = {
       syncConfig || {},
     );
   },
+  async runRemoteSyncInTerminal(project, remoteName, preset, syncConfig = {}) {
+    const bridge = getBridge();
+    return call(
+      bridge?.RunRemoteSyncInTerminal?.bind(bridge),
+      project,
+      remoteName,
+      preset,
+      syncConfig || {},
+    );
+  },
   async getSyncPresetOptions(project, preset) {
     const bridge = getBridge();
     return call(bridge?.GetSyncPresetOptions?.bind(bridge), project, preset);
@@ -278,6 +288,16 @@ export const desktopBridge = {
     const bridge = getBridge();
     return call(
       bridge?.OpenShellForService?.bind(bridge),
+      project,
+      service,
+      user,
+      shell,
+    );
+  },
+  async startServiceTerminalInOS(project, service, user, shell) {
+    const bridge = getBridge();
+    return call(
+      bridge?.StartServiceTerminalInOS?.bind(bridge),
       project,
       service,
       user,
