@@ -2,7 +2,9 @@ package desktop
 
 import (
 	"context"
+	"fmt"
 	"io/fs"
+	"os"
 	"strings"
 
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -12,7 +14,7 @@ import (
 const (
 	DesktopBackgroundFlag       = "--background"
 	DesktopBackgroundEnvVar     = "GOVARD_DESKTOP_BACKGROUND"
-	desktopSingleInstanceLockID = "govard.desktop"
+	desktopSingleInstanceLockID = "govard.desktop.test.123"
 )
 
 type LaunchOptions struct {
@@ -21,7 +23,17 @@ type LaunchOptions struct {
 
 func ResolveLaunchOptions(args []string, envBackground string) LaunchOptions {
 	options := LaunchOptions{}
-	if hasBackgroundFlag(args) || parseTruthyBool(envBackground) {
+	for _, arg := range args {
+		trimmed := strings.ToLower(strings.TrimSpace(arg))
+		if trimmed == "--version" || trimmed == "-v" {
+			fmt.Printf("Govard Desktop v%s\n", Version)
+			os.Exit(0)
+		}
+		if trimmed == DesktopBackgroundFlag {
+			options.Background = true
+		}
+	}
+	if parseTruthyBool(envBackground) {
 		options.Background = true
 	}
 	return options

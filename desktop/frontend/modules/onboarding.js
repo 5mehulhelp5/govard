@@ -193,6 +193,7 @@ export const createOnboardingController = ({
   onProjectAdded,
   getExistingDomains,
   onRunBootstrapSync,
+  onSelectProject,
 }) => {
   let hasAttemptedSubmit = false;
   let pendingBootstrapContext = null;
@@ -787,6 +788,9 @@ export const createOnboardingController = ({
         }
       }
 
+      if (typeof onSelectProject === "function") {
+        await onSelectProject(preview.projectPath);
+      }
       toggleModal(false);
     } catch (err) {
       onStatus("Failed to onboard project.");
@@ -796,8 +800,11 @@ export const createOnboardingController = ({
     }
   };
 
-  const skipBootstrapPrompt = () => {
+  const skipBootstrapPrompt = async () => {
     closeBootstrapPrompt();
+    if (typeof onSelectProject === "function") {
+      await onSelectProject(pendingBootstrapContext.projectPath);
+    }
     toggleModal(false);
     onStatus("Onboarding complete. Bootstrap skipped.");
   };

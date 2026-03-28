@@ -1,4 +1,13 @@
 #!/usr/bin/env bash
+# Enforce bash for pipefail and other bash-isms
+if [ -z "$BASH_VERSION" ]; then
+    if command -v bash >/dev/null 2>&1; then
+        exec bash "$0" "$@"
+    else
+        echo "Error: This script requires bash, but it was not found in PATH."
+        exit 1
+    fi
+fi
 set -euo pipefail
 
 # Govard Installer
@@ -348,6 +357,9 @@ resolve_version() {
         info "Fetching latest version..."
         SPECIFIC_VERSION=$(curl -s "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
     fi
+    if [[ -z "$SPECIFIC_VERSION" ]]; then
+        error "Failed to resolve version for ${REPO}. Please check your internet connection or specify a version with --version."
+    fi
     info "Version: $SPECIFIC_VERSION"
     VERSION_NO_V="${SPECIFIC_VERSION#v}"
 }
@@ -528,6 +540,29 @@ main() {
         info "Configuring SSL trust..."
         run_as_user "$govard_bin" doctor trust || warn "Failed to configure SSL trust automatically."
         echo ""
+    fi
+
+    # Update desktop database so the app is immediately searchable in the menu
+    if [[ "$OS" == "linux" ]]; then
+        info "Running ldconfig to update library cache..."
+        sudo ldconfig || true
+
+        if command -v update-desktop-database >/dev/null 2>&1; then
+            info "Updating desktop database..."
+            sudo update-desktop-database /usr/share/applications >/dev/null 2>&1 || true
+        fi
+        if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+            info "Updating icon cache..."
+            sudo gtk-update-icon-cache -f -t /usr/share/icons/hicolor >/dev/null 2>&1 || true
+        fi
+
+        # Ubuntu 24.04 specific advice
+        if [[ -f "/proc/sys/kernel/apparmor_restrict_unprivileged_userns" ]]; then
+            if [[ "$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns 2>/dev/null)" == "1" ]]; then
+                warn "Ubuntu 24.04 restricted user namespaces detected."
+                info "If the desktop app fails to start, try: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0"
+            fi
+        fi
     fi
 
     warn_if_mixed_install_channels

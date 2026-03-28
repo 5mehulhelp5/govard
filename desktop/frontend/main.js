@@ -626,6 +626,33 @@ const resolveSyncConfigForPreset = async (preset) => {
   return currentConfig;
 };
 
+const selectProject = async (project) => {
+  if (!project) return;
+  setState({ selectedProject: project });
+  if (refs.envSelector) refs.envSelector.value = project;
+  if (refs.logSelector) refs.logSelector.value = project;
+
+  await switchSidebarMode("environments", { silent: true, skipLogs: true });
+
+  const currentTab = document.querySelector(".tab-content.active")?.id;
+  if (!currentTab || currentTab === "tab-global-services") {
+    switchTab("dashboard");
+  }
+
+  await syncProjectSelectorsFrom("env");
+  await refreshDashboard({ silent: true });
+
+  const activeTabId = document
+    .querySelector(".tab-content.active")
+    ?.id?.replace("tab-", "");
+
+  if (activeTabId === "logs") {
+    logsController.refresh();
+  } else if (activeTabId === "remotes") {
+    remotesController.refresh();
+  }
+};
+
 const switchTab = (tabId) => {
   const tabLinks = document.querySelectorAll('[data-action="switch-tab"]');
   const tabContents = document.querySelectorAll(".tab-content");
@@ -1214,6 +1241,7 @@ const onboardingController = createOnboardingController({
   onStatus: setStatus,
   onToast: showToast,
   onProjectAdded: refreshDashboard,
+  onSelectProject: selectProject,
   onRunBootstrapSync: async ({ projectPath, remoteName, preset, config }) => {
     const normalizedProjectPath = String(projectPath || "").trim();
     const normalizedRemote = String(remoteName || "").trim();
@@ -1224,10 +1252,21 @@ const onboardingController = createOnboardingController({
       return;
     }
 
+    // 1. Select the project
+    await selectProject(normalizedProjectPath);
+
+    // 2. Switch to Remotes tab
+    switchTab("remotes");
+
+    // 3. Refresh remotes to prepare UI and populate the progress box container
+    await remotesController.refresh();
+
     const resolvedConfig =
       config && Object.keys(config).length > 0
         ? { ...config }
         : await resolveSyncConfigForPreset(normalizedPreset);
+
+    // 4. Run sync which will unhide the progress container in Remotes tab
     await runRemoteSyncWithProgressToast({
       project: normalizedProjectPath,
       remoteName: normalizedRemote,
@@ -1399,30 +1438,7 @@ document.addEventListener("click", async (event) => {
   }
 
   if (action === "select-environment") {
-    const project = targetElement.dataset.env || "";
-    setState({ selectedProject: project });
-    if (refs.envSelector) refs.envSelector.value = project;
-    if (refs.logSelector) refs.logSelector.value = project;
-
-    await switchSidebarMode("environments", { silent: true, skipLogs: true });
-
-    const currentTab = document.querySelector(".tab-content.active")?.id;
-    if (!currentTab || currentTab === "tab-global-services") {
-      switchTab("dashboard");
-    }
-
-    await syncProjectSelectorsFrom("env");
-    await refreshDashboard({ silent: true });
-
-    // Ensure controllers refresh if they are on the active tab
-    const activeTabId = document
-      .querySelector(".tab-content.active")
-      ?.id?.replace("tab-", "");
-    if (activeTabId === "logs") {
-      logsController.refresh();
-    } else if (activeTabId === "remotes") {
-      remotesController.refresh();
-    }
+    await selectProject(targetElement.dataset.env || "");
     return;
   }
 

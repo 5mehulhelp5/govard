@@ -50,6 +50,67 @@ var desktopCmd = &cobra.Command{
 func init() {
 	desktopCmd.Flags().BoolVar(&desktopDev, "dev", false, "Run the desktop app in Wails dev mode")
 	desktopCmd.Flags().BoolVar(&desktopBackground, "background", false, "Enable background mode (start hidden and keep running after window close)")
+	desktopCmd.AddCommand(desktopDoctorCmd)
+}
+
+var desktopDoctorCmd = &cobra.Command{
+	Use:   "doctor",
+	Short: "Diagnose issues with the desktop environment",
+	Run: func(cmd *cobra.Command, args []string) {
+		pterm.DefaultHeader.WithFullWidth().WithBackgroundStyle(pterm.NewStyle(pterm.BgCyan)).Println("Govard Desktop Doctor")
+
+		// 1. Check for the binary
+		binaryPath, err := findDesktopBinary()
+		if err != nil {
+			pterm.Error.Println("govard-desktop binary not found in PATH or repo.")
+		} else {
+			pterm.Success.Printf("Found desktop binary at: %s\n", binaryPath)
+			// Try running it with --version
+			out, err := exec.Command(binaryPath, "--version").Output()
+			if err != nil {
+				pterm.Error.Printf("Failed to execute binary for version check: %v\n", err)
+			} else {
+				pterm.Success.Printf("Binary execution check: %s", string(out))
+			}
+		}
+
+		// 2. Check for display
+		display := os.Getenv("DISPLAY")
+		wayland := os.Getenv("WAYLAND_DISPLAY")
+		if display == "" && wayland == "" {
+			pterm.Warning.Println("Neither DISPLAY nor WAYLAND_DISPLAY environment variables are set. GUI apps may fail to start.")
+		} else {
+			if wayland != "" {
+				pterm.Success.Printf("Wayland display detected: %s\n", wayland)
+			}
+			if display != "" {
+				pterm.Success.Printf("X11 display detected: %s\n", display)
+			}
+		}
+
+		// 3. System specific checks
+		if runtime.GOOS == "linux" {
+			// WebKitGTK 4.1
+			if ldconfigOut, err := exec.Command("ldconfig", "-p").Output(); err == nil {
+				if strings.Contains(string(ldconfigOut), "libwebkit2gtk-4.1") {
+					pterm.Success.Println("WebKitGTK 4.1 found in library cache.")
+				} else {
+					pterm.Error.Println("WebKitGTK 4.1 NOT found in library cache. Run 'sudo apt install libwebkit2gtk-4.1-0'.")
+				}
+			}
+
+			// Ubuntu 24.04 User Namespace Restriction
+			if _, err := os.Stat("/proc/sys/kernel/apparmor_restrict_unprivileged_userns"); err == nil {
+				out, err := exec.Command("cat", "/proc/sys/kernel/apparmor_restrict_unprivileged_userns").Output()
+				if err == nil && strings.TrimSpace(string(out)) == "1" {
+					pterm.Warning.Println("Ubuntu 24.04 restricted user namespaces detected. This often breaks WebKit sandboxing.")
+					pterm.Info.Println("Tip: Try running 'sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0' if the app crashes on startup.")
+				}
+			}
+		}
+
+		pterm.Println("\nIf the app still fails to start, try running it with 'GDK_BACKEND=x11 govard desktop' to force X11 mode.")
+	},
 }
 
 func runDesktopDev() {
