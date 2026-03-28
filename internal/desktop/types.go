@@ -47,6 +47,7 @@ type UpdateCheckResult struct {
 	LatestVersion  string `json:"latestVersion"`
 	Outdated       bool   `json:"outdated"`
 	Message        string `json:"message"`
+	Changelog      string `json:"changelog"`
 }
 
 type UserInfo struct {

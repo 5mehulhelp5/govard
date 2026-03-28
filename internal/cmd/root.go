@@ -6,10 +6,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pterm/pterm"
-	"github.com/spf13/cobra"
 	"govard/internal/engine"
 	"govard/internal/ui"
+
+	"github.com/pterm/pterm"
+	"github.com/spf13/cobra"
 )
 
 var Version = "1.35.0"

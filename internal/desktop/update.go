@@ -188,13 +188,14 @@ func (app *App) CheckForUpdates() (UpdateCheckResult, error) {
 		CurrentVersion: current,
 	}
 
-	latest, err := fetchDesktopLatestReleaseTag()
+	latest, changelog, err := fetchDesktopLatestRelease()
 	if err != nil {
 		result.Message = "Could not check for updates."
 		return result, err
 	}
 
 	result.LatestVersion = latest
+	result.Changelog = changelog
 	result.Outdated = shouldDesktopNotifyUpdate(current, latest)
 	if result.Outdated {
 		result.Message = fmt.Sprintf("Update available: %s -> %s", current, latest)
@@ -456,39 +457,40 @@ func resolveDesktopBinaryForRestart() (string, error) {
 	return "", fmt.Errorf("%s not found", desktopBinaryName)
 }
 
-func fetchDesktopLatestReleaseTag() (string, error) {
+func fetchDesktopLatestRelease() (string, string, error) {
 	url := desktopUpdateLatestURL()
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return "", fmt.Errorf("prepare update check request: %w", err)
+		return "", "", fmt.Errorf("prepare update check request: %w", err)
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
 	req.Header.Set("User-Agent", "govard-desktop")
 
 	resp, err := desktopUpdateHTTPClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("request latest release: %w", err)
+		return "", "", fmt.Errorf("request latest release: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("request latest release failed with status %d", resp.StatusCode)
+		return "", "", fmt.Errorf("request latest release failed with status %d", resp.StatusCode)
 	}
 
 	var release struct {
 		TagName string `json:"tag_name"`
+		Body    string `json:"body"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
-		return "", fmt.Errorf("decode latest release payload: %w", err)
+		return "", "", fmt.Errorf("decode latest release payload: %w", err)
 	}
 
 	latest := normalizeDesktopVersionTag(release.TagName)
 	if latest == "" {
-		return "", errors.New("latest release payload does not include tag_name")
+		return "", "", errors.New("latest release payload does not include tag_name")
 	}
 
-	return latest, nil
+	return latest, release.Body, nil
 }
 
 func desktopUpdateLatestURL() string {

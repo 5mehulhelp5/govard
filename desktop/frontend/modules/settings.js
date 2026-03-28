@@ -65,6 +65,7 @@ export const createSettingsController = ({
     installCompleted: false,
     failed: false,
     message: "Version check has not been run yet.",
+    changelog: "",
   };
 
   const normalizeUpdateResult = (payload = {}) => ({
@@ -79,6 +80,7 @@ export const createSettingsController = ({
         ? Boolean(payload.Outdated)
         : Boolean(payload.outdated),
     message: String(payload.message || payload.Message || "").trim(),
+    changelog: String(payload.changelog || payload.Changelog || "").trim(),
   });
 
   const normalizeErrorMessage = (err, fallback) => {
@@ -100,6 +102,15 @@ export const createSettingsController = ({
   const renderUpdateSection = () => {
     if (refs.settingsUpdateStatus) {
       refs.settingsUpdateStatus.textContent = updateState.message;
+    }
+
+    if (refs.settingsUpdateChangelog) {
+      const hasChangelog = String(updateState.changelog || "").trim() !== "";
+      const shouldShowChangelog = updateState.outdated && hasChangelog;
+      refs.settingsUpdateChangelog.classList.toggle("hidden", !shouldShowChangelog);
+      if (shouldShowChangelog) {
+        refs.settingsUpdateChangelog.textContent = updateState.changelog;
+      }
     }
 
     if (refs.settingsUpdateBadge) {
@@ -248,6 +259,7 @@ export const createSettingsController = ({
       updateState.outdated = result.outdated;
       updateState.installCompleted = false;
       updateState.failed = false;
+      updateState.changelog = result.changelog;
 
       if (result.outdated) {
         updateState.message = formatUpdateMessage(result, {
@@ -274,12 +286,14 @@ export const createSettingsController = ({
         outdated: result.outdated,
         currentVersion: result.currentVersion,
         latestVersion: result.latestVersion,
+        changelog: result.changelog,
         message: updateState.message,
       };
     } catch (_err) {
       updateState.checked = true;
       updateState.outdated = false;
       updateState.failed = true;
+      updateState.changelog = "";
       updateState.message = normalizeErrorMessage(
         _err,
         "Could not check for updates.",
@@ -539,15 +553,19 @@ export const renderSettingsDrawer = (container) => {
                     </span>
                   </div>
                   
-                  <div class="bg-slate-100 dark:bg-black/30 rounded-xl p-4 mb-4 border border-slate-200 dark:border-white/5">
+                  <div class="mt-4 mb-6 p-5 bg-white dark:bg-black/20 rounded-2xl border border-slate-200 dark:border-white/5 flex flex-col gap-4">
                     <p
-                      class="text-[12px] text-slate-600 dark:text-slate-300 leading-relaxed flex items-center gap-3 update-message-text"
+                      class="update-message-text text-[14px] font-medium text-slate-700 dark:text-slate-200 leading-snug flex items-center gap-3"
                       id="settingsUpdateStatus"
                       aria-live="polite"
                     >
-                      <span class="material-symbols-outlined text-[16px] text-primary/60">info</span>
-                      <span class="font-medium">Version check has not been run yet.</span>
+                      <span class="material-symbols-outlined text-[18px] text-primary/60">info</span>
+                      <span>Version check has not been run yet.</span>
                     </p>
+                    <div
+                      id="settingsUpdateChangelog"
+                      class="hidden text-[13px] leading-relaxed text-slate-600 dark:text-slate-400 max-h-[160px] overflow-y-auto font-sans whitespace-pre-wrap select-text custom-scrollbar pr-2"
+                    ></div>
                   </div>
 
                   <div class="flex flex-col gap-2.5">

@@ -119,6 +119,15 @@ changelog:
       order: 3
     - title: 📦 Others
       order: 99
+  render:
+    template: |
+      ## Changelog
+      {{- range $group := .Groups }}
+      ### {{ $group.Title }}
+      {{- range $commit := $group.Commits }}
+      - {{ $commit.Message }}
+      {{- end }}
+      {{- end }}
 
 release:
   footer: |

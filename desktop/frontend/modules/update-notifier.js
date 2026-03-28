@@ -15,6 +15,7 @@ export const createUpdateNotifierController = ({
     visible: false,
     currentVersion: "",
     latestVersion: "",
+    changelog: "",
     message: "",
     dismissedVersion: "",
     startupTimerID: null,
@@ -54,6 +55,14 @@ export const createUpdateNotifierController = ({
     if (refs.updatePromptMessage) {
       refs.updatePromptMessage.textContent =
         state.message || "A new Govard Desktop version is available.";
+    }
+
+    if (refs.updatePromptChangelog) {
+      const hasChangelog = String(state.changelog || "").trim() !== "";
+      refs.updatePromptChangelog.classList.toggle("hidden", !hasChangelog);
+      if (hasChangelog) {
+        refs.updatePromptChangelog.textContent = state.changelog;
+      }
     }
 
     if (refs.installUpdatePromptButton) {
@@ -120,6 +129,7 @@ export const createUpdateNotifierController = ({
 
       state.currentVersion = String(result.currentVersion || "").trim();
       state.latestVersion = latestVersion;
+      state.changelog = String(result.changelog || "").trim();
       state.message = formatUpdateMessage(result);
       const promptVisible = syncWithSettingsDrawer();
       if (promptVisible) {
