@@ -474,7 +474,7 @@ const renderServiceCard = (service, selectedService) => {
           title="Open"
           ${service.openable ? "" : "disabled"}
         >
-          <span class="material-symbols-outlined text-[18px]">open_in_new</span>
+          <span class="material-symbols-outlined text-[20px]">open_in_new</span>
         </button>
       </div>
     </article>

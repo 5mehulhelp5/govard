@@ -29,14 +29,15 @@ export const createShellController = ({
   const initTerminal = () => {
     if (term || !refs.terminalContainer) return;
 
+    const isDark = document.documentElement.classList.contains("dark");
     term = new window.Terminal({
       cursorBlink: true,
       fontSize: 13,
       lineHeight: 1.25,
       fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
       theme: {
-        background: "#0c1810",
-        foreground: "#f8fafc",
+        background: isDark ? "#0c1810" : "#ffffff",
+        foreground: isDark ? "#f8fafc" : "#0f172a",
         cursor: "var(--primary)",
         selection: "rgba(16, 185, 129, 0.3)",
       },

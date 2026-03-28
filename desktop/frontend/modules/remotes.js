@@ -203,7 +203,7 @@ export const renderRemotes = (container, remotes = []) => {
               </div>
               <div class="flex items-center gap-1.5 p-1 rounded-lg border border-border-primary bg-surface-secondary/60 backdrop-blur-sm shadow-[0_0_15px_rgba(13,242,89,0.1)]">
                 <button data-action="open-remote-url" data-remote="${escapeHTML(remote.name)}" class="h-8 w-8 flex items-center justify-center text-slate-500 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-background-secondary rounded-md transition-all" title="Open Remote URL">
-                  <span class="material-symbols-outlined text-[18px]">open_in_new</span>
+                  <span class="material-symbols-outlined text-[20px]">open_in_new</span>
                 </button>
                 <button data-action="remote-test" data-remote="${escapeHTML(remote.name)}" class="h-8 w-8 flex items-center justify-center text-slate-500 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-background-secondary rounded-md transition-all" title="Test Connection">
                   <span class="material-symbols-outlined text-[18px]">wifi_tethering</span>
@@ -359,9 +359,8 @@ export const renderRemotes = (container, remotes = []) => {
               </div>
             </div>
 
-            <!-- Scrolling Terminal Content -->
-            <div id="visual-sync-scroll-viewport" class="flex-1 overflow-y-auto p-4 bg-slate-950 custom-scrollbar selection:bg-primary/30">
-              <pre id="visual-sync-progress-line" class="m-0 font-mono text-[11px] leading-relaxed text-emerald-400 whitespace-pre-wrap break-all">Initializing connection...</pre>
+            <div id="visual-sync-scroll-viewport" class="flex-1 overflow-y-auto p-4 bg-white dark:bg-[#111] custom-scrollbar selection:bg-primary/30">
+              <pre id="visual-sync-progress-line" class="m-0 font-mono text-[11px] leading-relaxed text-slate-900 dark:text-emerald-400 whitespace-pre-wrap break-all">Initializing connection...</pre>
             </div>
           </div>
 

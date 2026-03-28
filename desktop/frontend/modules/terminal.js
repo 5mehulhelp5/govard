@@ -42,10 +42,11 @@ export const createTerminalController = ({
       return;
     }
 
+    const isDark = document.documentElement.classList.contains("dark");
     activeTerminal = new window.Terminal({
       theme: {
-        background: "#0c1810",
-        foreground: "#f8fafc",
+        background: isDark ? "#0c1810" : "#ffffff",
+        foreground: isDark ? "#f8fafc" : "#0f172a",
         cursor: "var(--primary)",
       },
       fontFamily: "monospace",
