@@ -1,3 +1,5 @@
+import { confirm } from "../ui/modal.js";
+
 export const createActionsController = ({
   bridge,
   getProject,
@@ -99,6 +101,27 @@ export const createActionsController = ({
         project,
         `Pulled images for ${project}`,
         `Pulling images for ${project}...`,
+      );
+      return;
+    }
+    if (action === "env-delete") {
+      const confirmed = await confirm({
+        title: "Delete Project",
+        message: `Are you sure you want to PERMANENTLY delete project <span class="text-primary font-bold">"${project}"</span>?<br><br>
+                  This will remove all Docker containers and <span class="text-red-500 font-bold uppercase underline">VOLUMES</span> (database data).<br><br>
+                  The project source code directory will <span class="font-bold">NOT</span> be deleted.<br><br>
+                  <span class="text-red-500 font-bold">THIS ACTION CANNOT BE UNDONE.</span>`,
+        icon: "delete_forever",
+        confirmLabel: "Delete Project",
+        cancelLabel: "Cancel",
+      });
+      if (!confirmed) return;
+
+      await runEnvironmentAction(
+        bridge.deleteProject,
+        project,
+        `Deleted ${project} from Govard`,
+        `Deleting ${project}...`,
       );
       return;
     }

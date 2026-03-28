@@ -23,6 +23,8 @@ const (
 	HookPostDBImport  = "post_db_import"
 	HookPreDBDump     = "pre_db_dump"
 	HookPostDBDump    = "post_db_dump"
+	HookPreDelete     = "pre_delete"
+	HookPostDelete    = "post_delete"
 )
 
 var allowedHookEvents = map[string]struct{}{
@@ -40,6 +42,8 @@ var allowedHookEvents = map[string]struct{}{
 	HookPostDBImport:  {},
 	HookPreDBDump:     {},
 	HookPostDBDump:    {},
+	HookPreDelete:     {},
+	HookPostDelete:    {},
 }
 
 func RunHooks(config Config, event string, stdout, stderr io.Writer) error {

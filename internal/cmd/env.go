@@ -47,7 +47,7 @@ Case Studies:
   # Enter a Redis shell for the current project
   govard redis cli`,
 	Args:    cobra.ArbitraryArgs,
-	Aliases: []string{"project"},
+	Aliases: []string{},
 	FParseErrWhitelist: cobra.FParseErrWhitelist{
 		UnknownFlags: true,
 	},

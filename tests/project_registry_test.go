@@ -87,3 +87,27 @@ func TestUpsertProjectRegistryEntryUpdatesExistingAndSortsByLastSeen(t *testing.
 		t.Fatalf("expected newest timestamp %s, got %s", newest, entries[0].LastSeenAt)
 	}
 }
+
+func TestDeleteProjectRegistryEntry(t *testing.T) {
+	t.Setenv("GOVARD_PROJECT_REGISTRY_PATH", filepath.Join(t.TempDir(), "projects.json"))
+
+	path := "/workspace/delete-me"
+	if err := engine.UpsertProjectRegistryEntry(engine.ProjectRegistryEntry{
+		Path:        path,
+		ProjectName: "delete-me",
+	}); err != nil {
+		t.Fatalf("upsert: %v", err)
+	}
+
+	if err := engine.DeleteProjectRegistryEntry(path); err != nil {
+		t.Fatalf("delete: %v", err)
+	}
+
+	entries, err := engine.ReadProjectRegistryEntries()
+	if err != nil {
+		t.Fatalf("read: %v", err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("expected empty registry, got %d entries", len(entries))
+	}
+}

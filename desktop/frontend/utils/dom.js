@@ -7,6 +7,13 @@ export const setText = (element, value) => {
   element.textContent = String(value ?? "")
 }
 
+export const setHTML = (element, value) => {
+  if (!element) {
+    return
+  }
+  element.innerHTML = String(value ?? "")
+}
+
 export const escapeHTML = (value) =>
   String(value ?? "")
     .replace(/&/g, "&amp;")

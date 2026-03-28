@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 
 	"govard/internal/engine"
 
@@ -133,6 +134,13 @@ func buildDashboardInternal() (Dashboard, error) {
 		for _, env := range environments {
 			knownProjects[env.Project] = true
 		}
+
+		var (
+			mu           sync.Mutex
+			wg           sync.WaitGroup
+			registryEnvs []Environment
+		)
+
 		for _, entry := range entries {
 			projectName := strings.TrimSpace(entry.ProjectName)
 			if projectName == "" {
@@ -142,54 +150,53 @@ func buildDashboardInternal() (Dashboard, error) {
 				continue
 			}
 
-			// Check if we have dynamic info from registry entry
-			entryServices := map[string]bool{}
-			if entry.Framework != "" {
-				// Stub services if we know the framework but it's stopped
-				if entry.Framework == "magento2" {
-					entryServices["web"] = true
-					entryServices["php"] = true
-					entryServices["db"] = true
-					entryServices["redis"] = true
+			wg.Add(1)
+			go func(ent engine.ProjectRegistryEntry, name string) {
+				defer wg.Done()
+
+				env := Environment{
+					Project:        name,
+					Domain:         ent.Domain,
+					Name:           name,
+					Framework:      "Unknown",
+					PHP:            "-",
+					Database:       "-",
+					Services:       []Service{},
+					ServiceTargets: []string{"web"},
+					Status:         "stopped",
 				}
-			}
 
-			env := Environment{
-				Project:        projectName,
-				Domain:         entry.Domain,
-				Name:           projectName,
-				Framework:      "Unknown",
-				PHP:            "-",
-				Database:       "-",
-				Services:       []Service{},
-				ServiceTargets: []string{"web"},
-				Status:         "stopped",
-			}
-
-			// Try to load detailed info from path if available
-			if info, err := loadProjectInfoFromPath(entry.Path); err == nil {
-				env.Domain = info.config.Domain
-				env.Framework = displayFramework(info.config.Framework)
-				env.PHP = info.config.Stack.PHPVersion
-				env.Database = formatDatabase(info.config.Stack.DBType, info.config.Stack.DBVersion)
-				env.Services = deriveServices(info.config, info.serviceState)
-				env.ServiceTargets = collectServiceTargetsFromServices(info, env.Services)
-				env.Technologies = buildTechnologies(env)
-				if entry.Domain != "" {
-					env.Name = entry.Domain
+				// Try to load detailed info from path if available
+				if info, err := loadProjectInfoFromPath(ent.Path); err == nil {
+					env.Domain = info.config.Domain
+					env.Framework = displayFramework(info.config.Framework)
+					env.PHP = info.config.Stack.PHPVersion
+					env.Database = formatDatabase(info.config.Stack.DBType, info.config.Stack.DBVersion)
+					env.Services = deriveServices(info.config, info.serviceState)
+					env.ServiceTargets = collectServiceTargetsFromServices(info, env.Services)
+					env.Technologies = buildTechnologies(env)
+					if ent.Domain != "" {
+						env.Name = ent.Domain
+					}
 				}
-			}
 
-			if entry.Domain != "" {
-				env.Name = entry.Domain
-			}
-			env.ExtraDomains = entry.ExtraDomains
-			if env.Framework == "Unknown" && entry.Framework != "" {
-				env.Framework = displayFramework(entry.Framework)
-			}
-			environments = append(environments, env)
+				if ent.Domain != "" {
+					env.Name = ent.Domain
+				}
+				env.ExtraDomains = ent.ExtraDomains
+				if env.Framework == "Unknown" && ent.Framework != "" {
+					env.Framework = displayFramework(ent.Framework)
+				}
+
+				mu.Lock()
+				registryEnvs = append(registryEnvs, env)
+				mu.Unlock()
+			}(entry, projectName)
+
 			knownProjects[projectName] = true
 		}
+		wg.Wait()
+		environments = append(environments, registryEnvs...)
 	} else {
 		warnings = append(warnings, "Project registry unavailable.")
 	}

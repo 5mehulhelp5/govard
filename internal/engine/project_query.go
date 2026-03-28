@@ -1,56 +1,33 @@
-package cmd
+package engine
 
 import (
 	"fmt"
 	"path/filepath"
 	"strings"
-
-	"govard/internal/engine"
-
-	"github.com/spf13/cobra"
 )
 
-var projectsCmd = &cobra.Command{
-	Use:     "projects",
-	Aliases: []string{"prj"},
-	Short:   "Browse known projects from registry",
-}
-
-var projectsOpenCmd = &cobra.Command{
-	Use:   "open <query>",
-	Short: "Find a project by fuzzy query and print its path",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return runProjectsOpen(cmd, args[0])
-	},
-}
-
-func initProjectsCommands() {
-	projectsCmd.AddCommand(projectsOpenCmd)
-}
-
-func runProjectsOpen(cmd *cobra.Command, query string) error {
-	entries, err := engine.ReadProjectRegistryEntries()
+// FindProjectByQuery finds the best project match for a given query (name, domain, or path).
+func FindProjectByQuery(query string) (ProjectRegistryEntry, error) {
+	entries, err := ReadProjectRegistryEntries()
 	if err != nil {
-		return err
+		return ProjectRegistryEntry{}, err
 	}
 	if len(entries) == 0 {
-		return fmt.Errorf("project registry is empty; run govard init/up in at least one project first")
+		return ProjectRegistryEntry{}, fmt.Errorf("project registry is empty")
 	}
 
 	match, ok := findBestProjectMatch(entries, query)
 	if !ok {
-		return fmt.Errorf("no project matches query %q", strings.TrimSpace(query))
+		return ProjectRegistryEntry{}, fmt.Errorf("no project matches query %q", query)
 	}
 
-	_, _ = fmt.Fprintln(cmd.OutOrStdout(), match.Path)
-	return nil
+	return match, nil
 }
 
-func findBestProjectMatch(entries []engine.ProjectRegistryEntry, query string) (engine.ProjectRegistryEntry, bool) {
+func findBestProjectMatch(entries []ProjectRegistryEntry, query string) (ProjectRegistryEntry, bool) {
 	normalizedQuery := strings.ToLower(strings.TrimSpace(query))
 	if normalizedQuery == "" {
-		return engine.ProjectRegistryEntry{}, false
+		return ProjectRegistryEntry{}, false
 	}
 
 	bestIndex := -1
@@ -66,12 +43,12 @@ func findBestProjectMatch(entries []engine.ProjectRegistryEntry, query string) (
 		}
 	}
 	if bestIndex < 0 {
-		return engine.ProjectRegistryEntry{}, false
+		return ProjectRegistryEntry{}, false
 	}
 	return entries[bestIndex], true
 }
 
-func scoreProjectEntry(entry engine.ProjectRegistryEntry, query string) (int, bool) {
+func scoreProjectEntry(entry ProjectRegistryEntry, query string) (int, bool) {
 	candidates := []struct {
 		value string
 		bias  int

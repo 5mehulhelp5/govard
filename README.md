@@ -48,7 +48,7 @@ At a glance, these are the areas where Govard delivers stronger day-to-day value
 - **Safe Cross-Environment Sync**: Bi-directional file/media/database sync with dry-run planning (`--plan`), privacy filters (`--no-noise`, `--no-pii`), auto-selection of the `staging` remote by default, resumable rsync by default (`--partial --append-verify`), include/exclude filters, and risk warnings for destructive flags.
 - **Remote Auditability & Observability**: Remote operations are logged to `~/.govard/remote.log` and also emitted to `~/.govard/operations.log` for command traceability and desktop notifications.
 - **Remote Connectivity Diagnostics**: `govard remote test` validates SSH + `rsync`, reports probe latency, and classifies failures (`network`, `auth`, `permission`, `host_key`, `dependency`) with remediation hints.
-- **Smart Cleanup**: Automaticaly prunes stale Docker Compose files in the background once a day and provides a `govard env cleanup` command for immediate maintenance. Use `govard doctor` to monitor directory saturation.
+- **Smart Cleanup**: Automatically prunes stale Docker Compose files in the background once a day and provides a `govard env cleanup` command for immediate maintenance. Use `govard project delete` to completely remove a project's orchestration resources (containers, volumes, and proxy rules). This command is resilient and can clean up "ghost" projects even if their `.govard.yml` is missing. Use `govard doctor` to monitor directory saturation.
 - **Secrets-Aware Remote Config**: Remote fields support `op://...` references resolved through 1Password CLI for safer credential handling.
 - **SSL Management**: Professional CA management for "Green Lock" HTTPS on local `.test` domains.
 - **Rich CLI UX**: Powered by `pterm` for terminal output, progress bars, and interactive prompts.
@@ -437,7 +437,7 @@ Common command aliases:
 | `govard lock`        | Generate and validate `govard.lock` snapshots                      |
 | `govard tunnel`      | Start a public tunnel to a local project URL                       |
 | `govard custom`      | Run project custom commands from `.govard/commands`                |
-| `govard projects`    | Query known projects from local registry                           |
+| `govard project`     | Query known projects from local registry (`list`, `open`, `delete`) |
 | <code>govard&nbsp;extensions</code> | Manage project extension contract in `.govard`                     |
 | `govard desktop`     | Launch the Govard Desktop app (`--background` supported)           |
 | <code>govard&nbsp;self&#8209;update</code> | Upgrade installed Govard binaries (`govard` + detected `govard-desktop`) |

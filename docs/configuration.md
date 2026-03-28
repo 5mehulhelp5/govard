@@ -177,6 +177,12 @@ See [Remotes and Sync](remotes-and-sync.md) for the operational side.
 - `.govard/commands/*`: custom commands exposed through `govard custom`
 - `.govard/hooks/*`: scripts referenced by `hooks.*.run`
 
+Lifecycle hook events:
+- `pre-up` / `post-up`
+- `pre-down` / `post-down`
+- `pre-deploy` / `post-deploy`
+- `pre-delete` / `post-delete`
+
 Govard fingerprints `.govard/docker-compose.override.yml` during render. If that file changes, the next `govard env up` re-renders the managed compose output automatically.
 
 When overriding service definitions, prefer additive merges such as extra environment variables, labels, or ports. Replacing a full list like `services.web.volumes` can discard required Govard-managed mounts.

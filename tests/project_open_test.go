@@ -11,27 +11,27 @@ import (
 	"govard/internal/engine"
 )
 
-func TestProjectsCommandExists(t *testing.T) {
+func TestProjectCommandExists(t *testing.T) {
 	root := cmd.RootCommandForTest()
 
-	projectsCommand, _, err := root.Find([]string{"projects"})
+	projectCommand, _, err := root.Find([]string{"project"})
 	if err != nil {
-		t.Fatalf("find projects command: %v", err)
+		t.Fatalf("find project command: %v", err)
 	}
-	if projectsCommand == nil || projectsCommand.Use != "projects" {
-		t.Fatalf("unexpected projects command: %#v", projectsCommand)
+	if projectCommand == nil || projectCommand.Use != "project" {
+		t.Fatalf("unexpected project command: %#v", projectCommand)
 	}
 
-	openCommand, _, err := root.Find([]string{"projects", "open"})
+	openCommand, _, err := root.Find([]string{"project", "open"})
 	if err != nil {
-		t.Fatalf("find projects open command: %v", err)
+		t.Fatalf("find project open command: %v", err)
 	}
 	if openCommand == nil || openCommand.Use != "open <query>" {
-		t.Fatalf("unexpected projects open command: %#v", openCommand)
+		t.Fatalf("unexpected project open command: %#v", openCommand)
 	}
 }
 
-func TestProjectsOpenCommandPrintsMatchedProjectPath(t *testing.T) {
+func TestProjectOpenCommandPrintsMatchedProjectPath(t *testing.T) {
 	t.Setenv(engine.ProjectRegistryPathEnvVar, filepath.Join(t.TempDir(), "projects.json"))
 	entries := []engine.ProjectRegistryEntry{
 		{
@@ -58,10 +58,10 @@ func TestProjectsOpenCommandPrintsMatchedProjectPath(t *testing.T) {
 	root := cmd.RootCommandForTest()
 	root.SetOut(stdout)
 	root.SetErr(stderr)
-	root.SetArgs([]string{"projects", "open", "bill"})
+	root.SetArgs([]string{"project", "open", "bill"})
 
 	if err := root.Execute(); err != nil {
-		t.Fatalf("execute projects open: %v\nstderr=%s", err, stderr.String())
+		t.Fatalf("execute project open: %v\nstderr=%s", err, stderr.String())
 	}
 
 	output := strings.TrimSpace(stdout.String())
@@ -70,7 +70,7 @@ func TestProjectsOpenCommandPrintsMatchedProjectPath(t *testing.T) {
 	}
 }
 
-func TestProjectsOpenCommandReturnsErrorWhenNoMatch(t *testing.T) {
+func TestProjectOpenCommandReturnsErrorWhenNoMatch(t *testing.T) {
 	t.Setenv(engine.ProjectRegistryPathEnvVar, filepath.Join(t.TempDir(), "projects.json"))
 	if err := engine.UpsertProjectRegistryEntry(engine.ProjectRegistryEntry{
 		Path:        "/workspace/demo-store",
@@ -85,18 +85,18 @@ func TestProjectsOpenCommandReturnsErrorWhenNoMatch(t *testing.T) {
 	root := cmd.RootCommandForTest()
 	root.SetOut(stdout)
 	root.SetErr(stderr)
-	root.SetArgs([]string{"projects", "open", "unknown"})
+	root.SetArgs([]string{"project", "open", "unknown"})
 
 	err := root.Execute()
 	if err == nil {
-		t.Fatal("expected projects open to fail when no match exists")
+		t.Fatal("expected project open to fail when no match exists")
 	}
 	if !strings.Contains(strings.ToLower(err.Error()), "no project matches") {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
-func TestProjectsOpenCommandReturnsErrorWhenRegistryMissing(t *testing.T) {
+func TestProjectOpenCommandReturnsErrorWhenRegistryMissing(t *testing.T) {
 	t.Setenv(engine.ProjectRegistryPathEnvVar, filepath.Join(t.TempDir(), "projects.json"))
 
 	stdout := &bytes.Buffer{}
@@ -104,11 +104,11 @@ func TestProjectsOpenCommandReturnsErrorWhenRegistryMissing(t *testing.T) {
 	root := cmd.RootCommandForTest()
 	root.SetOut(stdout)
 	root.SetErr(stderr)
-	root.SetArgs([]string{"projects", "open", "demo"})
+	root.SetArgs([]string{"project", "open", "demo"})
 
 	err := root.Execute()
 	if err == nil {
-		t.Fatal("expected projects open to fail when registry is empty")
+		t.Fatal("expected project open to fail when registry is empty")
 	}
 	if !strings.Contains(strings.ToLower(err.Error()), "project registry is empty") {
 		t.Fatalf("unexpected empty registry error: %v", err)

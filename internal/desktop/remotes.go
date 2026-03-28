@@ -805,41 +805,29 @@ func resolveProjectRootForRemotes(project string) (string, error) {
 		return "", fmt.Errorf("project is required")
 	}
 
+	// 1. Check if it's already a path with a config
 	if pathHasBaseConfig(trimmedProject) {
 		return filepath.Clean(trimmedProject), nil
 	}
 
-	if entries, err := engine.ReadProjectRegistryEntries(); err == nil {
-		for _, entry := range entries {
-			if !projectRegistryMatches(entry, trimmedProject) {
-				continue
-			}
-			if pathHasBaseConfig(entry.Path) {
-				return filepath.Clean(entry.Path), nil
-			}
-		}
+	// 2. Try registry with fuzzy matching
+	match, err := engine.FindProjectByQuery(trimmedProject)
+	if err == nil {
+		// Even if config is missing, return the path so it can be cleaned up
+		return filepath.Clean(match.Path), nil
 	}
 
+	// 3. Fallback to loadProjectInfo (which checks Docker labels)
 	if info, err := loadProjectInfo(trimmedProject); err == nil {
-		if configPath := strings.TrimSpace(info.configPath); configPath != "" {
-			root := filepath.Dir(configPath)
-			if pathHasBaseConfig(root) {
-				return filepath.Clean(root), nil
-			}
+		if info.workingDir != "" {
+			return filepath.Clean(info.workingDir), nil
+		}
+		if info.configPath != "" {
+			return filepath.Clean(filepath.Dir(info.configPath)), nil
 		}
 	}
 
 	return "", fmt.Errorf("unable to resolve project path for '%s'", trimmedProject)
-}
-
-func projectRegistryMatches(entry engine.ProjectRegistryEntry, project string) bool {
-	if strings.TrimSpace(entry.ProjectName) == project {
-		return true
-	}
-	if strings.TrimSpace(entry.Domain) == project {
-		return true
-	}
-	return filepath.Base(strings.TrimSpace(entry.Path)) == project
 }
 
 func pathHasBaseConfig(root string) bool {

@@ -272,14 +272,43 @@ govard custom hello
 govard custom deploy -- --dry-run
 ```
 
-### `govard projects`
+### `govard project`
 
-Query the local project registry.
+Browse and manage known projects from the registry.
+
+Aliases: `project`, `prj`, `projects`, `registry`
 
 ```bash
-govard projects open billing
-cd "$(govard projects open demo)"
+# List all available projects
+govard project list
+
+# Get the path of a project by name
+govard project open billing
+
+# Delete a project and its environment resources
+govard project delete demo
 ```
+
+Use `govard project list` to see all known projects, their framework, and paths.
+
+### `govard project delete`
+
+Completely remove a project's orchestration resources and unregister it from Govard. This command is resilient and can clean up "ghost" projects even if their `.govard.yml` configuration is missing.
+
+```bash
+govard project delete demo
+govard project delete --yes demo
+```
+
+The deletion process:
+1. Runs `pre-delete` lifecycle hooks (skipped if config is missing).
+2. Executes `docker compose down -v` to remove containers and **volumes** (databases, etc.).
+3. Unregisters any proxy domains (skipped if config is missing).
+4. Removes the project from the registry (`projects.json`).
+5. Runs `post-delete` lifecycle hooks (skipped if config is missing).
+
+> [!CAUTION]
+> Deletion removes persistent database volumes by default. Project source code is **never** deleted.
 
 ## Remote, Sync, and Data Commands
 

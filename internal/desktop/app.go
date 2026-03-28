@@ -3,8 +3,11 @@ package desktop
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/user"
 	"sync"
+
+	"govard/internal/engine"
 )
 
 func (app *App) GetUserInfo() (res UserInfo, err error) {
@@ -157,4 +160,22 @@ func (app *App) ResetShellUsers() (res string, err error) {
 		return "", errReset
 	}
 	return "Shell user preferences reset", nil
+}
+
+func (app *App) DeleteProject(projectQuery string) (res string, err error) {
+	defer RecoverPanic(&err, "DeleteProject")
+	if projectQuery == "" {
+		return "", fmt.Errorf("project name or path is required")
+	}
+
+	root, err := resolveProjectRootForRemotes(projectQuery)
+	if err != nil {
+		return "", err
+	}
+
+	// We use the application context for the deletion process
+	if err := engine.DeleteProject(app.ctx, root, os.Stdout, os.Stderr); err != nil {
+		return "", err
+	}
+	return "Project deleted successfully", nil
 }

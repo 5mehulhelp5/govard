@@ -216,6 +216,10 @@ export const desktopBridge = {
     const bridge = getBridge();
     return call(bridge?.OpenEnvironment?.bind(bridge), project);
   },
+  async deleteProject(project) {
+    const bridge = getBridge();
+    return call(bridge?.DeleteProject?.bind(bridge), project);
+  },
   async quickActionForProject(action, project) {
     const bridge = getBridge();
     return call(bridge?.QuickActionForProject?.bind(bridge), action, project);

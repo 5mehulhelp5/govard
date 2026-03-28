@@ -103,6 +103,34 @@ func UpsertProjectRegistryEntry(entry ProjectRegistryEntry) error {
 	return nil
 }
 
+func DeleteProjectRegistryEntry(path string) error {
+	path = filepath.Clean(strings.TrimSpace(path))
+	if path == "" {
+		return fmt.Errorf("project path is required")
+	}
+
+	entries, err := ReadProjectRegistryEntries()
+	if err != nil {
+		return err
+	}
+
+	filtered := make([]ProjectRegistryEntry, 0, len(entries))
+	found := false
+	for _, entry := range entries {
+		if entry.Path == path {
+			found = true
+			continue
+		}
+		filtered = append(filtered, entry)
+	}
+
+	if !found {
+		return nil
+	}
+
+	return writeProjectRegistryEntries(ProjectRegistryPath(), filtered)
+}
+
 func normalizeProjectRegistryEntry(entry ProjectRegistryEntry) (ProjectRegistryEntry, bool) {
 	entry.Path = strings.TrimSpace(entry.Path)
 	if entry.Path == "" {

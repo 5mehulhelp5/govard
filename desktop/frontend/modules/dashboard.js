@@ -626,6 +626,10 @@ export const renderProjectHero = (
     refs.heroPullBtn.dataset.env = selectedProject;
     refs.heroPullBtn.title = "Pull Images";
   }
+  if (refs.heroDeleteBtn) {
+    refs.heroDeleteBtn.dataset.env = selectedProject;
+    refs.heroDeleteBtn.title = `Delete ${title}`;
+  }
 
   if (refs.envVarsList) {
     renderEnvVars(refs.envVarsList, env);
