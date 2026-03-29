@@ -66,6 +66,7 @@ Highlights:
 - optional frontend watcher support for Grunt or Vite workflows
 - dedicated `php-debug` routing when Xdebug is enabled
 
+
 Note: Magento crontabs installed with `bin/magento cron:install` live inside the PHP container. If you recreate that container, rerun the command.
 
 Typical flow:
@@ -85,6 +86,24 @@ Common services:
 - cache/session: Redis or Valkey depending on selected runtime profile
 - queue: optional RabbitMQ
 - Varnish: optional and supported in front of `nginx`, `apache`, and `hybrid` web server modes
+
+### Native Upgrade Pipeline (Magento 2)
+
+`govard upgrade` provides a native, high-performance alternative to legacy upgrade scripts. It automates the entire transition between Magento versions:
+
+- **Version Resolution**: Automatically pulls the correct PHP, MariaDB, and Search versions based on the target Magento version.
+- **Smart Composer Merge**: Instead of a blind overwrite, Govard performs a three-way-ish merge of your project's `composer.json` with the target version's template. It preserves your third-party modules and custom repositories.
+- **Dependency Relaxation**: Automatically nới lỏng (relaxes) version constraints for common development tools (`phpunit`, `phpmd`) that often block upgrades.
+- **Profile Isolation**: Works seamlessly with `GOVARD_ENV`. You can test a 2.4.8-p4 upgrade in an isolated profile without touching your current 2.4.7 environment.
+- **Full Automation**: Handles `composer update`, `setup:upgrade`, and static content compilation in a single command.
+
+Example:
+```bash
+# Test upgrade in an isolated profile
+CP .govard.yml .govard.upgrade-test.yml
+GOVARD_ENV=upgrade-test govard upgrade --version 2.4.8-p1 --dry-run
+GOVARD_ENV=upgrade-test govard upgrade --version 2.4.8-p1
+```
 
 ### Magento 2 multiple websites / stores
 
@@ -140,6 +159,14 @@ govard tool magerun [command]
 ```
 
 Default runtime is conservative: PHP 8.1 with MariaDB 10.11 and no optional cache/search/queue service forced on.
+
+### Native Upgrade Pipeline (Magento 1)
+
+`govard upgrade` automates the essentials for Magento 1 / OpenMage upgrades:
+- **Composer Sync**: Runs `composer install` if a `composer.json` is present.
+- **Cache Purge**: Flushes `var/cache`, `var/session`, `var/full_page_cache`, and minified CSS/JS.
+- **Compiler Maintenance**: Automatically runs `php shell/compiler.php clear` to prevent stale class maps.
+- **DB Migration**: Uses `n98-magerun sys:setup:run` (if installed) to trigger core and module setup scripts.
 
 ### Magento 1 multiple websites / stores
 
@@ -215,6 +242,13 @@ Defaults:
 - MariaDB 11.4
 - PHP selected from the version-aware profile when available
 
+### Native Upgrade Pipeline (Laravel)
+
+`govard upgrade --version <major>` streamlines Laravel version transitions:
+- **Major Version Update**: Runs `composer require laravel/framework:^<version> --no-update`.
+- **Dependency Resolution**: Performs a full `composer update` to pull the new framework and its dependencies.
+- **Automated Migrations**: Runs `php artisan migrate --force` to apply database schema changes immediately.
+
 ## Drupal
 
 Use:
@@ -242,6 +276,14 @@ Defaults:
 - web root: `/public`
 - MariaDB 11.4
 - version-aware PHP selection
+
+### Native Upgrade Pipeline (Symfony)
+
+`govard upgrade --version <major>` handles Symfony framework updates:
+- **Bundle Update**: Updates `symfony/framework-bundle` constraints in `composer.json`.
+- **Full Update**: Runs `composer update` for the entire project.
+- **Migrations**: Executes `php bin/console doctrine:migrations:migrate`.
+- **Cache Clear**: Runs `php bin/console cache:clear` to ensure the container is rebuilt for the new version.
 
 ## Shopware
 
@@ -282,6 +324,13 @@ Defaults:
 - web root: `/wordpress`
 - MariaDB 11.4
 - PHP 8.3 by default
+
+### Native Upgrade Pipeline (WordPress)
+
+`govard upgrade --version <version>` automates WordPress core updates:
+- **Core Update**: Uses `wp core update --version=<version>` to fetch the specified WordPress release.
+- **DB Update**: Runs `wp core update-db` to ensure the database schema matches the core version.
+- **Object Cache**: Flushes the object cache via `wp cache flush`.
 
 ## Next.js
 

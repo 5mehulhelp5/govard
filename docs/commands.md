@@ -582,11 +582,30 @@ govard self-update
 
 ### `govard upgrade`
 
-Framework version upgrade entrypoint.
+Framework version upgrade pipeline for supported frameworks:
+- **Magento 2**: `govard upgrade --version 2.4.8-p4`
+- **Laravel**: `govard upgrade --version 11`
+- **Symfony**: `govard upgrade --version 7`
+- **WordPress**: `govard upgrade --version 6.7`
 
 ```bash
-govard upgrade
+govard upgrade --version 2.4.8-p4
+govard upgrade --version 11 --dry-run
 ```
+
+The upgrade process varies by framework, but generally includes:
+1.  **Config Update**: Updates `.govard.yml` with the target version and appropriate runtime profiles.
+2.  **Environment Restart**: Cycles containers to apply new PHP versions or configurations.
+3.  **Dependency Update**: Runs `composer update` or framework-specific core updates (`wp core update`).
+4.  **Database Migration**: Runs framework-specific migrations (`bin/magento setup:upgrade`, `php artisan migrate`, `wp core update-db`, etc.).
+5.  **Cache Maintenance**: Automatically flushes caches and recompiles assets.
+
+Flags:
+- `--version`: Target framework version (required).
+- `--dry-run`: Show steps without performing them.
+- `--no-db-upgrade`: Skip database migrations and heavy setup steps.
+- `--no-env-update`: Skip profile update and container restart.
+- `-y, --yes`: Auto-confirm all prompts.
 
 ### `govard version`
 

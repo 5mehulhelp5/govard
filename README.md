@@ -54,6 +54,7 @@ At a glance, these are the areas where Govard delivers stronger day-to-day value
 - **Rich CLI UX**: Powered by `pterm` for terminal output, progress bars, and interactive prompts.
 - **Global Services**: Built-in Proxy (Caddy), Mailpit, PHPMyAdmin, and Portainer.
 - **Desktop Dashboard**: Wails-based UI with live logs, quick actions, and settings.
+- **Native Framework Upgrades**: Multi-framework upgrade pipeline (`govard upgrade`) for Magento 2, Laravel, Symfony, and WordPress that automates environment restarts, dependency updates, and database migrations.
 
 ---
 
@@ -441,7 +442,7 @@ Common command aliases:
 | <code>govard&nbsp;extensions</code> | Manage project extension contract in `.govard`                     |
 | `govard desktop`     | Launch the Govard Desktop app (`--background` supported)           |
 | <code>govard&nbsp;self&#8209;update</code> | Upgrade installed Govard binaries (`govard` + detected `govard-desktop`) |
-| `govard upgrade`     | Upgrade the framework version                                      |
+| `govard upgrade`     | Native framework upgrade pipeline (Magento 2, Laravel, Symfony, WordPress) |
 | `govard version`     | Print the version number of Govard                                 |
 | `govard redis`       | Smart shortcut for project Redis Management                        |
 | `govard varnish`     | Smart shortcut for project Varnish Management                      |
