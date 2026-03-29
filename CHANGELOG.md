@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.36.0] - 2026-03-29
+
+### ✨ New Features
+
+- **Desktop Auto-Update Notifications**: Implemented a comprehensive notification system for the desktop application to alert users when a new version is available.
+- **Project Deletion**: Added the ability to delete projects directly from the Desktop UI with safety confirmation and backend cleanup.
+- **Visual Sync Progress**: Introduced a dedicated UI module for remote synchronization with real-time progress bars and a live terminal console.
+- **OS Terminal Support**: Integrated support for launching native OS terminals for service shells and remote operations.
+- **Git Branch Visibility**: The dashboard now displays the active Git branch for each project in the environment details.
+- **Desktop Doctor**: Added a `doctor` command to the Desktop app for automated troubleshooting and health checks.
+
+### 🛠 Improvements
+
+- **Project Selection Flow**: Refined the onboarding and project selection experience for better clarity and speed.
+- **Sync Log Throttling**: Implemented event throttling for synchronization logs to improve UI responsiveness during high-volume data transfers.
+- **Installer Compatibility**: Enhanced the system installer to support a wider range of Linux distributions and environment configurations.
+- **Production Lock ID**: Switched the Desktop application's single-instance lock to a stable production identifier.
+
+### 🔄 Refactors
+
+- **Remote Configuration Management**: Implemented a new `RemoteConfigMap` type for deterministic YAML marshaling and priority-based sorting of remote environments.
+- **UI Style Consolidation**: Removed redundant Tailwind CSS base styles and reset configurations, shifting to a more flexible and lightweight vanilla CSS architecture.
+- **Project Name Normalization**: Standardized internal project naming conventions to ensure consistency across CLI and Desktop modules.
+
 ## [1.35.0] - 2026-03-28
 
 ### ✨ New Features
