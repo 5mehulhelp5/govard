@@ -144,6 +144,10 @@ export const desktopBridge = {
       skipIDE: false,
     });
   },
+  async detectMigrationSource(projectPath) {
+    const bridge = getBridge();
+    return call(bridge?.DetectMigrationSource?.bind(bridge), projectPath);
+  },
   async getRemotes(project) {
     const bridge = getBridge();
     return call(bridge?.GetRemotes?.bind(bridge), project);

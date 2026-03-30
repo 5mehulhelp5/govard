@@ -228,6 +228,14 @@ func (s *OnboardingService) OnboardProject(input OnboardInput) (string, error) {
 	return onboardProjectWithOptionsInternalWithContext(s.ctx, input)
 }
 
+func (s *OnboardingService) DetectMigrationSource(projectPath string) (string, error) {
+	root, err := normalizeProjectPath(projectPath)
+	if err != nil {
+		return "", err
+	}
+	return detectOnboardingMigrationSource(root), nil
+}
+
 func loadProjectConfigForOnboarding(root string) (engine.Config, bool, error) {
 	if !pathHasBaseConfig(root) {
 		return engine.Config{}, false, nil

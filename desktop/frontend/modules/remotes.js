@@ -130,25 +130,28 @@ const renderSyncPresetButton = ({
   iconHoverClass,
   enabled,
   disabledReason,
+  isSyncing,
 }) => {
   const buttonClasses = enabled
     ? "flex-1 px-4 py-2.5 bg-background-secondary hover:bg-[var(--border-primary)] border border-border-primary dark:border-[#366b47] rounded-lg text-sm text-text-primary dark:text-white font-medium transition-all flex items-center justify-center gap-2 group/btn"
     : "flex-1 px-4 py-2.5 bg-background-secondary dark:bg-[#13231a] border border-border-primary dark:border-[#2b3d31] rounded-lg text-sm text-slate-500 font-medium transition-all flex items-center justify-center gap-2 opacity-70 cursor-not-allowed";
   const iconClasses = enabled
-    ? `material-symbols-outlined text-[18px] ${iconHoverClass} transition-colors`
+    ? `material-symbols-outlined text-[18px] ${iconHoverClass} transition-colors ${isSyncing ? "animate-spin" : ""}`
     : "material-symbols-outlined text-[18px] text-slate-500";
   const title = enabled ? label : disabledReason;
-  const disabledAttr = enabled ? "" : ' disabled aria-disabled="true"';
+  const disabledAttr = (enabled && !isSyncing) ? "" : ' disabled aria-disabled="true"';
+  const displayLabel = isSyncing ? "Syncing..." : label;
+  const displayIcon = isSyncing ? "sync" : icon;
 
   return `
                 <button data-action="open-sync-modal" data-remote="${escapeHTML(remoteName)}" data-preset="${escapeHTML(preset)}" class="${buttonClasses}" title="${escapeHTML(title)}"${disabledAttr}>
-                    <span class="${iconClasses}">${icon}</span>
-                    ${escapeHTML(label)}
+                    <span class="${iconClasses}">${displayIcon}</span>
+                    ${escapeHTML(displayLabel)}
                 </button>
   `;
 };
 
-export const renderRemotes = (container, remotes = []) => {
+export const renderRemotes = (container, remotes = [], syncingRemote = null, syncingPreset = null) => {
   if (!container) {
     return;
   }
@@ -163,23 +166,28 @@ export const renderRemotes = (container, remotes = []) => {
 
   const cardsHtml = remotes
     .map((remote) => {
+      const isSyncing = syncingRemote === remote.name;
+      const anySyncing = syncingRemote !== null;
       const isProtected = Boolean(remote.protected);
-      const themeColor = isProtected ? "amber" : "blue";
-      const themeIcon = isProtected ? "rocket_launch" : "science";
-      const borderColor = isProtected
-        ? "border-amber-500/20"
-        : "border-[var(--bg-secondary)]";
+      const themeColor = isSyncing ? "emerald" : (isProtected ? "amber" : "blue");
+      const themeIcon = isSyncing ? "sync" : (isProtected ? "rocket_launch" : "science");
+      const borderColor = isSyncing 
+        ? "border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]" 
+        : (isProtected ? "border-amber-500/20" : "border-[var(--bg-secondary)]");
       const lastSyncText = String(remote.lastSync || "never")
         .trim()
         .toLowerCase();
       const lastSyncTone =
         lastSyncText === "never" ? "text-amber-600 dark:text-amber-300" : "text-text-secondary dark:text-slate-200";
-      const canPullDB = canUseSyncPreset(remote, "db");
-      const canPullMedia = canUseSyncPreset(remote, "media");
-      const dbDisabledReason =
-        "Database sync is disabled for this remote (capability: db).";
-      const mediaDisabledReason =
-        "Media sync is disabled for this remote (capability: media).";
+      const canPullDB = canUseSyncPreset(remote, "db") && (!anySyncing || isSyncing);
+      const canPullMedia = canUseSyncPreset(remote, "media") && (!anySyncing || isSyncing);
+      const pullEverythingEnabled = (!anySyncing || isSyncing);
+      const dbDisabledReason = anySyncing && !isSyncing 
+        ? "Another sync is currently in progress."
+        : "Database sync is disabled for this remote (capability: db).";
+      const mediaDisabledReason = anySyncing && !isSyncing
+        ? "Another sync is currently in progress."
+        : "Media sync is disabled for this remote (capability: media).";
       const authMethodLabel = formatAuthMethodLabel(remote.authMethod);
 
       return `
@@ -196,7 +204,8 @@ export const renderRemotes = (container, remotes = []) => {
                     <h3 class="text-text-primary dark:text-white text-[1.4rem] leading-none font-semibold">
                       ${escapeHTML(remote.name)}
                     </h3>
-                    ${isProtected ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-${themeColor}-500/20 text-${themeColor}-400 border border-${themeColor}-500/30 uppercase tracking-wide">Protected</span>` : ""}
+                    ${isProtected ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 uppercase tracking-wide">Protected</span>` : ""}
+                    ${isSyncing ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase tracking-wide animate-pulse">Syncing...</span>` : ""}
                   </div>
                   <p class="mt-1 text-[11px] uppercase tracking-[0.08em] text-primary/70">Auth: ${escapeHTML(authMethodLabel)}</p>
                 </div>
@@ -234,8 +243,9 @@ export const renderRemotes = (container, remotes = []) => {
         icon: "all_inclusive",
         label: "Pull Everything",
         iconHoverClass: "group-hover/btn:text-purple-400",
-        enabled: true,
-        disabledReason: "",
+        enabled: pullEverythingEnabled,
+        disabledReason: anySyncing ? "Another sync is currently in progress." : "",
+        isSyncing: isSyncing && (syncingPreset === "full" || !syncingPreset),
       })}
                 ${renderSyncPresetButton({
         remoteName: remote.name,
@@ -245,6 +255,7 @@ export const renderRemotes = (container, remotes = []) => {
         iconHoverClass: "group-hover/btn:text-primary",
         enabled: canPullDB,
         disabledReason: dbDisabledReason,
+        isSyncing: isSyncing && syncingPreset === "db",
       })}
                 ${renderSyncPresetButton({
         remoteName: remote.name,
@@ -254,6 +265,7 @@ export const renderRemotes = (container, remotes = []) => {
         iconHoverClass: "group-hover/btn:text-blue-400",
         enabled: canPullMedia,
         disabledReason: mediaDisabledReason,
+        isSyncing: isSyncing && syncingPreset === "media",
       })}
             </div>
             <div class="flex flex-wrap gap-3">
@@ -344,23 +356,24 @@ export const renderRemotes = (container, remotes = []) => {
           <!-- Visual Sync Progress Container -->
           <div 
             id="visual-sync-progress-container" 
-            class="hidden mt-8 w-full h-[500px] bg-white dark:bg-[#1e1e1e] rounded-xl overflow-hidden shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col opacity-0 transform-gpu translate-y-4 transition-all duration-500"
+            class="hidden mt-8 w-full h-[500px] bg-slate-50 dark:bg-slate-950 rounded-xl overflow-hidden shadow-2xl border border-slate-200 dark:border-white/5 flex flex-col opacity-0 transform-gpu translate-y-4 transition-all duration-500"
           >
             <!-- Fixed Terminal Header (MacOS style) -->
-            <div class="h-8 flex items-center px-4 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-white/5 shrink-0 z-10">
-              <div class="flex gap-1.5">
-                <div class="w-2.5 h-2.5 rounded-full bg-[#ff5f56] shadow-[0_0_8px_rgba(255,95,86,0.3)]"></div>
-                <div class="w-2.5 h-2.5 rounded-full bg-[#ffbd2e] shadow-[0_0_8px_rgba(255,189,46,0.2)]"></div>
-                <div class="w-2.5 h-2.5 rounded-full bg-[#27c93f] shadow-[0_0_8px_rgba(39,201,63,0.3)]"></div>
+            <div class="h-8 flex items-center px-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-white/5 shrink-0 z-10 shadow-sm">
+              <div class="flex gap-1.5 shrink-0">
+                <div class="w-2.5 h-2.5 rounded-full bg-[#ff5f56] shadow-[0_0_8px_rgba(255,95,86,0.15)]"></div>
+                <div class="w-2.5 h-2.5 rounded-full bg-[#ffbd2e] shadow-[0_0_8px_rgba(255,189,46,0.1)]"></div>
+                <div class="w-2.5 h-2.5 rounded-full bg-[#27c93f] shadow-[0_0_8px_rgba(39,201,63,0.15)]"></div>
               </div>
-              <div class="ml-4 flex items-center gap-2">
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] pointer-events-none">Syncing...</span>
-                <span class="flex h-1.5 w-1.5 rounded-full bg-primary animate-pulse"></span>
+              <div class="mx-auto flex items-center gap-2 px-6">
+                <span class="visual-sync-title text-[9px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-[0.25em] pointer-events-none truncate max-w-[240px]">Sync Terminal</span>
+                <span class="visual-sync-indicator flex h-1 w-1 rounded-full bg-primary animate-pulse"></span>
               </div>
+              <div class="w-[50px] shrink-0"></div> <!-- balancing div -->
             </div>
 
-            <div id="visual-sync-scroll-viewport" class="flex-1 overflow-y-auto p-4 bg-white dark:bg-[#111] custom-scrollbar selection:bg-primary/30">
-              <pre id="visual-sync-progress-line" class="m-0 font-mono text-[11px] leading-relaxed text-slate-900 dark:text-emerald-400 whitespace-pre-wrap break-all">Initializing connection...</pre>
+            <div id="visual-sync-scroll-viewport" class="flex-1 overflow-y-auto p-4 bg-white dark:bg-black/95 custom-scrollbar selection:bg-primary/20">
+              <pre id="visual-sync-progress-line" class="m-0 font-mono text-[11px] leading-relaxed text-emerald-700 dark:text-emerald-400 select-all whitespace-pre-wrap break-all">Initializing connection...</pre>
             </div>
           </div>
 
@@ -457,7 +470,7 @@ export const createRemotesController = ({
   bridge,
   refs,
   getProject,
-  getSyncConfig,
+  getState,
   onStatus,
   onToast,
   onOpenRemoteShellFallback,
@@ -543,15 +556,34 @@ export const createRemotesController = ({
       return null;
     }
 
+    if (!silent) {
+      onStatus(`Status: loading remotes for ${project}...`);
+    }
+
     try {
-      const payload = normalizeRemotesPayload(await bridge.getRemotes(project));
-      renderRemotes(refs.remotesList, payload.remotes);
+      const state = getState();
+      const rawData = await bridge.getRemotes(project);
+      const payload = normalizeRemotesPayload(rawData);
+      
+      renderRemotes(refs.remotesList, payload.remotes, state.syncingProject === project ? state.syncingRemote : null, state.syncingProject === project ? state.syncingPreset : null);
       renderWarnings(refs.remotesWarnings, payload.warnings);
+      
       if (!silent) {
         onStatus(`Status: remotes loaded for ${project}`);
       }
       return payload;
     } catch (err) {
+      console.error("[Remotes] Failed to load remotes:", err);
+      
+      if (typeof window.go !== "undefined") {
+        renderRemotes(refs.remotesList, []);
+        renderWarnings(refs.remotesWarnings, ["Failed to load remotes from backend."]);
+        if (!silent) {
+          onStatus("Status: failed to load remotes");
+        }
+        return { remotes: [], warnings: ["Failed to load remotes from backend."] };
+      }
+      
       const payload = normalizeRemotesPayload(safeRemotes);
       renderRemotes(refs.remotesList, payload.remotes);
       renderWarnings(refs.remotesWarnings, payload.warnings);

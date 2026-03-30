@@ -90,9 +90,21 @@ var startGovardCommandForDesktop = defaultStartGovardCommandForDesktop
 func listProjectRemotes(project string) (RemoteSnapshot, error) {
 	root, err := resolveProjectRootForRemotes(project)
 	if err != nil {
-		return RemoteSnapshot{}, err
+		return RemoteSnapshot{
+			Project:  project,
+			Remotes:  []RemoteEntry{},
+			Warnings: []string{fmt.Sprintf("Resolution error for %q: %v", project, err)},
+		}, nil
 	}
-	return listProjectRemotesByPath(root)
+	res, err := listProjectRemotesByPath(root)
+	if err != nil {
+		return RemoteSnapshot{
+			Project:  project,
+			Remotes:  []RemoteEntry{},
+			Warnings: []string{fmt.Sprintf("Config error for %q at %s: %v", project, root, err)},
+		}, nil
+	}
+	return res, nil
 }
 
 func listProjectRemotesByPath(root string) (RemoteSnapshot, error) {
@@ -396,18 +408,31 @@ func resolveRemoteConfigForCapability(
 
 	normalizedRequested := engine.NormalizeRemoteEnvironment(trimmedRequested)
 	for name, remoteCfg := range cfg.Remotes {
-		if engine.NormalizeRemoteEnvironment(name) != normalizedRequested {
-			continue
+		// Try standard alias normalization first (e.g. "Staging" -> "staging")
+		if engine.NormalizeRemoteEnvironment(name) == normalizedRequested {
+			if capability != "" && !engine.RemoteCapabilityEnabled(remoteCfg, capability) {
+				return "", engine.RemoteConfig{}, fmt.Errorf(
+					"remote '%s' does not allow %s operations (capabilities: %s)",
+					name,
+					capability,
+					strings.Join(engine.RemoteCapabilityList(remoteCfg), ","),
+				)
+			}
+			return name, remoteCfg, nil
 		}
-		if capability != "" && !engine.RemoteCapabilityEnabled(remoteCfg, capability) {
-			return "", engine.RemoteConfig{}, fmt.Errorf(
-				"remote '%s' does not allow %s operations (capabilities: %s)",
-				name,
-				capability,
-				strings.Join(engine.RemoteCapabilityList(remoteCfg), ","),
-			)
+
+		// Fallback to simple case-insensitive match for custom names
+		if strings.EqualFold(name, trimmedRequested) {
+			if capability != "" && !engine.RemoteCapabilityEnabled(remoteCfg, capability) {
+				return "", engine.RemoteConfig{}, fmt.Errorf(
+					"remote '%s' does not allow %s operations (capabilities: %s)",
+					name,
+					capability,
+					strings.Join(engine.RemoteCapabilityList(remoteCfg), ","),
+				)
+			}
+			return name, remoteCfg, nil
 		}
-		return name, remoteCfg, nil
 	}
 
 	return "", engine.RemoteConfig{}, fmt.Errorf("unknown remote: %s", trimmedRequested)
@@ -785,6 +810,13 @@ func runRemoteSyncBackgroundWithOptions(
 		return fmt.Errorf("failed to start background sync: %w", err)
 	}
 
+	RegisterSyncingProject(project, remoteName)
+	emitEvent(ctx, "sync:started", map[string]string{
+		"project": project,
+		"remote":  remoteName,
+		"preset":  preset,
+	})
+
 	// We use two scanners to emit events to the frontend
 	done := make(chan struct{}, 2)
 	go scanLogPipe(ctx, stdout, "sync:output", done)
@@ -794,6 +826,7 @@ func runRemoteSyncBackgroundWithOptions(
 		<-done
 		<-done
 		err := cmd.Wait()
+		UnregisterSyncingProject(project)
 		if err != nil {
 			emitEvent(ctx, "sync:failed", fmt.Sprintf("Sync failed: %v", err))
 		} else {
@@ -890,21 +923,28 @@ func resolveProjectRootForRemotes(project string) (string, error) {
 		return "", fmt.Errorf("project is required")
 	}
 
-	// 1. Check if it's already a path with a config
+	// 1. Check if it's already a path with a config (absolute or relative)
 	if pathHasBaseConfig(trimmedProject) {
 		return filepath.Clean(trimmedProject), nil
 	}
 
-	// 2. Try registry with fuzzy matching
+	// 2. NEW: Exact match in registry (Name or Domain)
+	if match, err := findExactProjectMatch(trimmedProject); err == nil {
+		if pathHasBaseConfig(match.Path) {
+			return filepath.Clean(match.Path), nil
+		}
+	}
+
+	// 3. Try registry with fuzzy matching
 	match, err := engine.FindProjectByQuery(trimmedProject)
 	if err == nil {
 		// Even if config is missing, return the path so it can be cleaned up
 		return filepath.Clean(match.Path), nil
 	}
 
-	// 3. Fallback to loadProjectInfo (which checks Docker labels)
+	// 4. Fallback to loadProjectInfo (which checks Docker labels)
 	if info, err := loadProjectInfo(trimmedProject); err == nil {
-		if info.workingDir != "" {
+		if info.workingDir != "" && pathHasBaseConfig(info.workingDir) {
 			return filepath.Clean(info.workingDir), nil
 		}
 		if info.configPath != "" {
@@ -912,7 +952,37 @@ func resolveProjectRootForRemotes(project string) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("unable to resolve project path for '%s'", trimmedProject)
+	// 5. Try matching by base name if it's a domain/path
+	if strings.Contains(trimmedProject, ".") || strings.Contains(trimmedProject, "/") {
+		var base string
+		if strings.Contains(trimmedProject, ".") {
+			base = strings.Split(trimmedProject, ".")[0]
+		} else {
+			base = filepath.Base(trimmedProject)
+		}
+		if match, err := engine.FindProjectByQuery(base); err == nil {
+			return filepath.Clean(match.Path), nil
+		}
+	}
+
+	return "", fmt.Errorf("unable to resolve project root for identifier '%s'", trimmedProject)
+}
+
+func findExactProjectMatch(query string) (engine.ProjectRegistryEntry, error) {
+	entries, err := engine.ReadProjectRegistryEntries()
+	if err != nil {
+		return engine.ProjectRegistryEntry{}, err
+	}
+
+	lowerQuery := strings.ToLower(query)
+	for _, entry := range entries {
+		if strings.ToLower(entry.ProjectName) == lowerQuery ||
+			strings.ToLower(entry.Domain) == lowerQuery {
+			return entry, nil
+		}
+	}
+
+	return engine.ProjectRegistryEntry{}, fmt.Errorf("no exact match for %q", query)
 }
 
 func pathHasBaseConfig(root string) bool {
@@ -1328,6 +1398,16 @@ func (s *RemoteService) GetRemotes(project string) (RemoteSnapshot, error) {
 		}, err
 	}
 	return snapshot, nil
+}
+
+// ResolveProjectRootForRemotesForTest matches the project identifier to its root path.
+func ResolveProjectRootForRemotesForTest(project string) (string, error) {
+	return resolveProjectRootForRemotes(project)
+}
+
+// FindExactProjectMatchForTest finds a project by its exact name or domain.
+func FindExactProjectMatchForTest(query string) (engine.ProjectRegistryEntry, error) {
+	return findExactProjectMatch(query)
 }
 
 func (s *RemoteService) TestRemote(project string, remoteName string) (string, error) {

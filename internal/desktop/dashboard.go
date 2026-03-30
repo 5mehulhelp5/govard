@@ -18,6 +18,29 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+var (
+	syncingProjects   = make(map[string]string) // projectName -> remoteName
+	syncingProjectsMu sync.Mutex
+)
+
+func RegisterSyncingProject(project, remote string) {
+	syncingProjectsMu.Lock()
+	defer syncingProjectsMu.Unlock()
+	syncingProjects[project] = remote
+}
+
+func UnregisterSyncingProject(project string) {
+	syncingProjectsMu.Lock()
+	defer syncingProjectsMu.Unlock()
+	delete(syncingProjects, project)
+}
+
+func GetSyncingRemote(project string) string {
+	syncingProjectsMu.Lock()
+	defer syncingProjectsMu.Unlock()
+	return syncingProjects[project]
+}
+
 type projectInfo struct {
 	name         string
 	services     map[string]bool
@@ -188,6 +211,11 @@ func buildDashboardInternal() (Dashboard, error) {
 				env.ExtraDomains = ent.ExtraDomains
 				if env.Framework == "Unknown" && ent.Framework != "" {
 					env.Framework = displayFramework(ent.Framework)
+				}
+
+				if remote := GetSyncingRemote(name); remote != "" {
+					env.Status = "syncing"
+					env.SyncingRemote = remote
 				}
 
 				mu.Lock()
@@ -423,6 +451,11 @@ func buildEnvironment(info *projectInfo) Environment {
 	}
 	if info.runningCount > 0 {
 		env.Status = "running"
+	}
+
+	if remote := GetSyncingRemote(info.name); remote != "" {
+		env.Status = "syncing"
+		env.SyncingRemote = remote
 	}
 
 	if info.configLoaded {

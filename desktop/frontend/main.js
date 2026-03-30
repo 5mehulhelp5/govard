@@ -501,23 +501,36 @@ const runRemoteSyncWithProgressToast = async ({
   preset,
   config = {},
 }) => {
-  const visualContainer = document.getElementById("visual-sync-progress-container");
-  const visualViewport = document.getElementById("visual-sync-scroll-viewport"); // Use viewport for scrolling
-  const visualLine = document.getElementById("visual-sync-progress-line");
-  const visualIndicator = visualContainer?.querySelector(".animate-pulse");
+  const visualContainer = byId("visual-sync-progress-container");
+  const visualTitle = visualContainer?.querySelector(".visual-sync-title");
 
-  if (visualContainer && visualLine) {
+  const title = getSyncPresetLabel(preset, remoteName);
+
+  setState({ 
+    syncingProject: project, 
+    syncingRemote: remoteName, 
+    syncingPreset: preset 
+  });
+
+  if (visualContainer) {
     visualContainer.classList.remove("hidden");
+    if (visualTitle) {
+      visualTitle.textContent = title;
+    }
     // Trigger reflow to ensure CSS transition works
     void visualContainer.offsetWidth;
     visualContainer.classList.remove("opacity-0", "translate-y-4");
     
-    visualLine.textContent = "   Starting Sync Process\n   ---------------------\n";
-    visualLine.className = "m-0 font-mono text-[11px] leading-relaxed text-emerald-500/90 whitespace-pre-wrap break-all drop-shadow-[0_0_5px_rgba(16,185,129,0.2)]";
+    const vLine = byId("visual-sync-progress-line");
+    if (vLine) {
+      vLine.textContent = `   ${title}\n   ${"-".repeat(title.length)}\n`;
+      vLine.className = "m-0 font-mono text-[11px] leading-relaxed text-emerald-700 dark:text-emerald-400/90 whitespace-pre-wrap break-all";
+    }
 
-    if (visualIndicator) {
-      visualIndicator.classList.add("bg-primary");
-      visualIndicator.classList.remove("bg-rose-500");
+    const vIndicator = visualContainer.querySelector(".visual-sync-indicator");
+    if (vIndicator) {
+      vIndicator.classList.add("bg-primary");
+      vIndicator.classList.remove("bg-rose-500");
     }
   }
 
@@ -528,8 +541,9 @@ const runRemoteSyncWithProgressToast = async ({
     if (offStream) offStream();
     if (offCompleted) offCompleted();
     if (offFailed) offFailed();
-    if (visualIndicator) {
-      visualIndicator.classList.remove("animate-pulse");
+    const vInd = byId("visual-sync-progress-container")?.querySelector(".visual-sync-indicator");
+    if (vInd) {
+      vInd.classList.remove("animate-pulse");
     }
   };
 
@@ -537,10 +551,16 @@ const runRemoteSyncWithProgressToast = async ({
   let progressLines = [];
 
   const flushProgressLines = () => {
-    if (visualLine) {
-      visualLine.textContent = progressLines.join("\n");
-      if (visualViewport) {
-        visualViewport.scrollTop = visualViewport.scrollHeight;
+    const vContainer = byId("visual-sync-progress-container");
+    if (vContainer && vContainer.classList.contains("hidden")) {
+      vContainer.classList.remove("hidden", "opacity-0", "translate-y-4");
+    }
+    const vLine = byId("visual-sync-progress-line");
+    const vViewport = byId("visual-sync-scroll-viewport");
+    if (vLine) {
+      vLine.textContent = progressLines.join("\n");
+      if (vViewport) {
+        vViewport.scrollTop = vViewport.scrollHeight;
       }
     }
   };
@@ -575,29 +595,28 @@ const runRemoteSyncWithProgressToast = async ({
 
     offCompleted = desktopBridge.runtime.EventsOn("sync:completed", (msg) => {
       const finalMessage = sanitizeSyncToastLine(msg) || "Sync completed ✔";
-      if (visualLine) {
-        visualLine.textContent += "\n[SUCCESS] " + finalMessage + "\n";
-        if (visualViewport) {
-          visualViewport.scrollTop = visualViewport.scrollHeight;
-        }
-      }
+      progressLines.push("\n[SUCCESS] " + finalMessage + "\n");
+      flushProgressLines();
+      setState({ syncingRemote: null, syncingProject: null, syncingPreset: null });
+      refreshDashboard({ silent: true });
       cleanup();
     });
 
     offFailed = desktopBridge.runtime.EventsOn("sync:failed", (msg) => {
       const finalMessage = sanitizeSyncToastLine(msg) || "Sync failed";
-      if (visualLine) {
-        visualLine.classList.add("text-rose-500");
-        visualLine.classList.remove("text-emerald-500/90");
-        visualLine.textContent += "\n[FAILED] " + finalMessage + "\n";
-        if (visualViewport) {
-          visualViewport.scrollTop = visualViewport.scrollHeight;
-        }
+      const vLine = byId("visual-sync-progress-line");
+      if (vLine) {
+        vLine.classList.add("text-rose-500");
+        vLine.classList.remove("text-emerald-500/90");
       }
+      progressLines.push("\n[FAILED] " + finalMessage + "\n");
+      flushProgressLines();
       if (visualIndicator) {
         visualIndicator.classList.remove("bg-primary");
         visualIndicator.classList.add("bg-rose-500");
       }
+      setState({ syncingRemote: null, syncingProject: null, syncingPreset: null });
+      refreshDashboard({ silent: true });
       cleanup();
     });
   }
@@ -612,22 +631,26 @@ const runRemoteSyncWithProgressToast = async ({
 
     if (result && result.startsWith("Remote sync background process failed:")) {
       const normalized = sanitizeSyncToastLine(result) || "Sync failed";
-      if (visualLine) {
-        visualLine.classList.add("text-rose-500");
-        visualLine.classList.remove("text-emerald-500/90");
-        visualLine.textContent += "\n[FAILED] " + normalized + "\n";
-        if (visualViewport) {
-          visualViewport.scrollTop = visualViewport.scrollHeight;
-        }
+      
+      const vLine = byId("visual-sync-progress-line");
+      const vInd = byId("visual-sync-progress-container")?.querySelector(".visual-sync-indicator");
+
+      if (vLine) {
+        vLine.classList.add("text-rose-500");
+        vLine.classList.remove("text-emerald-500/90");
       }
-      if (visualIndicator) {
-        visualIndicator.classList.remove("bg-primary");
-        visualIndicator.classList.add("bg-rose-500");
+      progressLines.push("\n[FAILED] " + normalized + "\n");
+      flushProgressLines();
+      
+      if (vInd) {
+        vInd.classList.remove("bg-primary");
+        vInd.classList.add("bg-rose-500");
       }
       cleanup();
     }
   } catch (err) {
     console.error("Sync failed to start:", err);
+    setState({ syncingRemote: null, syncingProject: null, syncingPreset: null });
     cleanup();
   }
 };
@@ -991,7 +1014,7 @@ const remotesController = createRemotesController({
   bridge: desktopBridge,
   refs,
   getProject: () => getState().selectedProject,
-  getSyncConfig: () => getState().syncConfig,
+  getState,
   onStatus: setStatus,
   onToast: showToast,
   onOpenRemoteShellFallback: async (remoteName) => {
@@ -1289,18 +1312,21 @@ const onboardingController = createOnboardingController({
     const projectName = normalizedProjectPath.split(/[\\/]+/).filter(Boolean).pop();
     await selectProject(projectName || normalizedProjectPath);
 
-    // 2. Switch to Remotes tab (this also calls remotesController.refresh() internally)
+    // 2. Clear onboarding modal if still open
+    onboardingController.toggleModal(false);
+
+    // 3. Switch to Remotes tab (this also calls remotesController.refresh() internally)
     switchTab("remotes");
 
-    // 3. Wait for the Remotes panel DOM to be fully rendered before showing progress
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    // 4. Force refresh to finish before exposing progress UI
+    await remotesController.refresh();
 
     const resolvedConfig =
       config && Object.keys(config).length > 0
         ? { ...config }
         : await resolveSyncConfigForPreset(normalizedPreset);
 
-    // 4. Run sync which will unhide the progress container in Remotes tab
+    // 5. Run sync which will unhide the progress container in Remotes tab
     await runRemoteSyncWithProgressToast({
       project: projectName || normalizedProjectPath,
       remoteName: normalizedRemote,

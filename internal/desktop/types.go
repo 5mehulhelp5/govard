@@ -74,6 +74,7 @@ type Environment struct {
 	Services       []Service         `json:"services"`
 	ServiceTargets []string          `json:"serviceTargets"`
 	Status         string            `json:"status"`
+	SyncingRemote  string            `json:"syncingRemote,omitempty"`
 	GitBranch      string            `json:"gitBranch,omitempty"`
 	EnvVars        map[string]string `json:"envVars,omitempty"`
 }

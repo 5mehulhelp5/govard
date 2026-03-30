@@ -692,6 +692,25 @@ export const createOnboardingController = ({
 
       syncPreview();
       onStatus(`Selected project path: ${path}`);
+
+      // Proactive migration detection (Warden/DDEV)
+      try {
+        const source = await bridge.detectMigrationSource(path);
+        const notice = document.getElementById("migrationSourceNotice");
+        const text = document.getElementById("migrationSourceText");
+        
+        if (source && source !== "" && notice && text) {
+          const capitalized = source.charAt(0).toUpperCase() + source.slice(1);
+          text.textContent = `Found ${capitalized} setup! Govard will automatically import these settings.`;
+          notice.classList.remove("hidden");
+          notice.classList.add("flex");
+        } else if (notice) {
+          notice.classList.add("hidden");
+          notice.classList.remove("flex");
+        }
+      } catch (detectErr) {
+        console.error("Migration detection failed:", detectErr);
+      }
     } catch (err) {
       onStatus(`Failed to select directory: ${err}`);
       onToast(`Error: ${err}`, "error");
@@ -1016,8 +1035,8 @@ export const renderOnboardingModal = (container) => {
                         <span class="text-sm font-black text-text-primary dark:text-slate-200">Local Path</span>
                       </div>
                     </div>
-                    <div class="rounded-xl border border-border-primary dark:border-white/5 bg-surface-secondary dark:bg-black/40 p-4 min-h-[60px] flex items-center shadow-inner">
-                      <div id="displayProjectPath" class="font-mono text-xs text-text-secondary dark:text-slate-300 break-all leading-relaxed line-clamp-2">No folder selected</div>
+                    <div class="px-5 py-4 rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-black/40 group-hover:bg-white dark:group-hover:bg-black/60 transition-all shadow-inner-sm">
+                      <div id="displayProjectPath" class="font-mono text-[11px] text-slate-800 dark:text-slate-200 font-bold break-all leading-relaxed line-clamp-3 opacity-90 group-hover:opacity-100 transition-opacity">No folder selected</div>
                     </div>
                     <input type="hidden" id="projectPath" />
                     <p id="projectPathHint" class="text-[10px] text-text-tertiary dark:text-slate-400/60 mt-4 px-1 font-medium italic"></p>
@@ -1045,9 +1064,14 @@ export const renderOnboardingModal = (container) => {
                   </div>
                 </section>
 
-                <div class="flex items-center gap-2.5 px-4 py-3 bg-amber-500/5 border border-amber-500/10 rounded-xl text-amber-600 dark:text-amber-400/80">
-                  <span class="material-symbols-outlined text-[18px]">auto_fix_high</span>
-                  <p class="text-[10px] font-bold leading-tight uppercase tracking-wider">Auto-detecting config...</p>
+                <div id="migrationSourceNotice" class="hidden flex items-center gap-3 px-5 py-4 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-2xl text-primary animate-in fade-in slide-in-from-bottom-2 duration-500">
+                  <div class="size-8 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-[20px]">auto_fix_high</span>
+                  </div>
+                  <div class="flex-1">
+                    <p class="text-[10px] font-black uppercase tracking-widest leading-none">Source Detected</p>
+                    <p id="migrationSourceText" class="text-xs font-bold mt-1 text-slate-700 dark:text-slate-200">Importing settings from Warden...</p>
+                  </div>
                 </div>
               </div>
             </aside>

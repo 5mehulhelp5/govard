@@ -232,6 +232,11 @@ func (app *App) OnboardProject(input OnboardInput) (res string, err error) {
 	return app.Onboarding.OnboardProject(input)
 }
 
+func (app *App) DetectMigrationSource(projectPath string) (res string, err error) {
+	defer RecoverPanic(&err, "DetectMigrationSource")
+	return app.Onboarding.DetectMigrationSource(projectPath)
+}
+
 // -- LogService Proxies --
 
 func (app *App) GetLogsForService(project string, service string) (logs string, err error) {

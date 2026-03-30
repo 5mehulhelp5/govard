@@ -32,7 +32,7 @@ Primary goals for contributions:
 Local sanity checks:
 
 ```bash
-go version
+go version # If not in PATH, check /home/$USER/go_dist/go/bin/go
 node --version
 wails version
 docker --version
