@@ -13,7 +13,7 @@ import (
 	"github.com/pterm/pterm"
 )
 
-type syncExecutionOptions struct {
+type SyncExecutionOptions struct {
 	Files      bool
 	Media      bool
 	DB         bool
@@ -27,15 +27,15 @@ type syncExecutionOptions struct {
 	Exclude    []string
 }
 
-type syncExecutionPlan struct {
+type SyncExecutionPlan struct {
 	Descriptions    []string
 	Commands        []string
 	RsyncCommands   []*exec.Cmd
 	DatabaseActions []func() error
 }
 
-func buildSyncExecutionPlan(config engine.Config, endpoints resolvedSyncEndpoints, opts syncExecutionOptions) (syncExecutionPlan, error) {
-	plan := syncExecutionPlan{
+func buildSyncExecutionPlan(config engine.Config, endpoints ResolvedSyncEndpoints, opts SyncExecutionOptions) (SyncExecutionPlan, error) {
+	plan := SyncExecutionPlan{
 		Descriptions: []string{},
 	}
 
@@ -47,7 +47,7 @@ func buildSyncExecutionPlan(config engine.Config, endpoints resolvedSyncEndpoint
 			destinationPath = filepath.Join(endpoints.Destination.RootPath, opts.Path)
 			if endpoints.Destination.IsLocal {
 				if err := os.MkdirAll(filepath.Dir(destinationPath), 0755); err != nil {
-					return syncExecutionPlan{}, fmt.Errorf("failed to create destination parent directory: %w", err)
+					return SyncExecutionPlan{}, fmt.Errorf("failed to create destination parent directory: %w", err)
 				}
 			}
 		}
@@ -61,7 +61,7 @@ func buildSyncExecutionPlan(config engine.Config, endpoints resolvedSyncEndpoint
 			endpoints.Destination,
 			sourcePath,
 			destinationPath,
-			opts.Path == "" || strings.HasSuffix(opts.Path, "/") || strings.HasSuffix(opts.Path, "\\"),
+			isSyncingDirectory(opts.Path, sourcePath, destinationPath),
 			opts.Delete,
 			opts.Resume,
 			opts.NoCompress,
@@ -69,7 +69,7 @@ func buildSyncExecutionPlan(config engine.Config, endpoints resolvedSyncEndpoint
 			excludes,
 		)
 		if err != nil {
-			return syncExecutionPlan{}, err
+			return SyncExecutionPlan{}, err
 		}
 		plan.RsyncCommands = append(plan.RsyncCommands, rsyncCmd)
 		plan.Descriptions = append(plan.Descriptions, "Syncing files and source code...")
@@ -95,7 +95,7 @@ func buildSyncExecutionPlan(config engine.Config, endpoints resolvedSyncEndpoint
 			excludes,
 		)
 		if err != nil {
-			return syncExecutionPlan{}, err
+			return SyncExecutionPlan{}, err
 		}
 		plan.RsyncCommands = append(plan.RsyncCommands, rsyncCmd)
 		plan.Descriptions = append(plan.Descriptions, "Syncing media and static assets...")
@@ -105,7 +105,7 @@ func buildSyncExecutionPlan(config engine.Config, endpoints resolvedSyncEndpoint
 	if opts.DB {
 		dbDesc, action, err := buildDatabaseSyncAction(config, endpoints.Source, endpoints.Destination, opts.NoNoise, opts.NoPII)
 		if err != nil {
-			return syncExecutionPlan{}, err
+			return SyncExecutionPlan{}, err
 		}
 		plan.Descriptions = append(plan.Descriptions, "Synchronizing database...")
 		plan.Commands = append(plan.Commands, dbDesc)
@@ -115,7 +115,7 @@ func buildSyncExecutionPlan(config engine.Config, endpoints resolvedSyncEndpoint
 	return plan, nil
 }
 
-func evaluateSyncPolicy(endpoints resolvedSyncEndpoints, opts syncExecutionOptions) ([]string, error) {
+func evaluateSyncPolicy(endpoints ResolvedSyncEndpoints, opts SyncExecutionOptions) ([]string, error) {
 	if endpoints.Source.Name == endpoints.Destination.Name {
 		return nil, fmt.Errorf("source and destination must be different environments (both were '%s')", endpoints.Source.Name)
 	}
@@ -172,7 +172,7 @@ func evaluateSyncPolicy(endpoints resolvedSyncEndpoints, opts syncExecutionOptio
 	return warnings, nil
 }
 
-func buildSyncPlanSummary(endpoints resolvedSyncEndpoints, execution syncExecutionPlan, opts syncExecutionOptions, warnings []string) []string {
+func buildSyncPlanSummary(endpoints ResolvedSyncEndpoints, execution SyncExecutionPlan, opts SyncExecutionOptions, warnings []string) []string {
 	lines := []string{
 		"",
 		pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Sprint(" Synchronization Plan Review "),
@@ -213,7 +213,7 @@ func buildSyncPlanSummary(endpoints resolvedSyncEndpoints, execution syncExecuti
 	return lines
 }
 
-func buildFallbackSyncPlanSummary(source, destination string, opts syncExecutionOptions, legacy remote.SyncPlan, resolveErr error) []string {
+func buildFallbackSyncPlanSummary(source, destination string, opts SyncExecutionOptions, legacy remote.SyncPlan, resolveErr error) []string {
 	lines := []string{
 		"",
 		pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Sprint(" Synchronization Plan Review (Fallback) "),
@@ -237,7 +237,7 @@ func buildFallbackSyncPlanSummary(source, destination string, opts syncExecution
 	return lines
 }
 
-func syncScopes(opts syncExecutionOptions) []string {
+func syncScopes(opts SyncExecutionOptions) []string {
 	scopes := []string{}
 	if opts.Files {
 		scopes = append(scopes, "files")
@@ -262,7 +262,7 @@ func syncPathFilter(path string) string {
 	return trimmed
 }
 
-func syncRiskLevel(endpoints resolvedSyncEndpoints, opts syncExecutionOptions) (string, []string) {
+func syncRiskLevel(endpoints ResolvedSyncEndpoints, opts SyncExecutionOptions) (string, []string) {
 	reasons := []string{"Standard file synchronization"}
 	if !endpoints.Destination.IsLocal {
 		reasons = append(reasons, "Writing to a remote destination")
@@ -366,4 +366,41 @@ func getSyncNoiseExcludes(framework string, isMedia bool) []string {
 		excludes = append(excludes, "var/log/", "var/cache/", "logs/", "cache/")
 	}
 	return excludes
+}
+func isSyncingDirectory(path, sourcePath, destinationPath string) bool {
+	if path == "" || strings.HasSuffix(path, "/") || strings.HasSuffix(path, "\\") {
+		return true
+	}
+
+	// If source is local, check if it's a directory
+	if info, err := os.Stat(sourcePath); err == nil && info.IsDir() {
+		return true
+	}
+
+	// If destination is local, check if it exists as a directory
+	if info, err := os.Stat(destinationPath); err == nil && info.IsDir() {
+		return true
+	}
+
+	// Special case for common directories known in this project
+	pathLower := strings.ToLower(path)
+	if pathLower == "vendor" || pathLower == "node_modules" || pathLower == "pub/media" || pathLower == "media" || pathLower == "var" {
+		return true
+	}
+
+	return false
+}
+
+// BuildSyncExecutionPlanForTest exposes buildSyncExecutionPlan for tests in /tests.
+func BuildSyncExecutionPlanForTest(config engine.Config, endpoints ResolvedSyncEndpoints, opts SyncExecutionOptions) (SyncExecutionPlan, error) {
+	return buildSyncExecutionPlan(config, endpoints, opts)
+}
+
+// SyncExecutionOptionsForTest creates a SyncExecutionOptions for testing.
+func SyncExecutionOptionsForTest(files, media, db bool) SyncExecutionOptions {
+	return SyncExecutionOptions{
+		Files: files,
+		Media: media,
+		DB:    db,
+	}
 }

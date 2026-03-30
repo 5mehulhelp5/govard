@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/pflag"
 )
 
-type bootstrapRuntimeOptions struct {
+type BootstrapRuntimeOptions struct {
 	Source          string
 	Clone           bool
 	CodeOnly        bool
@@ -38,8 +38,8 @@ type bootstrapRuntimeOptions struct {
 	ExcludePatterns []string
 }
 
-func resolveBootstrapOptions(cmd *cobra.Command) (bootstrapRuntimeOptions, error) {
-	opts := bootstrapRuntimeOptions{
+func resolveBootstrapOptions(cmd *cobra.Command) (BootstrapRuntimeOptions, error) {
+	opts := BootstrapRuntimeOptions{
 		Source:          normalizeBootstrapSource(bootstrapEnv),
 		Clone:           bootstrapClone,
 		CodeOnly:        bootstrapCodeOnly,
@@ -83,17 +83,17 @@ func resolveBootstrapOptions(cmd *cobra.Command) (bootstrapRuntimeOptions, error
 	if opts.MetaVersion != "" {
 		comparison, comparable := compareNumericDotVersions(opts.MetaVersion, "2.0.0")
 		if !comparable || comparison < 0 {
-			return bootstrapRuntimeOptions{}, fmt.Errorf("invalid --framework-version value %q (must be Magento 2.0.0+)", opts.MetaVersion)
+			return BootstrapRuntimeOptions{}, fmt.Errorf("invalid --framework-version value %q (must be Magento 2.0.0+)", opts.MetaVersion)
 		}
 	}
 	if opts.Fresh && opts.Clone {
 		if cloneFlagExplicit {
-			return bootstrapRuntimeOptions{}, fmt.Errorf("--fresh and --clone cannot be used together")
+			return BootstrapRuntimeOptions{}, fmt.Errorf("--fresh and --clone cannot be used together")
 		}
 		opts.Clone = false
 	}
 	if opts.CodeOnly && !opts.Clone {
-		return bootstrapRuntimeOptions{}, fmt.Errorf("--code-only requires --clone")
+		return BootstrapRuntimeOptions{}, fmt.Errorf("--code-only requires --clone")
 	}
 	if opts.Fresh {
 		opts.ComposerInstall = false
@@ -112,8 +112,8 @@ func normalizeBootstrapSource(raw string) string {
 	return strings.ToLower(strings.TrimSpace(raw))
 }
 
-func DefaultBootstrapRuntimeOptionsForTest() bootstrapRuntimeOptions {
-	return bootstrapRuntimeOptions{
+func DefaultBootstrapRuntimeOptionsForTest() BootstrapRuntimeOptions {
+	return BootstrapRuntimeOptions{
 		Source:          "",
 		DBImport:        true,
 		MediaSync:       true,

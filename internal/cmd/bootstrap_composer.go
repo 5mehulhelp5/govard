@@ -95,7 +95,7 @@ func ensureSpecificComposerVersion(config engine.Config, version string) error {
 	return nil
 }
 
-func ensureBootstrapAuthJSON(config engine.Config, opts bootstrapRuntimeOptions) error {
+func ensureBootstrapAuthJSON(config engine.Config, opts BootstrapRuntimeOptions) error {
 	cwd, _ := os.Getwd()
 	authPath := filepath.Join(cwd, "auth.json")
 	if _, err := os.Stat(authPath); err == nil {
@@ -172,7 +172,7 @@ func RunBootstrapComposerPrepareForTest(config engine.Config) error {
 
 // EnsureBootstrapAuthJSONForTest exposes ensureBootstrapAuthJSON for tests in /tests.
 func EnsureBootstrapAuthJSONForTest(config engine.Config, mageUsername, magePassword string, assumeYes bool) error {
-	return ensureBootstrapAuthJSON(config, bootstrapRuntimeOptions{
+	return ensureBootstrapAuthJSON(config, BootstrapRuntimeOptions{
 		MageUsername: strings.TrimSpace(mageUsername),
 		MagePassword: strings.TrimSpace(magePassword),
 		AssumeYes:    assumeYes,

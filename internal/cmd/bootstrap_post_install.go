@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func runBootstrapHyvaInstall(cmd *cobra.Command, opts bootstrapRuntimeOptions) error {
+func runBootstrapHyvaInstall(cmd *cobra.Command, opts BootstrapRuntimeOptions) error {
 	if err := runGovardSubcommand(
 		cmd,
 		govardComposerSubcommandArgs(
@@ -43,7 +43,7 @@ func runBootstrapHyvaInstall(cmd *cobra.Command, opts bootstrapRuntimeOptions) e
 	return nil
 }
 
-func runBootstrapMagentoSetupInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions) error {
+func runBootstrapPostInstall(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions) error {
 	emailDomain := config.Domain
 	if emailDomain == "" {
 		// Used in older templates, keeping logic if extending later
@@ -184,7 +184,7 @@ func runBootstrapAdminCreate(cmd *cobra.Command, config engine.Config) {
 	}
 }
 
-func runBootstrapFixDeps(cmd *cobra.Command, opts bootstrapRuntimeOptions) {
+func runBootstrapFixDeps(cmd *cobra.Command, opts BootstrapRuntimeOptions) {
 	args := []string{"custom", "fix-deps"}
 	if opts.MetaVersion != "" {
 		args = append(args, "--", "--framework-version="+opts.MetaVersion)
@@ -194,7 +194,7 @@ func runBootstrapFixDeps(cmd *cobra.Command, opts bootstrapRuntimeOptions) {
 	}
 }
 
-func maybeAutoDetectBootstrapVersion(config engine.Config, opts *bootstrapRuntimeOptions) {
+func maybeAutoDetectBootstrapVersion(config engine.Config, opts *BootstrapRuntimeOptions) {
 	if opts == nil {
 		return
 	}
@@ -218,15 +218,17 @@ func maybeAutoDetectBootstrapVersion(config engine.Config, opts *bootstrapRuntim
 
 // RunBootstrapHyvaInstallForTest exposes runBootstrapHyvaInstall for tests in /tests.
 func RunBootstrapHyvaInstallForTest(cmd *cobra.Command, hyvaToken string) error {
-	return runBootstrapHyvaInstall(cmd, bootstrapRuntimeOptions{
+	return runBootstrapHyvaInstall(cmd, BootstrapRuntimeOptions{
 		HyvaToken: strings.TrimSpace(hyvaToken),
 	})
 }
 
-// RunBootstrapMagentoSetupInstallForTest exposes runBootstrapMagentoSetupInstall for tests in /tests.
-func RunBootstrapMagentoSetupInstallForTest(cmd *cobra.Command, config engine.Config, frameworkVersion string) error {
-	return runBootstrapMagentoSetupInstall(cmd, config, bootstrapRuntimeOptions{
-		MetaVersion: strings.TrimSpace(frameworkVersion),
+// RunBootstrapMagentoSetupInstallForTest exposes runBootstrapPostInstall for tests in /tests.
+func RunBootstrapMagentoSetupInstallForTest(cmd *cobra.Command, config engine.Config, source, version string) error {
+	return runBootstrapPostInstall(cmd, config, BootstrapRuntimeOptions{
+		Source:          source,
+		MetaVersion:     version,
+		ComposerInstall: true,
 	})
 }
 
@@ -237,7 +239,7 @@ func RunBootstrapSampleDataForTest(cmd *cobra.Command) error {
 
 // RunBootstrapFixDepsForTest exposes runBootstrapFixDeps for tests in /tests.
 func RunBootstrapFixDepsForTest(cmd *cobra.Command, frameworkVersion string) {
-	runBootstrapFixDeps(cmd, bootstrapRuntimeOptions{
+	runBootstrapFixDeps(cmd, BootstrapRuntimeOptions{
 		MetaVersion: strings.TrimSpace(frameworkVersion),
 	})
 }

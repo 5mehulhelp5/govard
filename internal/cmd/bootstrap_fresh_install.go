@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func runBootstrapFrameworkFreshInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions) error {
+func runBootstrapFrameworkFreshInstall(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions) error {
 	cwd, _ := os.Getwd()
 
 	switch config.Framework {
@@ -41,11 +41,11 @@ func runBootstrapFrameworkFreshInstall(cmd *cobra.Command, config engine.Config,
 	}
 }
 
-func runBootstrapMagentoFreshInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions) error {
+func runBootstrapMagentoFreshInstall(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions) error {
 	return runBootstrapFreshInstall(cmd, config, opts)
 }
 
-func runBootstrapSymfonyFreshInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions, cwd string) error {
+func runBootstrapSymfonyFreshInstall(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions, cwd string) error {
 	containerName := fmt.Sprintf("%s-db-1", config.ProjectName)
 	localDB := resolveLocalDBCredentials(config, containerName)
 
@@ -79,7 +79,7 @@ func runBootstrapSymfonyFreshInstall(cmd *cobra.Command, config engine.Config, o
 	return nil
 }
 
-func runBootstrapLaravelFreshInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions, cwd string) error {
+func runBootstrapLaravelFreshInstall(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions, cwd string) error {
 	containerName := fmt.Sprintf("%s-db-1", config.ProjectName)
 	localDB := resolveLocalDBCredentials(config, containerName)
 
@@ -113,7 +113,7 @@ func runBootstrapLaravelFreshInstall(cmd *cobra.Command, config engine.Config, o
 	return nil
 }
 
-func runBootstrapDrupalFreshInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions, cwd string) error {
+func runBootstrapDrupalFreshInstall(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions, cwd string) error {
 	drupalOpts := bootstrap.Options{
 		Version: opts.MetaVersion,
 		Env:     opts.Source,
@@ -140,7 +140,7 @@ func runBootstrapDrupalFreshInstall(cmd *cobra.Command, config engine.Config, op
 	return nil
 }
 
-func runBootstrapWordPressFreshInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions, cwd string) error {
+func runBootstrapWordPressFreshInstall(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions, cwd string) error {
 	containerName := fmt.Sprintf("%s-db-1", config.ProjectName)
 	localDB := resolveLocalDBCredentials(config, containerName)
 
@@ -175,7 +175,7 @@ func runBootstrapWordPressFreshInstall(cmd *cobra.Command, config engine.Config,
 	return nil
 }
 
-func runBootstrapShopwareFreshInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions, cwd string) error {
+func runBootstrapShopwareFreshInstall(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions, cwd string) error {
 	shopwareOpts := bootstrap.Options{
 		Version: opts.MetaVersion,
 		Env:     opts.Source,
@@ -202,7 +202,7 @@ func runBootstrapShopwareFreshInstall(cmd *cobra.Command, config engine.Config, 
 	return nil
 }
 
-func runBootstrapCakePHPFreshInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions, cwd string) error {
+func runBootstrapCakePHPFreshInstall(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions, cwd string) error {
 	cakePHPOpts := bootstrap.Options{
 		Version: opts.MetaVersion,
 		Env:     opts.Source,
@@ -229,7 +229,7 @@ func runBootstrapCakePHPFreshInstall(cmd *cobra.Command, config engine.Config, o
 	return nil
 }
 
-func runBootstrapOpenMageFreshInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions, cwd string) error {
+func runBootstrapOpenMageFreshInstall(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions, cwd string) error {
 	openmageOpts := bootstrap.Options{
 		Version: opts.MetaVersion,
 		Env:     opts.Source,
@@ -256,7 +256,7 @@ func runBootstrapOpenMageFreshInstall(cmd *cobra.Command, config engine.Config, 
 	return nil
 }
 
-func runBootstrapNextJSFreshInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions, cwd string) error {
+func runBootstrapNextJSFreshInstall(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions, cwd string) error {
 	nextJSOpts := bootstrap.Options{
 		Version: opts.MetaVersion,
 		Env:     opts.Source,
@@ -283,7 +283,7 @@ func runBootstrapNextJSFreshInstall(cmd *cobra.Command, config engine.Config, op
 	return nil
 }
 
-func runBootstrapFreshInstall(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions) error {
+func runBootstrapFreshInstall(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions) error {
 	if err := ensureBootstrapAuthJSON(config, opts); err != nil {
 		return err
 	}
@@ -297,7 +297,7 @@ func runBootstrapFreshInstall(cmd *cobra.Command, config engine.Config, opts boo
 		}
 	}
 
-	if err := runBootstrapMagentoSetupInstall(cmd, config, opts); err != nil {
+	if err := runBootstrapPostInstall(cmd, config, opts); err != nil {
 		return err
 	}
 	if err := runGovardSubcommand(cmd, govardConfigureSubcommandArgs()...); err != nil {
@@ -313,7 +313,7 @@ func runBootstrapFreshInstall(cmd *cobra.Command, config engine.Config, opts boo
 	return nil
 }
 
-func runBootstrapFreshCreateProject(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions) error {
+func runBootstrapFreshCreateProject(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions) error {
 	versionPart := ""
 	if opts.MetaVersion != "" {
 		versionPart = " " + shellQuote(opts.MetaVersion)
@@ -335,7 +335,7 @@ func runBootstrapFreshCreateProject(cmd *cobra.Command, config engine.Config, op
 
 // RunBootstrapFreshCreateProjectForTest exposes runBootstrapFreshCreateProject for tests in /tests.
 func RunBootstrapFreshCreateProjectForTest(cmd *cobra.Command, config engine.Config, metaPackage, metaVersion string) error {
-	return runBootstrapFreshCreateProject(cmd, config, bootstrapRuntimeOptions{
+	return runBootstrapFreshCreateProject(cmd, config, BootstrapRuntimeOptions{
 		MetaPackage: strings.TrimSpace(metaPackage),
 		MetaVersion: strings.TrimSpace(metaVersion),
 	})
@@ -343,7 +343,7 @@ func RunBootstrapFreshCreateProjectForTest(cmd *cobra.Command, config engine.Con
 
 // RunBootstrapFrameworkFreshInstallForTest exposes runBootstrapFrameworkFreshInstall for tests in /tests.
 func RunBootstrapFrameworkFreshInstallForTest(cmd *cobra.Command, config engine.Config, source, metaVersion string) error {
-	return runBootstrapFrameworkFreshInstall(cmd, config, bootstrapRuntimeOptions{
+	return runBootstrapFrameworkFreshInstall(cmd, config, BootstrapRuntimeOptions{
 		Source:      strings.TrimSpace(source),
 		MetaVersion: strings.TrimSpace(metaVersion),
 	})

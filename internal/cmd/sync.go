@@ -198,7 +198,7 @@ Case Studies:
 			Include:     includePatterns,
 			Exclude:     excludePatterns,
 		})
-		execOpts := syncExecutionOptions{
+		execOpts := SyncExecutionOptions{
 			Files:      files,
 			Media:      media,
 			DB:         database,

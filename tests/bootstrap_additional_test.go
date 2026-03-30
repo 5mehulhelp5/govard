@@ -225,6 +225,7 @@ func TestRunBootstrapMagentoSetupInstallForTestUsesElasticsearch7ForLegacyVersio
 	err := cmd.RunBootstrapMagentoSetupInstallForTest(
 		&cobra.Command{},
 		engine.Config{Domain: "sample.test"},
+		"staging",
 		"2.4.7",
 	)
 	if err != nil {
@@ -255,6 +256,7 @@ func TestRunBootstrapMagentoSetupInstallForTestUsesOpenSearchForRecentVersion(t 
 	err := cmd.RunBootstrapMagentoSetupInstallForTest(
 		&cobra.Command{},
 		engine.Config{Domain: "sample.test"},
+		"staging",
 		"2.4.8",
 	)
 	if err != nil {
@@ -327,4 +329,59 @@ func chdirForTest(t *testing.T, dir string) {
 	t.Cleanup(func() {
 		_ = os.Chdir(cwd)
 	})
+}
+func TestRunBootstrapRemoteSyncsVendorWithTrailingSlash(t *testing.T) {
+	tempDir := t.TempDir()
+	chdirForTest(t, tempDir)
+
+	config := engine.Config{
+		ProjectName: "sample-project",
+		Framework:   "magento2",
+		Remotes: map[string]engine.RemoteConfig{
+			"staging": {
+				Host: "staging.example.com",
+				Path: "/var/www/html",
+			},
+		},
+	}
+
+	opts := cmd.DefaultBootstrapRuntimeOptionsForTest()
+	opts.Source = "staging"
+	opts.ComposerInstall = true
+	opts.AssumeYes = true
+
+	// Mock composer.json existence
+	if err := os.WriteFile(filepath.Join(tempDir, "composer.json"), []byte("{}"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	subcommandCalls := 0
+	vendorSyncFound := false
+	defer cmd.SetGovardSubcommandRunnerForTest(func(subCmd *cobra.Command, args ...string) error {
+		subcommandCalls++
+		// The call we are looking for is: govard sync --source staging --file --path vendor/ --yes
+		if len(args) >= 6 && args[0] == "sync" && args[5] == "vendor/" {
+			vendorSyncFound = true
+		}
+
+		// Simulate composer install failure to trigger vendor sync
+		if len(args) >= 3 && args[0] == "tool" && args[1] == "composer" && args[2] == "install" {
+			return errors.New("composer install failed")
+		}
+		return nil
+	})()
+
+	// Mock remote directory check
+	defer cmd.SetBootstrapRemoteDirExistsForTest(func(remoteName string, remoteCfg engine.RemoteConfig, remotePath string) bool {
+		return true
+	})()
+
+	err := cmd.RunBootstrapRemoteForTest(&cobra.Command{}, config, opts)
+	if err != nil && !strings.Contains(err.Error(), "composer install failed") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !vendorSyncFound {
+		t.Fatal("expected vendor sync with trailing slash 'vendor/', but it was not found in subcommand calls")
+	}
 }

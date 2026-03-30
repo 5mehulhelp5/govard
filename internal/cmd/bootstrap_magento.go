@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func ensureBootstrapMagentoEnvPHP(config engine.Config, opts bootstrapRuntimeOptions) error {
+func ensureBootstrapMagentoEnvPHP(config engine.Config, opts BootstrapRuntimeOptions) error {
 	if config.Framework != "magento2" {
 		return nil
 	}
@@ -112,7 +112,7 @@ return [
 	return nil
 }
 
-func bootstrapMagentoMediaSyncArgs(opts bootstrapRuntimeOptions) []string {
+func bootstrapMagentoMediaSyncArgs(opts BootstrapRuntimeOptions) []string {
 	excludes := []string{
 		"*.gz",
 		"*.zip",
@@ -166,5 +166,5 @@ func runMagentoSearchHostFixViaCLI(cmd *cobra.Command, config engine.Config) err
 }
 
 func EnsureBootstrapMagentoEnvPHPForTest(config engine.Config, source string) error {
-	return ensureBootstrapMagentoEnvPHP(config, bootstrapRuntimeOptions{Source: source})
+	return ensureBootstrapMagentoEnvPHP(config, BootstrapRuntimeOptions{Source: source})
 }

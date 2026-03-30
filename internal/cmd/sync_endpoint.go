@@ -9,7 +9,7 @@ import (
 	"govard/internal/engine/remote"
 )
 
-type syncEndpoint struct {
+type SyncEndpoint struct {
 	Name      string
 	IsLocal   bool
 	RemoteCfg engine.RemoteConfig
@@ -17,33 +17,33 @@ type syncEndpoint struct {
 	MediaPath string
 }
 
-type resolvedSyncEndpoints struct {
-	Source      syncEndpoint
-	Destination syncEndpoint
+type ResolvedSyncEndpoints struct {
+	Source      SyncEndpoint
+	Destination SyncEndpoint
 }
 
-func resolveSyncEndpoints(config engine.Config, sourceName string, destinationName string) (resolvedSyncEndpoints, error) {
+func resolveSyncEndpoints(config engine.Config, sourceName string, destinationName string) (ResolvedSyncEndpoints, error) {
 	cwd, _ := os.Getwd()
 
 	source, err := resolveSyncEndpoint(config, sourceName, cwd)
 	if err != nil {
-		return resolvedSyncEndpoints{}, err
+		return ResolvedSyncEndpoints{}, err
 	}
 
 	destination, err := resolveSyncEndpoint(config, destinationName, cwd)
 	if err != nil {
-		return resolvedSyncEndpoints{}, err
+		return ResolvedSyncEndpoints{}, err
 	}
 
-	return resolvedSyncEndpoints{
+	return ResolvedSyncEndpoints{
 		Source:      source,
 		Destination: destination,
 	}, nil
 }
 
-func resolveSyncEndpoint(config engine.Config, name string, cwd string) (syncEndpoint, error) {
+func resolveSyncEndpoint(config engine.Config, name string, cwd string) (SyncEndpoint, error) {
 	if name == "local" {
-		return syncEndpoint{
+		return SyncEndpoint{
 			Name:      name,
 			IsLocal:   true,
 			RootPath:  cwd,
@@ -53,15 +53,15 @@ func resolveSyncEndpoint(config engine.Config, name string, cwd string) (syncEnd
 
 	resolvedName, remoteCfg, err := ensureRemoteKnown(config, name)
 	if err != nil {
-		return syncEndpoint{}, err
+		return SyncEndpoint{}, err
 	}
 
 	root, media := engine.ResolveRemotePathsForConfig(config.Framework, remoteCfg)
 	if strings.TrimSpace(root) == "" {
-		return syncEndpoint{}, fmt.Errorf("the remote environment '%s' does not have a configured project path", name)
+		return SyncEndpoint{}, fmt.Errorf("the remote environment '%s' does not have a configured project path", name)
 	}
 
-	return syncEndpoint{
+	return SyncEndpoint{
 		Name:      resolvedName,
 		IsLocal:   false,
 		RemoteCfg: remoteCfg,
@@ -70,7 +70,7 @@ func resolveSyncEndpoint(config engine.Config, name string, cwd string) (syncEnd
 	}, nil
 }
 
-func describeSyncEndpoint(endpoint syncEndpoint) string {
+func describeSyncEndpoint(endpoint SyncEndpoint) string {
 	if endpoint.IsLocal {
 		return fmt.Sprintf("%s (local project: %s)", endpoint.Name, endpoint.RootPath)
 	}
@@ -87,7 +87,7 @@ func describeSyncEndpoint(endpoint syncEndpoint) string {
 	)
 }
 
-func ensureSyncCapability(endpoints resolvedSyncEndpoints, capability string) error {
+func ensureSyncCapability(endpoints ResolvedSyncEndpoints, capability string) error {
 	if err := ensureEndpointCapability(endpoints.Source, "source", capability); err != nil {
 		return err
 	}
@@ -97,7 +97,7 @@ func ensureSyncCapability(endpoints resolvedSyncEndpoints, capability string) er
 	return nil
 }
 
-func ensureEndpointCapability(endpoint syncEndpoint, position string, capability string) error {
+func ensureEndpointCapability(endpoint SyncEndpoint, position string, capability string) error {
 	if endpoint.IsLocal {
 		return nil
 	}
@@ -112,4 +112,12 @@ func ensureEndpointCapability(endpoint syncEndpoint, position string, capability
 		capDisplay,
 		strings.Join(engine.RemoteCapabilityList(endpoint.RemoteCfg), ", "),
 	)
+}
+
+// ResolveSyncEndpointsForTest exposes resolveSyncEndpoints for tests in /tests.
+func ResolveSyncEndpointsForTest(source, destination SyncEndpoint) ResolvedSyncEndpoints {
+	return ResolvedSyncEndpoints{
+		Source:      source,
+		Destination: destination,
+	}
 }

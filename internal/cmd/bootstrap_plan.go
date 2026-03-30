@@ -14,7 +14,7 @@ type bootstrapExecutionPlan struct {
 	Commands     []string
 }
 
-func buildBootstrapRemotePlan(config engine.Config, opts bootstrapRuntimeOptions) (bootstrapExecutionPlan, error) {
+func buildBootstrapRemotePlan(config engine.Config, opts BootstrapRuntimeOptions) (bootstrapExecutionPlan, error) {
 	plan := bootstrapExecutionPlan{}
 	framework := strings.ToLower(strings.TrimSpace(config.Framework))
 
@@ -96,7 +96,7 @@ func buildBootstrapRemotePlan(config engine.Config, opts bootstrapRuntimeOptions
 	return plan, nil
 }
 
-func BuildBootstrapRemotePlanForTest(config engine.Config, opts bootstrapRuntimeOptions) (bootstrapExecutionPlan, error) {
+func BuildBootstrapRemotePlanForTest(config engine.Config, opts BootstrapRuntimeOptions) (bootstrapExecutionPlan, error) {
 	return buildBootstrapRemotePlan(config, opts)
 }
 

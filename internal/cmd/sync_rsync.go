@@ -13,8 +13,8 @@ import (
 )
 
 func buildRsyncForEndpoints(
-	source syncEndpoint,
-	destination syncEndpoint,
+	source SyncEndpoint,
+	destination SyncEndpoint,
 	sourcePath string,
 	destinationPath string,
 	isDir bool,
@@ -69,7 +69,7 @@ func ensureTrailingSlash(path string) string {
 	return path + "/"
 }
 
-func buildDatabaseSyncAction(config engine.Config, source syncEndpoint, destination syncEndpoint, noNoise bool, noPII bool) (string, func() error, error) {
+func buildDatabaseSyncAction(config engine.Config, source SyncEndpoint, destination SyncEndpoint, noNoise bool, noPII bool) (string, func() error, error) {
 	localDBContainer := fmt.Sprintf("%s-db-1", config.ProjectName)
 	localCredentials := resolveLocalDBCredentials(config, localDBContainer)
 

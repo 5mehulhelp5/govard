@@ -323,7 +323,7 @@ func stringSliceContains(slice []string, item string) bool {
 	return false
 }
 
-func needsRemoteEnvironment(opts bootstrapRuntimeOptions) bool {
+func needsRemoteEnvironment(opts BootstrapRuntimeOptions) bool {
 	if opts.Fresh || opts.Plan {
 		return false
 	}
@@ -332,7 +332,7 @@ func needsRemoteEnvironment(opts bootstrapRuntimeOptions) bool {
 	return opts.Clone || (opts.DBImport && opts.DBDump == "") || opts.MediaSync
 }
 
-func shouldRunFrameworkPostClone(config engine.Config, opts bootstrapRuntimeOptions) bool {
+func shouldRunFrameworkPostClone(config engine.Config, opts BootstrapRuntimeOptions) bool {
 	if !opts.ComposerInstall {
 		return false
 	}
@@ -356,7 +356,7 @@ func shouldIgnoreFrameworkPostCloneError(config engine.Config, err error, cwd st
 	return fileExists(filepath.Join(cwd, "vendor", "autoload.php"))
 }
 
-func shouldSkipBootstrapMediaSync(config engine.Config, opts bootstrapRuntimeOptions) (bool, string) {
+func shouldSkipBootstrapMediaSync(config engine.Config, opts BootstrapRuntimeOptions) (bool, string) {
 	if !opts.MediaSync {
 		return true, "media sync is disabled"
 	}
@@ -383,7 +383,7 @@ func shouldSkipBootstrapMediaSync(config engine.Config, opts bootstrapRuntimeOpt
 }
 
 func ShouldRunFrameworkPostCloneForTest(framework string, composerInstall bool) bool {
-	return shouldRunFrameworkPostClone(engine.Config{Framework: framework}, bootstrapRuntimeOptions{ComposerInstall: composerInstall})
+	return shouldRunFrameworkPostClone(engine.Config{Framework: framework}, BootstrapRuntimeOptions{ComposerInstall: composerInstall})
 }
 
 func ShouldIgnoreFrameworkPostCloneErrorForTest(framework string, err error, cwd string) bool {
@@ -391,7 +391,7 @@ func ShouldIgnoreFrameworkPostCloneErrorForTest(framework string, err error, cwd
 }
 
 func ShouldSkipBootstrapMediaSyncForTest(config engine.Config, source string, mediaSync bool, clone bool, codeOnly bool) (bool, string) {
-	return shouldSkipBootstrapMediaSync(config, bootstrapRuntimeOptions{
+	return shouldSkipBootstrapMediaSync(config, BootstrapRuntimeOptions{
 		Source:    source,
 		MediaSync: mediaSync,
 		Clone:     clone,

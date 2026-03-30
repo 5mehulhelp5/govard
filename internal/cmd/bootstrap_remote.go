@@ -19,7 +19,7 @@ var bootstrapRemoteDirExists = func(remoteName string, remoteCfg engine.RemoteCo
 	return probe.Run() == nil
 }
 
-func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrapRuntimeOptions) error {
+func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions) error {
 	requiresRemote := opts.Clone || (opts.DBImport && opts.DBDump == "") || opts.MediaSync
 
 	if requiresRemote {
@@ -92,7 +92,7 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrap
 					pterm.Warning.Printf("composer install failed, but %s exists. Continuing bootstrap (%v).\n", autoloadPath, installErr)
 				} else {
 					pterm.Warning.Printf("composer install failed (%v). Attempting to sync vendor from remote '%s'...\n", installErr, opts.Source)
-					if err := runGovardSubcommand(cmd, "sync", "--source", opts.Source, "--file", "--path", "vendor", "--yes"); err != nil {
+					if err := runGovardSubcommand(cmd, "sync", "--source", opts.Source, "--file", "--path", "vendor/", "--yes"); err != nil {
 						return fmt.Errorf("composer install failed (%v) and vendor sync failed (%v)", installErr, err)
 					}
 				}
@@ -214,7 +214,7 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts bootstrap
 	return nil
 }
 
-func runBootstrapDatabaseSync(cmd *cobra.Command, opts bootstrapRuntimeOptions) error {
+func runBootstrapDatabaseSync(cmd *cobra.Command, opts BootstrapRuntimeOptions) error {
 	if opts.DBDump != "" {
 		if err := runGovardSubcommand(cmd, "db", "import", "--yes", "--file", opts.DBDump); err != nil {
 			return fmt.Errorf("database import from file failed: %w", err)
@@ -249,7 +249,7 @@ func runBootstrapDatabaseSync(cmd *cobra.Command, opts bootstrapRuntimeOptions) 
 	return nil
 }
 
-func bootstrapFileSyncArgs(opts bootstrapRuntimeOptions) []string {
+func bootstrapFileSyncArgs(opts BootstrapRuntimeOptions) []string {
 	args := []string{
 		"sync",
 		"--source", opts.Source,
@@ -293,4 +293,9 @@ func SetBootstrapRemoteDirExistsForTest(fn func(remoteName string, remoteCfg eng
 	return func() {
 		bootstrapRemoteDirExists = previous
 	}
+}
+
+// RunBootstrapRemoteForTest exposes runBootstrapRemote for tests in /tests.
+func RunBootstrapRemoteForTest(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions) error {
+	return runBootstrapRemote(cmd, config, opts)
 }
