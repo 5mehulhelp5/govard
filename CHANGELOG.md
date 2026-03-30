@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.37.0] - 2026-03-30
+
+### ✨ New Features
+
+- **Automated Upgrade Pipelines**: Introduced dedicated upgrade workflows for Magento, WordPress, Laravel, and Symfony, enabling seamless version transitions within the environment.
+- **Project Sync Status Tracking**: Implemented persistent tracking for synchronization status, providing better visibility into out-of-date remote data.
+- **Improved Project Resolution**: Refactored internal project path resolution logic to handle complex symlinked and non-standard directory structures more reliably.
+- **Composer Cache Configuration**: Added the `COMPOSER_CACHE_DIR` environment variable to all base configurations, ensuring optimized dependency persistence across container rebuilds.
+
+### 🛠 Improvements
+
+- **Blueprint Lifecycle**: Incremented internal `BlueprintVersion` to 1.27, triggering automatic environment re-renders to ensure all projects receive the latest configuration optimizations.
+
 ## [1.36.0] - 2026-03-29
 
 ### ✨ New Features
