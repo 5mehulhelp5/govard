@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.37.2] - 2026-03-30
+
+### 🛠 Improvements
+
+- **Release Automation**: Significantly improved the automated changelog generation in `.goreleaser.yml` to eliminate redundant bullet points and improve commit categorization.
+- **Improved Grouping**: Commits using the `refactor:` prefix are now correctly grouped under the **Improvements** section.
+- **Documentation Visibility**: Re-enabled the **Documentation** section in release notes by refining the global exclusion filters.
+- **Changelog Hygiene**: Cleaned up the `chore:` exclusion list to only target release-specific commits.
+
 ## [1.37.1] - 2026-03-30
 
 ### 🐛 Bug Fixes

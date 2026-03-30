@@ -101,8 +101,7 @@ changelog:
   sort: asc
   filters:
     exclude:
-      - "^docs:"
-      - "^chore:"
+      - "^chore: release"
       - "Merge branch"
       - "Merge pull request"
   groups:
@@ -110,7 +109,7 @@ changelog:
       regexp: "^feat[(\\w)]*!?: "
       order: 0
     - title: 🛠 Improvements
-      regexp: "^perf[(\\w)]*!?: "
+      regexp: "^(perf|refactor)[(\\w)]*!?: "
       order: 1
     - title: 🐛 Bug Fixes
       regexp: "^fix[(\\w)]*!?: "
@@ -120,7 +119,7 @@ changelog:
       order: 3
     - title: 📦 Others
       order: 99
-  format: "- {{ .Message }}"
+  format: "{{ .Message }}"
 
 release:
   footer: |
