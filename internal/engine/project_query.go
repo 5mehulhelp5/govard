@@ -6,32 +6,40 @@ import (
 	"strings"
 )
 
+const (
+	// ScoreExact is the score for a perfect string match.
+	ScoreExact = 0
+	// ScoreAmbiguousThreshold is the score at which a match is considered weak (subsequence etc).
+	ScoreAmbiguousThreshold = 100
+)
+
 // FindProjectByQuery finds the best project match for a given query (name, domain, or path).
-func FindProjectByQuery(query string) (ProjectRegistryEntry, error) {
+// It returns the entry, the match score (lower is better), and an error.
+func FindProjectByQuery(query string) (ProjectRegistryEntry, int, error) {
 	entries, err := ReadProjectRegistryEntries()
 	if err != nil {
-		return ProjectRegistryEntry{}, err
+		return ProjectRegistryEntry{}, -1, err
 	}
 	if len(entries) == 0 {
-		return ProjectRegistryEntry{}, fmt.Errorf("project registry is empty")
+		return ProjectRegistryEntry{}, -1, fmt.Errorf("project registry is empty")
 	}
 
-	match, ok := findBestProjectMatch(entries, query)
+	match, score, ok := findBestProjectMatch(entries, query)
 	if !ok {
-		return ProjectRegistryEntry{}, fmt.Errorf("no project matches query %q", query)
+		return ProjectRegistryEntry{}, -1, fmt.Errorf("no project matches query %q", query)
 	}
 
-	return match, nil
+	return match, score, nil
 }
 
-func findBestProjectMatch(entries []ProjectRegistryEntry, query string) (ProjectRegistryEntry, bool) {
+func findBestProjectMatch(entries []ProjectRegistryEntry, query string) (ProjectRegistryEntry, int, bool) {
 	normalizedQuery := strings.ToLower(strings.TrimSpace(query))
 	if normalizedQuery == "" {
-		return ProjectRegistryEntry{}, false
+		return ProjectRegistryEntry{}, -1, false
 	}
 
 	bestIndex := -1
-	bestScore := 0
+	bestScore := -1
 	for i, entry := range entries {
 		score, ok := scoreProjectEntry(entry, normalizedQuery)
 		if !ok {
@@ -43,9 +51,9 @@ func findBestProjectMatch(entries []ProjectRegistryEntry, query string) (Project
 		}
 	}
 	if bestIndex < 0 {
-		return ProjectRegistryEntry{}, false
+		return ProjectRegistryEntry{}, -1, false
 	}
-	return entries[bestIndex], true
+	return entries[bestIndex], bestScore, true
 }
 
 func scoreProjectEntry(entry ProjectRegistryEntry, query string) (int, bool) {

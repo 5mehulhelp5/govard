@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"os/user"
+	"path/filepath"
+	"strings"
 	"sync"
 
 	"govard/internal/engine"
@@ -144,9 +146,22 @@ func (app *App) DeleteProject(projectQuery string) (res string, err error) {
 		return "", fmt.Errorf("project name or path is required")
 	}
 
-	root, err := resolveProjectRootForRemotes(projectQuery)
+	root, score, err := resolveProjectRootForRemotes(projectQuery)
 	if err != nil {
 		return "", err
+	}
+
+	// Safety check for weak matches in the desktop app
+	if score >= engine.ScoreAmbiguousThreshold {
+		return "", fmt.Errorf("match for %q is too weak for deletion (confidence score: %d): use the full name or path", projectQuery, score)
+	}
+
+	// Check if it's an orphan (root is the name, not an absolute path)
+	if !filepath.IsAbs(root) && !strings.Contains(root, string(filepath.Separator)) {
+		if err := engine.DeleteOrphanProject(app.ctx, root, os.Stdout, os.Stderr); err != nil {
+			return "", err
+		}
+		return "Orphaned project resources removed", nil
 	}
 
 	// We use the application context for the deletion process

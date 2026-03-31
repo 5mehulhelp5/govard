@@ -273,7 +273,7 @@ func (s *EnvironmentService) GetDashboard() (Dashboard, error) {
 }
 
 func (s *EnvironmentService) StartEnvironment(project string) (string, error) {
-	root, err := resolveProjectRootForRemotes(project)
+	root, _, err := resolveProjectRootForRemotes(project)
 	if err != nil {
 		return "", err
 	}
@@ -288,7 +288,7 @@ func (s *EnvironmentService) StartEnvironment(project string) (string, error) {
 }
 
 func (s *EnvironmentService) StopEnvironment(project string) (string, error) {
-	root, err := resolveProjectRootForRemotes(project)
+	root, _, err := resolveProjectRootForRemotes(project)
 	if err != nil {
 		return "", err
 	}
@@ -300,7 +300,7 @@ func (s *EnvironmentService) StopEnvironment(project string) (string, error) {
 }
 
 func (s *EnvironmentService) RestartEnvironment(project string) (string, error) {
-	root, err := resolveProjectRootForRemotes(project)
+	root, _, err := resolveProjectRootForRemotes(project)
 	if err != nil {
 		return "", err
 	}
@@ -317,7 +317,7 @@ func (s *EnvironmentService) RestartEnvironment(project string) (string, error) 
 }
 
 func (s *EnvironmentService) PullEnvironment(project string) (string, error) {
-	root, err := resolveProjectRootForRemotes(project)
+	root, _, err := resolveProjectRootForRemotes(project)
 	if err != nil {
 		return "", err
 	}

@@ -24,7 +24,7 @@ func TestGhostProjectCleanup(t *testing.T) {
 	}
 
 	// Verify registry removal (indirectly by trying to find it)
-	_, err = engine.FindProjectByQuery("ghost-test")
+	_, _, err = engine.FindProjectByQuery("ghost-test")
 	if err == nil {
 		t.Error("Project 'ghost-test' still exists in registry after deletion")
 	}

@@ -393,7 +393,7 @@ func toggleXdebug(project string) (string, error) {
 		return "", fmt.Errorf(".govard.yml not found for %s", info.name)
 	}
 
-	root, err := resolveProjectRootForRemotes(project)
+	root, _, err := resolveProjectRootForRemotes(project)
 	if err != nil {
 		return "", err
 	}

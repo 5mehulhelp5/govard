@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"govard/internal/engine"
 	"govard/internal/ui"
@@ -24,6 +25,8 @@ var projectOpenCmd = &cobra.Command{
 		return runProjectOpen(cmd, args[0])
 	},
 }
+
+var projectListShowOrphans bool
 
 var projectListCmd = &cobra.Command{
 	Use:     "list",
@@ -58,6 +61,8 @@ It does NOT delete your project source code.`,
 
 func initProjectCommands() {
 	projectCmd.AddCommand(projectOpenCmd)
+
+	projectListCmd.Flags().BoolVar(&projectListShowOrphans, "orphans", false, "Show projects that have Docker resources but are not in the registry")
 	projectCmd.AddCommand(projectListCmd)
 
 	projectDeleteCmd.Flags().BoolVarP(&projectDeleteForce, "force", "f", false, "Delete without confirmation")
@@ -65,7 +70,7 @@ func initProjectCommands() {
 }
 
 func runProjectOpen(cmd *cobra.Command, query string) error {
-	match, err := engine.FindProjectByQuery(query)
+	match, _, err := engine.FindProjectByQuery(query)
 	if err != nil {
 		return err
 	}
@@ -75,9 +80,32 @@ func runProjectOpen(cmd *cobra.Command, query string) error {
 }
 
 func runProjectDelete(cmd *cobra.Command, query string) error {
-	match, err := engine.FindProjectByQuery(query)
+	match, score, err := engine.FindProjectByQuery(query)
+
+	// If we have no registry match OR a weak registry match,
+	// check if there's an EXACT match in the orphaned projects.
+	if err != nil || score >= engine.ScoreAmbiguousThreshold {
+		orphans, orphanErr := engine.GetOrphanedComposeProjects(cmd.Context())
+		if orphanErr == nil {
+			for _, o := range orphans {
+				if strings.EqualFold(o.Name, query) {
+					return runOrphanDelete(cmd, o)
+				}
+			}
+		}
+	}
+
 	if err != nil {
 		return err
+	}
+
+	// For destructive operations, we only allow strong matches (exact, prefix, or substring).
+	// If the match is weak (subsequence etc.), we require it to be forced or we error out.
+	if score >= engine.ScoreAmbiguousThreshold && !projectDeleteForce {
+		pterm.Warning.Printf("Weak match for %q: project %s (score: %d)\n", query, match.ProjectName, score)
+		pterm.Warning.Println("For your safety, Govard requires a stronger match (prefix, exact, or path) for deletion.")
+		pterm.Warning.Println("Please use a more specific name or the full project path.")
+		return fmt.Errorf("match for %q is too weak for destructive operation", query)
 	}
 
 	if !projectDeleteForce {
@@ -104,6 +132,35 @@ func runProjectDelete(cmd *cobra.Command, query string) error {
 		return err
 	}
 	spinner.Success("Project deleted successfully.")
+
+	return nil
+}
+
+func runOrphanDelete(cmd *cobra.Command, orphan engine.OrphanProject) error {
+	if !projectDeleteForce {
+		pterm.Warning.Printf("You are about to delete an UNREGISTERED project: %s\n", orphan.Name)
+		pterm.Warning.Println("This project was found in Docker but is not in the Govard registry.")
+		pterm.Warning.Println("This will remove all Docker containers and VOLUMES (database data).")
+		fmt.Println()
+
+		result, _ := pterm.DefaultInteractiveConfirm.WithDefaultValue(false).Show("Are you sure you want to proceed?")
+		if !result {
+			pterm.Info.Println("Deletion cancelled.")
+			return nil
+		}
+	}
+
+	fmt.Println()
+	pterm.NewStyle(pterm.BgLightRed, pterm.FgWhite, pterm.Bold).Printf(" DELETING ORPHAN PROJECT: %s \n", orphan.Name)
+	fmt.Println()
+
+	spinner, _ := pterm.DefaultSpinner.Start("Cleaning up orphaned resources...")
+	err := engine.DeleteOrphanProject(cmd.Context(), orphan.Name, ui.NewPtermWriter(&pterm.Info), ui.NewPtermWriter(&pterm.Error))
+	if err != nil {
+		spinner.Fail(err.Error())
+		return err
+	}
+	spinner.Success("Orphaned project resources removed.")
 
 	return nil
 }
@@ -139,6 +196,27 @@ func runProjectList(cmd *cobra.Command) error {
 	err = pterm.DefaultTable.WithHasHeader().WithData(tableData).Render()
 	if err != nil {
 		return err
+	}
+
+	if projectListShowOrphans {
+		orphans, err := engine.GetOrphanedComposeProjects(cmd.Context())
+		if err != nil {
+			return err
+		}
+
+		if len(orphans) > 0 {
+			fmt.Println()
+			pterm.NewStyle(pterm.BgLightYellow, pterm.FgBlack, pterm.Bold).Println(" ORPHANED PROJECTS (IN DOCKER BUT NOT REGISTRY) ")
+			fmt.Println()
+
+			orphanData := [][]string{
+				{"Project", "Status", "ConfigFiles"},
+			}
+			for _, o := range orphans {
+				orphanData = append(orphanData, []string{o.Name, o.Status, o.ConfigFiles})
+			}
+			_ = pterm.DefaultTable.WithHasHeader().WithData(orphanData).Render()
+		}
 	}
 
 	return nil

@@ -88,7 +88,7 @@ var defaultStartGovardCommandForDesktop = func(root string, args []string) error
 var startGovardCommandForDesktop = defaultStartGovardCommandForDesktop
 
 func listProjectRemotes(project string) (RemoteSnapshot, error) {
-	root, err := resolveProjectRootForRemotes(project)
+	root, _, err := resolveProjectRootForRemotes(project)
 	if err != nil {
 		return RemoteSnapshot{
 			Project:  project,
@@ -152,7 +152,7 @@ func testRemote(project string, remoteName string) (string, error) {
 		return "", fmt.Errorf("%s", message)
 	}
 
-	root, err := resolveProjectRootForRemotes(project)
+	root, _, err := resolveProjectRootForRemotes(project)
 	if err != nil {
 		category = "validation"
 		message = err.Error()
@@ -232,7 +232,7 @@ func openRemoteDB(project string, remoteName string) (string, error) {
 		return "", fmt.Errorf("remote name is required")
 	}
 
-	root, err := resolveProjectRootForRemotes(project)
+	root, _, err := resolveProjectRootForRemotes(project)
 	if err != nil {
 		return "", err
 	}
@@ -260,7 +260,7 @@ func openRemoteSFTP(project string, remoteName string, ctx context.Context) (str
 		return "", fmt.Errorf("remote name is required")
 	}
 
-	root, err := resolveProjectRootForRemotes(project)
+	root, _, err := resolveProjectRootForRemotes(project)
 	if err != nil {
 		return "", err
 	}
@@ -305,7 +305,7 @@ func openRemoteShell(project string, remoteName string, ctx context.Context) (st
 		return "", fmt.Errorf("remote name is required")
 	}
 
-	root, err := resolveProjectRootForRemotes(project)
+	root, _, err := resolveProjectRootForRemotes(project)
 	if err != nil {
 		return "", err
 	}
@@ -351,7 +351,7 @@ func resolveRemoteAdminURL(project string, remoteName string) (string, string, e
 		return "", "", fmt.Errorf("remote name is required")
 	}
 
-	root, err := resolveProjectRootForRemotes(project)
+	root, _, err := resolveProjectRootForRemotes(project)
 	if err != nil {
 		return "", "", err
 	}
@@ -698,7 +698,7 @@ func runRemoteSyncPresetWithOptions(
 		return "", fmt.Errorf("%s", message)
 	}
 
-	root, err := resolveProjectRootForRemotes(project)
+	root, _, err := resolveProjectRootForRemotes(project)
 	if err != nil {
 		category = "validation"
 		message = err.Error()
@@ -763,7 +763,7 @@ func runRemoteSyncBackgroundWithOptions(
 		return fmt.Errorf("remote name is required")
 	}
 
-	root, err := resolveProjectRootForRemotes(project)
+	root, _, err := resolveProjectRootForRemotes(project)
 	if err != nil {
 		return err
 	}
@@ -917,42 +917,56 @@ func launchGovardInTerminal(root string, args []string) error {
 	return LaunchInTerminal(root, syncCmd)
 }
 
-func resolveProjectRootForRemotes(project string) (string, error) {
+func resolveProjectRootForRemotes(project string) (string, int, error) {
 	trimmedProject := strings.TrimSpace(project)
 	if trimmedProject == "" {
-		return "", fmt.Errorf("project is required")
+		return "", -1, fmt.Errorf("project is required")
 	}
 
 	// 1. Check if it's already a path with a config (absolute or relative)
 	if pathHasBaseConfig(trimmedProject) {
-		return filepath.Clean(trimmedProject), nil
+		return filepath.Clean(trimmedProject), engine.ScoreExact, nil
 	}
 
 	// 2. NEW: Exact match in registry (Name or Domain)
 	if match, err := findExactProjectMatch(trimmedProject); err == nil {
 		if pathHasBaseConfig(match.Path) {
-			return filepath.Clean(match.Path), nil
+			return filepath.Clean(match.Path), engine.ScoreExact, nil
 		}
 	}
 
 	// 3. Try registry with fuzzy matching
-	match, err := engine.FindProjectByQuery(trimmedProject)
+	match, score, err := engine.FindProjectByQuery(trimmedProject)
+
+	// 4. If weak or no match, check for EXACT orphan match
+	if err != nil || score >= engine.ScoreAmbiguousThreshold {
+		orphans, orphanErr := engine.GetOrphanedComposeProjects(context.Background())
+		if orphanErr == nil {
+			for _, o := range orphans {
+				if strings.EqualFold(o.Name, trimmedProject) {
+					// For orphan cleanup, return the name as the path and mark as exact match
+					return o.Name, engine.ScoreExact, nil
+				}
+			}
+		}
+	}
+
 	if err == nil {
 		// Even if config is missing, return the path so it can be cleaned up
-		return filepath.Clean(match.Path), nil
+		return filepath.Clean(match.Path), score, nil
 	}
 
-	// 4. Fallback to loadProjectInfo (which checks Docker labels)
+	// 5. Fallback to loadProjectInfo (which checks Docker labels)
 	if info, err := loadProjectInfo(trimmedProject); err == nil {
 		if info.workingDir != "" && pathHasBaseConfig(info.workingDir) {
-			return filepath.Clean(info.workingDir), nil
+			return filepath.Clean(info.workingDir), engine.ScoreExact, nil
 		}
 		if info.configPath != "" {
-			return filepath.Clean(filepath.Dir(info.configPath)), nil
+			return filepath.Clean(filepath.Dir(info.configPath)), engine.ScoreExact, nil
 		}
 	}
 
-	// 5. Try matching by base name if it's a domain/path
+	// 6. Try matching by base name if it's a domain/path
 	if strings.Contains(trimmedProject, ".") || strings.Contains(trimmedProject, "/") {
 		var base string
 		if strings.Contains(trimmedProject, ".") {
@@ -960,12 +974,12 @@ func resolveProjectRootForRemotes(project string) (string, error) {
 		} else {
 			base = filepath.Base(trimmedProject)
 		}
-		if match, err := engine.FindProjectByQuery(base); err == nil {
-			return filepath.Clean(match.Path), nil
+		if match, score, err := engine.FindProjectByQuery(base); err == nil {
+			return filepath.Clean(match.Path), score, nil
 		}
 	}
 
-	return "", fmt.Errorf("unable to resolve project root for identifier '%s'", trimmedProject)
+	return "", -1, fmt.Errorf("unable to resolve project root for identifier '%s'", trimmedProject)
 }
 
 func findExactProjectMatch(query string) (engine.ProjectRegistryEntry, error) {
@@ -1232,7 +1246,7 @@ func buildPresetSyncOptionDefs(project, preset string) presetSyncOptions {
 	normalizedPreset, _ := normalizeRemoteSyncPreset(preset)
 
 	framework := ""
-	if root, err := resolveProjectRootForRemotes(project); err == nil {
+	if root, _, err := resolveProjectRootForRemotes(project); err == nil {
 		if cfg, _, err := engine.LoadConfigFromDir(root, true); err == nil {
 			framework = strings.ToLower(strings.TrimSpace(cfg.Framework))
 		}
@@ -1402,7 +1416,8 @@ func (s *RemoteService) GetRemotes(project string) (RemoteSnapshot, error) {
 
 // ResolveProjectRootForRemotesForTest matches the project identifier to its root path.
 func ResolveProjectRootForRemotesForTest(project string) (string, error) {
-	return resolveProjectRootForRemotes(project)
+	root, _, err := resolveProjectRootForRemotes(project)
+	return root, err
 }
 
 // FindExactProjectMatchForTest finds a project by its exact name or domain.
@@ -1468,7 +1483,7 @@ func (s *RemoteService) RunRemoteSyncInTerminal(project string, remoteName strin
 		return "", fmt.Errorf("remote name is required")
 	}
 
-	root, err := resolveProjectRootForRemotes(project)
+	root, _, err := resolveProjectRootForRemotes(project)
 	if err != nil {
 		return "", err
 	}

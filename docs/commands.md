@@ -279,8 +279,8 @@ Browse and manage known projects from the registry.
 Aliases: `project`, `prj`, `projects`, `registry`
 
 ```bash
-# List all available projects
-govard project list
+# List all available projects (add --orphans to see unregistered Docker projects)
+govard project list --orphans
 
 # Get the path of a project by name
 govard project open billing
@@ -293,7 +293,7 @@ Use `govard project list` to see all known projects, their framework, and paths.
 
 ### `govard project delete`
 
-Completely remove a project's orchestration resources and unregister it from Govard. This command is resilient and can clean up "ghost" projects even if their `.govard.yml` configuration is missing.
+Completely remove a project's orchestration resources and unregister it from Govard. This command includes a **match safety check** to prevent accidental deletions from weak fuzzy matches (e.g., matching "m2" to "magento2-project"). It is also capable of cleaning up "orphaned" projects that exist in Docker but are missing from the registry.
 
 ```bash
 govard project delete demo
@@ -594,11 +594,11 @@ govard upgrade --version 11 --dry-run
 ```
 
 The upgrade process varies by framework, but generally includes:
-1.  **Config Update**: Updates `.govard.yml` with the target version and appropriate runtime profiles.
-2.  **Environment Restart**: Cycles containers to apply new PHP versions or configurations.
-3.  **Dependency Update**: Runs `composer update` or framework-specific core updates (`wp core update`).
-4.  **Database Migration**: Runs framework-specific migrations (`bin/magento setup:upgrade`, `php artisan migrate`, `wp core update-db`, etc.).
-5.  **Cache Maintenance**: Automatically flushes caches and recompiles assets.
+1. **Config Update**: Updates `.govard.yml` with the target version and appropriate runtime profiles.
+2. **Environment Restart**: Cycles containers to apply new PHP versions or configurations.
+3. **Dependency Update**: Runs `composer update` or framework-specific core updates (`wp core update`).
+4. **Database Migration**: Runs framework-specific migrations (`bin/magento setup:upgrade`, `php artisan migrate`, `wp core update-db`, etc.).
+5. **Cache Maintenance**: Automatically flushes caches and recompiles assets.
 
 Flags:
 - `--version`: Target framework version (required).

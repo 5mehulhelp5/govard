@@ -18,7 +18,7 @@ govard desktop --background
 
 The lightweight desktop surface is intentionally focused on operational essentials:
 
-- Environment dashboard with start/stop/open/delete
+- Environment dashboard with start/stop/open/delete (including automatic detection of orphaned Docker projects)
 - Project workspace layout (environments, quick actions, onboarding)
 - Quick actions (PHPMyAdmin, Xdebug toggle, health)
 - Additional quick actions for Mailpit and DB client launch
