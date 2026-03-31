@@ -10,7 +10,7 @@ GOLANGCI_LINT_VERSION ?= v2.11.3
 GOLANGCI_LINT_BIN ?= $(shell go env GOPATH)/bin/golangci-lint
 LDFLAGS ?= -s -w -X govard/internal/cmd.Version=$(VERSION) -X govard/internal/desktop.Version=$(VERSION)
 
-.PHONY: help install install-release build-test-binary build clean test test-fast test-unit test-coverage test-integration test-integration-ci test-frontend lint lint-install fmt fmt-check vet push test-realenv-setup test-realenv test-realenv-clean
+.PHONY: help install install-release build-test-binary build clean test test-unit test-coverage test-integration test-integration-ci test-frontend lint lint-install fmt fmt-check vet push test-realenv-setup test-realenv test-realenv-clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
@@ -37,7 +37,6 @@ build-test-binary: build-frontend
 
 test: lint fmt-check vet test-frontend test-unit test-integration ## Run all tests
 
-test-fast: lint fmt-check vet test-frontend test-unit
 
 fmt-check:
 	@echo "Checking code formatting..."

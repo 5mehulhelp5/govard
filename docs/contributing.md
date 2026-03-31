@@ -52,10 +52,9 @@ go build -o govard cmd/govard/main.go
 Preferred commands:
 
 ```bash
-make test-fast
+make test
 make test-unit
 make test-integration
-make test
 make vet
 make fmt
 ```

@@ -473,7 +473,7 @@ Govard CI runs these checks on every push and pull request:
 | Pipeline Job | Local Command | Description |
 | :--- | :--- | :--- |
 | **Quality Checks** | `make lint fmt-check vet` | Runs `golangci-lint`, checks `gofmt -s` compliance, and `go vet`. |
-| **Fast Tests** | `make test-fast` | Runs lint, format check, `go vet`, frontend tests, and Go unit tests. |
+| **Full Tests** | `make test` | Runs lint, format check, `go vet`, frontend tests, and Go unit tests. |
 | **Integration Tests** | `make test-integration` | Builds a test binary and runs end-to-end framework tests in Docker. |
 | **Build Binaries** | `make build` | Verifies that the project compiles for the current platform. |
 
@@ -481,17 +481,9 @@ Govard CI runs these checks on every push and pull request:
 
 To ensure your contribution passes the GitHub CI pipeline, run the following sequence before pushing:
 
-#### 1. Fast Validation
+#### Validation
 
-Runs linting, formatting checks, vet, frontend tests, and unit tests:
-
-```bash
-make test-fast
-```
-
-#### 2. Full Validation (requires Docker)
-
-Runs the full suite including integration tests:
+Runs the full suite including linting, formatting checks, vet, frontend tests, Go unit tests, and integration tests (requires Docker):
 
 ```bash
 make test

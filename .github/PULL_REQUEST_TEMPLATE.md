@@ -17,7 +17,7 @@ Explain the problem this PR solves and why this approach is used.
 Paste exact commands and outcomes.
 
 ```bash
-make test-fast
+make test
 ```
 
 ## Linked Issues

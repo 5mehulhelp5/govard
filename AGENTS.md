@@ -64,10 +64,10 @@ docker --version
 Preferred commands:
 
 ```bash
-make test-fast           # lint + fmt-check + vet + frontend + unit tests
+make test                # lint + fmt-check + vet + frontend + unit + integration tests
 make test-unit           # unit tests only
 make test-integration    # integration tests (requires build + docker)
-make test                # lint + fmt-check + vet + frontend + unit + integration tests
+
 make vet                 # go vet
 make fmt                 # go fmt ./...
 make build               # build Govard for the current platform
@@ -226,7 +226,7 @@ When documenting commands that accept remote filesystem paths:
 3. Implement with small helpers and clear errors.
 4. Add/adjust tests in `tests/`.
 5. Run formatting and targeted tests.
-6. Run broader suite as needed (`make test-fast` or `go test ./...`).
+6. Run broader suite as needed (`make test` or `go test ./...`).
 7. Update `README.md` and the relevant canonical `docs/*.md` files if user-facing behavior changed.
 8. Summarize file-level changes and verification evidence.
 
