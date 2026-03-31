@@ -562,14 +562,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Embedded Frontend Assets**: The desktop application now embeds all frontend assets (CSS, JS, Fonts) directly into the binary, enabling standalone distribution and simplified packaging.
-- **Terminal Integration**: Integrated Xterm.js with backend PTY support for a full interactive shell experience directly within the desktop application.
+- **Terminal Integration**: Integrated Terminal with backend PTY support for a full interactive shell experience directly within the desktop application.
 - **Debian Packaging Support**: Official support for generating `.deb` packages for Linux distributions, complete with application menu integration and icons.
 
 ### Improved
 
 - **Asset Resolution**: Enhanced the path resolution logic to automatically fall back to embedded assets when running in production/installed mode.
 - **Development Environment Setup**: Significant documentation updates for local toolchain installation and prerequisites.
-- **Frontend Bundle Consolidation**: Merged third-party CSS (Inter, Material Symbols, Xterm) into a single optimized bundle for faster loading.
+- **Frontend Bundle Consolidation**: Merged third-party CSS (Inter, Material Symbols, Terminal) into a single optimized bundle for faster loading.
 
 ### Fixed
 

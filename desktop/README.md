@@ -26,13 +26,13 @@ Lightweight dashboard highlights:
 - Project workspace layout (environments, quick actions, onboarding)
 - Quick actions (PHPMyAdmin, Xdebug toggle, health)
 - Log viewer with service selection and live streaming
-- Shell launcher with persisted user + shell override
+- OS Terminal launcher for service shells
 - Settings drawer (theme, proxy target, preferred browser)
 
 Frontend file management:
 - `frontend/main.js` bootstrap + wiring
 - `frontend/services/bridge.js` Wails bridge wrappers
 - `frontend/state/store.js` local state
-- `frontend/modules/*.js` feature modules (`dashboard`, `actions`, `logs`, `shell`, `settings`)
+- `frontend/modules/*.js` feature modules (`dashboard`, `actions`, `logs`, `settings`)
 - `frontend/ui/toast.js` notifications
 - `frontend/utils/dom.js` DOM helpers

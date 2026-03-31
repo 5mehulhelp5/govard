@@ -520,9 +520,6 @@ func normalizeShellUser(info *projectInfo, service string, user string) string {
 		return user
 	}
 	if info != nil {
-		if saved, err := getShellUser(info.name); err == nil && saved != "" {
-			return saved
-		}
 		if info.configLoaded {
 			// Match CLI behavior: use ResolveProjectExecUser for consistency (UID:GID mapping)
 			return info.config.ResolveProjectExecUser("www-data")

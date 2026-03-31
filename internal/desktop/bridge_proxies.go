@@ -131,36 +131,6 @@ func (app *App) GetResourceMetrics() (string, error) {
 	return "{}", nil
 }
 
-// -- LogService (Terminal) Proxies --
-
-func (app *App) StartTerminal(project, service, user, shell string) (res string, err error) {
-	defer RecoverPanic(&err, "StartTerminal")
-	return app.Logs.StartTerminal(project, service, user, shell)
-}
-
-func (app *App) StartGovardTerminal(project string, argsList []string) (res string, err error) {
-	defer RecoverPanic(&err, "StartGovardTerminal")
-	return app.Logs.StartGovardTerminal(project, argsList)
-}
-
-func (app *App) WriteTerminal(id string, data string) {
-	app.Logs.WriteTerminal(id, data)
-}
-
-func (app *App) ResizeTerminal(id string, cols, rows int) {
-	app.Logs.ResizeTerminal(id, cols, rows)
-}
-
-func (app *App) TerminateTerminal(id string) (res string, err error) {
-	defer RecoverPanic(&err, "TerminateTerminal")
-	return app.Logs.TerminateTerminal(id)
-}
-
-func (app *App) OpenShellForService(project, service, user, shell string) (res string, err error) {
-	defer RecoverPanic(&err, "OpenShellForService")
-	return app.Logs.StartTerminal(project, service, user, shell)
-}
-
 func (app *App) StartServiceTerminalInOS(project, service, user, shell string) (res string, err error) {
 	defer RecoverPanic(&err, "StartServiceTerminalInOS")
 	return app.Logs.StartServiceTerminalInOS(project, service, user, shell)

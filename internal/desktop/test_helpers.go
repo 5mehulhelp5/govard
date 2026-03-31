@@ -2,7 +2,6 @@ package desktop
 
 import (
 	"context"
-	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -98,54 +97,6 @@ func BuildPMAOpenURLForTest(project string, database string) string {
 // ParseContainerIPAddressesForTest exposes container IP list parsing for tests.
 func ParseContainerIPAddressesForTest(raw string) []string {
 	return parseContainerIPAddresses(raw)
-}
-
-type testTerminalPTY struct {
-	closed bool
-}
-
-func (pty *testTerminalPTY) Read(_ []byte) (int, error) {
-	return 0, io.EOF
-}
-
-func (pty *testTerminalPTY) Write(data []byte) (int, error) {
-	return len(data), nil
-}
-
-func (pty *testTerminalPTY) Close() error {
-	pty.closed = true
-	return nil
-}
-
-// InjectTerminalSessionForTest injects a fake terminal session and returns cleanup/status helpers.
-func InjectTerminalSessionForTest(sessionID string) (cleanup func(), wasClosed func() bool) {
-	pty := &testTerminalPTY{}
-	ctx, cancel := context.WithCancel(context.Background())
-	sessionsMu.Lock()
-	sessions[sessionID] = &terminalSession{
-		id:     sessionID,
-		pty:    pty,
-		ctx:    ctx,
-		cancel: cancel,
-	}
-	sessionsMu.Unlock()
-
-	return func() {
-			sessionsMu.Lock()
-			delete(sessions, sessionID)
-			sessionsMu.Unlock()
-			cancel()
-		}, func() bool {
-			return pty.closed
-		}
-}
-
-// HasTerminalSessionForTest reports whether the terminal session registry has an entry.
-func HasTerminalSessionForTest(sessionID string) bool {
-	sessionsMu.Lock()
-	_, ok := sessions[sessionID]
-	sessionsMu.Unlock()
-	return ok
 }
 
 // NormalizeOnboardingDomainForTest exposes domain normalization for tests.

@@ -757,38 +757,38 @@ export const renderActiveServices = (container, env) => {
       }
 
       return `
-        <div class="glass-panel p-4 rounded-xl border border-slate-200 dark:border-border-primary hover:border-primary/30 transition-all flex items-center justify-between">
-          <div class="flex items-center gap-4">
-            <div class="p-2 rounded ${iconBg} ${iconText} border ${iconBorder}">
-              <span class="material-symbols-outlined">${icon}</span>
+        <div class="glass-panel p-4 rounded-xl border border-slate-200 dark:border-border-primary hover:border-primary/30 transition-all flex items-center justify-between h-[72px]">
+          <div class="flex items-center gap-4 h-full">
+            <div class="w-10 h-10 shrink-0 rounded flex items-center justify-center ${iconBg} ${iconText} border ${iconBorder}">
+              <span class="material-symbols-outlined text-[20px]">${icon}</span>
             </div>
-            <div>
-              <h4 class="text-slate-800 dark:text-white font-medium text-sm">${escapeHTML(service.Name || service.name || "Service")}</h4>
-              <div class="flex items-center gap-2 text-xs mt-1">
+            <div class="flex flex-col justify-center">
+              <h4 class="text-slate-800 dark:text-white font-medium text-sm leading-tight">${escapeHTML(service.Name || service.name || "Service")}</h4>
+              <div class="flex items-center gap-2 text-xs mt-1 leading-none">
                 <span class="text-slate-500 dark:text-slate-400">Port: ${service.Port || service.port || "N/A"}</span>
                 <span class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
                 <span class="${statusColor}">${escapeHTML(service.Status || service.status || "Unknown")}</span>
               </div>
             </div>
           </div>
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2 h-full">
             <button
-              class="p-1.5 rounded bg-slate-100 dark:bg-[var(--surface-secondary)] border border-slate-200 dark:border-border-primary text-slate-500 dark:text-slate-300 hover:text-primary dark:hover:text-white hover:bg-slate-200 dark:hover:bg-background-secondary transition-colors"
+              class="size-8 rounded flex items-center justify-center bg-slate-100 dark:bg-[var(--surface-secondary)] border border-slate-200 dark:border-border-primary text-slate-500 dark:text-slate-300 hover:text-primary dark:hover:text-white hover:bg-slate-200 dark:hover:bg-background-secondary transition-all"
               title="View Logs"
               data-action="open-service-logs"
               data-project="${escapeHTML(project)}"
               data-service="${escapeHTML(serviceTarget)}"
             >
-              <span class="material-symbols-outlined text-lg">list_alt</span>
+              <span class="material-symbols-outlined text-[18px]">list_alt</span>
             </button>
             <button
-              class="p-1.5 rounded bg-slate-100 dark:bg-[var(--surface-secondary)] border border-slate-200 dark:border-border-primary text-slate-500 dark:text-slate-300 hover:text-primary dark:hover:text-white hover:bg-slate-200 dark:hover:bg-background-secondary transition-colors"
+              class="size-8 rounded flex items-center justify-center bg-slate-100 dark:bg-[var(--surface-secondary)] border border-slate-200 dark:border-border-primary text-slate-500 dark:text-slate-300 hover:text-primary dark:hover:text-white hover:bg-slate-200 dark:hover:bg-background-secondary transition-all"
               title="Open OS Terminal"
               data-action="start-service-terminal-os"
               data-project="${escapeHTML(project)}"
               data-service="${escapeHTML(serviceTarget)}"
             >
-              <span class="material-symbols-outlined text-lg">terminal</span>
+              <span class="material-symbols-outlined text-[18px]">terminal</span>
             </button>
           </div>
         </div>`;

@@ -262,42 +262,6 @@ export const desktopBridge = {
       String(suggestedName || ""),
     );
   },
-  async startTerminal(project, service, user, shell) {
-    const bridge = getBridge();
-    return call(
-      bridge?.StartTerminal?.bind(bridge),
-      project,
-      service,
-      user,
-      shell,
-    );
-  },
-  async startGovardTerminal(project, argsList) {
-    const bridge = getBridge();
-    return call(bridge?.StartGovardTerminal?.bind(bridge), project, argsList);
-  },
-  async writeTerminal(id, data) {
-    const bridge = getBridge();
-    return call(bridge?.WriteTerminal?.bind(bridge), id, data);
-  },
-  async resizeTerminal(id, cols, rows) {
-    const bridge = getBridge();
-    return call(bridge?.ResizeTerminal?.bind(bridge), id, cols, rows);
-  },
-  async terminateTerminal(id) {
-    const bridge = getBridge();
-    return call(bridge?.TerminateTerminal?.bind(bridge), id);
-  },
-  async openShellForService(project, service, user, shell) {
-    const bridge = getBridge();
-    return call(
-      bridge?.OpenShellForService?.bind(bridge),
-      project,
-      service,
-      user,
-      shell,
-    );
-  },
   async startServiceTerminalInOS(project, service, user, shell) {
     const bridge = getBridge();
     return call(
@@ -307,18 +271,6 @@ export const desktopBridge = {
       user,
       shell,
     );
-  },
-  async getShellUser(project) {
-    const bridge = getBridge();
-    return call(bridge?.GetShellUser?.bind(bridge), project);
-  },
-  async setShellUser(project, user) {
-    const bridge = getBridge();
-    return call(bridge?.SetShellUser?.bind(bridge), project, user);
-  },
-  async resetShellUsers() {
-    const bridge = getBridge();
-    return call(bridge?.ResetShellUsers?.bind(bridge));
   },
   async getSettings() {
     const bridge = getBridge();

@@ -169,10 +169,12 @@ export const createSettingsController = ({
       return;
     }
     if (open) {
+      window.dispatchEvent(new CustomEvent("govard:blur", { detail: { isVisible: true } }));
       refs.settingsDrawer.classList.remove("hidden");
       refs.settingsDrawer.setAttribute("aria-hidden", "false");
       return;
     }
+    window.dispatchEvent(new CustomEvent("govard:blur", { detail: { isVisible: false } }));
     refs.settingsDrawer.classList.add("hidden");
     refs.settingsDrawer.setAttribute("aria-hidden", "true");
   };

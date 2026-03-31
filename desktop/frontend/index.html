@@ -8,9 +8,6 @@
 
   <link rel="stylesheet" href="assets/styles.css" />
 
-  <script src="assets/xterm.js"></script>
-  <script src="assets/xterm-addon-fit.js"></script>
-
   <!-- All styles loaded from assets/styles-src.css via assets/styles.css -->
 </head>
 
@@ -19,7 +16,7 @@
   <div id="app"
     class="flex flex-col h-screen w-full max-w-[1440px] mx-auto border-x border-border-primary shadow-2xl relative bg-background-primary overflow-hidden">
     <!-- Top Content (Header + Sidebar + View) -->
-    <div class="flex flex-1 overflow-hidden">
+    <div id="mainContent" class="flex flex-1 overflow-hidden transition-all duration-300">
       <!-- Sidebar -->
 
       <aside
@@ -189,7 +186,7 @@
                 </a>
                 <a class="border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-slate-500 whitespace-nowrap py-4 px-4 border-b-2 font-bold text-sm flex items-center gap-2 transition-all"
                   href="#" data-action="switch-tab" data-tab="logs">
-                  <span class="material-symbols-outlined text-lg">terminal</span>
+                  <span class="material-symbols-outlined text-lg">receipt_long</span>
                   Logs
                 </a>
               </nav>
@@ -581,7 +578,7 @@ Select a global service to view logs.</pre>
 
     <!-- Custom Confirmation Modal -->
     <div id="confirmModal"
-      class="fixed inset-0 z-[10001] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
+      class="fixed inset-0 z-[10001] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300">
       <div
         class="bg-background-secondary border border-border-primary rounded-2xl shadow-2xl w-full max-w-md transform scale-95 transition-all duration-300 overflow-hidden">
         <div class="p-6">

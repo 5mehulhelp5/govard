@@ -2,7 +2,6 @@ package desktop
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,54 +9,11 @@ import (
 )
 
 type preferences struct {
-	ShellUsers map[string]string `json:"shellUsers"`
-	Settings   DesktopSettings   `json:"settings"`
+	Settings DesktopSettings `json:"settings"`
 }
 
 var prefsMu sync.Mutex
 var cachedPrefs *preferences
-
-func getShellUser(project string) (string, error) {
-	if err := ensureProjectName(project); err != nil {
-		return "", err
-	}
-	prefs, err := loadPreferences()
-	if err != nil {
-		return "", err
-	}
-	if prefs.ShellUsers == nil {
-		return "", nil
-	}
-	return prefs.ShellUsers[project], nil
-}
-
-func setShellUser(project string, user string) error {
-	if err := ensureProjectName(project); err != nil {
-		return err
-	}
-	prefs, err := loadPreferences()
-	if err != nil {
-		return err
-	}
-	if prefs.ShellUsers == nil {
-		prefs.ShellUsers = map[string]string{}
-	}
-	if user == "" {
-		delete(prefs.ShellUsers, project)
-	} else {
-		prefs.ShellUsers[project] = user
-	}
-	return savePreferences(prefs)
-}
-
-func resetShellUsers() error {
-	prefs, err := loadPreferences()
-	if err != nil {
-		return err
-	}
-	prefs.ShellUsers = map[string]string{}
-	return savePreferences(prefs)
-}
 
 func getSettingsInternal() (DesktopSettings, error) {
 	prefs, err := loadPreferences()
@@ -130,8 +86,7 @@ func loadPreferences() (*preferences, error) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			cachedPrefs = &preferences{
-				ShellUsers: map[string]string{},
-				Settings:   normalizeSettings(DesktopSettings{RunInBackground: true}),
+				Settings: normalizeSettings(DesktopSettings{RunInBackground: true}),
 			}
 			return cachedPrefs, nil
 		}
@@ -142,9 +97,6 @@ func loadPreferences() (*preferences, error) {
 	prefs.Settings.RunInBackground = true
 	if err := json.Unmarshal(data, &prefs); err != nil {
 		return nil, err
-	}
-	if prefs.ShellUsers == nil {
-		prefs.ShellUsers = map[string]string{}
 	}
 	prefs.Settings = normalizeSettings(prefs.Settings)
 	cachedPrefs = &prefs
@@ -213,11 +165,4 @@ func sanitizeProxyTarget(raw string) string {
 	target = strings.TrimSuffix(target, "/")
 	target = strings.Trim(target, ".")
 	return target
-}
-
-func ensureProjectName(project string) error {
-	if project == "" {
-		return fmt.Errorf("project name is required")
-	}
-	return nil
 }

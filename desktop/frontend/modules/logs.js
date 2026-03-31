@@ -148,9 +148,9 @@ export const syncServiceSelector = (
       const baseClass =
         "h-7 px-3 rounded-md text-xs font-semibold whitespace-nowrap border transition-colors";
       const activeClass =
-        "bg-primary/20 text-primary border-primary/30 shadow-[0_0_12px_rgba(13,242,89,0.1)]";
+        "bg-primary/20 text-primary dark:text-white border-primary/30 shadow-[0_0_12px_rgba(13,242,89,0.1)]";
       const inactiveClass =
-        "text-text-tertiary dark:text-primary border-transparent hover:text-text-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[var(--border-primary)]/60";
+        "text-text-tertiary dark:text-slate-400 border-transparent hover:text-text-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-surface-secondary transition-all";
 
       return `<button 
       data-action="filter-service" 
@@ -179,9 +179,9 @@ export const syncSeveritySelector = (container, selectedSeverity = "all") => {
     const isActive = sev === selectedSeverity;
     const baseClass =
       "h-7 px-3 text-[10px] font-bold uppercase tracking-wide rounded-md border transition-colors";
-    const activeClass = "bg-primary/20 text-primary border-primary/30";
+    const activeClass = "bg-primary/20 text-primary dark:text-white border-primary/30";
     const inactiveClass =
-      "bg-surface-secondary dark:bg-surface-secondary text-text-tertiary dark:text-primary border-transparent hover:bg-slate-100 dark:hover:bg-surface-primary hover:text-text-primary dark:hover:text-white";
+      "bg-surface-secondary dark:bg-surface-secondary text-text-tertiary dark:text-slate-400 border-transparent hover:bg-slate-100 dark:hover:bg-surface-primary hover:text-text-primary dark:hover:text-white transition-all";
 
     btn.className = `${baseClass} ${isActive ? activeClass : inactiveClass}`;
   });
@@ -265,7 +265,8 @@ export const createLogsController = ({
   const stopLive = async () => {
     liveEnabled = false;
     if (refs.toggleLive) {
-      refs.toggleLive.textContent = "Live: Off";
+      refs.toggleLive.className =
+        "h-8 px-3 rounded-md text-xs font-semibold text-text-tertiary dark:text-slate-400 hover:text-text-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-surface-secondary transition-all";
     }
     if (livePoll) {
       clearInterval(livePoll);
@@ -288,6 +289,8 @@ export const createLogsController = ({
     liveEnabled = true;
     if (refs.toggleLive) {
       refs.toggleLive.textContent = "Live: On";
+      refs.toggleLive.className =
+        "h-8 px-3 rounded-md text-xs font-semibold bg-primary text-slate-900 hover:bg-primary/90 transition-colors";
     }
 
     if (bridge.startLogStreamForService && runtime?.EventsOn) {
@@ -404,11 +407,6 @@ export const renderLogsTab = (container) => {
         class="px-6 lg:px-10 py-6 max-w-[1248px] w-full mx-auto flex-1 flex flex-col gap-6 overflow-hidden h-full"
       >
         <div
-          id="terminalBackdrop"
-          data-action="close-terminal-modal"
-          class="hidden fixed inset-0 bg-black/60 backdrop-blur-[2px] z-[135] opacity-0 transition-opacity duration-300"
-        ></div>
-        <div
           class="flex-1 flex flex-col gap-4 overflow-hidden h-full min-h-0"
         >
           <div
@@ -417,17 +415,19 @@ export const renderLogsTab = (container) => {
             <div
               class="p-3 border-b border-slate-200 dark:border-border-primary bg-slate-50 dark:bg-surface-primary"
             >
-              <div class="flex flex-wrap items-center justify-between gap-3">
-                <div class="flex items-center gap-4 min-w-0">
-                  <span class="material-symbols-outlined text-primary text-lg"
-                    >receipt_long</span
-                  >
-                  <h3 class="text-sm font-semibold text-slate-800 dark:text-white">Logs</h3>
-                  <span class="text-[10px] uppercase tracking-wide text-text-tertiary bg-surface-secondary dark:bg-surface-secondary border border-border-primary px-3 py-1 rounded-full font-bold">Live Stream</span>
+              <div class="flex flex-wrap items-center justify-between gap-3 min-h-[40px]">
+                <div class="flex items-center gap-3 min-w-0 h-full">
+                  <div class="flex items-center justify-center size-8 bg-primary/10 rounded-lg text-primary">
+                    <span class="material-symbols-outlined text-xl">receipt_long</span>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <h3 class="text-sm font-bold text-slate-800 dark:text-white leading-none">Logs</h3>
+                    <span class="text-[10px] uppercase tracking-wider text-primary bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-full font-bold leading-none">Live Stream</span>
+                  </div>
                 </div>
-                <div class="flex items-center gap-2 ml-auto">
-                  <div class="relative">
-                    <span class="absolute inset-y-0 left-2 flex items-center">
+                <div class="flex items-center gap-2 ml-auto h-full">
+                  <div class="relative flex items-center">
+                    <span class="absolute left-2.5 flex items-center">
                       <span
                         class="material-symbols-outlined text-text-tertiary text-base"
                         >search</span
@@ -442,19 +442,19 @@ export const renderLogsTab = (container) => {
                   </div>
                   <button
                     data-action="clear-logs"
-                    class="p-2 rounded-md text-primary hover:text-primary hover:bg-[var(--border-primary)]/50 transition-colors"
+                    class="size-9 flex items-center justify-center rounded-md text-primary hover:text-primary hover:bg-slate-100 dark:hover:bg-surface-secondary transition-all"
                     title="Clear Logs"
                   >
-                    <span class="material-symbols-outlined text-lg"
+                    <span class="material-symbols-outlined text-[18px]"
                       >block</span
                     >
                   </button>
                   <button
                     data-action="download-logs"
-                    class="p-2 rounded-md text-text-tertiary dark:text-primary hover:text-text-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[var(--border-primary)]/50 transition-colors"
+                    class="size-9 flex items-center justify-center rounded-md text-text-tertiary dark:text-primary hover:text-text-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-surface-secondary transition-all"
                     title="Download Logs"
                   >
-                    <span class="material-symbols-outlined text-lg"
+                    <span class="material-symbols-outlined text-[18px]"
                       >download</span
                     >
                   </button>
@@ -476,7 +476,7 @@ export const renderLogsTab = (container) => {
                       <button
                         data-action="filter-service"
                         data-service="all"
-                        class="h-7 px-3 rounded-md text-xs font-semibold whitespace-nowrap border bg-primary/20 text-text-primary dark:text-primary border-primary/30"
+                        class="h-7 px-3 rounded-md text-xs font-semibold whitespace-nowrap border bg-primary/20 text-primary dark:text-white border-primary/30"
                       >
                         all
                       </button>
@@ -495,21 +495,21 @@ export const renderLogsTab = (container) => {
                       <button
                         data-action="filter-severity"
                         data-severity="all"
-                        class="h-7 px-3 text-[10px] font-bold uppercase tracking-wide rounded-md border transition-colors bg-primary/20 text-text-primary dark:text-primary border-primary/30"
+                        class="h-7 px-3 text-[10px] font-bold uppercase tracking-wide rounded-md border transition-colors bg-primary/20 text-primary dark:text-white border-primary/30"
                       >
                         All
                       </button>
                       <button
                         data-action="filter-severity"
                         data-severity="error"
-                        class="h-7 px-3 text-[10px] font-bold uppercase tracking-wide rounded-md border transition-colors bg-surface-secondary dark:bg-surface-secondary text-text-tertiary dark:text-primary border-transparent hover:bg-slate-100 dark:hover:bg-surface-primary hover:text-text-primary dark:hover:text-white"
+                        class="h-7 px-3 text-[10px] font-bold uppercase tracking-wide rounded-md border transition-all bg-surface-secondary dark:bg-surface-secondary text-text-tertiary dark:text-slate-400 border-transparent hover:bg-slate-100 dark:hover:bg-surface-primary hover:text-text-primary dark:hover:text-white"
                       >
                         Error
                       </button>
                       <button
                         data-action="filter-severity"
                         data-severity="warn"
-                        class="h-7 px-3 text-[10px] font-bold uppercase tracking-wide rounded-md border transition-colors bg-surface-secondary dark:bg-surface-secondary text-text-tertiary dark:text-primary border-transparent hover:bg-slate-100 dark:hover:bg-surface-primary hover:text-text-primary dark:hover:text-white"
+                        class="h-7 px-3 text-[10px] font-bold uppercase tracking-wide rounded-md border transition-all bg-surface-secondary dark:bg-surface-secondary text-text-tertiary dark:text-slate-400 border-transparent hover:bg-slate-100 dark:hover:bg-surface-primary hover:text-text-primary dark:hover:text-white"
                       >
                         Warn
                       </button>
@@ -520,13 +520,13 @@ export const renderLogsTab = (container) => {
                   <button
                     id="toggleLive"
                     data-action="toggle-live"
-                    class="h-8 px-3 rounded-md text-xs font-semibold bg-primary text-text-primary hover:bg-primary/90 transition-colors"
+                    class="h-8 px-3 rounded-md text-xs font-semibold text-text-tertiary dark:text-slate-400 hover:text-text-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-surface-secondary transition-all"
                   >
                     Live: Off
                   </button>
                   <button
                     data-action="refresh-logs"
-                    class="h-8 px-3 rounded-md text-xs font-semibold text-text-tertiary dark:text-primary hover:text-text-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[var(--border-primary)]/50 transition-colors"
+                    class="h-8 px-3 rounded-md text-xs font-semibold text-text-tertiary dark:text-slate-400 hover:text-text-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-surface-secondary transition-all"
                   >
                     Refresh
                   </button>

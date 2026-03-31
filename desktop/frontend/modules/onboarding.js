@@ -888,6 +888,7 @@ export const createOnboardingController = ({
       return;
     }
     if (open) {
+      window.dispatchEvent(new CustomEvent("govard:blur", { detail: { isVisible: true } }));
       refs.onboardingModal.classList.remove("hidden");
       refs.onboardingModal.classList.add("flex");
       resetForm();
@@ -895,6 +896,7 @@ export const createOnboardingController = ({
       return;
     }
 
+    window.dispatchEvent(new CustomEvent("govard:blur", { detail: { isVisible: false } }));
     closeBootstrapPrompt();
     refs.onboardingModal.classList.add("hidden");
     refs.onboardingModal.classList.remove("flex");

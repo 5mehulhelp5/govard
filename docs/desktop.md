@@ -93,7 +93,7 @@ Desktop preferences are stored in:
 ~/.govard/desktop-preferences.json
 ```
 
-Current persisted preferences include theme, proxy target, preferred browser, database client preference, and shell user preferences.
+Current persisted preferences include theme, proxy target, preferred browser, and database client preference.
 
 ## Related Docs
 

@@ -138,30 +138,6 @@ func (app *App) QuickActionForProject(action string, project string) (res string
 	return quickAction(app.ctx, action, project)
 }
 
-func (app *App) GetShellUser(project string) (res string, err error) {
-	defer RecoverPanic(&err, "GetShellUser")
-	return getShellUser(project)
-}
-
-func (app *App) SetShellUser(project string, user string) (res string, err error) {
-	defer RecoverPanic(&err, "SetShellUser")
-	if errSet := setShellUser(project, user); errSet != nil {
-		return "", errSet
-	}
-	if user == "" {
-		return "Cleared shell user for " + project, nil
-	}
-	return "Saved shell user for " + project, nil
-}
-
-func (app *App) ResetShellUsers() (res string, err error) {
-	defer RecoverPanic(&err, "ResetShellUsers")
-	if errReset := resetShellUsers(); errReset != nil {
-		return "", errReset
-	}
-	return "Shell user preferences reset", nil
-}
-
 func (app *App) DeleteProject(projectQuery string) (res string, err error) {
 	defer RecoverPanic(&err, "DeleteProject")
 	if projectQuery == "" {

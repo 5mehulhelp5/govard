@@ -36,8 +36,6 @@ import {
   renderSettingsDrawer,
 } from "./modules/settings.js";
 import { createUpdateNotifierController } from "./modules/update-notifier.js";
-import { createShellController } from "./modules/shell.js";
-import { createTerminalController } from "./modules/terminal.js";
 import { desktopBridge } from "./services/bridge.js";
 import { getState, setState } from "./state/store.js";
 import { createToast } from "./ui/toast.js?v=20260301";
@@ -113,13 +111,8 @@ const getLiveRefs = () => ({
   updatePromptMessage: byId("updatePromptMessage"),
   updatePromptChangelog: byId("updatePromptChangelog"),
   installUpdatePromptButton: byId("installUpdatePromptButton"),
-  shellUser: byId("shellUser"),
   userAvatar: byId("userAvatar"),
   userName: byId("userName"),
-  terminalContainer: byId("terminalContainer"),
-  terminalPanel: byId("terminalPanel"),
-  terminalBackdrop: byId("terminalBackdrop"),
-  terminalExpandIcon: byId("terminalExpandIcon"),
   toastContainer: byId("toastContainer"),
   confirmModal: byId("confirmModal"),
   confirmIcon: byId("confirmIcon"),
@@ -160,7 +153,6 @@ const getLiveRefs = () => ({
   confirmMessage: byId("confirmMessage"),
   confirmCancelBtn: byId("confirmCancelBtn"),
   confirmConfirmBtn: byId("confirmConfirmBtn"),
-  newRemoteModal: byId("newRemoteModal"),
   projectTitle: byId("projectTitle"),
   projectStatusBadge: byId("projectStatusBadge"),
   projectStatusText: byId("projectStatusText"),
@@ -194,7 +186,6 @@ const refreshRefs = () => {
   // Propagate updated refs to controllers if they don't hold the object by reference
   // (Most do, but we keep this for safety and explicit update triggers)
   if (logsController?.updateRefs) logsController.updateRefs(refs);
-  if (shellController?.updateRefs) shellController.updateRefs(refs);
   if (metricsController?.updateRefs) metricsController.updateRefs(refs);
   if (remotesController?.updateRefs) remotesController.updateRefs(refs);
   if (settingsController?.updateRefs) settingsController.updateRefs(refs);
@@ -202,8 +193,6 @@ const refreshRefs = () => {
     updateNotifierController.updateRefs(refs);
   if (globalServicesController?.updateRefs)
     globalServicesController.updateRefs(refs);
-  if (embeddedTerminalController?.updateRefs)
-    embeddedTerminalController.updateRefs(refs);
 };
 
 const toast = createToast(refs.toastContainer);
@@ -266,6 +255,20 @@ const showToast = (message, type = "success") => {
   toast.show(message, type);
 };
 
+export const toggleModalBlur = (isVisible) => {
+  const mainContent = byId("mainContent");
+  if (!mainContent) return;
+  if (isVisible) {
+    mainContent.classList.add("blur-sm", "pointer-events-none", "select-none", "opacity-50");
+  } else {
+    mainContent.classList.remove("blur-sm", "pointer-events-none", "select-none", "opacity-50");
+  }
+};
+
+window.addEventListener("govard:blur", (e) => {
+  toggleModalBlur(!!e.detail?.isVisible);
+});
+
 const showConfirm = ({
   title,
   message,
@@ -302,6 +305,7 @@ const showConfirm = ({
       resolve(false);
     };
     const cleanup = () => {
+      toggleModalBlur(false);
       refs.confirmModal.classList.remove("is-visible");
       refs.confirmConfirmBtn.removeEventListener("click", onConfirm);
       refs.confirmCancelBtn.removeEventListener("click", onCancel);
@@ -309,6 +313,7 @@ const showConfirm = ({
 
     refs.confirmConfirmBtn.addEventListener("click", onConfirm);
     refs.confirmCancelBtn.addEventListener("click", onCancel);
+    toggleModalBlur(true);
     refs.confirmModal.classList.add("is-visible");
   });
 };
@@ -506,10 +511,10 @@ const runRemoteSyncWithProgressToast = async ({
 
   const title = getSyncPresetLabel(preset, remoteName);
 
-  setState({ 
-    syncingProject: project, 
-    syncingRemote: remoteName, 
-    syncingPreset: preset 
+  setState({
+    syncingProject: project,
+    syncingRemote: remoteName,
+    syncingPreset: preset
   });
 
   if (visualContainer) {
@@ -520,7 +525,7 @@ const runRemoteSyncWithProgressToast = async ({
     // Trigger reflow to ensure CSS transition works
     void visualContainer.offsetWidth;
     visualContainer.classList.remove("opacity-0", "translate-y-4");
-    
+
     const vLine = byId("visual-sync-progress-line");
     if (vLine) {
       vLine.textContent = `   ${title}\n   ${"-".repeat(title.length)}\n`;
@@ -631,7 +636,7 @@ const runRemoteSyncWithProgressToast = async ({
 
     if (result && result.startsWith("Remote sync background process failed:")) {
       const normalized = sanitizeSyncToastLine(result) || "Sync failed";
-      
+
       const vLine = byId("visual-sync-progress-line");
       const vInd = byId("visual-sync-progress-container")?.querySelector(".visual-sync-indicator");
 
@@ -641,7 +646,7 @@ const runRemoteSyncWithProgressToast = async ({
       }
       progressLines.push("\n[FAILED] " + normalized + "\n");
       flushProgressLines();
-      
+
       if (vInd) {
         vInd.classList.remove("bg-primary");
         vInd.classList.add("bg-rose-500");
@@ -680,8 +685,8 @@ const resolveSyncConfigForPreset = async (preset) => {
 const selectProject = async (project) => {
   if (!project) return;
   // Normalize: if it's a path, use basename
-  const normalized = project.includes("/") || project.includes("\\") 
-    ? project.split(/[\\/]+/).filter(Boolean).pop() 
+  const normalized = project.includes("/") || project.includes("\\")
+    ? project.split(/[\\/]+/).filter(Boolean).pop()
     : project;
 
   setState({ selectedProject: normalized });
@@ -741,9 +746,6 @@ const switchTab = (tabId) => {
     const showHero = ["dashboard", "remotes", "logs"].includes(tabId);
     hero.classList.toggle("hidden", !showHero);
     const showPrimaryTabs = tabId !== "global-services";
-    if (tabId !== "logs" && getState().terminalModalOpen) {
-      toggleTerminalModal(false);
-    }
 
     if (tabId === "dashboard") {
       scrollContainer.classList.add("overflow-y-auto");
@@ -960,7 +962,7 @@ const setSelectedProject = (project) => {
   }
 };
 
-const openServiceContext = async (project, service, mode = "logs") => {
+const openServiceContext = async (project, service) => {
   const selectedProject = String(
     project || getState().selectedProject || "",
   ).trim();
@@ -979,24 +981,12 @@ const openServiceContext = async (project, service, mode = "logs") => {
   setState({ selectedService });
   refreshServiceSelector();
 
-  if (mode === "shell") {
-    await shellController.openShell();
-    return;
-  }
   await logsController.refresh();
 };
 
 const logsController = createLogsController({
   bridge: desktopBridge,
   runtime: desktopBridge.runtime,
-  refs,
-  readSelection,
-  onStatus: setStatus,
-  onToast: showToast,
-});
-
-const shellController = createShellController({
-  bridge: desktopBridge,
   refs,
   readSelection,
   onStatus: setStatus,
@@ -1017,145 +1007,11 @@ const remotesController = createRemotesController({
   getState,
   onStatus: setStatus,
   onToast: showToast,
-  onOpenRemoteShellFallback: async (remoteName) => {
-    switchTab("logs");
-    await shellController.openRemoteShell(remoteName);
-  },
 });
 
-const embeddedTerminalController = createTerminalController({
-  bridge: desktopBridge,
-  runtime: desktopBridge.runtime,
-  refs,
-  onStatus: setStatus,
-  onToast: showToast,
-  readSelection,
-});
 
-const TERMINAL_MODAL_ANIMATION_MS = 360;
-let terminalModalAnimationTimer = null;
-let terminalModalAnimationId = 0;
-let terminalModalTransitionHandler = null;
 
-const clearTerminalPanelAnimation = (panel) => {
-  if (terminalModalAnimationTimer) {
-    clearTimeout(terminalModalAnimationTimer);
-    terminalModalAnimationTimer = null;
-  }
-  if (panel && terminalModalTransitionHandler) {
-    panel.removeEventListener("transitionend", terminalModalTransitionHandler);
-    terminalModalTransitionHandler = null;
-  }
-};
 
-const setTerminalModalLayout = (panel, isOpen) => {
-  if (!panel) return;
-  if (isOpen) {
-    panel.classList.remove("h-1/3", "relative", "z-10");
-    panel.classList.add(
-      "fixed",
-      "inset-4",
-      "h-auto",
-      "z-[140]",
-      "border-primary/40",
-      "shadow-2xl",
-    );
-    return;
-  }
-
-  panel.classList.remove(
-    "fixed",
-    "inset-4",
-    "h-auto",
-    "z-[140]",
-    "border-primary/40",
-    "shadow-2xl",
-  );
-  panel.classList.add("h-1/3", "relative", "z-10");
-};
-
-const animateTerminalPanelLayout = (panel, isOpen) => {
-  if (!panel) return;
-
-  clearTerminalPanelAnimation(panel);
-  const animationId = ++terminalModalAnimationId;
-  const firstRect = panel.getBoundingClientRect();
-  setTerminalModalLayout(panel, isOpen);
-  const lastRect = panel.getBoundingClientRect();
-
-  const width = Math.max(lastRect.width, 1);
-  const height = Math.max(lastRect.height, 1);
-  const deltaX = firstRect.left - lastRect.left;
-  const deltaY = firstRect.top - lastRect.top;
-  const scaleX = firstRect.width / width;
-  const scaleY = firstRect.height / height;
-
-  panel.style.willChange = "transform, box-shadow, border-color";
-  panel.style.transformOrigin = "top left";
-  panel.style.transition = "none";
-  panel.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(${scaleX}, ${scaleY})`;
-  // Force reflow so the browser applies the inverted transform before animation.
-  void panel.offsetWidth;
-  panel.style.transition =
-    `transform ${TERMINAL_MODAL_ANIMATION_MS}ms cubic-bezier(0.22, 1, 0.36, 1), ` +
-    `box-shadow ${TERMINAL_MODAL_ANIMATION_MS}ms cubic-bezier(0.22, 1, 0.36, 1), ` +
-    `border-color ${TERMINAL_MODAL_ANIMATION_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`;
-  panel.style.transform = "translate(0px, 0px) scale(1, 1)";
-
-  const finishAnimation = () => {
-    if (animationId !== terminalModalAnimationId) return;
-    clearTerminalPanelAnimation(panel);
-    panel.style.transition = "";
-    panel.style.transform = "";
-    panel.style.transformOrigin = "";
-    panel.style.willChange = "";
-    embeddedTerminalController.resize();
-    requestAnimationFrame(() => embeddedTerminalController.resize());
-  };
-
-  terminalModalTransitionHandler = (event) => {
-    if (event.target !== panel || event.propertyName !== "transform") return;
-    finishAnimation();
-  };
-  panel.addEventListener("transitionend", terminalModalTransitionHandler);
-  terminalModalAnimationTimer = setTimeout(
-    finishAnimation,
-    TERMINAL_MODAL_ANIMATION_MS + 80,
-  );
-};
-
-const toggleTerminalModal = (forceOpen) => {
-  const panel = refs.terminalPanel;
-  const backdrop = refs.terminalBackdrop;
-  const icon = refs.terminalExpandIcon;
-  if (!panel) return;
-
-  const current = Boolean(getState().terminalModalOpen);
-  const next = typeof forceOpen === "boolean" ? forceOpen : !current;
-  if (next === current) return;
-
-  setState({ terminalModalOpen: next });
-
-  if (next) {
-    if (backdrop) {
-      backdrop.classList.remove("hidden");
-      requestAnimationFrame(() => backdrop.classList.remove("opacity-0"));
-    }
-    if (icon) icon.textContent = "close_fullscreen";
-    animateTerminalPanelLayout(panel, true);
-  } else {
-    if (backdrop) {
-      backdrop.classList.add("opacity-0");
-      setTimeout(() => {
-        if (!getState().terminalModalOpen) {
-          backdrop.classList.add("hidden");
-        }
-      }, TERMINAL_MODAL_ANIMATION_MS);
-    }
-    if (icon) icon.textContent = "open_in_full";
-    animateTerminalPanelLayout(panel, false);
-  }
-};
 
 const renderAllSkeletons = () => {
   renderDashboardSkeletons(refs);
@@ -1280,7 +1136,6 @@ const refreshDashboard = async (options = {}) => {
     await metricsController.refresh({ silent: true });
     await remotesController.refresh({ silent: true });
     await globalServicesController.refresh({ silent: true });
-    await shellController.loadShellUser();
     await logsController.refresh();
     await loadFooterVersion();
 
@@ -1581,11 +1436,16 @@ document.addEventListener("click", async (event) => {
     return;
   }
   if (action === "open-service-shell") {
-    await openServiceContext(
-      targetElement.dataset.project,
-      targetElement.dataset.service,
-      "shell",
-    );
+    // Redirect to OS Terminal
+    const project = targetElement.dataset.project || "";
+    const service = targetElement.dataset.service || "";
+    if (project && service) {
+      try {
+        await desktopBridge.startServiceTerminalInOS(project, service, "", "sh");
+      } catch (err) {
+        showToast(`Failed to launch OS Terminal: ${err}`, "error");
+      }
+    }
     return;
   }
   if (action === "start-service-terminal-os") {
@@ -1610,13 +1470,6 @@ document.addEventListener("click", async (event) => {
   }
   if (action === "remote-test") {
     await remotesController.testRemote(
-      String(targetElement.dataset.remote || ""),
-    );
-    return;
-  }
-  if (action === "open-remote-url") {
-    console.log("[Main] open-remote-url", targetElement.dataset.remote);
-    await shellController.openRemoteURL(
       String(targetElement.dataset.remote || ""),
     );
     return;
@@ -1739,6 +1592,7 @@ document.addEventListener("click", async (event) => {
     }
 
     if (refs.syncOptionsModal) {
+      toggleModalBlur(true);
       refs.syncOptionsModal.classList.remove("hidden");
       // Always reset back to step 1 when opening
       if (refs.syncModalStep1) refs.syncModalStep1.classList.remove("hidden");
@@ -1754,6 +1608,7 @@ document.addEventListener("click", async (event) => {
   }
   if (action === "close-sync-modal") {
     if (refs.syncOptionsModal) {
+      toggleModalBlur(false);
       refs.syncOptionsModal.classList.add("opacity-0");
       refs.syncOptionsModal.firstElementChild.classList.add("scale-95");
       setTimeout(() => {
@@ -1859,23 +1714,8 @@ document.addEventListener("click", async (event) => {
     await logsController.clearLogs();
     return;
   }
-  if (action === "start-embedded-terminal") {
-    await embeddedTerminalController.startSession();
-    return;
-  }
   if (action === "restart-terminal-session") {
-    const restartedEmbedded = await embeddedTerminalController.restartSession();
-    if (!restartedEmbedded && shellController.restartSession) {
-      await shellController.restartSession();
-    }
-    return;
-  }
-  if (action === "toggle-terminal-modal") {
-    toggleTerminalModal();
-    return;
-  }
-  if (action === "close-terminal-modal") {
-    toggleTerminalModal(false);
+    // Embedded terminal is removed, so this action is a no-op or could be removed from UI
     return;
   }
   if (action === "download-logs") {
@@ -1883,11 +1723,15 @@ document.addEventListener("click", async (event) => {
     return;
   }
   if (action === "open-shell") {
-    await shellController.openShell();
-    return;
-  }
-  if (action === "reset-shell-users") {
-    await shellController.resetShellUsers();
+    // Redirect to OS Terminal for the whole project
+    const project = getState().selectedProject;
+    if (project) {
+      try {
+        await desktopBridge.startServiceTerminalInOS(project, "web", "", "sh");
+      } catch (err) {
+        showToast(`Failed to launch OS Terminal: ${err}`, "error");
+      }
+    }
     return;
   }
   // (filter-service and filter-severity are handled above)
@@ -1927,6 +1771,7 @@ document.addEventListener("click", async (event) => {
 
     // Close the modal
     if (refs.syncOptionsModal) {
+      toggleModalBlur(false);
       refs.syncOptionsModal.classList.add("opacity-0");
       refs.syncOptionsModal.firstElementChild.classList.add("scale-95");
       setTimeout(() => {
@@ -2005,6 +1850,17 @@ const bindRuntimeListeners = () => {
       }
     });
   }
+
+  if (refs.syncOptionsModal) {
+    refs.syncOptionsModal.addEventListener("click", (event) => {
+      if (event.target === refs.syncOptionsModal) {
+        const closeBtn = refs.syncOptionsModal.querySelector(
+          '[data-action="close-sync-modal"]',
+        );
+        if (closeBtn) closeBtn.click();
+      }
+    });
+  }
 };
 
 document.addEventListener("keydown", (event) => {
@@ -2025,6 +1881,16 @@ document.addEventListener("keydown", (event) => {
 
   if (event.key === "Escape") {
     setSettingsDrawerOpen(false);
+    if (refs.syncOptionsModal && !refs.syncOptionsModal.classList.contains("hidden")) {
+      // Simulate close button click for consistent logic
+      const closeBtn = refs.syncOptionsModal.querySelector('[data-action="close-sync-modal"]');
+      if (closeBtn) {
+        closeBtn.click();
+      } else {
+        toggleModalBlur(false);
+        refs.syncOptionsModal.classList.add("hidden");
+      }
+    }
   }
   if ((event.ctrlKey || event.metaKey) && event.key === ",") {
     event.preventDefault();
@@ -2038,7 +1904,6 @@ const syncProjectSelectorsFrom = async (source) => {
   }
   syncProjectState();
   refreshServiceSelector();
-  await shellController.loadShellUser();
   if (logsController.isLiveEnabled()) {
     await logsController.stopLive();
     await logsController.toggleLive();
@@ -2076,11 +1941,6 @@ const bindDynamicControlListeners = () => {
     });
   }
 
-  if (refs.shellUser) {
-    refs.shellUser.addEventListener("change", () => {
-      shellController.saveShellUser();
-    });
-  }
 
   if (refs.themeSelect) {
     refs.themeSelect.addEventListener("change", () => {

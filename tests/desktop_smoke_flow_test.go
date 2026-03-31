@@ -103,24 +103,6 @@ remotes:
 		}
 	}
 
-	saveShellMessage, err := app.SetShellUser("smoke", "www-data")
-	if err != nil {
-		t.Fatalf("set shell user: %v", err)
-	}
-	if !strings.Contains(strings.ToLower(saveShellMessage), "saved shell user") {
-		t.Fatalf("unexpected shell save message: %q", saveShellMessage)
-	}
-	if got, err := app.GetShellUser("smoke"); err != nil || got != "www-data" {
-		t.Fatalf("expected shell user www-data, got %q (err: %v)", got, err)
-	}
-	resetShellMessage, err := app.ResetShellUsers()
-	if err != nil {
-		t.Fatalf("reset shell users: %v", err)
-	}
-	if !strings.Contains(strings.ToLower(resetShellMessage), "reset") {
-		t.Fatalf("unexpected shell reset message: %q", resetShellMessage)
-	}
-
 	settingsMessage, err := app.Settings.UpdateSettings(desktop.DesktopSettings{
 		Theme:              "dark",
 		ProxyTarget:        "smoke.test",

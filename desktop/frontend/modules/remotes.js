@@ -473,7 +473,6 @@ export const createRemotesController = ({
   getState,
   onStatus,
   onToast,
-  onOpenRemoteShellFallback,
 }) => {
   const MIN_REMOTE_OPEN_LOADING_MS = 1400;
   const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -637,18 +636,6 @@ export const createRemotesController = ({
         onStatus(message || `Opened SSH for ${remoteName}`);
         onToast(message || `Opened SSH for ${remoteName}`, "success");
       } catch (err) {
-        const normalizedError = String(err || "")
-          .trim()
-          .toLowerCase();
-        if (
-          typeof onOpenRemoteShellFallback === "function" &&
-          normalizedError.includes("fallback to embedded terminal")
-        ) {
-          onStatus(`Opening SSH for ${remoteName} in embedded terminal...`);
-          await onOpenRemoteShellFallback(remoteName);
-          onToast(`Opened SSH for ${remoteName}`, "success");
-          return;
-        }
         throw err;
       }
     }).catch((err) => {
@@ -761,10 +748,10 @@ export const createRemotesController = ({
 export const renderSyncModal = (container) => {
   if (!container) return;
   container.innerHTML = `
-      <div
-        id="syncOptionsModal"
-        class="hidden fixed inset-0 z-[150] bg-background-primary/60 backdrop-blur-sm flex items-center justify-center p-4 opacity-0 transition-opacity duration-300"
-      >
+        <div
+          id="syncOptionsModal"
+          class="hidden fixed inset-0 z-[150] bg-background-primary/60 backdrop-blur-md flex items-center justify-center p-4 opacity-0 transition-opacity duration-300"
+        >
         <div
           class="bg-surface-primary border border-border-primary rounded-xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden scale-95 transition-transform duration-300"
         >
