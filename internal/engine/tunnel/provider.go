@@ -16,6 +16,7 @@ const (
 type StartOptions struct {
 	TargetURL   string
 	NoTLSVerify bool
+	HostHeader  string
 }
 
 // StartPlan describes the executable invocation required to start a tunnel.

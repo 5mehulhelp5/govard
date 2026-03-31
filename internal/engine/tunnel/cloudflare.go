@@ -22,6 +22,9 @@ func (provider cloudflareProvider) BuildStartPlan(options StartOptions) (StartPl
 	if options.NoTLSVerify {
 		args = append(args, "--no-tls-verify")
 	}
+	if options.HostHeader != "" {
+		args = append(args, "--http-host-header", options.HostHeader)
+	}
 
 	return StartPlan{
 		Binary: "cloudflared",

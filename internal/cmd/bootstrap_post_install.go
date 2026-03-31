@@ -99,10 +99,10 @@ func runBootstrapPostInstall(cmd *cobra.Command, config engine.Config, opts Boot
 	containerName := fmt.Sprintf("%s-php-1", config.ProjectName)
 	if engine.IsContainerRunning(context.Background(), containerName) {
 		esFixCmd := []string{
-			"exec", "-i", containerName, "sh", "-c",
+			"exec", "-T", "php", "sh", "-c",
 			"curl -s -X PUT 'http://elasticsearch:9200/_all/_settings' -H 'Content-Type: application/json' -d'{\"index.blocks.read_only_allow_delete\": null}' > /dev/null 2>&1 || true",
 		}
-		if err := runGovardSubcommand(cmd, append([]string{"custom"}, esFixCmd...)...); err != nil {
+		if err := runGovardSubcommand(cmd, append([]string{"env"}, esFixCmd...)...); err != nil {
 			pterm.Warning.Printf("Failed to apply Elasticsearch block fix: %v\n", err)
 		}
 	}

@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"strings"
@@ -10,6 +11,7 @@ import (
 
 	"govard/internal/engine"
 	"govard/internal/engine/tunnel"
+	"govard/internal/proxy"
 
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
@@ -100,9 +102,15 @@ var tunnelStartCmd = &cobra.Command{
 			return err
 		}
 
+		// We will NOT override the Host header for tunnels by default.
+		// Instead, we will register the tunnel domain in Caddy as an alias.
+		// This keeps the Host header intact so applications (like Magento) don't get confused.
+		var hostHeader string
+
 		plan, err := provider.BuildStartPlan(tunnel.StartOptions{
 			TargetURL:   targetURL,
 			NoTLSVerify: noTLSVerify,
+			HostHeader:  hostHeader,
 		})
 		if err != nil {
 			return err
@@ -138,7 +146,12 @@ var tunnelStartCmd = &cobra.Command{
 		}
 
 		// Handle Revert on exit
+		var tunnelHost string
 		defer func() {
+			if tunnelHost != "" {
+				pterm.Info.Printf("Cleaning up tunnel alias for %s...\n", tunnelHost)
+				_ = proxy.UnregisterDomain(tunnelHost)
+			}
 			pterm.Info.Println("Reverting base URL...")
 			if rerr := mgr.Revert(cwd, config); rerr != nil {
 				pterm.Warning.Printf("Failed to revert base URL: %v\n", rerr)
@@ -158,6 +171,13 @@ var tunnelStartCmd = &cobra.Command{
 					for _, p := range parts {
 						if strings.HasPrefix(p, "https://") && strings.Contains(p, ".trycloudflare.com") {
 							pterm.Success.Printf("Tunnel URL detected: %s\n", p)
+							if parsed, perr := url.Parse(p); perr == nil {
+								tunnelHost = parsed.Host
+								webContainer := fmt.Sprintf("%s-web-1", config.ProjectName)
+								pterm.Info.Printf("Registering tunnel alias %s -> %s...\n", tunnelHost, webContainer)
+								_ = proxy.RegisterDomain(tunnelHost, webContainer)
+							}
+
 							pterm.Info.Println("Updating application base URL...")
 							if uerr := mgr.Update(cwd, config, p); uerr != nil {
 								pterm.Warning.Printf("Failed to update base URL: %v\n", uerr)
