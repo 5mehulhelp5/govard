@@ -152,6 +152,8 @@ govard svc wake
 
 Global services include proxy, Mailpit, PHPMyAdmin, and Portainer.
 
+- **Portainer**: Accessible at `https://portainer.govard.test`. The default login is `admin` / `AdminGovard123$`. This pre-configured account bypasses Portainer's 5-minute initial setup timeout.
+
 ### `govard domain`
 
 Manage extra local domains for the current project.

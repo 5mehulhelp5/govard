@@ -52,7 +52,7 @@ At a glance, these are the areas where Govard delivers stronger day-to-day value
 - **Secrets-Aware Remote Config**: Remote fields support `op://...` references resolved through 1Password CLI for safer credential handling.
 - **SSL Management**: Professional CA management for "Green Lock" HTTPS on local `.test` domains.
 - **Rich CLI UX**: Powered by `pterm` for terminal output, progress bars, and interactive prompts.
-- **Global Services**: Built-in Proxy (Caddy), Mailpit, PHPMyAdmin, and Portainer.
+- **Global Services**: Built-in Proxy (Caddy), Mailpit, PHPMyAdmin, and Portainer (Default login for Portainer is `admin` / `AdminGovard123$`).
 - **Desktop Dashboard**: Wails-based UI with live logs, quick actions, and settings.
 - **Native Framework Upgrades**: Multi-framework upgrade pipeline (`govard upgrade`) for Magento 2, Laravel, Symfony, and WordPress that automates environment restarts, dependency updates, and database migrations.
 

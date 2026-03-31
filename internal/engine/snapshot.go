@@ -67,6 +67,7 @@ func CreateSnapshot(projectRoot string, config Config, name string) (string, err
 	dbFile, err := os.Create(dbPath)
 	if err == nil {
 		gzipWriter := gzip.NewWriter(dbFile)
+		pterm.Info.Printf("Creating DB snapshot for %s [User: %s, DB: %s]\n", containerName, credentials.Username, credentials.Database)
 		dumpCmd := buildSnapshotDumpCommand(containerName, credentials)
 		dumpCmd.Stdout = gzipWriter
 		dumpCmd.Stderr = os.Stderr
