@@ -20,7 +20,7 @@ RUN set -eux \
     else MAGERUN_PHAR_URL=https://files.magerun.net/n98-magerun2.phar; \
     fi \
     && mkdir -p /usr/local/bin \
-    && curl -s ${MAGERUN_PHAR_URL} > /usr/local/bin/n98-magerun \
+    && curl -sL --insecure ${MAGERUN_PHAR_URL} > /usr/local/bin/n98-magerun \
     && chmod +x /usr/local/bin/n98-magerun \
     && ln -s /usr/local/bin/n98-magerun /usr/local/bin/mr
 
