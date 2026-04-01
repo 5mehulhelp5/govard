@@ -37,9 +37,9 @@ func RemoteSnapshotDir(remoteCfg engine.RemoteConfig, name string) string {
 	return RemoteSnapshotRoot(remoteCfg) + "/" + name
 }
 
-// buildRemoteSnapshotCreateCommand builds the SSH command to create a snapshot on the remote.
+// BuildRemoteSnapshotCreateCommand builds the SSH command to create a snapshot on the remote.
 // It creates the directory, dumps the DB to db.sql.gz, and tars media to media.tar.gz.
-func buildRemoteSnapshotCreateCommand(
+func BuildRemoteSnapshotCreateCommand(
 	remoteCfg engine.RemoteConfig,
 	name string,
 	framework string,
@@ -86,8 +86,8 @@ func buildRemoteSnapshotCreateCommand(
 	return strings.Join(parts, " && ")
 }
 
-// buildRemoteSnapshotListCommand builds the SSH command to list snapshots on the remote.
-func buildRemoteSnapshotListCommand(remoteCfg engine.RemoteConfig) string {
+// BuildRemoteSnapshotListCommand builds the SSH command to list snapshots on the remote.
+func BuildRemoteSnapshotListCommand(remoteCfg engine.RemoteConfig) string {
 	root := RemoteSnapshotRoot(remoteCfg)
 	// List snapshot directories and cat their metadata
 	return fmt.Sprintf(
@@ -96,14 +96,14 @@ func buildRemoteSnapshotListCommand(remoteCfg engine.RemoteConfig) string {
 	)
 }
 
-// buildRemoteSnapshotDeleteCommand builds the SSH command to delete a snapshot on the remote.
-func buildRemoteSnapshotDeleteCommand(remoteCfg engine.RemoteConfig, name string) string {
+// BuildRemoteSnapshotDeleteCommand builds the SSH command to delete a snapshot on the remote.
+func BuildRemoteSnapshotDeleteCommand(remoteCfg engine.RemoteConfig, name string) string {
 	snapshotDir := RemoteSnapshotDir(remoteCfg, name)
 	return fmt.Sprintf("rm -rf %s", shellQuoteRemote(snapshotDir))
 }
 
-// buildRemoteSnapshotRestoreCommand builds the SSH command to restore a snapshot on the remote.
-func buildRemoteSnapshotRestoreCommand(
+// BuildRemoteSnapshotRestoreCommand builds the SSH command to restore a snapshot on the remote.
+func BuildRemoteSnapshotRestoreCommand(
 	remoteCfg engine.RemoteConfig,
 	name string,
 	framework string,
@@ -193,7 +193,6 @@ func ParseRemoteSnapshotList(raw string) ([]engine.SnapshotMetadata, error) {
 	return snapshots, nil
 }
 
-
 // ForTest wrappers
 
 func ValidateSnapshotNameForTest(name string) error {
@@ -203,21 +202,21 @@ func ValidateSnapshotNameForTest(name string) error {
 func BuildRemoteSnapshotCreateCommandForTest(remoteName string, remoteCfg engine.RemoteConfig, name string, framework string) string {
 	_, mediaPath := engine.ResolveRemotePathsForConfig(framework, remoteCfg)
 	dbDump := "echo 'mock-dump'"
-	return buildRemoteSnapshotCreateCommand(remoteCfg, name, framework, dbDump, mediaPath)
+	return BuildRemoteSnapshotCreateCommand(remoteCfg, name, framework, dbDump, mediaPath)
 }
 
 func BuildRemoteSnapshotListCommandForTest(remoteCfg engine.RemoteConfig) string {
-	return buildRemoteSnapshotListCommand(remoteCfg)
+	return BuildRemoteSnapshotListCommand(remoteCfg)
 }
 
 func BuildRemoteSnapshotDeleteCommandForTest(remoteCfg engine.RemoteConfig, name string) string {
-	return buildRemoteSnapshotDeleteCommand(remoteCfg, name)
+	return BuildRemoteSnapshotDeleteCommand(remoteCfg, name)
 }
 
 func BuildRemoteSnapshotRestoreCommandForTest(remoteCfg engine.RemoteConfig, name string, framework string, dbOnly bool, mediaOnly bool) string {
 	_, mediaPath := engine.ResolveRemotePathsForConfig(framework, remoteCfg)
 	dbImport := "mysql -u magento magento"
-	return buildRemoteSnapshotRestoreCommand(remoteCfg, name, framework, dbImport, mediaPath, dbOnly, mediaOnly)
+	return BuildRemoteSnapshotRestoreCommand(remoteCfg, name, framework, dbImport, mediaPath, dbOnly, mediaOnly)
 }
 
 func ParseRemoteSnapshotListForTest(raw string) ([]engine.SnapshotMetadata, error) {

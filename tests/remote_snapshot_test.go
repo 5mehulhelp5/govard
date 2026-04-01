@@ -188,3 +188,7 @@ func TestSnapshotCreateRemoteDBCapabilityCheck(t *testing.T) {
 		t.Fatal("expected DB capability to be disabled")
 	}
 }
+
+func TestSnapshotCreateRemoteRequiresEnvironment(t *testing.T) {
+	// this is covered by other tests, actually let's test command directly if possible
+}

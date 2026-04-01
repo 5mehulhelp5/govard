@@ -39,7 +39,7 @@ var snapshotCreateCmd = &cobra.Command{
 
 		environment, _ := cmd.Flags().GetString("environment")
 		environment = strings.ToLower(strings.TrimSpace(environment))
-		
+
 		if environment != "" && environment != "local" {
 			local, _ := cmd.Flags().GetBool("local")
 			return runRemoteSnapshotCreate(cmd, config, environment, name, local)
@@ -60,7 +60,7 @@ func runRemoteSnapshotCreate(cmd *cobra.Command, config engine.Config, envName s
 	operationStatus := engine.OperationStatusFailure
 	operationCategory := ""
 	operationMessage := ""
-	
+
 	defer func() {
 		if err != nil && operationMessage == "" {
 			operationMessage = err.Error()
@@ -72,12 +72,12 @@ func runRemoteSnapshotCreate(cmd *cobra.Command, config engine.Config, envName s
 			operationCategory = classifyCommandError(err)
 		}
 		writeRemoteAuditEvent(remote.AuditEvent{
-			Operation:   "snapshot.create",
-			Status:      auditStatusFromEngine(operationStatus),
-			Category:    operationCategory,
-			Remote:      envName,
-			DurationMS:  time.Since(startedAt).Milliseconds(),
-			Message:     operationMessage,
+			Operation:  "snapshot.create",
+			Status:     auditStatusFromEngine(operationStatus),
+			Category:   operationCategory,
+			Remote:     envName,
+			DurationMS: time.Since(startedAt).Milliseconds(),
+			Message:    operationMessage,
 		})
 	}()
 
@@ -113,11 +113,11 @@ func runRemoteSnapshotCreate(cmd *cobra.Command, config engine.Config, envName s
 	if config.Framework != "none" {
 		dbDumpCommandStr = buildRemoteMySQLDumpCommandString(credentials, false, false, config.Framework, true)
 	}
-	
+
 	_, mediaPath := engine.ResolveRemotePathsForConfig(config.Framework, remoteCfg)
 
 	createCmdStr := remote.BuildRemoteSnapshotCreateCommand(remoteCfg, name, config.Framework, dbDumpCommandStr, mediaPath)
-	
+
 	if local {
 		return fmt.Errorf("--local mode is not yet implemented for remote snapshots")
 	}
@@ -191,7 +191,7 @@ func runRemoteSnapshotList(cmd *cobra.Command, config engine.Config, envName str
 
 	listCmdStr := remote.BuildRemoteSnapshotListCommand(remoteCfg)
 	sshCmd := remote.BuildSSHExecCommand(remoteName, remoteCfg, false, listCmdStr)
-	
+
 	output, err := sshCmd.Output()
 	if err != nil {
 		return fmt.Errorf("remote snapshot list failed: %w", err)
@@ -272,7 +272,7 @@ func runRemoteSnapshotRestore(cmd *cobra.Command, config engine.Config, envName 
 	operationStatus := engine.OperationStatusFailure
 	operationCategory := ""
 	operationMessage := ""
-	
+
 	defer func() {
 		if err != nil && operationMessage == "" {
 			operationMessage = err.Error()
@@ -284,12 +284,12 @@ func runRemoteSnapshotRestore(cmd *cobra.Command, config engine.Config, envName 
 			operationCategory = classifyCommandError(err)
 		}
 		writeRemoteAuditEvent(remote.AuditEvent{
-			Operation:   "snapshot.restore",
-			Status:      auditStatusFromEngine(operationStatus),
-			Category:    operationCategory,
-			Remote:      envName,
-			DurationMS:  time.Since(startedAt).Milliseconds(),
-			Message:     operationMessage,
+			Operation:  "snapshot.restore",
+			Status:     auditStatusFromEngine(operationStatus),
+			Category:   operationCategory,
+			Remote:     envName,
+			DurationMS: time.Since(startedAt).Milliseconds(),
+			Message:    operationMessage,
 		})
 	}()
 
@@ -345,7 +345,7 @@ var snapshotDeleteCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		environment, _ := cmd.Flags().GetString("environment")
 		environment = strings.ToLower(strings.TrimSpace(environment))
-		
+
 		cwd, _ := os.Getwd()
 		name := args[0]
 
@@ -371,7 +371,7 @@ func runRemoteSnapshotDelete(cmd *cobra.Command, config engine.Config, envName s
 	operationStatus := engine.OperationStatusFailure
 	operationCategory := ""
 	operationMessage := ""
-	
+
 	defer func() {
 		if err != nil && operationMessage == "" {
 			operationMessage = err.Error()
@@ -383,12 +383,12 @@ func runRemoteSnapshotDelete(cmd *cobra.Command, config engine.Config, envName s
 			operationCategory = classifyCommandError(err)
 		}
 		writeRemoteAuditEvent(remote.AuditEvent{
-			Operation:   "snapshot.delete",
-			Status:      auditStatusFromEngine(operationStatus),
-			Category:    operationCategory,
-			Remote:      envName,
-			DurationMS:  time.Since(startedAt).Milliseconds(),
-			Message:     operationMessage,
+			Operation:  "snapshot.delete",
+			Status:     auditStatusFromEngine(operationStatus),
+			Category:   operationCategory,
+			Remote:     envName,
+			DurationMS: time.Since(startedAt).Milliseconds(),
+			Message:    operationMessage,
 		})
 	}()
 
@@ -403,7 +403,7 @@ func runRemoteSnapshotDelete(cmd *cobra.Command, config engine.Config, envName s
 
 	deleteCmdStr := remote.BuildRemoteSnapshotDeleteCommand(remoteCfg, name)
 	sshCmd := remote.BuildSSHExecCommand(remoteName, remoteCfg, true, deleteCmdStr)
-	
+
 	pterm.Info.Printf("Deleting snapshot %s on remote %s...\n", name, remoteName)
 	output, err := sshCmd.CombinedOutput()
 	if err != nil {
@@ -593,9 +593,9 @@ var snapshotPushCmd = &cobra.Command{
 
 func init() {
 	snapshotCmd.PersistentFlags().StringP("environment", "e", "", "Target environment (local, staging, prod, etc.)")
-	
+
 	snapshotCreateCmd.Flags().Bool("local", false, "Stream the remote snapshot directly to the local machine")
-	
+
 	snapshotRestoreCmd.Flags().Bool("db-only", false, "Restore database only")
 	snapshotRestoreCmd.Flags().Bool("media-only", false, "Restore media only")
 
