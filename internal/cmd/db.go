@@ -417,10 +417,6 @@ func resolveDBImportReader(options dbCommandOptions) (io.Reader, io.Closer, int6
 	return os.Stdin, nil, 0, nil
 }
 
-func formatBytesCount(count, total int) string {
-	return fmt.Sprintf("%s/%s", units.HumanSize(float64(count)), units.HumanSize(float64(total)))
-}
-
 type dbProgressReader struct {
 	reader io.Reader
 	bar    *pterm.ProgressbarPrinter
