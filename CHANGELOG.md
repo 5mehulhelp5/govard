@@ -5,12 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.40.1] - 2026-04-01
+
+### ✨ New Features
+
+- **Diagnostics:** Added a new `host.govard.registry` doctor check to automatically detect and repair project registry directory corruption.
+
+### 🛠 Improvements
+
+- **Project Registry:** Refactored `ProjectRegistryPath` to use the centralized `GovardHomeDir` helper for consistent environment resolution.
+
+### 🐛 Bug Fixes
+
+- **phpMyAdmin:** Supported both hyphenated (`-`) and underscored (`_`) container naming patterns for automated configuration.
+- **phpMyAdmin:** Improved internal database hostname resolution in the generated PHP configuration.
+
 ## [1.40.0] - 2026-04-01
 
 ### ✨ New Features
+
 - **Snapshots:** Added remote database and media snapshot support with bidirectional transfers, remote listing, and production safety guards.
 
 ### 🛠 Improvements
+
 - **Performance:** Optimized domain verification by replacing per-domain checks with a bulk API call to the proxy, reducing latency.
 
 ### 🐛 Bug Fixes
