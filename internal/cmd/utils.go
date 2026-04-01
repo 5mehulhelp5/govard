@@ -87,6 +87,20 @@ func runGovardSubcommand(cmd *cobra.Command, args ...string) error {
 	return govardSubcommandRunner(cmd, args...)
 }
 
+func runGovardSubcommandSilent(cmd *cobra.Command, args ...string) error {
+	executablePath, err := os.Executable()
+	commandPath := "govard"
+	if err == nil && strings.TrimSpace(executablePath) != "" {
+		commandPath = executablePath
+	}
+
+	command := exec.Command(commandPath, args...)
+	command.Dir, _ = os.Getwd()
+	command.Stdin = os.Stdin
+	// Stdout and Stderr are intentionally left as nil to discard output
+	return command.Run()
+}
+
 // rebrandComposeHelp runs `docker compose --help`, rebrands the output to use govard command names,
 // and prints it to the command's stdout.
 func rebrandComposeHelp(cmd *cobra.Command, govardCmdName string) {

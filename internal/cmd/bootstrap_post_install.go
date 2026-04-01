@@ -168,7 +168,7 @@ func runBootstrapAdminCreate(cmd *cobra.Command, config engine.Config) {
 	}
 
 	pterm.Info.Println("Creating Magento admin user...")
-	err := runGovardSubcommand(
+	err := runGovardSubcommandSilent(
 		cmd,
 		govardMagentoSubcommandArgs(
 			"admin:user:create",
