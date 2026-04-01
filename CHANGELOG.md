@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.40.2] - 2026-04-01
 
+### ✨ New Features
+
+- **Configuration:** Implemented framework-specific default `chown_dir_list`. These defaults are now implied and omitted from `.govard.yml` unless explicitly overridden by the user, leading to cleaner configuration files.
+
 ## [1.40.1] - 2026-04-01
 
 ### ✨ New Features
