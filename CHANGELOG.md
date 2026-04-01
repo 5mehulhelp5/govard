@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.40.0] - 2026-04-01
+
+### ✨ New Features
+- **Snapshots:** Added remote database and media snapshot support with bidirectional transfers, remote listing, and production safety guards.
+
+### 🛠 Improvements
+- **Performance:** Optimized domain verification by replacing per-domain checks with a bulk API call to the proxy, reducing latency.
+
+### 🐛 Bug Fixes
+- **Desktop:** Resolved startup failures on Ubuntu 24.04 by persisting AppArmor user namespace restrictions via `sysctl`.
+
 ## [1.39.0] - 2026-03-31
 
 ### ✨ New Features
