@@ -59,5 +59,21 @@ func PrepareConfigForWrite(config Config) Config {
 		writable.Remotes[name] = remote
 	}
 
+	if slicesEqual(writable.Stack.ChownDirList, GetDefaultChownDirList(writable.Framework)) {
+		writable.Stack.ChownDirList = nil
+	}
+
 	return writable
+}
+
+func slicesEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
