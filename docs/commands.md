@@ -436,6 +436,10 @@ govard tunnel status
 govard tunnel stop
 ```
 
+> [!IMPORTANT]
+> This command requires the `cloudflared` binary to be installed on your host system. 
+> You can install it via the [official Cloudflare repository](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/install-run/install-threads/) or download the binary directly from their [GitHub releases](https://github.com/cloudflare/cloudflared/releases).
+
 For deeper remote policy and sync behavior, see [Remotes and Sync](remotes-and-sync.md).
 
 ## Tool Commands

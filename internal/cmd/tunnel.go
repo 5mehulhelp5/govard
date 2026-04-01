@@ -38,6 +38,12 @@ type TunnelDependenciesForTest struct {
 var tunnelCmd = &cobra.Command{
 	Use:   "tunnel",
 	Short: "Manage local project tunnels",
+	Long: `Manage public tunnels to your local project. Tunnels allow you to securely
+expose your local environment to the internet via Cloudflare Tunnels.
+
+Note: This command requires the 'cloudflared' binary to be installed on your host.
+You can install it via the official Cloudflare repository or by downloading it
+from: https://github.com/cloudflare/cloudflared/releases`,
 	Run: func(cmd *cobra.Command, args []string) {
 		_ = cmd.Help()
 	},
@@ -46,7 +52,13 @@ var tunnelCmd = &cobra.Command{
 var tunnelStartCmd = &cobra.Command{
 	Use:   "start [url]",
 	Short: "Start a public tunnel to the local project",
-	Args:  cobra.MaximumNArgs(1),
+	Long: `Start a new public tunnel session. This command will launch 'cloudflared'
+and automatically update your project's base URL (e.g. for Magento or Laravel)
+to match the temporary tunnel URL. When you stop the tunnel (Ctrl+C), the
+original base URL will be restored.
+
+Prerequisite: You must have 'cloudflared' installed and available in your PATH.`,
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		startedAt := time.Now()
 		config, err := loadFullConfig()

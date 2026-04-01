@@ -30,7 +30,7 @@ At a glance, these are the areas where Govard delivers stronger day-to-day value
 ## 🚀 Key Features
 
 - **Snapshot Compression**: Database snapshots are gzipped by default to reduce disk usage.
-- **Automatic Tunnel URL**: One-click public tunnels (`govard tunnel start`) with automatic base URL update/revert for supported frameworks (`magento1`, `magento2`, `laravel`, `symfony`, `wordpress`).
+- **Automatic Tunnel URL**: One-click public tunnels (`govard tunnel start`) with automatic base URL update/revert for supported frameworks (**requires `cloudflared` binary**).
 - **Integrated Testing**: Run `phpunit`, `phpstan`, and `mftf` directly with `govard test`.
 - **Redis & Valkey Management**: Full support for Redis and Valkey CLI, flushing, and info across local and remote environments.
 - **Database Observability**: Live query monitoring with `govard db top` and real-time progress bars for imports and syncs.
@@ -254,7 +254,7 @@ Remote defaults and protections:
 - `govard debug on|off` to toggle Xdebug for the current project.
 - `govard snapshot create` before risky local upgrades or imports.
 - `govard lock generate` / `govard lock check` to detect environment drift.
-- `govard tunnel start` to expose a local project publicly.
+- `govard tunnel start` to expose a local project publicly (**requires `cloudflared` binary**).
 
 ---
 

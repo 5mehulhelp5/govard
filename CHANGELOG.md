@@ -5,11 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.40.2] - 2026-04-01
+## [1.40.3] - 2026-04-01
 
 ### ✨ New Features
 
-- **Configuration:** Implemented framework-specific default `chown_dir_list`. These defaults are now implied and omitted from `.govard.yml` unless explicitly overridden by the user, leading to cleaner configuration files.
+- **Database:** Implemented human-readable progress tracking (MB/GB) for database import and synchronization operations.
+- **Bootstrap:** Added a silent command execution helper (`runGovardSubcommandSilent`) to suppress verbose terminal output during idempotent setup steps like admin user creation.
+- **Tunnel:** Added explicit documentation and CLI help notes regarding the `cloudflared` binary installation requirement.
+
+### 🛠 Improvements
+
+- **Synchronization:** Refactored shell quoting logic into the engine package and improved `rsync` error handling with proactive permission fix suggestions for Magento 2.
+
+## [1.40.2] - 2026-04-01
 
 ## [1.40.1] - 2026-04-01
 
