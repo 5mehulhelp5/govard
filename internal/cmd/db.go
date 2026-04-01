@@ -18,6 +18,7 @@ import (
 	"govard/internal/engine"
 	"govard/internal/engine/remote"
 
+	"github.com/docker/go-units"
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -416,6 +417,28 @@ func resolveDBImportReader(options dbCommandOptions) (io.Reader, io.Closer, int6
 	return os.Stdin, nil, 0, nil
 }
 
+func formatBytesCount(count, total int) string {
+	return fmt.Sprintf("%s/%s", units.HumanSize(float64(count)), units.HumanSize(float64(total)))
+}
+
+type dbProgressReader struct {
+	reader io.Reader
+	bar    *pterm.ProgressbarPrinter
+	total  int64
+	label  string
+}
+
+func (r *dbProgressReader) Read(p []byte) (n int, err error) {
+	n, err = r.reader.Read(p)
+	if n > 0 && r.bar != nil {
+		r.bar.Add(n)
+		current := float64(r.bar.Current)
+		total := float64(r.total)
+		r.bar.UpdateTitle(fmt.Sprintf("%s [%s/%s]", r.label, units.HumanSize(current), units.HumanSize(total)))
+	}
+	return n, err
+}
+
 func stdinIsTerminal() bool {
 	return stdinIsTerminalFn()
 }
@@ -598,11 +621,14 @@ func RunImportFromReaderWithProgress(importCmd *exec.Cmd, reader io.Reader, tota
 	}
 
 	if totalSize > 0 {
-		bar, _ = pterm.DefaultProgressbar.WithTotal(int(totalSize)).WithTitle("Importing DB").Start()
+		bar, _ = pterm.DefaultProgressbar.WithTotal(int(totalSize)).
+			WithTitle(fmt.Sprintf("Importing DB [0/%s]", units.HumanSize(float64(totalSize)))).
+			WithShowCount(false).
+			Start()
 
 		if trackCompressed {
 			// track progress on the COMPRESSED source (local .sql.gz file)
-			readerWithPeek = engine.NewProgressReader(readerWithPeek, bar)
+			readerWithPeek = &dbProgressReader{reader: readerWithPeek, bar: bar, total: totalSize, label: "Importing DB"}
 		}
 	}
 
@@ -619,7 +645,7 @@ func RunImportFromReaderWithProgress(importCmd *exec.Cmd, reader io.Reader, tota
 
 	if totalSize > 0 && !trackCompressed {
 		// Track against uncompressed stream (remote sync case)
-		finalReader = engine.NewProgressReader(finalReader, bar)
+		finalReader = &dbProgressReader{reader: finalReader, bar: bar, total: totalSize, label: "Importing DB"}
 	}
 
 	if err := importCmd.Start(); err != nil {
@@ -715,12 +741,15 @@ func RunDumpToImportWithProgress(dumpCmd *exec.Cmd, importCmd *exec.Cmd, totalSi
 
 	// Progress tracking logic
 	if totalSize > 0 {
-		bar, _ = pterm.DefaultProgressbar.WithTotal(int(totalSize)).WithTitle("Syncing DB").Start()
+		bar, _ = pterm.DefaultProgressbar.WithTotal(int(totalSize)).
+			WithTitle(fmt.Sprintf("Syncing DB [0/%s]", units.HumanSize(float64(totalSize)))).
+			WithShowCount(false).
+			Start()
 
 		// In RunDumpToImport, the source is always a pipe from the remote dump command.
 		// If totalSize is provided here, it's always the logical/uncompressed size
 		// from GetDatabaseSize(), so we ALWAYS track uncompressed progress.
-		reader = engine.NewProgressReader(reader, bar)
+		reader = &dbProgressReader{reader: reader, bar: bar, total: totalSize, label: "Syncing DB"}
 	}
 
 	// Wrap the reader with performance-optimized session variables
