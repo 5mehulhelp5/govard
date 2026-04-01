@@ -3,9 +3,12 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
+	"time"
 
 	"govard/internal/engine"
+	"govard/internal/engine/remote"
 
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
@@ -24,7 +27,6 @@ var snapshotCreateCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		config, err := loadFullConfig()
 		if err != nil {
-
 			return err
 		}
 		cwd, _ := os.Getwd()
@@ -32,6 +34,14 @@ var snapshotCreateCmd = &cobra.Command{
 		name := ""
 		if len(args) == 1 {
 			name = args[0]
+		}
+
+		environment, _ := cmd.Flags().GetString("environment")
+		environment = strings.ToLower(strings.TrimSpace(environment))
+		
+		if environment != "" && environment != "local" {
+			local, _ := cmd.Flags().GetBool("local")
+			return runRemoteSnapshotCreate(cmd, config, environment, name, local)
 		}
 
 		path, err := engine.CreateSnapshot(cwd, config, name)
@@ -42,6 +52,94 @@ var snapshotCreateCmd = &cobra.Command{
 		pterm.Success.Printf("Snapshot created at %s\n", path)
 		return nil
 	},
+}
+
+func runRemoteSnapshotCreate(cmd *cobra.Command, config engine.Config, envName string, name string, local bool) (err error) {
+	startedAt := time.Now()
+	operationStatus := engine.OperationStatusFailure
+	operationCategory := ""
+	operationMessage := ""
+	
+	defer func() {
+		if err != nil && operationMessage == "" {
+			operationMessage = err.Error()
+		}
+		if err == nil && operationStatus == engine.OperationStatusFailure {
+			operationStatus = engine.OperationStatusSuccess
+		}
+		if err != nil && operationCategory == "" {
+			operationCategory = classifyCommandError(err)
+		}
+		writeRemoteAuditEvent(remote.AuditEvent{
+			Operation:   "snapshot.create",
+			Status:      auditStatusFromEngine(operationStatus),
+			Category:    operationCategory,
+			Remote:      envName,
+			DurationMS:  time.Since(startedAt).Milliseconds(),
+			Message:     operationMessage,
+		})
+	}()
+
+	if name == "" {
+		name = time.Now().Format("20060102-150405")
+	}
+
+	if err := remote.ValidateSnapshotName(name); err != nil {
+		return err
+	}
+
+	remoteName, remoteCfg, err := ensureRemoteKnown(config, envName)
+	if err != nil {
+		return err
+	}
+
+	// Must have DB cap
+	if !engine.RemoteCapabilityEnabled(remoteCfg, engine.RemoteCapabilityDB) {
+		return fmt.Errorf("remote '%s' does not allow db operations", remoteName)
+	}
+
+	// Probe DB credentials
+	var credentials dbCredentials
+	var probeErr error
+	if config.Framework != "none" {
+		credentials, probeErr = resolveRemoteDBCredentials(config, remoteName, remoteCfg)
+		if probeErr != nil {
+			pterm.Warning.Println(formatRemoteDBProbeWarning(remoteName, probeErr))
+		}
+	}
+
+	dbDumpCommandStr := ""
+	if config.Framework != "none" {
+		dbDumpCommandStr = buildRemoteMySQLDumpCommandString(credentials, false, false, config.Framework, true)
+	}
+	
+	_, mediaPath := engine.ResolveRemotePathsForConfig(config.Framework, remoteCfg)
+
+	createCmdStr := remote.BuildRemoteSnapshotCreateCommand(remoteCfg, name, config.Framework, dbDumpCommandStr, mediaPath)
+	
+	if local {
+		return fmt.Errorf("--local mode is not yet implemented for remote snapshots")
+	}
+
+	pterm.Info.Printf("Creating snapshot %s on remote %s...\n", name, remoteName)
+	sshCmd := remote.BuildSSHExecCommand(remoteName, remoteCfg, true, createCmdStr)
+	sshCmd.Stdout = os.Stdout
+	sshCmd.Stderr = os.Stderr
+
+	if err := sshCmd.Run(); err != nil {
+		return fmt.Errorf("remote snapshot creation failed: %w", err)
+	}
+
+	pterm.Success.Printf("Remote snapshot created at %s\n", remote.RemoteSnapshotDir(remoteCfg, name))
+	operationMessage = "remote snapshot created"
+	return nil
+}
+
+func auditStatusFromEngine(status engine.OperationStatus) string {
+	if status == engine.OperationStatusSuccess {
+		return remote.RemoteAuditStatusSuccess
+	}
+	return remote.RemoteAuditStatusFailure
 }
 
 var snapshotListCmd = &cobra.Command{
@@ -154,6 +252,10 @@ var snapshotExportCmd = &cobra.Command{
 }
 
 func init() {
+	snapshotCmd.PersistentFlags().StringP("environment", "e", "", "Target environment (local, staging, prod, etc.)")
+	
+	snapshotCreateCmd.Flags().Bool("local", false, "Stream the remote snapshot directly to the local machine")
+	
 	snapshotRestoreCmd.Flags().Bool("db-only", false, "Restore database only")
 	snapshotRestoreCmd.Flags().Bool("media-only", false, "Restore media only")
 
