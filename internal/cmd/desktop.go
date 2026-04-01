@@ -104,7 +104,7 @@ var desktopDoctorCmd = &cobra.Command{
 				out, err := exec.Command("cat", "/proc/sys/kernel/apparmor_restrict_unprivileged_userns").Output()
 				if err == nil && strings.TrimSpace(string(out)) == "1" {
 					pterm.Warning.Println("Ubuntu 24.04 restricted user namespaces detected. This often breaks WebKit sandboxing.")
-					pterm.Info.Println("Tip: Try running 'sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0' if the app crashes on startup.")
+					pterm.Info.Println("Tip: Try running 'echo \"kernel.apparmor_restrict_unprivileged_userns=0\" | sudo tee /etc/sysctl.d/99-apparmor-userns.conf' if the app crashes on startup.")
 				}
 			}
 		}

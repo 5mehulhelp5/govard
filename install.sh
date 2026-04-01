@@ -560,7 +560,7 @@ main() {
         if [[ -f "/proc/sys/kernel/apparmor_restrict_unprivileged_userns" ]]; then
             if [[ "$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns 2>/dev/null)" == "1" ]]; then
                 warn "Ubuntu 24.04 restricted user namespaces detected."
-                info "If the desktop app fails to start, try: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0"
+                info "If the desktop app fails to start, try: echo \"kernel.apparmor_restrict_unprivileged_userns=0\" | sudo tee /etc/sysctl.d/99-apparmor-userns.conf"
             fi
         fi
     fi
