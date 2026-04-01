@@ -161,9 +161,9 @@ func buildLocalDBResetScript(database string) (string, error) {
 	return strings.Join([]string{
 		"set -e",
 		`if command -v mysql >/dev/null 2>&1; then DB_CLI=mysql; elif command -v mariadb >/dev/null 2>&1; then DB_CLI=mariadb; else echo "mysql client not found (mysql/mariadb)" >&2; exit 127; fi`,
-		"IDS=$($DB_CLI -uroot -proot -N -e " + shellQuote(killSQL) + " 2>/dev/null || true)",
+		"IDS=$($DB_CLI -uroot -proot -N -e " + engine.ShellQuote(killSQL) + " 2>/dev/null || true)",
 		`for id in $IDS; do $DB_CLI -uroot -proot -e "KILL $id" 2>/dev/null || true; done`,
-		"$DB_CLI -uroot -proot -e " + shellQuote(resetSQL),
+		"$DB_CLI -uroot -proot -e " + engine.ShellQuote(resetSQL),
 	}, " && "), nil
 }
 

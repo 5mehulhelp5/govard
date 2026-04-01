@@ -316,13 +316,13 @@ func runBootstrapFreshInstall(cmd *cobra.Command, config engine.Config, opts Boo
 func runBootstrapFreshCreateProject(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions) error {
 	versionPart := ""
 	if opts.MetaVersion != "" {
-		versionPart = " " + shellQuote(opts.MetaVersion)
+		versionPart = " " + engine.ShellQuote(opts.MetaVersion)
 	}
 	commandLine := strings.Join([]string{
 		"set -e",
 		"rm -rf /tmp/govard-create-project",
 		"composer create-project -q -n --repository-url=https://repo.magento.com " +
-			shellQuote(opts.MetaPackage) + " /tmp/govard-create-project" + versionPart,
+			engine.ShellQuote(opts.MetaPackage) + " /tmp/govard-create-project" + versionPart,
 		"if command -v rsync >/dev/null 2>&1; then rsync -a /tmp/govard-create-project/ /var/www/html/; else cp -a /tmp/govard-create-project/. /var/www/html/; fi",
 		"rm -rf /tmp/govard-create-project",
 	}, " && ")

@@ -302,13 +302,6 @@ func runPHPContainerShellCommand(config engine.Config, commandLine string) error
 	return phpContainerShellRunner(config, commandLine)
 }
 
-func shellQuote(raw string) string {
-	if raw == "" {
-		return "''"
-	}
-	return "'" + strings.ReplaceAll(raw, "'", `'"'"'`) + "'"
-}
-
 func fileExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil

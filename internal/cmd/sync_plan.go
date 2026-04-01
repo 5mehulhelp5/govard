@@ -27,8 +27,15 @@ type SyncExecutionOptions struct {
 	Exclude    []string
 }
 
+const (
+	SyncScopeFiles = "Files"
+	SyncScopeMedia = "Media"
+	SyncScopeDB    = "DB"
+)
+
 type SyncExecutionPlan struct {
 	Descriptions    []string
+	RsyncScopes     []string
 	Commands        []string
 	RsyncCommands   []*exec.Cmd
 	DatabaseActions []func() error
@@ -73,6 +80,7 @@ func buildSyncExecutionPlan(config engine.Config, endpoints ResolvedSyncEndpoint
 		}
 		plan.RsyncCommands = append(plan.RsyncCommands, rsyncCmd)
 		plan.Descriptions = append(plan.Descriptions, "Syncing files and source code...")
+		plan.RsyncScopes = append(plan.RsyncScopes, SyncScopeFiles)
 		plan.Commands = append(plan.Commands, rsyncCmd.String())
 	}
 
@@ -99,6 +107,7 @@ func buildSyncExecutionPlan(config engine.Config, endpoints ResolvedSyncEndpoint
 		}
 		plan.RsyncCommands = append(plan.RsyncCommands, rsyncCmd)
 		plan.Descriptions = append(plan.Descriptions, "Syncing media and static assets...")
+		plan.RsyncScopes = append(plan.RsyncScopes, SyncScopeMedia)
 		plan.Commands = append(plan.Commands, rsyncCmd.String())
 	}
 

@@ -28,7 +28,7 @@ type Magento2Environment struct {
 }
 
 func ProbeMagento2Environment(remoteName string, remoteCfg engine.RemoteConfig) (Magento2Environment, error) {
-	remoteCommand := buildMagentoRemoteCommand(remoteCfg.Path, `php -r `+shellQuoteRemote(magentoDBProbePHP))
+	remoteCommand := buildMagentoRemoteCommand(remoteCfg.Path, `php -r `+engine.ShellQuote(magentoDBProbePHP))
 	encoded, err := runRemoteCapture(remoteName, remoteCfg, remoteCommand)
 	if err != nil {
 		return Magento2Environment{}, err
@@ -37,7 +37,7 @@ func ProbeMagento2Environment(remoteName string, remoteCfg engine.RemoteConfig) 
 }
 
 func DetectMagento2Version(remoteName string, remoteCfg engine.RemoteConfig) (string, error) {
-	remoteCommand := buildMagentoRemoteCommand(remoteCfg.Path, `php -r `+shellQuoteRemote(magentoVersionProbePHP))
+	remoteCommand := buildMagentoRemoteCommand(remoteCfg.Path, `php -r `+engine.ShellQuote(magentoVersionProbePHP))
 	output, err := runRemoteCapture(remoteName, remoteCfg, remoteCommand)
 	if err != nil {
 		return "", err
@@ -135,10 +135,6 @@ func buildMagentoRemoteCommand(projectPath string, body string) string {
 		return body
 	}
 	return "cd " + QuoteRemotePath(trimmedPath) + " && " + body
-}
-
-func shellQuoteRemote(raw string) string {
-	return ShellQuote(raw)
 }
 
 func normalizeMagentoVersion(raw string) string {

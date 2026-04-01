@@ -3,6 +3,7 @@ package engine
 import (
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 )
 
@@ -21,4 +22,13 @@ func ExecuteInteractively(cmd *exec.Cmd) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+// ShellQuote wraps a string in single quotes and escapes existing single quotes
+// so it is safe to use in a shell command.
+func ShellQuote(raw string) string {
+	if raw == "" {
+		return "''"
+	}
+	return "'" + strings.ReplaceAll(raw, "'", `'"'"'`) + "'"
 }

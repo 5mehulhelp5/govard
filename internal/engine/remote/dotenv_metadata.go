@@ -45,7 +45,7 @@ type dotenvDBProbePayload struct {
 }
 
 func ProbeDotenvEnvironment(remoteName string, remoteCfg engine.RemoteConfig) (DotenvEnvironment, error) {
-	remoteCommand := buildMagentoRemoteCommand(remoteCfg.Path, `php -r `+shellQuoteRemote(dotenvDBProbePHP))
+	remoteCommand := buildMagentoRemoteCommand(remoteCfg.Path, `php -r `+engine.ShellQuote(dotenvDBProbePHP))
 	encoded, err := runRemoteCapture(remoteName, remoteCfg, remoteCommand)
 	if err != nil {
 		return DotenvEnvironment{}, err

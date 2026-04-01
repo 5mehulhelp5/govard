@@ -83,9 +83,9 @@ func detectMagento2Locales(config engine.Config) []string {
 		"sh", "-lc",
 		fmt.Sprintf(
 			`if command -v mysql >/dev/null 2>&1; then DB_CLI=mysql; elif command -v mariadb >/dev/null 2>&1; then DB_CLI=mariadb; else exit 1; fi && "$DB_CLI" -u %s -N -e %s %s`,
-			shellQuote(credentials.Username),
-			shellQuote(query),
-			shellQuote(credentials.Database),
+			engine.ShellQuote(credentials.Username),
+			engine.ShellQuote(query),
+			engine.ShellQuote(credentials.Database),
 		),
 	)
 

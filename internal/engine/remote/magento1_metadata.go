@@ -18,7 +18,7 @@ type Magento1Environment struct {
 // ProbeMagento1Environment SSHs to the remote environment and reads the local.xml via PHP
 // to extract DB connection credentials. Returns Magento1Environment with filled DB fields.
 func ProbeMagento1Environment(remoteName string, remoteCfg engine.RemoteConfig) (Magento1Environment, error) {
-	remoteCommand := buildMagentoRemoteCommand(remoteCfg.Path, `php -r `+shellQuoteRemote(magento1LocalXMLProbePHP))
+	remoteCommand := buildMagentoRemoteCommand(remoteCfg.Path, `php -r `+engine.ShellQuote(magento1LocalXMLProbePHP))
 	encoded, err := runRemoteCapture(remoteName, remoteCfg, remoteCommand)
 	if err != nil {
 		return Magento1Environment{}, err

@@ -40,16 +40,9 @@ func BuildSSHArgs(remoteName string, remoteCfg engine.RemoteConfig, forwardAgent
 	return args
 }
 
-func ShellQuote(raw string) string {
-	if raw == "" {
-		return "''"
-	}
-	return "'" + strings.ReplaceAll(raw, "'", `'"'"'`) + "'"
-}
-
 func QuoteRemotePath(path string) string {
 	if strings.HasPrefix(path, "~/") {
-		return "$HOME/" + ShellQuote(path[2:])
+		return "$HOME/" + engine.ShellQuote(path[2:])
 	}
-	return ShellQuote(path)
+	return engine.ShellQuote(path)
 }

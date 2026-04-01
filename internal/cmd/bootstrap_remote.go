@@ -205,7 +205,7 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts Bootstrap
 				args = append(args, "--no-noise")
 			}
 			if err := runGovardSubcommand(cmd, append(args, "--yes")...); err != nil {
-				return fmt.Errorf("media sync failed: %w", err)
+				pterm.Warning.Printf("Media synchronization was not fully completed, but bootstrap will continue: %v\n", err)
 			}
 		}
 	}

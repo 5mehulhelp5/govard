@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -286,8 +287,11 @@ Case Studies:
 
 			if err := rsyncCmd.Run(); err != nil {
 				_ = area.Stop()
-				spinner.Fail(fmt.Sprintf("Failed to sync: %v", err))
-				return fmt.Errorf("sync command failed: %w", err)
+				cont, err := handleRsyncError(err, executionPlan.RsyncScopes[i], spinner)
+				if !cont {
+					return err
+				}
+				continue
 			}
 
 			_ = area.Stop()
@@ -302,6 +306,10 @@ Case Studies:
 
 		if err := engine.RunHooks(config, engine.HookPostSync, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
 			return fmt.Errorf("post-synchronization hooks failed to execute: %w", err)
+		}
+
+		if config.Framework == "magento2" && (files || media) {
+			_ = engine.FixProjectPermissions(config.ProjectName, config)
 		}
 
 		pterm.Success.Println("Synchronization successfully completed.")
@@ -347,6 +355,40 @@ func init() {
 	syncCmd.Flags().BoolP("yes", "y", false, "Skip confirmation and proceed with synchronization")
 
 	rootCmd.AddCommand(syncCmd)
+}
+
+func handleRsyncError(err error, scope string, spinner *pterm.SpinnerPrinter) (bool, error) {
+	if err == nil {
+		return true, nil
+	}
+
+	exitCode := -1
+	if exitError, ok := err.(*exec.ExitError); ok {
+		exitCode = exitError.ExitCode()
+	}
+
+	if (exitCode == 23 || exitCode == 24) && scope == SyncScopeMedia {
+		if spinner != nil {
+			spinner.Warning(fmt.Sprintf("Media sync completed with partial errors (exit code %d). Some files may have been skipped due to system limits or vanished sources.", exitCode))
+		}
+		return true, nil
+	}
+
+	if (exitCode == 23 || exitCode == 24) && scope == SyncScopeFiles {
+		if spinner != nil {
+			spinner.Fail(fmt.Sprintf("File synchronization failed with partial errors (exit code %d). Please check for permission issues, broken symlinks, or directory loops.", exitCode))
+		}
+	} else {
+		if spinner != nil {
+			spinner.Fail(fmt.Sprintf("Failed to sync: %v", err))
+		}
+	}
+	return false, fmt.Errorf("sync command failed: %w", err)
+}
+
+// HandleRsyncErrorForTest is a wrapper for testing internal error handling logic.
+func HandleRsyncErrorForTest(err error, scope string) (bool, error) {
+	return handleRsyncError(err, scope, nil)
 }
 
 // SyncCommand exposes the sync command for testing.

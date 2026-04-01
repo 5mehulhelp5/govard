@@ -57,7 +57,7 @@ func BuildRemoteSnapshotCreateCommand(
 	if dbDumpCommandStr != "" {
 		dbPath := snapshotDir + "/db.sql.gz"
 		parts = append(parts,
-			fmt.Sprintf("{ %s; } > %s", dbDumpCommandStr, shellQuoteRemote(dbPath)),
+			fmt.Sprintf("{ %s; } > %s", dbDumpCommandStr, engine.ShellQuote(dbPath)),
 		)
 	}
 
@@ -66,9 +66,9 @@ func BuildRemoteSnapshotCreateCommand(
 		mediaTar := snapshotDir + "/media.tar.gz"
 		parts = append(parts,
 			fmt.Sprintf("if [ -d %s ]; then tar -czf %s -C %s .; fi",
-				shellQuoteRemote(remoteMediaPath),
-				shellQuoteRemote(mediaTar),
-				shellQuoteRemote(remoteMediaPath),
+				engine.ShellQuote(remoteMediaPath),
+				engine.ShellQuote(mediaTar),
+				engine.ShellQuote(remoteMediaPath),
 			),
 		)
 	}
@@ -80,7 +80,7 @@ func BuildRemoteSnapshotCreateCommand(
 		name, framework,
 	)
 	parts = append(parts,
-		fmt.Sprintf("printf '%s\\n' > %s", metaContent, shellQuoteRemote(metaPath)),
+		fmt.Sprintf("printf '%s\\n' > %s", metaContent, engine.ShellQuote(metaPath)),
 	)
 
 	return strings.Join(parts, " && ")
@@ -92,14 +92,14 @@ func BuildRemoteSnapshotListCommand(remoteCfg engine.RemoteConfig) string {
 	// List snapshot directories and cat their metadata
 	return fmt.Sprintf(
 		"if [ -d %s ]; then for d in %s/*/; do [ -d \"$d\" ] && cat \"$d/metadata.yml\" 2>/dev/null && echo '---'; done; else echo 'EMPTY'; fi",
-		shellQuoteRemote(root), shellQuoteRemote(root),
+		engine.ShellQuote(root), engine.ShellQuote(root),
 	)
 }
 
 // BuildRemoteSnapshotDeleteCommand builds the SSH command to delete a snapshot on the remote.
 func BuildRemoteSnapshotDeleteCommand(remoteCfg engine.RemoteConfig, name string) string {
 	snapshotDir := RemoteSnapshotDir(remoteCfg, name)
-	return fmt.Sprintf("rm -rf %s", shellQuoteRemote(snapshotDir))
+	return fmt.Sprintf("rm -rf %s", engine.ShellQuote(snapshotDir))
 }
 
 // BuildRemoteSnapshotRestoreCommand builds the SSH command to restore a snapshot on the remote.
@@ -114,7 +114,7 @@ func BuildRemoteSnapshotRestoreCommand(
 ) string {
 	snapshotDir := RemoteSnapshotDir(remoteCfg, name)
 	parts := []string{
-		fmt.Sprintf("test -d %s", shellQuoteRemote(snapshotDir)),
+		fmt.Sprintf("test -d %s", engine.ShellQuote(snapshotDir)),
 	}
 
 	// Restore DB
@@ -122,7 +122,7 @@ func BuildRemoteSnapshotRestoreCommand(
 		dbPath := snapshotDir + "/db.sql.gz"
 		parts = append(parts,
 			fmt.Sprintf("if [ -f %s ]; then zcat %s | %s; fi",
-				shellQuoteRemote(dbPath), shellQuoteRemote(dbPath), dbImportCommandStr,
+				engine.ShellQuote(dbPath), engine.ShellQuote(dbPath), dbImportCommandStr,
 			),
 		)
 	}
@@ -132,10 +132,10 @@ func BuildRemoteSnapshotRestoreCommand(
 		mediaTar := snapshotDir + "/media.tar.gz"
 		parts = append(parts,
 			fmt.Sprintf("if [ -f %s ]; then mkdir -p %s && tar -xzf %s -C %s; fi",
-				shellQuoteRemote(mediaTar),
-				shellQuoteRemote(remoteMediaPath),
-				shellQuoteRemote(mediaTar),
-				shellQuoteRemote(remoteMediaPath),
+				engine.ShellQuote(mediaTar),
+				engine.ShellQuote(remoteMediaPath),
+				engine.ShellQuote(mediaTar),
+				engine.ShellQuote(remoteMediaPath),
 			),
 		)
 	}

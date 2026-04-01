@@ -156,7 +156,7 @@ func proxyEnvToCompose(cmd *cobra.Command, args []string) error {
 
 			// Construct manual grep command
 			composeCmd := fmt.Sprintf("docker compose --project-directory %s -p %s -f %s",
-				shellQuote(cwd), shellQuote(config.ProjectName), shellQuote(composePath))
+				engine.ShellQuote(cwd), engine.ShellQuote(config.ProjectName), engine.ShellQuote(composePath))
 
 			logArgs := strings.Join(filteredArgs, " ")
 			if !strings.Contains(logArgs, "-f") && !strings.Contains(logArgs, "--follow") {

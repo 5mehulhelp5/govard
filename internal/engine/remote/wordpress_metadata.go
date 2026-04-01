@@ -22,7 +22,7 @@ type WordPressEnvironment struct {
 }
 
 func ProbeWordPressEnvironment(remoteName string, remoteCfg engine.RemoteConfig) (WordPressEnvironment, error) {
-	remoteCommand := buildMagentoRemoteCommand(remoteCfg.Path, `php -r `+shellQuoteRemote(wordpressDBProbePHP))
+	remoteCommand := buildMagentoRemoteCommand(remoteCfg.Path, `php -r `+engine.ShellQuote(wordpressDBProbePHP))
 	encoded, err := runRemoteCapture(remoteName, remoteCfg, remoteCommand)
 	if err != nil {
 		return WordPressEnvironment{}, err

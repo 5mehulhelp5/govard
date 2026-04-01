@@ -37,6 +37,10 @@ func ConfigureMagento(projectName string, config Config) error {
 		pterm.Info.Println("Applied Magento XML schema compatibility patch for newer libxml2.")
 	}
 
+	if err := FixProjectPermissions(projectName, config); err != nil {
+		pterm.Warning.Printf("Could not fix project permissions (continuing): %v\n", err)
+	}
+
 	// Proactively unblock search index (safe via curl, not a DB query)
 	if config.Stack.Features.Elasticsearch || config.Stack.Services.Search != "none" {
 		if err := FixElasticsearchIndexBlock(projectName, config); err != nil {
@@ -666,4 +670,31 @@ func resolveMagentoExecUser(config Config) string {
 		return fmt.Sprintf("%d:%d", config.Stack.UserID, config.Stack.GroupID)
 	}
 	return "www-data"
+}
+
+func FixProjectPermissions(projectName string, config Config) error {
+	containerName := fmt.Sprintf("%s-php-1", projectName)
+	if len(config.Stack.ChownDirList) == 0 {
+		return nil
+	}
+
+	pterm.Info.Printf("Ensuring correct permissions for project directories...\n")
+
+	dirs := ""
+	for _, d := range config.Stack.ChownDirList {
+		dirs += fmt.Sprintf("%s ", ShellQuote(d))
+	}
+
+	// We build a robust shell loop that forces root privileges and complies with Adobe best practices (including bin/magento executable).
+	user := resolveMagentoExecUser(config)
+	script := fmt.Sprintf("for d in %s; do if [ -e \"$d\" ]; then chown -R %s \"$d\" && chmod -R u+rwX \"$d\"; fi; done && if [ -f bin/magento ]; then chmod +x bin/magento; fi", dirs, user)
+
+	// We MUST run as root to have permission to change file ownership.
+	args := []string{"exec", "-u", "root", "-w", "/var/www/html", containerName, "sh", "-lc", script}
+	output, err := exec.Command("docker", args...).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("fix permissions failed: %w\nOutput: %s", err, string(output))
+	}
+
+	return nil
 }

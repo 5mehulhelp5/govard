@@ -442,9 +442,9 @@ func detectRemoteMagentoAdminPathForDesktop(
 	remoteName string,
 	remoteCfg engine.RemoteConfig,
 ) (string, error) {
-	remoteCommand := "php -r " + shellQuoteForDesktop(remoteMagentoAdminProbeScript)
+	remoteCommand := "php -r " + engine.ShellQuote(remoteMagentoAdminProbeScript)
 	if path := strings.TrimSpace(remoteCfg.Path); path != "" {
-		remoteCommand = "cd " + shellQuoteForDesktop(path) + " && " + remoteCommand
+		remoteCommand = "cd " + engine.ShellQuote(path) + " && " + remoteCommand
 	}
 
 	probeCmd := engineremote.BuildSSHExecCommand(remoteName, remoteCfg, true, remoteCommand)
@@ -527,13 +527,6 @@ func buildRemoteSSHURLForDesktop(remoteCfg engine.RemoteConfig) string {
 		targetURL.Path = path
 	}
 	return targetURL.String()
-}
-
-func shellQuoteForDesktop(raw string) string {
-	if raw == "" {
-		return "''"
-	}
-	return "'" + strings.ReplaceAll(raw, "'", `'"'"'`) + "'"
 }
 
 func tryOpenSFTPWithFileZilla(target string, remoteCfg engine.RemoteConfig) (bool, error) {
@@ -644,7 +637,7 @@ func buildRemoteShellCommandForDesktop(projectPath string) string {
 	if trimmedPath == "" {
 		return "(bash -l || sh)"
 	}
-	return "cd " + shellQuoteForDesktop(trimmedPath) + " && (bash -l || sh)"
+	return "cd " + engine.ShellQuote(trimmedPath) + " && (bash -l || sh)"
 }
 
 func resolveSSHAgentSocketForDesktop(remoteCfg engine.RemoteConfig) (string, error) {
@@ -857,7 +850,7 @@ func LaunchInTerminal(workingDir string, command string) error {
 
 	// Construct the command string to run inside the shell
 	// We use 'read' to keep the terminal open for user inspection
-	shCmd := fmt.Sprintf("cd %s && %s; echo; echo '---------------------------------------'; echo 'Process finished. Press Enter to close.'; read", shellQuoteForDesktop(workingDir), command)
+	shCmd := fmt.Sprintf("cd %s && %s; echo; echo '---------------------------------------'; echo 'Process finished. Press Enter to close.'; read", engine.ShellQuote(workingDir), command)
 
 	type launcher struct {
 		binary string
@@ -911,7 +904,7 @@ func launchGovardInTerminal(root string, args []string) error {
 
 	quotedArgs := make([]string, len(args))
 	for i, a := range args {
-		quotedArgs[i] = shellQuoteForDesktop(a)
+		quotedArgs[i] = engine.ShellQuote(a)
 	}
 	syncCmd := binary + " " + strings.Join(quotedArgs, " ")
 	return LaunchInTerminal(root, syncCmd)

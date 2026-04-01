@@ -464,9 +464,9 @@ func buildDBDumpCommand(config engine.Config, options dbCommandOptions) (*exec.C
 
 func quoteRemotePath(path string) string {
 	if strings.HasPrefix(path, "~/") {
-		return "$HOME/" + shellQuote(path[2:])
+		return "$HOME/" + engine.ShellQuote(path[2:])
 	}
-	return shellQuote(path)
+	return engine.ShellQuote(path)
 }
 
 func buildDBImportCommand(config engine.Config, options dbCommandOptions) (*exec.Cmd, error) {
@@ -886,9 +886,9 @@ func runDBTop(cmd *cobra.Command, config engine.Config, options dbCommandOptions
 			// Build command string
 			var cmdStr string
 			if credentials.Password != "" {
-				cmdStr = fmt.Sprintf("mysql -u%s -p%s -BN -e %s", shellQuote(credentials.Username), shellQuote(credentials.Password), shellQuote(query))
+				cmdStr = fmt.Sprintf("mysql -u%s -p%s -BN -e %s", engine.ShellQuote(credentials.Username), engine.ShellQuote(credentials.Password), engine.ShellQuote(query))
 			} else {
-				cmdStr = fmt.Sprintf("mysql -u%s -BN -e %s", shellQuote(credentials.Username), shellQuote(query))
+				cmdStr = fmt.Sprintf("mysql -u%s -BN -e %s", engine.ShellQuote(credentials.Username), engine.ShellQuote(query))
 			}
 
 			if options.Environment == "local" {

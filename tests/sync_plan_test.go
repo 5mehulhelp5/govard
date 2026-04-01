@@ -67,3 +67,50 @@ func TestSyncPlanDirectoryDetection(t *testing.T) {
 		t.Fatal("rsync command not found in plan")
 	}
 }
+
+func TestSyncPlanScopes(t *testing.T) {
+	config := engine.Config{
+		ProjectName: "test-project",
+		Framework:   "magento2",
+	}
+
+	endpoints := cmd.ResolveSyncEndpointsForTest(
+		cmd.SyncEndpoint{
+			Name:     "production",
+			IsLocal:  false,
+			RootPath: "/var/www/html",
+			RemoteCfg: engine.RemoteConfig{
+				Host: "production.example.com",
+				Path: "/var/www/html",
+			},
+		},
+		cmd.SyncEndpoint{Name: "local", IsLocal: true, RootPath: "/home/user/project"},
+	)
+
+	// Test Case: --full (Files + Media + DB)
+	opts := cmd.SyncExecutionOptionsForTest(true, true, true)
+
+	plan, err := cmd.BuildSyncExecutionPlanForTest(config, endpoints, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify counts: 2 rsync commands (Files, Media) and 1 DB action
+	if len(plan.RsyncCommands) != 2 {
+		t.Errorf("expected 2 rsync commands, got %d", len(plan.RsyncCommands))
+	}
+	if len(plan.RsyncScopes) != 2 {
+		t.Errorf("expected 2 rsync scopes, got %d", len(plan.RsyncScopes))
+	}
+	if len(plan.DatabaseActions) != 1 {
+		t.Errorf("expected 1 database action, got %d", len(plan.DatabaseActions))
+	}
+
+	// Verify scopes
+	if plan.RsyncScopes[0] != cmd.SyncScopeFiles {
+		t.Errorf("expected first rsync scope to be %s, got %s", cmd.SyncScopeFiles, plan.RsyncScopes[0])
+	}
+	if plan.RsyncScopes[1] != cmd.SyncScopeMedia {
+		t.Errorf("expected second rsync scope to be %s, got %s", cmd.SyncScopeMedia, plan.RsyncScopes[1])
+	}
+}

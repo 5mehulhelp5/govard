@@ -119,7 +119,7 @@ func runRedisCommand(cmd *cobra.Command, args []string) error {
 
 	cmdStr := cliBinary
 	for _, arg := range args {
-		cmdStr += " " + shellQuote(arg)
+		cmdStr += " " + engine.ShellQuote(arg)
 	}
 
 	pterm.Info.Printf("Running %s on remote %s...\n", cmdStr, environment)

@@ -182,24 +182,24 @@ func buildRemoteMySQLDumpCommandString(credentials dbCredentials, noNoise bool, 
 	// Common options
 	commonArgs := []string{"\"$DUMP_BIN\"", "--max-allowed-packet=512M", "--force", "--single-transaction", "--no-tablespaces"}
 	if host := strings.TrimSpace(credentials.Host); host != "" {
-		commonArgs = append(commonArgs, "-h"+shellQuote(host))
+		commonArgs = append(commonArgs, "-h"+engine.ShellQuote(host))
 	}
 	if credentials.Port > 0 {
 		commonArgs = append(commonArgs, "-P"+strconv.Itoa(credentials.Port))
 	}
-	commonArgs = append(commonArgs, "-u"+shellQuote(credentials.Username))
+	commonArgs = append(commonArgs, "-u"+engine.ShellQuote(credentials.Username))
 
 	// Pass 1: Metadata (no data, routines, triggers)
 	metadataArgs := append([]string{}, commonArgs...)
 	metadataArgs = append(metadataArgs, "--no-data", "--routines", "--triggers")
-	metadataArgs = append(metadataArgs, shellQuote(credentials.Database))
+	metadataArgs = append(metadataArgs, engine.ShellQuote(credentials.Database))
 
 	// Pass 2: Data (no create info, skip triggers, exclude noise/PII)
 	dataArgs := append([]string{}, commonArgs...)
 	dataArgs = append(dataArgs, "--no-create-info", "--skip-triggers")
 	ignoreArgs := buildIgnoredTableArgs(credentials.Database, "", noNoise, noPII, framework)
 	dataArgs = append(dataArgs, ignoreArgs...)
-	dataArgs = append(dataArgs, shellQuote(credentials.Database))
+	dataArgs = append(dataArgs, engine.ShellQuote(credentials.Database))
 
 	// Combine passes
 	dumpCmd := fmt.Sprintf("{ %s; %s; }", strings.Join(metadataArgs, " "), strings.Join(dataArgs, " "))
@@ -215,12 +215,12 @@ func buildRemoteMySQLConnectCommandString(credentials dbCredentials) string {
 
 	args := []string{"mysql"}
 	if host := strings.TrimSpace(credentials.Host); host != "" {
-		args = append(args, "-h"+shellQuote(host))
+		args = append(args, "-h"+engine.ShellQuote(host))
 	}
 	if credentials.Port > 0 {
 		args = append(args, "-P"+strconv.Itoa(credentials.Port))
 	}
-	args = append(args, "-u"+shellQuote(credentials.Username), shellQuote(credentials.Database))
+	args = append(args, "-u"+engine.ShellQuote(credentials.Username), engine.ShellQuote(credentials.Database))
 
 	return mysqlPasswordExportPrefix(credentials.Password) + strings.Join(args, " ")
 }
@@ -230,12 +230,12 @@ func buildRemoteMySQLImportCommandString(credentials dbCredentials) string {
 
 	args := []string{"mysql", "--max-allowed-packet=512M"}
 	if host := strings.TrimSpace(credentials.Host); host != "" {
-		args = append(args, "-h"+shellQuote(host))
+		args = append(args, "-h"+engine.ShellQuote(host))
 	}
 	if credentials.Port > 0 {
 		args = append(args, "-P"+strconv.Itoa(credentials.Port))
 	}
-	args = append(args, "-u"+shellQuote(credentials.Username), shellQuote(credentials.Database), "-f")
+	args = append(args, "-u"+engine.ShellQuote(credentials.Username), engine.ShellQuote(credentials.Database), "-f")
 
 	return mysqlPasswordExportPrefix(credentials.Password) + strings.Join(args, " ")
 }
@@ -276,19 +276,19 @@ func buildLocalMySQLDumpCommandScript(credentials dbCredentials, noNoise bool, n
 	dbCliDetect := `if command -v mariadb-dump >/dev/null 2>&1; then DUMP_BIN=mariadb-dump; else DUMP_BIN=mysqldump; fi`
 
 	// Common options
-	commonArgs := []string{"\"$DUMP_BIN\"", "--max-allowed-packet=512M", "--force", "--single-transaction", "--no-tablespaces", "-hdb", "-u" + shellQuote(credentials.Username)}
+	commonArgs := []string{"\"$DUMP_BIN\"", "--max-allowed-packet=512M", "--force", "--single-transaction", "--no-tablespaces", "-hdb", "-u" + engine.ShellQuote(credentials.Username)}
 
 	// Pass 1: Metadata
 	metadataArgs := append([]string{}, commonArgs...)
 	metadataArgs = append(metadataArgs, "--no-data", "--routines", "--triggers")
-	metadataArgs = append(metadataArgs, shellQuote(credentials.Database))
+	metadataArgs = append(metadataArgs, engine.ShellQuote(credentials.Database))
 
 	// Pass 2: Data
 	dataArgs := append([]string{}, commonArgs...)
 	dataArgs = append(dataArgs, "--no-create-info", "--skip-triggers")
 	ignoreArgs := buildIgnoredTableArgs(credentials.Database, "", noNoise, noPII, framework)
 	dataArgs = append(dataArgs, ignoreArgs...)
-	dataArgs = append(dataArgs, shellQuote(credentials.Database))
+	dataArgs = append(dataArgs, engine.ShellQuote(credentials.Database))
 
 	dumpCmd := fmt.Sprintf("{ %s; %s; }", strings.Join(metadataArgs, " "), strings.Join(dataArgs, " "))
 
@@ -669,13 +669,13 @@ func mysqlPasswordExportPrefix(password string) string {
 	if strings.TrimSpace(password) == "" {
 		return ""
 	}
-	return "export MYSQL_PWD=" + shellQuote(password) + "; "
+	return "export MYSQL_PWD=" + engine.ShellQuote(password) + "; "
 }
 
 func buildLocalMySQLClientCommandScript(credentials dbCredentials, force bool) string {
 	credentials = credentials.withDefaults()
 
-	query := "exec \"$DB_CLI\" --max-allowed-packet=512M -u " + shellQuote(credentials.Username) + " " + shellQuote(credentials.Database)
+	query := "exec \"$DB_CLI\" --max-allowed-packet=512M -u " + engine.ShellQuote(credentials.Username) + " " + engine.ShellQuote(credentials.Database)
 	if force {
 		query += " -f"
 		query = "{ echo \"SET FOREIGN_KEY_CHECKS=0; SET UNIQUE_CHECKS=0; SET AUTOCOMMIT=0;\"; cat; echo \"COMMIT; SET FOREIGN_KEY_CHECKS=1; SET UNIQUE_CHECKS=1; SET AUTOCOMMIT=1;\"; } | " + query
@@ -736,7 +736,7 @@ func buildLocalMySQLQueryCommandScript(credentials dbCredentials, query string) 
 	credentials = credentials.withDefaults()
 
 	escapedQuery := strings.ReplaceAll(query, "'", "'\"'\"'")
-	queryCmd := "exec \"$DB_CLI\" -u " + shellQuote(credentials.Username) + " -e '" + escapedQuery + "'" + " " + shellQuote(credentials.Database)
+	queryCmd := "exec \"$DB_CLI\" -u " + engine.ShellQuote(credentials.Username) + " -e '" + escapedQuery + "'" + " " + engine.ShellQuote(credentials.Database)
 
 	return strings.Join([]string{
 		`if command -v mysql >/dev/null 2>&1; then DB_CLI=mysql; elif command -v mariadb >/dev/null 2>&1; then DB_CLI=mariadb; else echo "mysql client not found (mysql/mariadb)" >&2; exit 127; fi`,
@@ -749,12 +749,12 @@ func buildRemoteMySQLQueryCommandString(credentials dbCredentials, query string)
 
 	args := []string{"mysql"}
 	if host := strings.TrimSpace(credentials.Host); host != "" {
-		args = append(args, "-h"+shellQuote(host))
+		args = append(args, "-h"+engine.ShellQuote(host))
 	}
 	if credentials.Port > 0 {
 		args = append(args, "-P"+strconv.Itoa(credentials.Port))
 	}
-	args = append(args, "-u"+shellQuote(credentials.Username), "-e", shellQuote(query))
+	args = append(args, "-u"+engine.ShellQuote(credentials.Username), "-e", engine.ShellQuote(query))
 
 	return mysqlPasswordExportPrefix(credentials.Password) + strings.Join(args, " ")
 }
@@ -775,12 +775,12 @@ func GetDatabaseSize(config engine.Config, remoteName string, remoteCfg engine.R
 	credentials = credentials.withDefaults()
 	mysqlArgs := []string{"\"$DB_CLI\"", "-BN"}
 	if host := strings.TrimSpace(credentials.Host); host != "" {
-		mysqlArgs = append(mysqlArgs, "-h"+shellQuote(host))
+		mysqlArgs = append(mysqlArgs, "-h"+engine.ShellQuote(host))
 	}
 	if credentials.Port > 0 {
 		mysqlArgs = append(mysqlArgs, "-P"+strconv.Itoa(credentials.Port))
 	}
-	mysqlArgs = append(mysqlArgs, "-u"+shellQuote(credentials.Username), "-e", shellQuote(query))
+	mysqlArgs = append(mysqlArgs, "-u"+engine.ShellQuote(credentials.Username), "-e", engine.ShellQuote(query))
 
 	dbCliDetect := `if command -v mysql >/dev/null 2>&1; then DB_CLI=mysql; elif command -v mariadb >/dev/null 2>&1; then DB_CLI=mariadb; else echo "mysql client not found" >&2; exit 127; fi`
 	mysqlCmd := mysqlPasswordExportPrefix(credentials.Password) + strings.Join(mysqlArgs, " ")
