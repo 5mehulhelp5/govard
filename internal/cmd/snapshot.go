@@ -146,6 +146,16 @@ var snapshotListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List available snapshots",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		environment, _ := cmd.Flags().GetString("environment")
+		environment = strings.ToLower(strings.TrimSpace(environment))
+		if environment != "" && environment != "local" {
+			config, err := loadFullConfig()
+			if err != nil {
+				return err
+			}
+			return runRemoteSnapshotList(cmd, config, environment)
+		}
+
 		cwd, _ := os.Getwd()
 		snapshots, err := engine.ListSnapshots(cwd)
 		if err != nil {
@@ -170,6 +180,43 @@ var snapshotListCmd = &cobra.Command{
 		_ = w.Flush()
 		return nil
 	},
+}
+
+func runRemoteSnapshotList(cmd *cobra.Command, config engine.Config, envName string) error {
+	remoteName, remoteCfg, err := ensureRemoteKnown(config, envName)
+	if err != nil {
+		return err
+	}
+
+	listCmdStr := remote.BuildRemoteSnapshotListCommand(remoteCfg)
+	sshCmd := remote.BuildSSHExecCommand(remoteName, remoteCfg, false, listCmdStr)
+	
+	output, err := sshCmd.Output()
+	if err != nil {
+		return fmt.Errorf("remote snapshot list failed: %w", err)
+	}
+
+	snapshots, err := remote.ParseRemoteSnapshotList(string(output))
+	if err != nil {
+		return fmt.Errorf("failed to parse remote snapshots: %w", err)
+	}
+
+	if len(snapshots) == 0 {
+		pterm.Info.Printf("No snapshots found on remote %s.\n", remoteName)
+		return nil
+	}
+
+	w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 2, 2, ' ', 0)
+	_, _ = fmt.Fprintln(w, "NAME\tCREATED_AT\tDB\tMEDIA")
+	for _, snapshot := range snapshots {
+		created := "-"
+		if !snapshot.CreatedAt.IsZero() {
+			created = snapshot.CreatedAt.Format("2006-01-02 15:04:05")
+		}
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%t\t%t\n", snapshot.Name, created, snapshot.DB, snapshot.Media)
+	}
+	_ = w.Flush()
+	return nil
 }
 
 func formatBytes(b int64) string {
@@ -204,6 +251,12 @@ var snapshotRestoreCmd = &cobra.Command{
 			return fmt.Errorf("cannot use --db-only and --media-only together")
 		}
 
+		environment, _ := cmd.Flags().GetString("environment")
+		environment = strings.ToLower(strings.TrimSpace(environment))
+		if environment != "" && environment != "local" {
+			return runRemoteSnapshotRestore(cmd, config, environment, name, dbOnly, mediaOnly)
+		}
+
 		if err := engine.RestoreSnapshot(cwd, config, name, dbOnly, mediaOnly); err != nil {
 			return fmt.Errorf("snapshot restore failed: %w", err)
 		}
@@ -213,13 +266,95 @@ var snapshotRestoreCmd = &cobra.Command{
 	},
 }
 
+func runRemoteSnapshotRestore(cmd *cobra.Command, config engine.Config, envName string, name string, dbOnly, mediaOnly bool) (err error) {
+	startedAt := time.Now()
+	operationStatus := engine.OperationStatusFailure
+	operationCategory := ""
+	operationMessage := ""
+	
+	defer func() {
+		if err != nil && operationMessage == "" {
+			operationMessage = err.Error()
+		}
+		if err == nil && operationStatus == engine.OperationStatusFailure {
+			operationStatus = engine.OperationStatusSuccess
+		}
+		if err != nil && operationCategory == "" {
+			operationCategory = classifyCommandError(err)
+		}
+		writeRemoteAuditEvent(remote.AuditEvent{
+			Operation:   "snapshot.restore",
+			Status:      auditStatusFromEngine(operationStatus),
+			Category:    operationCategory,
+			Remote:      envName,
+			DurationMS:  time.Since(startedAt).Milliseconds(),
+			Message:     operationMessage,
+		})
+	}()
+
+	if err := remote.ValidateSnapshotName(name); err != nil {
+		return err
+	}
+
+	remoteName, remoteCfg, err := ensureRemoteKnown(config, envName)
+	if err != nil {
+		return err
+	}
+
+	if blocked, reason := engine.RemoteWriteBlocked(remoteName, remoteCfg); blocked {
+		return fmt.Errorf("remote environment '%s' is write-protected: %s", remoteName, reason)
+	}
+
+	var credentials dbCredentials
+	var probeErr error
+	if config.Framework != "none" && !mediaOnly {
+		credentials, probeErr = resolveRemoteDBCredentials(config, remoteName, remoteCfg)
+		if probeErr != nil {
+			pterm.Warning.Println(formatRemoteDBProbeWarning(remoteName, probeErr))
+		}
+	}
+
+	dbImportCommandStr := ""
+	if config.Framework != "none" && !mediaOnly {
+		dbImportCommandStr = buildRemoteMySQLImportCommandString(credentials)
+	}
+
+	_, mediaPath := engine.ResolveRemotePathsForConfig(config.Framework, remoteCfg)
+
+	restoreCmdStr := remote.BuildRemoteSnapshotRestoreCommand(remoteCfg, name, config.Framework, dbImportCommandStr, mediaPath, dbOnly, mediaOnly)
+
+	pterm.Info.Printf("Restoring snapshot %s on remote %s...\n", name, remoteName)
+	sshCmd := remote.BuildSSHExecCommand(remoteName, remoteCfg, true, restoreCmdStr)
+	sshCmd.Stdout = os.Stdout
+	sshCmd.Stderr = os.Stderr
+
+	if err := sshCmd.Run(); err != nil {
+		return fmt.Errorf("remote snapshot restore failed: %w", err)
+	}
+
+	pterm.Success.Printf("Remote snapshot %s restored.\n", name)
+	operationMessage = "remote snapshot restored"
+	return nil
+}
+
 var snapshotDeleteCmd = &cobra.Command{
 	Use:   "delete <name>",
 	Short: "Delete a snapshot",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		environment, _ := cmd.Flags().GetString("environment")
+		environment = strings.ToLower(strings.TrimSpace(environment))
+		
 		cwd, _ := os.Getwd()
 		name := args[0]
+
+		if environment != "" && environment != "local" {
+			config, err := loadFullConfig()
+			if err != nil {
+				return err
+			}
+			return runRemoteSnapshotDelete(cmd, config, environment, name)
+		}
 
 		if err := engine.DeleteSnapshot(cwd, name); err != nil {
 			return err
@@ -228,6 +363,55 @@ var snapshotDeleteCmd = &cobra.Command{
 		pterm.Success.Printf("Snapshot %s deleted.\n", name)
 		return nil
 	},
+}
+
+func runRemoteSnapshotDelete(cmd *cobra.Command, config engine.Config, envName string, name string) (err error) {
+	startedAt := time.Now()
+	operationStatus := engine.OperationStatusFailure
+	operationCategory := ""
+	operationMessage := ""
+	
+	defer func() {
+		if err != nil && operationMessage == "" {
+			operationMessage = err.Error()
+		}
+		if err == nil && operationStatus == engine.OperationStatusFailure {
+			operationStatus = engine.OperationStatusSuccess
+		}
+		if err != nil && operationCategory == "" {
+			operationCategory = classifyCommandError(err)
+		}
+		writeRemoteAuditEvent(remote.AuditEvent{
+			Operation:   "snapshot.delete",
+			Status:      auditStatusFromEngine(operationStatus),
+			Category:    operationCategory,
+			Remote:      envName,
+			DurationMS:  time.Since(startedAt).Milliseconds(),
+			Message:     operationMessage,
+		})
+	}()
+
+	if err := remote.ValidateSnapshotName(name); err != nil {
+		return err
+	}
+
+	remoteName, remoteCfg, err := ensureRemoteKnown(config, envName)
+	if err != nil {
+		return err
+	}
+
+	deleteCmdStr := remote.BuildRemoteSnapshotDeleteCommand(remoteCfg, name)
+	sshCmd := remote.BuildSSHExecCommand(remoteName, remoteCfg, true, deleteCmdStr)
+	
+	pterm.Info.Printf("Deleting snapshot %s on remote %s...\n", name, remoteName)
+	output, err := sshCmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("remote snapshot delete failed: %w: %s", err, string(output))
+	}
+
+	pterm.Success.Printf("Remote snapshot %s deleted.\n", name)
+	operationMessage = "remote snapshot deleted"
+	return nil
 }
 
 var snapshotExportCmd = &cobra.Command{
