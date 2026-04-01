@@ -241,8 +241,9 @@ func reviveRunningProjectRoutes() error {
 				config, _, err := engine.LoadConfigFromDir(entry.Path, false)
 				if err == nil {
 					target := ResolveUpProxyTarget(config)
-					for _, domain := range config.AllDomains() {
-						_ = proxy.RegisterDomain(domain, target)
+					allDomains := config.AllDomains()
+					if len(allDomains) > 0 {
+						_ = proxy.RegisterDomains(allDomains, target)
 					}
 				}
 				break

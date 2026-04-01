@@ -892,8 +892,9 @@ func reviveRunningProjectRoutesForDesktop() error {
 		}
 
 		target := resolveDesktopUpProxyTarget(config)
-		for _, domain := range config.AllDomains() {
-			_ = proxy.RegisterDomain(domain, target)
+		allDomains := config.AllDomains()
+		if len(allDomains) > 0 {
+			_ = proxy.RegisterDomains(allDomains, target)
 		}
 	}
 

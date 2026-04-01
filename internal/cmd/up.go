@@ -246,7 +246,14 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 			OnFailureTip: "govard doctor",
 			Run: func() error {
 				target := ResolveUpProxyTarget(context.Config)
-				for _, domain := range context.Config.AllDomains() {
+				allDomains := context.Config.AllDomains()
+
+				var proxyErr error
+				if len(allDomains) > 0 {
+					proxyErr = proxy.RegisterDomains(allDomains, target)
+				}
+
+				for _, domain := range allDomains {
 					if engine.IsDomainResolvableLocally(domain) {
 						pterm.Success.Printf("Domain %s already resolves locally\n", domain)
 					} else if err := engine.AddHostsEntry(domain); err != nil {
@@ -256,8 +263,8 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 						pterm.Success.Printf("Domain %s mapped to 127.0.0.1\n", domain)
 					}
 
-					if err := proxy.RegisterDomain(domain, target); err != nil {
-						pterm.Warning.Printf("Could not register domain %s with Govard Proxy: %v\n", domain, err)
+					if proxyErr != nil {
+						pterm.Warning.Printf("Could not register domain %s with Govard Proxy: %v\n", domain, proxyErr)
 					} else {
 						pterm.Success.Printf("Domain %s registered with Govard Proxy -> %s\n", domain, target)
 					}

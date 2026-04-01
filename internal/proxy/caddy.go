@@ -80,6 +80,10 @@ func isTransientCaddyExecError(err error, output string) bool {
 }
 
 func RegisterDomain(domain string, targetContainer string) error {
+	return RegisterDomains([]string{domain}, targetContainer)
+}
+
+func RegisterDomains(domains []string, targetContainer string) error {
 	proxyContainer := "govard-proxy-caddy"
 	config, err := fetchCaddyConfig(proxyContainer)
 	if err != nil || len(config) == 0 {
@@ -93,20 +97,23 @@ func RegisterDomain(domain string, targetContainer string) error {
 	}
 
 	changed := ensureTLSConfig(config)
-	if strings.HasSuffix(domain, ".test") {
-		policies, ok := config["apps"].(map[string]interface{})["tls"].(map[string]interface{})["automation"].(map[string]interface{})["policies"].([]interface{})
-		if ok {
-			newPolicies, policyChanged := ensurePolicySubject(policies, domain, changed)
-			if policyChanged {
-				config["apps"].(map[string]interface{})["tls"].(map[string]interface{})["automation"].(map[string]interface{})["policies"] = newPolicies
-				changed = true
+	for _, domain := range domains {
+		if strings.HasSuffix(domain, ".test") {
+			policies, ok := config["apps"].(map[string]interface{})["tls"].(map[string]interface{})["automation"].(map[string]interface{})["policies"].([]interface{})
+			if ok {
+				newPolicies, policyChanged := ensurePolicySubject(policies, domain, changed)
+				if policyChanged {
+					config["apps"].(map[string]interface{})["tls"].(map[string]interface{})["automation"].(map[string]interface{})["policies"] = newPolicies
+					changed = true
+				}
 			}
+		}
+
+		if upsertDomainRoute(config, domain, targetContainer) {
+			changed = true
 		}
 	}
 
-	if upsertDomainRoute(config, domain, targetContainer) {
-		changed = true
-	}
 	if !changed {
 		return nil
 	}
