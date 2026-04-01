@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -435,6 +436,103 @@ var snapshotExportCmd = &cobra.Command{
 	},
 }
 
+var snapshotPullCmd = &cobra.Command{
+	Use:   "pull <name>",
+	Short: "Pull a snapshot from a remote environment to local",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		environment, _ := cmd.Flags().GetString("environment")
+		environment = strings.ToLower(strings.TrimSpace(environment))
+		if environment == "" || environment == "local" {
+			return fmt.Errorf("pull requires a remote --environment")
+		}
+
+		config, err := loadFullConfig()
+		if err != nil {
+			return err
+		}
+		name := args[0]
+		if err := remote.ValidateSnapshotName(name); err != nil {
+			return err
+		}
+
+		remoteName, remoteCfg, err := ensureRemoteKnown(config, environment)
+		if err != nil {
+			return err
+		}
+
+		cwd, _ := os.Getwd()
+		localSnapshotDir := filepath.Join(engine.SnapshotRoot(cwd), name)
+
+		pterm.Info.Printf("Pulling snapshot %s from %s...\n", name, remoteName)
+		rsyncCmd := remote.BuildRemoteSnapshotPullCommand(remoteName, remoteCfg, name, localSnapshotDir)
+		rsyncCmd.Stdout = os.Stdout
+		rsyncCmd.Stderr = os.Stderr
+
+		if err := rsyncCmd.Run(); err != nil {
+			return fmt.Errorf("remote snapshot pull failed: %w", err)
+		}
+
+		pterm.Success.Printf("Snapshot %s pulled successfully.\n", name)
+		return nil
+	},
+}
+
+var snapshotPushCmd = &cobra.Command{
+	Use:   "push <name>",
+	Short: "Push a local snapshot to a remote environment",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		environment, _ := cmd.Flags().GetString("environment")
+		environment = strings.ToLower(strings.TrimSpace(environment))
+		if environment == "" || environment == "local" {
+			return fmt.Errorf("push requires a remote --environment")
+		}
+
+		config, err := loadFullConfig()
+		if err != nil {
+			return err
+		}
+		name := args[0]
+		if err := remote.ValidateSnapshotName(name); err != nil {
+			return err
+		}
+
+		remoteName, remoteCfg, err := ensureRemoteKnown(config, environment)
+		if err != nil {
+			return err
+		}
+
+		if blocked, reason := engine.RemoteWriteBlocked(remoteName, remoteCfg); blocked {
+			return fmt.Errorf("remote environment '%s' is write-protected: %s", remoteName, reason)
+		}
+
+		cwd, _ := os.Getwd()
+		localSnapshotDir := filepath.Join(engine.SnapshotRoot(cwd), name)
+
+		if _, err := os.Stat(localSnapshotDir); os.IsNotExist(err) {
+			return fmt.Errorf("local snapshot '%s' does not exist", name)
+		}
+
+		// Ensure the parent directory exists on the remote
+		parentDir := remote.QuoteRemotePath(remote.RemoteSnapshotRoot(remoteCfg))
+		mkdirCmd := remote.BuildSSHExecCommand(remoteName, remoteCfg, true, "mkdir -p "+parentDir)
+		_ = mkdirCmd.Run()
+
+		pterm.Info.Printf("Pushing snapshot %s to %s...\n", name, remoteName)
+		rsyncCmd := remote.BuildRemoteSnapshotPushCommand(remoteName, remoteCfg, name, localSnapshotDir)
+		rsyncCmd.Stdout = os.Stdout
+		rsyncCmd.Stderr = os.Stderr
+
+		if err := rsyncCmd.Run(); err != nil {
+			return fmt.Errorf("remote snapshot push failed: %w", err)
+		}
+
+		pterm.Success.Printf("Snapshot %s pushed successfully.\n", name)
+		return nil
+	},
+}
+
 func init() {
 	snapshotCmd.PersistentFlags().StringP("environment", "e", "", "Target environment (local, staging, prod, etc.)")
 	
@@ -448,6 +546,8 @@ func init() {
 	snapshotCmd.AddCommand(snapshotRestoreCmd)
 	snapshotCmd.AddCommand(snapshotDeleteCmd)
 	snapshotCmd.AddCommand(snapshotExportCmd)
+	snapshotCmd.AddCommand(snapshotPullCmd)
+	snapshotCmd.AddCommand(snapshotPushCmd)
 
 	rootCmd.AddCommand(snapshotCmd)
 }
