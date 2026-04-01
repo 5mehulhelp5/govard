@@ -465,15 +465,44 @@ var snapshotPullCmd = &cobra.Command{
 		localSnapshotDir := filepath.Join(engine.SnapshotRoot(cwd), name)
 
 		pterm.Info.Printf("Pulling snapshot %s from %s...\n", name, remoteName)
+
+		startedAt := time.Now()
+		operationStatus := engine.OperationStatusFailure
+		operationCategory := ""
+		operationMessage := ""
+		defer func() {
+			if err != nil && operationMessage == "" {
+				operationMessage = err.Error()
+			}
+			if err == nil && operationStatus == engine.OperationStatusFailure {
+				operationStatus = engine.OperationStatusSuccess
+			}
+			if err != nil && operationCategory == "" {
+				operationCategory = classifyCommandError(err)
+			}
+			writeRemoteAuditEvent(remote.AuditEvent{
+				Operation:   "snapshot.pull",
+				Status:      auditStatusFromEngine(operationStatus),
+				Category:    operationCategory,
+				Remote:      remoteName,
+				Source:      remoteName,
+				Destination: "local",
+				DurationMS:  time.Since(startedAt).Milliseconds(),
+				Message:     operationMessage,
+			})
+		}()
+
 		rsyncCmd := remote.BuildRemoteSnapshotPullCommand(remoteName, remoteCfg, name, localSnapshotDir)
 		rsyncCmd.Stdout = os.Stdout
 		rsyncCmd.Stderr = os.Stderr
 
 		if err := rsyncCmd.Run(); err != nil {
-			return fmt.Errorf("remote snapshot pull failed: %w", err)
+			err = fmt.Errorf("remote snapshot pull failed: %w", err)
+			return err
 		}
 
 		pterm.Success.Printf("Snapshot %s pulled successfully.\n", name)
+		operationMessage = "remote snapshot pulled"
 		return nil
 	},
 }
@@ -520,15 +549,44 @@ var snapshotPushCmd = &cobra.Command{
 		_ = mkdirCmd.Run()
 
 		pterm.Info.Printf("Pushing snapshot %s to %s...\n", name, remoteName)
+
+		startedAt := time.Now()
+		operationStatus := engine.OperationStatusFailure
+		operationCategory := ""
+		operationMessage := ""
+		defer func() {
+			if err != nil && operationMessage == "" {
+				operationMessage = err.Error()
+			}
+			if err == nil && operationStatus == engine.OperationStatusFailure {
+				operationStatus = engine.OperationStatusSuccess
+			}
+			if err != nil && operationCategory == "" {
+				operationCategory = classifyCommandError(err)
+			}
+			writeRemoteAuditEvent(remote.AuditEvent{
+				Operation:   "snapshot.push",
+				Status:      auditStatusFromEngine(operationStatus),
+				Category:    operationCategory,
+				Remote:      remoteName,
+				Source:      "local",
+				Destination: remoteName,
+				DurationMS:  time.Since(startedAt).Milliseconds(),
+				Message:     operationMessage,
+			})
+		}()
+
 		rsyncCmd := remote.BuildRemoteSnapshotPushCommand(remoteName, remoteCfg, name, localSnapshotDir)
 		rsyncCmd.Stdout = os.Stdout
 		rsyncCmd.Stderr = os.Stderr
 
 		if err := rsyncCmd.Run(); err != nil {
-			return fmt.Errorf("remote snapshot push failed: %w", err)
+			err = fmt.Errorf("remote snapshot push failed: %w", err)
+			return err
 		}
 
 		pterm.Success.Printf("Snapshot %s pushed successfully.\n", name)
+		operationMessage = "remote snapshot pushed"
 		return nil
 	},
 }
