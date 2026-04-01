@@ -401,12 +401,16 @@ govard deploy
 
 ### `govard snapshot`
 
-Create, list, restore, export, and delete local snapshots for DB and media.
+Create, list, restore, export, and delete local and remote snapshots for DB and media.
 
 ```bash
 govard snapshot create
+govard snapshot create -e staging
 govard snapshot list
+govard snapshot list -e staging
 govard snapshot restore latest
+govard snapshot pull latest -e staging
+govard snapshot push before-deploy -e prod
 ```
 
 ### `govard open`

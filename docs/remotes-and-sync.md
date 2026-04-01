@@ -206,6 +206,33 @@ govard sync --source staging --db
 govard sync --from staging --db
 ```
 
+## Remote Snapshots
+
+Govard supports creating, managing, and transferring snapshots on remote environments using the `-e, --environment` flag.
+
+```bash
+govard snapshot create -e staging
+govard snapshot list -e staging
+govard snapshot restore latest -e staging
+govard snapshot delete latest -e staging
+```
+
+Remote snapshots are fast because they execute `mysqldump` and `tar` directly on the remote server without streaming data over the network. They are stored in `~/.govard/snapshots/` within the remote project path.
+
+### Bidirectional Transfer
+
+Use `pull` and `push` to transfer snapshots between environments:
+
+```bash
+# Pull a snapshot from staging to local
+govard snapshot pull before-upgrade -e staging
+
+# Push a local snapshot to production (blocked by default protection policy)
+govard snapshot push fallback-state -e prod
+```
+
+Transfers use the underlying `sync` and `rsync` logic, respecting resumable transfers and SSH agent forwarding.
+
 ## Remote Database Workflows
 
 ### Dump
