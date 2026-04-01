@@ -210,11 +210,13 @@ func extractComposeProjectAndServiceFromContainer(c container.Summary) (string, 
 
 	for _, name := range c.Names {
 		clean := strings.TrimPrefix(strings.TrimSpace(name), "/")
-		parts := strings.Split(clean, "-")
-		if len(parts) >= 3 {
-			project = strings.Join(parts[:len(parts)-2], "-")
-			service = parts[len(parts)-2]
-			return project, service
+		// Try hyphenated naming (Compose V2 default)
+		if parts := strings.Split(clean, "-"); len(parts) >= 3 {
+			return strings.Join(parts[:len(parts)-2], "-"), parts[len(parts)-2]
+		}
+		// Try underscored naming (Compose V1 / legacy default)
+		if parts := strings.Split(clean, "_"); len(parts) >= 3 {
+			return strings.Join(parts[:len(parts)-2], "_"), parts[len(parts)-2]
 		}
 	}
 
@@ -269,6 +271,11 @@ if ($projectsJson) {
             $framework = isset($project['framework']) ? strtolower(trim((string)$project['framework'])) : '';
             $databaseName = isset($dbMap[$framework]) ? $dbMap[$framework] : 'app';
             $dbHost = $name . '-db-1';
+            // Robust hostname resolution: try both common Docker Compose naming patterns.
+            // @gethostbyname returns the hostname if it fails to resolve; if it fails, fallback to legacy underscore.
+            if (@gethostbyname($dbHost) === $dbHost) {
+                $dbHost = $name . '_db_1';
+            }
 
             $cfg['Servers'][$i]['host'] = $dbHost;
             $cfg['Servers'][$i]['verbose'] = $name;

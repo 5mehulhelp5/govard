@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/pterm/pterm"
 )
 
 const (
@@ -35,11 +37,7 @@ func ProjectRegistryPath() string {
 		return filepath.Clean(override)
 	}
 
-	home, err := os.UserHomeDir()
-	if err != nil || strings.TrimSpace(home) == "" {
-		return filepath.Join(".govard", "projects.json")
-	}
-	return filepath.Join(home, ".govard", "projects.json")
+	return filepath.Join(GovardHomeDir(), "projects.json")
 }
 
 func ReadProjectRegistryEntries() ([]ProjectRegistryEntry, error) {
@@ -186,6 +184,18 @@ func writeProjectRegistryEntries(path string, entries []ProjectRegistryEntry) er
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("create project registry dir %s: %w", dir, err)
+	}
+
+	// Defensive check: if the target path exists as a directory (common corruption symptom), remove it.
+	if info, err := os.Stat(path); err == nil && info.IsDir() {
+		pterm.Warning.Printf("Registry path %s is a directory, attempting removal to restore registry file.\n", path)
+		_ = os.Remove(path) // Try non-recursive removal first for safety
+		if info, err := os.Stat(path); err == nil && info.IsDir() {
+			// If still exists, try recursive remove if it's the specific projects.json corruption
+			if strings.HasSuffix(path, "projects.json") {
+				_ = os.RemoveAll(path)
+			}
+		}
 	}
 
 	tmpFile, err := os.CreateTemp(dir, "projects-*.tmp")

@@ -37,6 +37,7 @@ var doctorFixHandlers = map[string]doctorFixHandler{
 	"host.govard.home":        fixGovardHomeDirectory,
 	"host.search.index_block": unblockSearchIndex,
 	"host.compose.spam":       purgeStaleComposeFiles,
+	"host.govard.registry":    fixGovardRegistry,
 }
 
 func runDoctorDiagnostics() engine.DoctorReport {
@@ -154,6 +155,40 @@ func purgeStaleComposeFiles(check engine.DoctorCheck) DoctorFixResult {
 	}
 
 	result.Message = fmt.Sprintf("Removed %d stale compose file(s).", count)
+	return result
+}
+
+func fixGovardRegistry(check engine.DoctorCheck) DoctorFixResult {
+	result := DoctorFixResult{
+		CheckID: strings.TrimSpace(check.ID),
+		Title:   strings.TrimSpace(check.Title),
+		Status:  DoctorFixStatusApplied,
+		Message: "Project registry path restored.",
+		Actions: []string{},
+	}
+
+	path := engine.ProjectRegistryPath()
+	info, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return result
+		}
+		result.Status = DoctorFixStatusFailed
+		result.Message = err.Error()
+		return result
+	}
+
+	if !info.IsDir() {
+		return result
+	}
+
+	result.Actions = append(result.Actions, fmt.Sprintf("rm -rf %s", path))
+	if err := os.RemoveAll(path); err != nil {
+		result.Status = DoctorFixStatusFailed
+		result.Message = err.Error()
+		return result
+	}
+
 	return result
 }
 

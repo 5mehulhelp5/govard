@@ -59,6 +59,7 @@ type DoctorDependencies struct {
 	CheckSearchIndexBlock    func() error
 	CheckSSHAgentStatus      func() (string, error)
 	CheckComposeSpam         func() error
+	CheckGovardRegistry      func() error
 }
 
 func RunDoctorDiagnostics(dependencies DoctorDependencies) DoctorReport {
@@ -88,6 +89,9 @@ func RunDoctorDiagnostics(dependencies DoctorDependencies) DoctorReport {
 	}
 	if dependencies.CheckComposeSpam == nil {
 		dependencies.CheckComposeSpam = func() error { return CheckComposeSpam(1000) }
+	}
+	if dependencies.CheckGovardRegistry == nil {
+		dependencies.CheckGovardRegistry = CheckGovardRegistry
 	}
 
 	report := DoctorReport{
@@ -274,6 +278,24 @@ func RunDoctorDiagnostics(dependencies DoctorDependencies) DoctorReport {
 		})
 	}
 
+	if err := dependencies.CheckGovardRegistry(); err != nil {
+		report.Checks = append(report.Checks, DoctorCheck{
+			ID:               "host.govard.registry",
+			Title:            "Project registry file",
+			Status:           DoctorStatusFail,
+			Message:          err.Error(),
+			Hint:             "Run doctor --fix to repair the corrupted registry directory.",
+			SuggestedCommand: "govard doctor --fix",
+		})
+	} else {
+		report.Checks = append(report.Checks, DoctorCheck{
+			ID:      "host.govard.registry",
+			Title:   "Project registry file",
+			Status:  DoctorStatusPass,
+			Message: "Project registry is healthy.",
+		})
+	}
+
 	for _, check := range report.Checks {
 		switch check.Status {
 		case DoctorStatusPass:
@@ -352,6 +374,21 @@ func CheckGovardHomeWritable() error {
 		return err
 	}
 	return file.Close()
+}
+
+func CheckGovardRegistry() error {
+	path := ProjectRegistryPath()
+	info, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	if info.IsDir() {
+		return fmt.Errorf("registry file %s is a directory", path)
+	}
+	return nil
 }
 
 func CheckNetworkConnectivity() error {
