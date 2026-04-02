@@ -165,12 +165,68 @@ check_dependencies() {
                 info "Installing missing dependencies (${deps_str}) automatically..."
                 sudo apt-get update && sudo apt-get install -y ${missing_deps[@]}
             else
-                read -p "Do you want to install missing dependencies (${deps_str}) automatically? (y/N) " confirm </dev/tty
-                if [[ $confirm =~ ^[Yy]$ ]]; then
+                read -p "Do you want to install missing dependencies (${deps_str}) automatically? (Y/n) " confirm </dev/tty
+                if [[ -z "$confirm" || $confirm =~ ^[Yy]$ ]]; then
                     sudo apt-get update && sudo apt-get install -y ${missing_deps[@]}
                 fi
             fi
         fi
+    fi
+
+    # cloudflared (for Govard tunnels)
+    if command -v cloudflared >/dev/null 2>&1; then
+        success "  cloudflared: $(cloudflared --version | awk '{print $3}')"
+    else
+        warn "  cloudflared: Not found (Required for 'govard tunnel')"
+        if [[ "$OS" == "linux" ]]; then
+            if [[ "$FORCE_YES" == true ]]; then
+                install_cloudflared_linux
+            else
+                read -p "Do you want to install cloudflared automatically? (Y/n) " confirm </dev/tty
+                if [[ -z "$confirm" || $confirm =~ ^[Yy]$ ]]; then
+                    install_cloudflared_linux
+                fi
+            fi
+        elif [[ "$OS" == "darwin" ]]; then
+            install_cloudflared_macos
+        fi
+    fi
+}
+
+install_cloudflared_linux() {
+    info "Downloading cloudflared from GitHub releases..."
+    local deb_url="https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${ARCH}.deb"
+    local tmp_dir=$(mktemp -d)
+    local deb_path="${tmp_dir}/cloudflared.deb"
+
+    if curl -fsSL "$deb_url" -o "$deb_path"; then
+        info "Installing .deb package..."
+        sudo dpkg -i "$deb_path" || {
+            warn "Failed to install using dpkg. Attempting to fix dependencies via apt..."
+            sudo apt-get update && sudo apt-get install -f -y
+        }
+        if command -v cloudflared >/dev/null 2>&1; then
+            success "cloudflared installed successfully."
+        fi
+    else
+        warn "Failed to download cloudflared. Please install it manually from: https://github.com/cloudflare/cloudflared/releases"
+    fi
+    rm -rf "$tmp_dir"
+}
+
+install_cloudflared_macos() {
+    if command -v brew >/dev/null 2>&1; then
+        if [[ "$FORCE_YES" == true ]]; then
+            info "Installing cloudflared via Homebrew..."
+            brew install cloudflared
+        else
+            read -p "Do you want to install cloudflared via Homebrew? (Y/n) " confirm </dev/tty
+            if [[ -z "$confirm" || $confirm =~ ^[Yy]$ ]]; then
+                brew install cloudflared
+            fi
+        fi
+    else
+        info "Homebrew not found. Please install cloudflared manually from: https://github.com/cloudflare/cloudflared/releases"
     fi
 }
 
@@ -319,8 +375,8 @@ install_go() {
 
     if [[ "$need_go_install" == true ]]; then
         if [[ "$FORCE_YES" == false ]]; then
-            read -p "Do you want to install Go $MIN_GO_VERSION automatically? (y/N) " confirm </dev/tty
-            if [[ ! $confirm =~ ^[Yy]$ ]]; then
+            read -p "Do you want to install Go $MIN_GO_VERSION automatically? (Y/n) " confirm </dev/tty
+            if [[ -n "$confirm" && ! $confirm =~ ^[Yy]$ ]]; then
                 error "Go $MIN_GO_VERSION+ is required for source builds."
             fi
         fi
