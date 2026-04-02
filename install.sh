@@ -536,9 +536,6 @@ main() {
     if [[ -x "$govard_bin" ]]; then
         info "Initializing global services..."
         run_as_user "$govard_bin" svc up -d --remove-orphans || warn "Failed to start global services automatically."
-
-        info "Configuring SSL trust..."
-        run_as_user "$govard_bin" doctor trust || warn "Failed to configure SSL trust automatically."
         echo ""
     fi
 
