@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.40.4] - 2026-04-02
+
+### ✨ New Features
+
+- **Installer:** Added automatic `cloudflared` detection and installation support in `install.sh`. It now automatically downloads and installs the latest `.deb` package on Linux and uses Homebrew on macOS.
+
+### 🛠 Improvements
+
+- **Installer:** Interactive prompts in `install.sh` now default to "Yes" (`Y/n`), allowing users to proceed by simply pressing Enter.
+- **Installer:** Streamlined the installation process by removing redundant SSL trust calls, as they are already handled by the service initialization.
+
 ## [1.40.3] - 2026-04-01
 
 ### ✨ New Features
