@@ -1,9 +1,9 @@
 package tests
 
 import (
+	"govard/internal/engine"
 	"os"
 	"testing"
-	"govard/internal/engine"
 )
 
 func TestIsMagentoElasticsuiteProjectImproved(t *testing.T) {
@@ -14,22 +14,32 @@ func TestIsMagentoElasticsuiteProjectImproved(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	origCwd, _ := os.Getwd()
-	os.Chdir(tmpDir)
-	defer os.Chdir(origCwd)
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("Failed to chdir: %v", err)
+	}
+	defer func() { _ = os.Chdir(origCwd) }()
 
 	// Test case 1: smile/elasticsuite in composer.json
 	composerContent := `{"require": {"smile/elasticsuite": "^2.11"}}`
-	os.WriteFile("composer.json", []byte(composerContent), 0644)
-	
+	if err := os.WriteFile("composer.json", []byte(composerContent), 0644); err != nil {
+		t.Fatalf("Failed to write composer.json: %v", err)
+	}
+
 	if !engine.IsMagentoElasticsuiteProjectForTest() {
 		t.Errorf("Expected elasticsuite detection via composer.json to be true")
 	}
 
 	// Test case 2: Clear composer.json, test app/etc/config.php
-	os.WriteFile("composer.json", []byte("{}"), 0644)
-	os.MkdirAll("app/etc", 0755)
+	if err := os.WriteFile("composer.json", []byte("{}"), 0644); err != nil {
+		t.Fatalf("Failed to write composer.json: %v", err)
+	}
+	if err := os.MkdirAll("app/etc", 0755); err != nil {
+		t.Fatalf("Failed to mkdir: %v", err)
+	}
 	configContent := "<?php return ['modules' => ['Smile_ElasticsuiteCore' => 1]];"
-	os.WriteFile("app/etc/config.php", []byte(configContent), 0644)
+	if err := os.WriteFile("app/etc/config.php", []byte(configContent), 0644); err != nil {
+		t.Fatalf("Failed to write config.php: %v", err)
+	}
 
 	if !engine.IsMagentoElasticsuiteProjectForTest() {
 		t.Errorf("Expected elasticsuite detection via config.php to be true")

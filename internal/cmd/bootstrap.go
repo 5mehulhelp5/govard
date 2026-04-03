@@ -159,7 +159,7 @@ Note: -e/--environment accepts remote name aliases (e.g. 'dev' matches a remote 
 		if needsRemoteEnvironment(opts) || opts.Source != "" {
 			resolvedRemote, err = ResolveAutoRemote(config, opts.Source)
 			if err != nil {
-				if stdinIsTerminal() && !opts.AssumeYes {
+				if stdinIsTerminal() && !opts.AssumeYes && !opts.Plan {
 					pterm.Warning.Printf("No remote environment found: %v\n", err)
 					options := []string{"dev", "staging", "production", "custom..."}
 					selected, _ := pterm.DefaultInteractiveSelect.
@@ -188,6 +188,10 @@ Note: -e/--environment accepts remote name aliases (e.g. 'dev' matches a remote 
 						return err
 					}
 				} else {
+					if opts.Plan {
+						// For plans, failure to resolve an auto-remote is non-fatal.
+						return nil
+					}
 					return err
 				}
 			}
@@ -344,8 +348,11 @@ func stringSliceContains(slice []string, item string) bool {
 }
 
 func needsRemoteEnvironment(opts BootstrapRuntimeOptions) bool {
-	if opts.Fresh || opts.Plan {
+	if opts.Fresh {
 		return false
+	}
+	if opts.Plan {
+		return true
 	}
 	// Remote is needed if we're cloning files, syncing media, or importing DB from remote.
 	// We skip the requirement if --db-dump is provided and other remote-dependent flags are off.
@@ -482,4 +489,8 @@ func init() {
 	bootstrapCmd.Flags().BoolVar(&bootstrapSkipUp, "skip-up", false, "Skip starting local containers before bootstrap steps")
 	bootstrapCmd.Flags().BoolVar(&bootstrapPlan, "plan", false, "Print the bootstrap plan and exit")
 	bootstrapCmd.Flags().BoolVarP(&bootstrapAssumeYes, "yes", "y", false, "Assume yes for non-critical bootstrap prompts")
+}
+
+func NeedsRemoteEnvironmentForTest(opts BootstrapRuntimeOptions) bool {
+	return needsRemoteEnvironment(opts)
 }
