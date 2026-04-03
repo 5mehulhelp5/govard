@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -78,13 +79,21 @@ var remoteAddCmd = &cobra.Command{
 		knownHostsFile, _ := cmd.Flags().GetString("known-hosts-file")
 
 		if host == "" && stdinIsTerminal() {
-			host, _ = pterm.DefaultInteractiveTextInput.Show("Remote host (e.g. example.com)")
+			host, _ = pterm.DefaultInteractiveTextInput.WithDefaultText(host).Show("Remote host (e.g. example.com)")
 		}
 		if user == "" && stdinIsTerminal() {
-			user, _ = pterm.DefaultInteractiveTextInput.Show("Remote SSH user")
+			user, _ = pterm.DefaultInteractiveTextInput.WithDefaultText(user).Show("Remote SSH user")
+		}
+		if port == 22 && !cmd.Flags().Changed("port") && stdinIsTerminal() {
+			portStr, _ := pterm.DefaultInteractiveTextInput.WithDefaultText("22").Show("Remote SSH port")
+			if portStr != "" {
+				if p, err := strconv.Atoi(portStr); err == nil {
+					port = p
+				}
+			}
 		}
 		if path == "" && stdinIsTerminal() {
-			path, _ = pterm.DefaultInteractiveTextInput.Show("Remote project path on target host (e.g. /var/www/app or ~/public_html)")
+			path, _ = pterm.DefaultInteractiveTextInput.WithDefaultText(path).Show("Remote project path on target host (e.g. /var/www/app or ~/public_html)")
 		}
 
 		if host == "" || user == "" || path == "" {
