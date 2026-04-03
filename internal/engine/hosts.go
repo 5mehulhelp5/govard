@@ -1,20 +1,32 @@
 package engine
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 const managedHostsMarker = "# govard-managed"
 
 var hostsFilePath = "/etc/hosts"
 
-// IsDomainResolvableLocally checks if the domain resolves to localhost (127.0.0.1 or ::1).
+// IsDomainResolvableLocally checks if the domain resolves to localhost (127.0.0.1 or ::1)
+// with a default timeout of 15 seconds.
 func IsDomainResolvableLocally(domain string) bool {
-	ips, err := net.LookupIP(domain)
+	return IsDomainResolvableLocallyWithTimeout(domain, 15*time.Second)
+}
+
+// IsDomainResolvableLocallyWithTimeout checks if the domain resolves to localhost (127.0.0.1 or ::1)
+// within the specified timeout.
+func IsDomainResolvableLocallyWithTimeout(domain string, timeout time.Duration) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	ips, err := net.DefaultResolver.LookupIP(ctx, "ip", domain)
 	if err != nil {
 		return false
 	}
