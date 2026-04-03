@@ -21,4 +21,5 @@ func ApplyRuntimeProfileToConfig(config *Config, profile RuntimeProfile) {
 	config.Stack.CacheVersion = profile.CacheVersion
 	config.Stack.SearchVersion = profile.SearchVersion
 	config.Stack.QueueVersion = profile.QueueVersion
+	config.Stack.ComposerVersion = profile.ComposerVersion
 }

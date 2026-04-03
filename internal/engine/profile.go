@@ -25,6 +25,7 @@ type RuntimeProfile struct {
 	VarnishVersion   string
 	Queue            string
 	QueueVersion     string
+	ComposerVersion  string
 	XdebugSession    string
 }
 
@@ -36,21 +37,22 @@ type RuntimeProfileResult struct {
 }
 
 type runtimeProfileOverride struct {
-	PHPVersion     string
-	NodeVersion    string
-	DBType         string
-	DBVersion      string
-	WebRoot        string
-	WebServer      string
-	Cache          string
-	CacheVersion   string
-	NginxVersion   string
-	ApacheVersion  string
-	Search         string
-	SearchVersion  string
-	VarnishVersion string
-	Queue          string
-	QueueVersion   string
+	PHPVersion      string
+	NodeVersion     string
+	DBType          string
+	DBVersion       string
+	WebRoot         string
+	WebServer       string
+	Cache           string
+	CacheVersion    string
+	NginxVersion    string
+	ApacheVersion   string
+	Search          string
+	SearchVersion   string
+	VarnishVersion  string
+	Queue           string
+	QueueVersion    string
+	ComposerVersion string
 }
 
 var majorVersionPattern = regexp.MustCompile(`\d+`)
@@ -249,6 +251,9 @@ func applyRuntimeProfileOverride(profile *RuntimeProfile, override runtimeProfil
 	}
 	if override.QueueVersion != "" {
 		profile.QueueVersion = override.QueueVersion
+	}
+	if override.ComposerVersion != "" {
+		profile.ComposerVersion = override.ComposerVersion
 	}
 }
 
@@ -482,24 +487,28 @@ func resolveLegacyMagento2Override(major int, minor int, patch int, pPatch int) 
 			override.CacheVersion = "5.0"
 			override.SearchVersion = "5.6.16"
 			override.QueueVersion = "3.7"
+			override.ComposerVersion = "2.2"
 		} else if patch <= 2 {
 			override.PHPVersion = "7.2"
 			override.DBVersion = "10.2"
 			override.CacheVersion = "5.0"
 			override.SearchVersion = "6.8.23"
 			override.QueueVersion = "3.7"
+			override.ComposerVersion = "2.2"
 		} else if patch == 3 {
 			override.PHPVersion = "7.2"
 			override.DBVersion = "10.2"
 			override.CacheVersion = "5.0"
 			override.SearchVersion = "6.8.23"
 			override.QueueVersion = "3.8"
+			override.ComposerVersion = "2.2"
 		} else if patch == 4 {
 			override.PHPVersion = "7.2"
 			override.DBVersion = "10.2"
 			override.CacheVersion = "5.0"
 			override.SearchVersion = "6.8.23"
 			override.QueueVersion = "3.8"
+			override.ComposerVersion = "2.2"
 		} else if patch <= 6 {
 			override.PHPVersion = "7.3"
 			override.DBVersion = "10.4"
@@ -520,6 +529,7 @@ func resolveLegacyMagento2Override(major int, minor int, patch int, pPatch int) 
 		override.SearchVersion = "5.6.16"
 		override.VarnishVersion = "6.0"
 		override.QueueVersion = "3.7"
+		override.ComposerVersion = "2.2"
 		if patch == 0 {
 			override.DBVersion = "10.0"
 		}
@@ -530,6 +540,7 @@ func resolveLegacyMagento2Override(major int, minor int, patch int, pPatch int) 
 		override.SearchVersion = "2.4.6"
 		override.VarnishVersion = "6.0"
 		override.QueueVersion = "3.7"
+		override.ComposerVersion = "2.2"
 	default:
 		return runtimeProfileOverride{}, "", false
 	}
@@ -598,9 +609,9 @@ func resolveLaravelOverride(version string) (runtimeProfileOverride, string, boo
 	case 6:
 		return runtimeProfileOverride{PHPVersion: "7.4", DBType: "mariadb", DBVersion: "10.3"}, "version-specific:laravel@6", true
 	case 5:
-		return runtimeProfileOverride{PHPVersion: "7.0", DBType: "mariadb", DBVersion: "10.2"}, "version-specific:laravel@5", true
+		return runtimeProfileOverride{PHPVersion: "7.0", DBType: "mariadb", DBVersion: "10.2", ComposerVersion: "2.2"}, "version-specific:laravel@5", true
 	case 4:
-		return runtimeProfileOverride{PHPVersion: "7.0", DBType: "mariadb", DBVersion: "10.1"}, "version-specific:laravel@4", true
+		return runtimeProfileOverride{PHPVersion: "7.0", DBType: "mariadb", DBVersion: "10.1", ComposerVersion: "2.2"}, "version-specific:laravel@4", true
 	default:
 		return runtimeProfileOverride{}, "", false
 	}

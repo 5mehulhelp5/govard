@@ -111,10 +111,10 @@ func NormalizeConfig(config *Config, root string) {
 	}
 
 	if config.Stack.ComposerVersion == "" {
-		// Use Composer 2.2 LTS for older PHP versions that don't support 2.3+
-		if config.Stack.PHPVersion != "" && (strings.HasPrefix(config.Stack.PHPVersion, "5.") ||
-			strings.HasPrefix(config.Stack.PHPVersion, "7.0") ||
-			strings.HasPrefix(config.Stack.PHPVersion, "7.1")) {
+		if profileAvailable && profile.ComposerVersion != "" {
+			config.Stack.ComposerVersion = profile.ComposerVersion
+		} else if config.Stack.PHPVersion != "" && !IsNumericDotVersionAtLeast(config.Stack.PHPVersion, "7.2.5") {
+			// Composer 2.3+ requires PHP >= 7.2.5. Use Composer 2.2 LTS for older PHP.
 			config.Stack.ComposerVersion = "2.2"
 		} else {
 			config.Stack.ComposerVersion = "latest"

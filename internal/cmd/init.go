@@ -221,6 +221,9 @@ Case Studies:
 		if migrated.NodeVersion != "" {
 			config.Stack.NodeVersion = migrated.NodeVersion
 		}
+		if migrated.ComposerVersion != "" {
+			config.Stack.ComposerVersion = migrated.ComposerVersion
+		}
 		if migrated.DBType != "" {
 			config.Stack.DBType = migrated.DBType
 		}
@@ -266,6 +269,9 @@ Case Studies:
 			}
 			if existingConfig.Stack.NodeVersion != "" {
 				config.Stack.NodeVersion = existingConfig.Stack.NodeVersion
+			}
+			if existingConfig.Stack.ComposerVersion != "" {
+				config.Stack.ComposerVersion = existingConfig.Stack.ComposerVersion
 			}
 			if existingConfig.Stack.DBType != "" {
 				config.Stack.DBType = existingConfig.Stack.DBType

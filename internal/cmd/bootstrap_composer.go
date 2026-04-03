@@ -35,32 +35,13 @@ func runBootstrapComposerPrepare(config engine.Config) error {
 }
 
 func FixComposerCompatibility(config engine.Config) error {
-	version := config.Stack.PHPVersion
 	targetVer := config.Stack.ComposerVersion
-	if targetVer == "" {
-		targetVer = "latest"
+	if targetVer == "" || targetVer == "latest" {
+		return nil // Image composer is suitable for PHP >= 7.2.5
 	}
 
-	// If user explicitly wants a version, we should try to ensure it
-	if targetVer != "latest" && targetVer != "" {
-		pterm.Info.Printf("Ensuring Composer version %s as requested in config...\n", targetVer)
-		return ensureSpecificComposerVersion(config, targetVer)
-	}
-
-	// Automatic compatibility check for old PHP
-	if engine.IsNumericDotVersionAtLeast(version, "7.2.5") {
-		return nil
-	}
-
-	pterm.Info.Printf("PHP version is %s (< 7.2.5). Ensuring Composer 2.2 LTS compatibility...\n", version)
-
-	// Check if composer current runs or fails with support error code
-	err := runPHPContainerShellCommand(config, "composer --version")
-	if err == nil {
-		return nil // Already works
-	}
-
-	return ensureSpecificComposerVersion(config, "2.2.24")
+	pterm.Info.Printf("Ensuring Composer version %s as configured...\n", targetVer)
+	return ensureSpecificComposerVersion(config, targetVer)
 }
 
 func ensureSpecificComposerVersion(config engine.Config, version string) error {
@@ -82,7 +63,7 @@ func ensureSpecificComposerVersion(config engine.Config, version string) error {
 		}
 	}
 
-	script := fmt.Sprintf("curl -sS %s -o /tmp/composer.phar && chmod +x /tmp/composer.phar && mv /tmp/composer.phar $(which composer)", downloadUrl)
+	script := fmt.Sprintf("curl -sSf %s -o /tmp/composer.phar && chmod +x /tmp/composer.phar && mv /tmp/composer.phar $(which composer)", downloadUrl)
 	cmd := exec.Command("docker", "exec", "-u", "root", containerName, "sh", "-c", script)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("composer setup failed (%s): %w: %s", version, err, string(out))

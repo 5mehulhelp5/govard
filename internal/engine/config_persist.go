@@ -63,6 +63,22 @@ func PrepareConfigForWrite(config Config) Config {
 		writable.Stack.ChownDirList = nil
 	}
 
+	// Strip ComposerVersion when it matches the auto-derived default
+	if writable.Stack.ComposerVersion != "" {
+		derivedDefault := "latest"
+		if writable.Stack.PHPVersion != "" && !IsNumericDotVersionAtLeast(writable.Stack.PHPVersion, "7.2.5") {
+			derivedDefault = "2.2"
+		}
+		if profileResult, err := ResolveRuntimeProfile(writable.Framework, writable.FrameworkVersion); err == nil {
+			if profileResult.Profile.ComposerVersion != "" {
+				derivedDefault = profileResult.Profile.ComposerVersion
+			}
+		}
+		if writable.Stack.ComposerVersion == derivedDefault {
+			writable.Stack.ComposerVersion = ""
+		}
+	}
+
 	return writable
 }
 

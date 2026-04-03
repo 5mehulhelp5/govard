@@ -11,22 +11,23 @@ import (
 )
 
 type MigrationResult struct {
-	ProjectName    string
-	Framework      string
-	PHPVersion     string
-	NodeVersion    string
-	DBType         string
-	DBVersion      string
-	SearchService  string
-	SearchVersion  string
-	CacheService   string
-	CacheVersion   string
-	QueueService   string
-	QueueVersion   string
-	VarnishEnabled bool
-	VarnishVersion string
-	WebRoot        string
-	Remotes        RemoteConfigMap
+	ProjectName     string
+	Framework       string
+	PHPVersion      string
+	NodeVersion     string
+	ComposerVersion string
+	DBType          string
+	DBVersion       string
+	SearchService   string
+	SearchVersion   string
+	CacheService    string
+	CacheVersion    string
+	QueueService    string
+	QueueVersion    string
+	VarnishEnabled  bool
+	VarnishVersion  string
+	WebRoot         string
+	Remotes         RemoteConfigMap
 }
 
 func MigrateFromDDEV(root string) (MigrationResult, error) {
@@ -74,14 +75,15 @@ func MigrateFromWarden(root string) (MigrationResult, error) {
 	}
 
 	result := MigrationResult{
-		ProjectName:    env["WARDEN_ENV_NAME"],
-		Framework:      mapWardenTypeToFramework(env["WARDEN_ENV_TYPE"]),
-		PHPVersion:     env["PHP_VERSION"],
-		NodeVersion:    env["NODE_VERSION"],
-		DBVersion:      env["MYSQL_DISTRIBUTION_VERSION"],
-		VarnishVersion: env["VARNISH_VERSION"],
-		WebRoot:        env["WARDEN_WEB_ROOT"],
-		Remotes:        make(RemoteConfigMap),
+		ProjectName:     env["WARDEN_ENV_NAME"],
+		Framework:       mapWardenTypeToFramework(env["WARDEN_ENV_TYPE"]),
+		PHPVersion:      env["PHP_VERSION"],
+		NodeVersion:     env["NODE_VERSION"],
+		ComposerVersion: env["COMPOSER_VERSION"],
+		DBVersion:       env["MYSQL_DISTRIBUTION_VERSION"],
+		VarnishVersion:  env["VARNISH_VERSION"],
+		WebRoot:         env["WARDEN_WEB_ROOT"],
+		Remotes:         make(RemoteConfigMap),
 	}
 
 	if result.ProjectName == "" {
