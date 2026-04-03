@@ -514,7 +514,7 @@ We welcome contributions! Please feel free to submit Pull Requests or open Issue
 
 ## 📜 License
 
-Distributed under the GPL-3.0 License. See `LICENSE` for more information.
+Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 
