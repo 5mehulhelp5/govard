@@ -112,7 +112,7 @@ func TestOpenCommandGuidanceTargets(t *testing.T) {
 	assertContains(t, strings.ToLower(unknownResult.Stdout+unknownResult.Stderr), "unknown target")
 }
 
-func TestDoctorJSONAndDepsWithShims(t *testing.T) {
+func TestDoctorJSONWithShims(t *testing.T) {
 	env := NewTestEnvironment(t)
 	projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "doctor-deps-m2")
 	shim := env.SetupRuntimeShims(t, map[string]int{"docker": 0, "ssh": 0, "rsync": 0})
@@ -122,10 +122,7 @@ func TestDoctorJSONAndDepsWithShims(t *testing.T) {
 		t.Fatalf("expected doctor exit code 0 or 1, got %d\nstderr=%s", doctorResult.ExitCode, doctorResult.Stderr)
 	}
 	assertContains(t, doctorResult.Stdout, `"checks":`)
-
-	depsResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "doctor", "fix-deps")
-	depsResult.AssertSuccess(t)
-	assertContains(t, depsResult.Stdout+depsResult.Stderr, "All required dependencies are available.")
+	assertContains(t, doctorResult.Stdout, `"host.system.deps"`)
 }
 
 func TestDebugStatusAndShellDisabled(t *testing.T) {

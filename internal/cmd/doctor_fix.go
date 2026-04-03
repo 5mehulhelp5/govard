@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"govard/internal/engine"
 
 	"github.com/pterm/pterm"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -38,6 +40,8 @@ var doctorFixHandlers = map[string]doctorFixHandler{
 	"host.search.index_block": unblockSearchIndex,
 	"host.compose.spam":       purgeStaleComposeFiles,
 	"host.govard.registry":    fixGovardRegistry,
+	"project.profile.sync":    tuneProjectProfile,
+	"project.runtime.images":  pullRuntimeImages,
 }
 
 func runDoctorDiagnostics() engine.DoctorReport {
@@ -187,6 +191,149 @@ func fixGovardRegistry(check engine.DoctorCheck) DoctorFixResult {
 		result.Status = DoctorFixStatusFailed
 		result.Message = err.Error()
 		return result
+	}
+
+	return result
+}
+
+func tuneProjectProfile(check engine.DoctorCheck) DoctorFixResult {
+	result := DoctorFixResult{
+		CheckID: strings.TrimSpace(check.ID),
+		Title:   strings.TrimSpace(check.Title),
+		Status:  DoctorFixStatusApplied,
+		Message: "Environment profile synchronized.",
+		Actions: []string{},
+	}
+
+	confirmed, _ := pterm.DefaultInteractiveConfirm.
+		WithDefaultValue(true).
+		Show("Do you want to automatically tune the framework runtime profile now?")
+
+	if !confirmed {
+		result.Status = DoctorFixStatusFailed
+		result.Message = "Skipped by user."
+		return result
+	}
+
+	result.Actions = append(result.Actions, "Tune environment services to match framework profile")
+	wd, _ := os.Getwd()
+	config, _, err := engine.LoadConfigFromDir(wd, false)
+	if err != nil {
+		result.Status = DoctorFixStatusFailed
+		result.Message = err.Error()
+		return result
+	}
+
+	metadata := engine.DetectFramework(wd)
+	version := strings.TrimSpace(metadata.Version)
+	if version == "" {
+		version = strings.TrimSpace(config.FrameworkVersion)
+	}
+
+	profileResult, err := engine.ResolveRuntimeProfile(config.Framework, version)
+	if err != nil {
+		result.Status = DoctorFixStatusFailed
+		result.Message = err.Error()
+		return result
+	}
+
+	existingDBType := strings.TrimSpace(config.Stack.DBType)
+	existingDBVersion := strings.TrimSpace(config.Stack.DBVersion)
+	existingWebServer := strings.TrimSpace(config.Stack.Services.WebServer)
+
+	engine.ApplyRuntimeProfileToConfig(&config, profileResult.Profile)
+
+	// Keep DB version if the user explicitly set a logically newer one to prevent data loss via downgrade
+	if shouldPreserveConfiguredDB(existingDBType, existingDBVersion, config.Stack.DBType, config.Stack.DBVersion) {
+		config.Stack.DBType = existingDBType
+		config.Stack.DBVersion = existingDBVersion
+		result.Actions = append(result.Actions, fmt.Sprintf("Preserved database %s:%s to prevent risk of data loss", existingDBType, existingDBVersion))
+	}
+
+	// Persist the user's explicit web server choice if they explicitly selected apache/nginx
+	if existingWebServer != "" && existingWebServer != config.Stack.Services.WebServer && existingWebServer != "hybrid" {
+		config.Stack.Services.WebServer = existingWebServer
+	}
+
+	engine.NormalizeConfig(&config, wd)
+
+	writableConfig := engine.PrepareConfigForWrite(config)
+	data, err := yaml.Marshal(&writableConfig)
+	if err != nil {
+		result.Status = DoctorFixStatusFailed
+		result.Message = fmt.Sprintf("failed to marshal config: %v", err)
+		return result
+	}
+
+	if err := os.WriteFile(engine.BaseConfigFile, data, 0644); err != nil {
+		result.Status = DoctorFixStatusFailed
+		result.Message = fmt.Sprintf("failed to write config: %v", err)
+		return result
+	}
+
+	result.Message = fmt.Sprintf("Environment updated to %s profile (%s)", config.Framework, profileResult.Source)
+	return result
+}
+
+func pullRuntimeImages(check engine.DoctorCheck) DoctorFixResult {
+	result := DoctorFixResult{
+		CheckID: strings.TrimSpace(check.ID),
+		Title:   strings.TrimSpace(check.Title),
+		Status:  DoctorFixStatusApplied,
+		Message: "Missing runtime images pulled.",
+		Actions: []string{},
+	}
+
+	confirmed, _ := pterm.DefaultInteractiveConfirm.
+		WithDefaultValue(true).
+		Show("Do you want to pull missing Docker images now? This may take several minutes.")
+
+	if !confirmed {
+		result.Status = DoctorFixStatusFailed
+		result.Message = "Skipped by user."
+		return result
+	}
+
+	result.Actions = append(result.Actions, "Inspecting required runtime images")
+
+	wd, err := os.Getwd()
+	if err != nil {
+		result.Status = DoctorFixStatusFailed
+		result.Message = fmt.Sprintf("failed to read working directory: %v", err)
+		return result
+	}
+
+	config, _, err := engine.LoadConfigFromDir(wd, true)
+	if err != nil {
+		result.Status = DoctorFixStatusFailed
+		result.Message = fmt.Sprintf("could not load configuration: %v", err)
+		return result
+	}
+
+	required := engine.RequiredRuntimeImages(config, wd)
+	var missing []string
+	for _, image := range required {
+		if err := exec.Command("docker", "image", "inspect", image).Run(); err != nil {
+			missing = append(missing, image)
+		}
+	}
+
+	if len(missing) == 0 {
+		result.Message = "All required images are already present."
+		return result
+	}
+
+	for _, image := range missing {
+		pterm.Info.Printf("Pulling %s...\n", image)
+		cmd := exec.Command("docker", "pull", image)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			result.Status = DoctorFixStatusFailed
+			result.Message = fmt.Sprintf("failed to pull image %s: %v", image, err)
+			return result
+		}
+		result.Actions = append(result.Actions, fmt.Sprintf("Pulled %s", image))
 	}
 
 	return result

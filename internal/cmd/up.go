@@ -87,9 +87,9 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 				if err != nil {
 					return fmt.Errorf("load layered config: %w", err)
 				}
-				if notes := AutoTuneMagentoRuntime(&context.Config, context.Metadata); len(notes) > 0 {
-					for _, note := range notes {
-						pterm.Info.Println(note)
+				if warnings := CheckMagentoRuntimeSync(context.Config, context.Metadata); len(warnings) > 0 {
+					for _, warning := range warnings {
+						pterm.Warning.Println(warning)
 					}
 				}
 				if context.Quickstart {
@@ -189,7 +189,7 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 		},
 		{
 			Name:         "Start",
-			OnFailureTip: "govard doctor fix-deps",
+			OnFailureTip: "govard doctor",
 			Run: func() error {
 				upArgs := []string{"up", "-d"}
 				if context.RemoveOrphans {
@@ -332,10 +332,10 @@ func ApplyQuickstartProfile(config *engine.Config) {
 	config.Stack.QueueVersion = ""
 }
 
-// AutoTuneMagentoRuntime applies the resolved Magento profile for the detected
-// framework version so service/runtime versions stay compatible per project.
-func AutoTuneMagentoRuntime(config *engine.Config, metadata engine.ProjectMetadata) []string {
-	if config == nil || config.Framework != "magento2" {
+// CheckMagentoRuntimeSync checks the detected Magento framework against configured
+// runtime and returns warnings if there's a mismatch (without auto-tuning).
+func CheckMagentoRuntimeSync(config engine.Config, metadata engine.ProjectMetadata) []string {
+	if config.Framework != "magento2" {
 		return nil
 	}
 
@@ -346,40 +346,27 @@ func AutoTuneMagentoRuntime(config *engine.Config, metadata engine.ProjectMetada
 
 	profileResult, err := engine.ResolveRuntimeProfile("magento2", version)
 	if err != nil {
-		return []string{fmt.Sprintf("Magento runtime auto-tune skipped: %v", err)}
+		return nil // skip check if profile fails to resolve
 	}
 
-	notes := []string{
-		fmt.Sprintf("Magento runtime auto-tune applied (source: %s)", profileResult.Source),
+	var warnings []string
+	p := profileResult.Profile
+
+	if p.PHPVersion != "" && config.Stack.PHPVersion != p.PHPVersion {
+		warnings = append(warnings, fmt.Sprintf("PHP %s (expected %s)", config.Stack.PHPVersion, p.PHPVersion))
+	}
+	if p.Search != "" && config.Stack.Services.Search != "none" && config.Stack.Services.Search != p.Search {
+		warnings = append(warnings, fmt.Sprintf("Search %s (expected %s)", config.Stack.Services.Search, p.Search))
 	}
 
-	existingDBType := strings.TrimSpace(config.Stack.DBType)
-	existingDBVersion := strings.TrimSpace(config.Stack.DBVersion)
-	existingWebServer := strings.TrimSpace(config.Stack.Services.WebServer)
-	engine.ApplyRuntimeProfileToConfig(config, profileResult.Profile)
-
-	if shouldPreserveConfiguredDB(existingDBType, existingDBVersion, config.Stack.DBType, config.Stack.DBVersion) {
-		config.Stack.DBType = existingDBType
-		config.Stack.DBVersion = existingDBVersion
-		notes = append(notes, fmt.Sprintf(
-			"Magento runtime auto-tune kept existing DB version %s:%s to avoid incompatible downgrade from %s:%s",
-			existingDBType,
-			existingDBVersion,
-			profileResult.Profile.DBType,
-			profileResult.Profile.DBVersion,
-		))
-	}
-	if shouldPreserveConfiguredWebServer(existingWebServer, config.Stack.Services.WebServer) {
-		config.Stack.Services.WebServer = existingWebServer
-		notes = append(notes, fmt.Sprintf(
-			"Magento runtime auto-tune kept configured web server %s over tuned %s",
-			existingWebServer,
-			profileResult.Profile.WebServer,
-		))
+	if len(warnings) > 0 {
+		return []string{fmt.Sprintf(
+			"Magento %s expects different services: %s. Run 'govard doctor --fix' to align.",
+			version, strings.Join(warnings, ", "),
+		)}
 	}
 
-	engine.NormalizeConfig(config, "")
-	return notes
+	return nil
 }
 
 func shouldPreserveConfiguredDB(existingType, existingVersion, tunedType, tunedVersion string) bool {
@@ -397,20 +384,6 @@ func shouldPreserveConfiguredDB(existingType, existingVersion, tunedType, tunedV
 
 	comparison, comparable := compareNumericDotVersions(existingVersion, tunedVersion)
 	return comparable && comparison > 0
-}
-
-func shouldPreserveConfiguredWebServer(existingWebServer, tunedWebServer string) bool {
-	existing := strings.ToLower(strings.TrimSpace(existingWebServer))
-	tuned := strings.ToLower(strings.TrimSpace(tunedWebServer))
-	if existing == "" || existing == tuned {
-		return false
-	}
-	switch existing {
-	case "nginx", "apache", "hybrid":
-		return true
-	default:
-		return false
-	}
 }
 
 func compareNumericDotVersions(left, right string) (int, bool) {

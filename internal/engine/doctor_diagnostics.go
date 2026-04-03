@@ -60,6 +60,9 @@ type DoctorDependencies struct {
 	CheckSSHAgentStatus      func() (string, error)
 	CheckComposeSpam         func() error
 	CheckGovardRegistry      func() error
+	CheckProfileSync         func() error
+	CheckSystemDependencies  func() []string
+	CheckRuntimeImages       func() ([]string, error)
 }
 
 func RunDoctorDiagnostics(dependencies DoctorDependencies) DoctorReport {
@@ -93,9 +96,18 @@ func RunDoctorDiagnostics(dependencies DoctorDependencies) DoctorReport {
 	if dependencies.CheckGovardRegistry == nil {
 		dependencies.CheckGovardRegistry = CheckGovardRegistry
 	}
+	if dependencies.CheckProfileSync == nil {
+		dependencies.CheckProfileSync = CheckProfileSync
+	}
+	if dependencies.CheckSystemDependencies == nil {
+		dependencies.CheckSystemDependencies = CheckSystemDependencies
+	}
+	if dependencies.CheckRuntimeImages == nil {
+		dependencies.CheckRuntimeImages = CheckRuntimeImages
+	}
 
 	report := DoctorReport{
-		Checks: make([]DoctorCheck, 0, 8),
+		Checks: make([]DoctorCheck, 0, 10),
 	}
 
 	if err := dependencies.CheckDockerStatus(); err != nil {
@@ -105,7 +117,7 @@ func RunDoctorDiagnostics(dependencies DoctorDependencies) DoctorReport {
 			Status:           DoctorStatusFail,
 			Message:          fmt.Sprintf("Docker is not running or not accessible: %v", err),
 			Hint:             "Start Docker Desktop/daemon and verify current user can access Docker socket.",
-			SuggestedCommand: "govard doctor fix-deps",
+			SuggestedCommand: "systemctl start docker",
 		})
 	} else {
 		report.Checks = append(report.Checks, DoctorCheck{
@@ -123,7 +135,7 @@ func RunDoctorDiagnostics(dependencies DoctorDependencies) DoctorReport {
 			Status:           DoctorStatusFail,
 			Message:          err.Error(),
 			Hint:             "Install or enable the Docker Compose v2 plugin.",
-			SuggestedCommand: "govard doctor fix-deps",
+			SuggestedCommand: "docker compose version",
 		})
 	} else {
 		report.Checks = append(report.Checks, DoctorCheck{
@@ -293,6 +305,66 @@ func RunDoctorDiagnostics(dependencies DoctorDependencies) DoctorReport {
 			Title:   "Project registry file",
 			Status:  DoctorStatusPass,
 			Message: "Project registry is healthy.",
+		})
+	}
+
+	if err := dependencies.CheckProfileSync(); err != nil {
+		report.Checks = append(report.Checks, DoctorCheck{
+			ID:               "project.profile.sync",
+			Title:            "Framework version profile",
+			Status:           DoctorStatusWarn,
+			Message:          err.Error(),
+			Hint:             "Run doctor --fix to automatically auto-tune your environment to the recommended profile.",
+			SuggestedCommand: "govard doctor --fix",
+		})
+	} else {
+		report.Checks = append(report.Checks, DoctorCheck{
+			ID:      "project.profile.sync",
+			Title:   "Framework version profile",
+			Status:  DoctorStatusPass,
+			Message: "Runtime environment is synced with the recommended framework profile.",
+		})
+	}
+
+	if missing := dependencies.CheckSystemDependencies(); len(missing) > 0 {
+		report.Checks = append(report.Checks, DoctorCheck{
+			ID:      "host.system.deps",
+			Title:   "Host system dependencies",
+			Status:  DoctorStatusFail,
+			Message: fmt.Sprintf("Missing required system dependencies: %s", strings.Join(missing, ", ")),
+			Hint:    "Please install the missing tools using your system package manager.",
+		})
+	} else {
+		report.Checks = append(report.Checks, DoctorCheck{
+			ID:      "host.system.deps",
+			Title:   "Host system dependencies",
+			Status:  DoctorStatusPass,
+			Message: "All required system dependencies are installed.",
+		})
+	}
+
+	if missingImages, err := dependencies.CheckRuntimeImages(); err != nil {
+		report.Checks = append(report.Checks, DoctorCheck{
+			ID:      "project.runtime.images",
+			Title:   "Docker runtime images",
+			Status:  DoctorStatusWarn,
+			Message: fmt.Sprintf("Failed to check runtime images: %v", err),
+		})
+	} else if len(missingImages) > 0 {
+		report.Checks = append(report.Checks, DoctorCheck{
+			ID:               "project.runtime.images",
+			Title:            "Docker runtime images",
+			Status:           DoctorStatusWarn,
+			Message:          fmt.Sprintf("Missing %d required Docker image(s)", len(missingImages)),
+			Hint:             fmt.Sprintf("Missing images: %s. Run doctor --fix to pull them automatically.", strings.Join(missingImages, ", ")),
+			SuggestedCommand: "govard doctor --fix",
+		})
+	} else {
+		report.Checks = append(report.Checks, DoctorCheck{
+			ID:      "project.runtime.images",
+			Title:   "Docker runtime images",
+			Status:  DoctorStatusPass,
+			Message: "All required Docker runtime images are cached locally.",
 		})
 	}
 
@@ -476,4 +548,92 @@ func loadConfig() Config {
 		return Config{}
 	}
 	return config
+}
+
+func CheckProfileSync() error {
+	config := loadConfig()
+	if config.Framework == "" || config.Framework == "generic" || config.Framework == "custom" {
+		return nil
+	}
+
+	wd, _ := os.Getwd()
+	metadata := DetectFramework(wd)
+
+	version := strings.TrimSpace(metadata.Version)
+	if version == "" {
+		version = strings.TrimSpace(config.FrameworkVersion)
+	}
+
+	profileResult, err := ResolveRuntimeProfile(config.Framework, version)
+	if err != nil {
+		return nil // skip check if profile resolution fails
+	}
+
+	mismatches := []string{}
+	p := profileResult.Profile
+
+	if p.PHPVersion != "" && config.Stack.PHPVersion != p.PHPVersion {
+		mismatches = append(mismatches, fmt.Sprintf("PHP %s (expected %s)", config.Stack.PHPVersion, p.PHPVersion))
+	}
+	// For database, we just warn if it's completely different
+	if p.DBType != "" && config.Stack.DBType != "" && config.Stack.DBType != p.DBType {
+		mismatches = append(mismatches, fmt.Sprintf("DB %s (expected %s)", config.Stack.DBType, p.DBType))
+	}
+	if p.Search != "" && config.Stack.Services.Search != "none" && config.Stack.Services.Search != p.Search {
+		mismatches = append(mismatches, fmt.Sprintf("Search %s (expected %s)", config.Stack.Services.Search, p.Search))
+	}
+
+	if len(mismatches) > 0 {
+		return fmt.Errorf("%s %s environment is out of sync: %s", config.Framework, version, strings.Join(mismatches, ", "))
+	}
+
+	return nil
+}
+
+func CheckSystemDependencies() []string {
+	missing := make([]string, 0, 4)
+
+	if _, err := exec.LookPath("docker"); err != nil {
+		missing = append(missing, "docker")
+	} else if err := exec.Command("docker", "compose", "version").Run(); err != nil {
+		missing = append(missing, "docker compose plugin")
+	}
+
+	if _, err := exec.LookPath("ssh"); err != nil {
+		missing = append(missing, "ssh")
+	}
+
+	if _, err := exec.LookPath("rsync"); err != nil {
+		missing = append(missing, "rsync")
+	}
+
+	return missing
+}
+
+func CheckRuntimeImages() ([]string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return nil, fmt.Errorf("could not read working directory: %w", err)
+	}
+
+	config, _, err := LoadConfigFromDir(cwd, true)
+	if err != nil {
+		if strings.Contains(err.Error(), BaseConfigFile+" not found") {
+			return nil, nil // no project, no required images
+		}
+		return nil, err
+	}
+
+	required := RequiredRuntimeImages(config, cwd)
+	if len(required) == 0 {
+		return nil, nil
+	}
+
+	missing := make([]string, 0, len(required))
+	for _, image := range required {
+		if err := exec.Command("docker", "image", "inspect", image).Run(); err != nil {
+			missing = append(missing, image)
+		}
+	}
+	return missing, nil
 }

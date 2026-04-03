@@ -64,8 +64,8 @@ func TestRunDoctorDiagnosticsComposeFailure(t *testing.T) {
 		if check.Status != engine.DoctorStatusFail {
 			t.Fatalf("expected docker.compose fail status, got %s", check.Status)
 		}
-		if check.SuggestedCommand != "govard doctor fix-deps" {
-			t.Fatalf("expected suggested command govard doctor fix-deps, got %s", check.SuggestedCommand)
+		if check.SuggestedCommand != "docker compose version" {
+			t.Fatalf("expected suggested command docker compose version, got %s", check.SuggestedCommand)
 		}
 	}
 	if !found {

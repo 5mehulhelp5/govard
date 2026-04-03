@@ -130,135 +130,52 @@ func TestApplyQuickstartProfileDisablesOptionalServices(t *testing.T) {
 	}
 }
 
-func TestAutoTuneMagentoRuntimeAppliesVersionProfile(t *testing.T) {
+func TestCheckMagentoRuntimeSyncReturnsWarnings(t *testing.T) {
 	config := engine.Config{
 		Framework: "magento2",
 		Stack: engine.Stack{
-			PHPVersion: "8.4",
-			DBType:     "mariadb",
-			DBVersion:  "11.4",
+			PHPVersion: "8.1", // Out of sync (expected 8.3)
 			Services: engine.Services{
-				Cache:  "valkey",
+				Search: "elasticsearch", // Out of sync (expected opensearch)
+			},
+		},
+	}
+
+	warnings := cmd.CheckMagentoRuntimeSync(config, engine.ProjectMetadata{
+		Framework: "magento2",
+		Version:   "2.4.7-p3",
+	})
+
+	if len(warnings) == 0 {
+		t.Fatal("expected warnings for out of sync profile")
+	}
+
+	warningMsg := warnings[0]
+	if !strings.Contains(warningMsg, "PHP 8.1 (expected 8.3)") {
+		t.Errorf("expected warning about PHP mismatch, got: %s", warningMsg)
+	}
+	if !strings.Contains(warningMsg, "Search elasticsearch (expected opensearch)") {
+		t.Errorf("expected warning about Search mismatch, got: %s", warningMsg)
+	}
+}
+
+func TestCheckMagentoRuntimeSyncReturnsNilWhenSynced(t *testing.T) {
+	config := engine.Config{
+		Framework: "magento2",
+		Stack: engine.Stack{
+			PHPVersion: "8.3",
+			Services: engine.Services{
 				Search: "opensearch",
-				Queue:  "none",
 			},
-			CacheVersion:  "8.0.0",
-			SearchVersion: "2.19.0",
 		},
 	}
 
-	notes := cmd.AutoTuneMagentoRuntime(&config, engine.ProjectMetadata{
+	warnings := cmd.CheckMagentoRuntimeSync(config, engine.ProjectMetadata{
 		Framework: "magento2",
 		Version:   "2.4.7-p3",
 	})
 
-	if len(notes) == 0 {
-		t.Fatal("expected autotune notes")
-	}
-	if config.Stack.PHPVersion != "8.3" {
-		t.Fatalf("expected autotuned PHP 8.3, got %s", config.Stack.PHPVersion)
-	}
-	if config.Stack.DBVersion != "11.4" {
-		t.Fatalf("expected existing DB 11.4 preserved, got %s", config.Stack.DBVersion)
-	}
-	if config.Stack.Services.Cache != "redis" {
-		t.Fatalf("expected autotuned cache redis, got %s", config.Stack.Services.Cache)
-	}
-	if config.Stack.Services.Queue != "rabbitmq" {
-		t.Fatalf("expected autotuned queue rabbitmq, got %s", config.Stack.Services.Queue)
-	}
-	if config.Stack.SearchVersion != "2.12.0" {
-		t.Fatalf("expected autotuned search 2.12.0, got %s", config.Stack.SearchVersion)
-	}
-	hasPreserveNote := false
-	for _, note := range notes {
-		if strings.Contains(note, "kept existing DB version") {
-			hasPreserveNote = true
-			break
-		}
-	}
-	if !hasPreserveNote {
-		t.Fatalf("expected preserve DB note, got: %v", notes)
-	}
-}
-
-func TestAutoTuneMagentoRuntimeAllowsDBUpgrade(t *testing.T) {
-	config := engine.Config{
-		Framework: "magento2",
-		Stack: engine.Stack{
-			DBType:    "mariadb",
-			DBVersion: "10.4",
-		},
-	}
-
-	cmd.AutoTuneMagentoRuntime(&config, engine.ProjectMetadata{
-		Framework: "magento2",
-		Version:   "2.4.7-p3",
-	})
-
-	if config.Stack.DBVersion != "10.6" {
-		t.Fatalf("expected DB upgrade to 10.6, got %s", config.Stack.DBVersion)
-	}
-}
-
-func TestAutoTuneMagentoRuntimePreservesConfiguredApacheWebServer(t *testing.T) {
-	config := engine.Config{
-		Framework: "magento2",
-		Stack: engine.Stack{
-			Services: engine.Services{
-				WebServer: "apache",
-			},
-		},
-	}
-
-	notes := cmd.AutoTuneMagentoRuntime(&config, engine.ProjectMetadata{
-		Framework: "magento2",
-		Version:   "2.4.8-p3",
-	})
-
-	if config.Stack.Services.WebServer != "apache" {
-		t.Fatalf("expected configured apache web server to be preserved, got %s", config.Stack.Services.WebServer)
-	}
-
-	foundPreserveNote := false
-	for _, note := range notes {
-		if strings.Contains(note, "kept configured web server") {
-			foundPreserveNote = true
-			break
-		}
-	}
-	if !foundPreserveNote {
-		t.Fatalf("expected preserve web server note, got: %v", notes)
-	}
-}
-
-func TestAutoTuneMagentoRuntimePreservesConfiguredHybridWebServer(t *testing.T) {
-	config := engine.Config{
-		Framework: "magento2",
-		Stack: engine.Stack{
-			Services: engine.Services{
-				WebServer: "hybrid",
-			},
-		},
-	}
-
-	notes := cmd.AutoTuneMagentoRuntime(&config, engine.ProjectMetadata{
-		Framework: "magento2",
-		Version:   "2.4.8-p3",
-	})
-
-	if config.Stack.Services.WebServer != "hybrid" {
-		t.Fatalf("expected configured hybrid web server to be preserved, got %s", config.Stack.Services.WebServer)
-	}
-
-	foundPreserveNote := false
-	for _, note := range notes {
-		if strings.Contains(note, "kept configured web server") {
-			foundPreserveNote = true
-			break
-		}
-	}
-	if !foundPreserveNote {
-		t.Fatalf("expected preserve web server note, got: %v", notes)
+	if len(warnings) > 0 {
+		t.Fatalf("expected no warnings for synced profile, got: %v", warnings)
 	}
 }

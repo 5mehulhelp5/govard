@@ -111,18 +111,6 @@ var doctorTrustCmd = &cobra.Command{
 	},
 }
 
-var doctorFixDepsCmd = &cobra.Command{
-	Use:   "fix-deps",
-	Short: "Check and report required system dependencies",
-	Args:  cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if fixDepsCmd.RunE == nil {
-			return fmt.Errorf("doctor fix-deps is unavailable")
-		}
-		return fixDepsCmd.RunE(cmd, args)
-	},
-}
-
 func renderDoctorReport(report engine.DoctorReport) {
 	for _, check := range report.Checks {
 		line := fmt.Sprintf("%s: %s", check.Title, check.Message)
@@ -163,5 +151,4 @@ func init() {
 	doctorCmd.Flags().Bool("pack", false, "Export a diagnostics support pack")
 	doctorCmd.Flags().String("pack-dir", "", "Output directory for diagnostics pack (default: ~/.govard/diagnostics)")
 	doctorCmd.AddCommand(doctorTrustCmd)
-	doctorCmd.AddCommand(doctorFixDepsCmd)
 }

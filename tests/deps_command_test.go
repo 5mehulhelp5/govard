@@ -3,12 +3,11 @@ package tests
 import (
 	"testing"
 
-	"govard/internal/cmd"
 	"govard/internal/engine"
 )
 
 func TestRequiredRuntimeImagesMagento(t *testing.T) {
-	images := cmd.RequiredRuntimeImages(engine.Config{
+	images := engine.RequiredRuntimeImages(engine.Config{
 		Framework: "magento2",
 		Stack: engine.Stack{
 			PHPVersion:    "8.3",
@@ -49,7 +48,7 @@ func TestRequiredRuntimeImagesMagento(t *testing.T) {
 }
 
 func TestRequiredRuntimeImagesNextjs(t *testing.T) {
-	images := cmd.RequiredRuntimeImages(engine.Config{
+	images := engine.RequiredRuntimeImages(engine.Config{
 		Framework: "nextjs",
 		Stack: engine.Stack{
 			NodeVersion:  "24",
@@ -81,7 +80,7 @@ func TestRequiredRuntimeImagesNextjs(t *testing.T) {
 }
 
 func TestRequiredRuntimeImagesMagentoHybrid(t *testing.T) {
-	images := cmd.RequiredRuntimeImages(engine.Config{
+	images := engine.RequiredRuntimeImages(engine.Config{
 		Framework: "magento2",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
