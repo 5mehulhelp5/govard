@@ -17,6 +17,7 @@ import (
 const (
 	DoctorFixStatusApplied     = "applied"
 	DoctorFixStatusFailed      = "failed"
+	DoctorFixStatusSkipped     = "skipped"
 	DoctorFixStatusUnavailable = "unavailable"
 )
 
@@ -42,7 +43,7 @@ var doctorFixHandlers = map[string]doctorFixHandler{
 	"host.govard.registry":    fixGovardRegistry,
 	"project.profile.sync":    tuneProjectProfile,
 	"project.runtime.images":  pullRuntimeImages,
-	"project.config.legacy":   fixLegacyConfig,
+	"project.config.audit":    fixLegacyConfig,
 }
 
 func runDoctorDiagnostics() engine.DoctorReport {
@@ -100,13 +101,13 @@ func fixGovardHomeDirectory(check engine.DoctorCheck) DoctorFixResult {
 	for _, dir := range dirs {
 		result.Actions = append(result.Actions, fmt.Sprintf("mkdir -p %s", dir))
 		if err := os.MkdirAll(dir, 0o700); err != nil {
-			result.Status = DoctorFixStatusFailed
+			result.Status = DoctorFixStatusSkipped
 			result.Message = err.Error()
 			return result
 		}
 		result.Actions = append(result.Actions, fmt.Sprintf("chmod 700 %s", dir))
 		if err := os.Chmod(dir, 0o700); err != nil {
-			result.Status = DoctorFixStatusFailed
+			result.Status = DoctorFixStatusSkipped
 			result.Message = err.Error()
 			return result
 		}
@@ -114,7 +115,7 @@ func fixGovardHomeDirectory(check engine.DoctorCheck) DoctorFixResult {
 
 	result.Actions = append(result.Actions, fmt.Sprintf("write probe file in %s", homeDir))
 	if err := engine.CheckGovardHomeWritable(); err != nil {
-		result.Status = DoctorFixStatusFailed
+		result.Status = DoctorFixStatusSkipped
 		result.Message = err.Error()
 		return result
 	}
@@ -134,7 +135,7 @@ func unblockSearchIndex(check engine.DoctorCheck) DoctorFixResult {
 	config := loadConfig()
 	result.Actions = append(result.Actions, "unblock search index via docker exec curl")
 	if err := engine.FixElasticsearchIndexBlock(config.ProjectName, config); err != nil {
-		result.Status = DoctorFixStatusFailed
+		result.Status = DoctorFixStatusSkipped
 		result.Message = err.Error()
 		return result
 	}
@@ -154,7 +155,7 @@ func purgeStaleComposeFiles(check engine.DoctorCheck) DoctorFixResult {
 	result.Actions = append(result.Actions, "Purging compose files older than 7 days")
 	count, err := engine.CleanupStaleComposeFiles(7 * 24 * time.Hour)
 	if err != nil {
-		result.Status = DoctorFixStatusFailed
+		result.Status = DoctorFixStatusSkipped
 		result.Message = err.Error()
 		return result
 	}
@@ -178,7 +179,7 @@ func fixGovardRegistry(check engine.DoctorCheck) DoctorFixResult {
 		if os.IsNotExist(err) {
 			return result
 		}
-		result.Status = DoctorFixStatusFailed
+		result.Status = DoctorFixStatusSkipped
 		result.Message = err.Error()
 		return result
 	}
@@ -189,7 +190,7 @@ func fixGovardRegistry(check engine.DoctorCheck) DoctorFixResult {
 
 	result.Actions = append(result.Actions, fmt.Sprintf("rm -rf %s", path))
 	if err := os.RemoveAll(path); err != nil {
-		result.Status = DoctorFixStatusFailed
+		result.Status = DoctorFixStatusSkipped
 		result.Message = err.Error()
 		return result
 	}
@@ -211,7 +212,7 @@ func tuneProjectProfile(check engine.DoctorCheck) DoctorFixResult {
 		Show("Do you want to automatically tune the framework runtime profile now?")
 
 	if !confirmed {
-		result.Status = DoctorFixStatusFailed
+		result.Status = DoctorFixStatusSkipped
 		result.Message = "Skipped by user."
 		return result
 	}
@@ -290,7 +291,7 @@ func pullRuntimeImages(check engine.DoctorCheck) DoctorFixResult {
 		Show("Do you want to pull missing Docker images now? This may take several minutes.")
 
 	if !confirmed {
-		result.Status = DoctorFixStatusFailed
+		result.Status = DoctorFixStatusSkipped
 		result.Message = "Skipped by user."
 		return result
 	}
@@ -466,6 +467,8 @@ func renderDoctorFixResults(results []DoctorFixResult) {
 		case DoctorFixStatusFailed:
 			failed++
 			pterm.Error.Println(line)
+		case DoctorFixStatusSkipped:
+			pterm.Info.Println(line)
 		default:
 			unavailable++
 			pterm.Warning.Println(line)
@@ -500,10 +503,16 @@ func summarizeDoctorFixResults(results []DoctorFixResult) []string {
 			applied++
 		case DoctorFixStatusFailed:
 			failed++
+		case DoctorFixStatusSkipped:
+			// No count increment for skips
 		default:
 			unavailable++
 		}
-		lines = append(lines, fmt.Sprintf("Doctor --fix: %s (%s): %s", result.Title, result.CheckID, result.Message))
+		prefix := "Doctor --fix"
+		if result.Status == DoctorFixStatusSkipped {
+			prefix = "Doctor --skip"
+		}
+		lines = append(lines, fmt.Sprintf("%s: %s (%s): %s", prefix, result.Title, result.CheckID, result.Message))
 		for _, action := range result.Actions {
 			lines = append(lines, fmt.Sprintf("Doctor --fix action: %s", action))
 		}

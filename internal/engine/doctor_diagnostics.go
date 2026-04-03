@@ -314,6 +314,27 @@ func RunDoctorDiagnostics(dependencies DoctorDependencies) DoctorReport {
 		})
 	}
 
+	if err := dependencies.CheckLegacyConfig(); err != nil {
+		report.Checks = append(report.Checks, DoctorCheck{
+			ID:               "project.config.audit",
+			Title:            "Configuration audit",
+			Status:           DoctorStatusWarn,
+			Message:          err.Error(),
+			Hint:             "Run doctor --fix to automatically migrate your .govard.yml to the new standard.",
+			SuggestedCommand: "govard doctor --fix",
+		})
+	} else {
+		// Only report pass if base config exists and is healthy
+		if _, err := os.Stat(BaseConfigFile); err == nil {
+			report.Checks = append(report.Checks, DoctorCheck{
+				ID:      "project.config.audit",
+				Title:   "Configuration audit",
+				Status:  DoctorStatusPass,
+				Message: "Configuration file is using current naming standards.",
+			})
+		}
+	}
+
 	if err := dependencies.CheckProfileSync(); err != nil {
 		report.Checks = append(report.Checks, DoctorCheck{
 			ID:               "project.profile.sync",
@@ -372,27 +393,6 @@ func RunDoctorDiagnostics(dependencies DoctorDependencies) DoctorReport {
 			Status:  DoctorStatusPass,
 			Message: "All required Docker runtime images are cached locally.",
 		})
-	}
-
-	if err := dependencies.CheckLegacyConfig(); err != nil {
-		report.Checks = append(report.Checks, DoctorCheck{
-			ID:               "project.config.legacy",
-			Title:            "Legacy configuration naming",
-			Status:           DoctorStatusWarn,
-			Message:          err.Error(),
-			Hint:             "Run doctor --fix to automatically migrate your .govard.yml to the new standard.",
-			SuggestedCommand: "govard doctor --fix",
-		})
-	} else {
-		// Only report pass if base config exists and is healthy
-		if _, err := os.Stat(BaseConfigFile); err == nil {
-			report.Checks = append(report.Checks, DoctorCheck{
-				ID:      "project.config.legacy",
-				Title:   "Legacy configuration naming",
-				Status:  DoctorStatusPass,
-				Message: "Configuration file is using current naming standards.",
-			})
-		}
 	}
 
 	for _, check := range report.Checks {
@@ -671,29 +671,40 @@ func CheckLegacyConfig() error {
 		return nil // skip if no config
 	}
 
-	var raw map[string]interface{}
-	if err := yaml.Unmarshal(data, &raw); err != nil {
+	var root yaml.Node
+	if err := yaml.Unmarshal(data, &root); err != nil {
 		return nil // invalid yaml will be caught by other checks
 	}
 
-	stackRaw, ok := raw["stack"].(map[string]interface{})
-	if !ok {
-		return nil
-	}
-
 	foundLegacy := []string{}
-	if _, ok := stackRaw["db_type"]; ok {
-		foundLegacy = append(foundLegacy, "db_type")
+	legacyKeys := map[string]bool{
+		"db_type":       true,
+		"redis":         true,
+		"elasticsearch": true,
+		"rabbitmq":      true,
 	}
 
-	if featuresRaw, ok := stackRaw["features"].(map[string]interface{}); ok {
-		legacyFeatures := []string{"redis", "elasticsearch", "rabbitmq"}
-		for _, lf := range legacyFeatures {
-			if _, ok := featuresRaw[lf]; ok {
-				foundLegacy = append(foundLegacy, lf)
+	// Recursive node search to find legacy keys at any level
+	var findLegacy func(*yaml.Node)
+	findLegacy = func(node *yaml.Node) {
+		switch node.Kind {
+		case yaml.MappingNode:
+			for i := 0; i < len(node.Content); i += 2 {
+				keyNode := node.Content[i]
+				valNode := node.Content[i+1]
+				if keyNode.Kind == yaml.ScalarNode && legacyKeys[keyNode.Value] {
+					foundLegacy = append(foundLegacy, keyNode.Value)
+				}
+				findLegacy(valNode)
+			}
+		case yaml.DocumentNode, yaml.SequenceNode:
+			for _, child := range node.Content {
+				findLegacy(child)
 			}
 		}
 	}
+
+	findLegacy(&root)
 
 	if len(foundLegacy) > 0 {
 		return fmt.Errorf("found %d legacy configuration key(s): %s", len(foundLegacy), strings.Join(foundLegacy, ", "))
