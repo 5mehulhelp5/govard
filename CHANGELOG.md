@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.42.1] - 2026-04-03
+
+### ✨ New Features
+
+- **Remotes:** Added interactive SSH port configuration to the `remote add` command, ensuring users are prompted for non-standard ports during environment onboarding.
+- **CLI:** Reordered `remote add` interactive prompts to follow a more logical connection flow: `host` -> `user` -> `port` -> `path`.
+
 ## [1.42.0] - 2026-04-03
 
 ### ✨ New Features
