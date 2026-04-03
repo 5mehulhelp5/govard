@@ -13,6 +13,12 @@ import (
 func TestNormalizeConfigDefaultsMagento2(t *testing.T) {
 	config := engine.Config{
 		Framework: "magento2",
+		Stack: engine.Stack{
+			Features: engine.Features{
+				Cache:  true,
+				Search: true,
+			},
+		},
 	}
 
 	engine.NormalizeConfig(&config, "")
@@ -60,6 +66,9 @@ func TestNormalizeConfigQueueDefaults(t *testing.T) {
 	config := engine.Config{
 		Framework: "magento2",
 		Stack: engine.Stack{
+			Features: engine.Features{
+				Queue: true,
+			},
 			Services: engine.Services{
 				Queue: "rabbitmq",
 			},
@@ -77,6 +86,13 @@ func TestNormalizeConfigVersionAwareDefaultsMagento2(t *testing.T) {
 	config := engine.Config{
 		Framework:        "magento2",
 		FrameworkVersion: "2.4.7-p3",
+		Stack: engine.Stack{
+			Features: engine.Features{
+				Cache:  true,
+				Search: true,
+				Queue:  true,
+			},
+		},
 	}
 
 	engine.NormalizeConfig(&config, "")
@@ -117,6 +133,10 @@ func TestNormalizeConfigCacheAndSearchVersions(t *testing.T) {
 	config := engine.Config{
 		Framework: "magento2",
 		Stack: engine.Stack{
+			Features: engine.Features{
+				Cache:  true,
+				Search: true,
+			},
 			Services: engine.Services{
 				Cache:  "valkey",
 				Search: "opensearch",
@@ -227,11 +247,13 @@ func TestPrepareConfigForWriteKeepsRuntimeProfileDefaults(t *testing.T) {
 				Search:    profile.Search,
 				Cache:     profile.Cache,
 				Queue:     profile.Queue,
+				DB:        profile.DBType,
 			},
 			Features: engine.Features{
-				Xdebug:        true,
-				Redis:         profile.Cache != "none",
-				Elasticsearch: profile.Search != "none",
+				Xdebug: true,
+				Cache:  true,
+				Search: true,
+				Queue:  true,
 			},
 		},
 		Remotes: map[string]engine.RemoteConfig{},
@@ -248,7 +270,6 @@ func TestPrepareConfigForWriteKeepsRuntimeProfileDefaults(t *testing.T) {
 	for _, key := range []string{
 		"php_version:",
 		"node_version:",
-		"db_type:",
 		"db_version:",
 		"web_root:",
 		"cache_version:",
@@ -258,7 +279,7 @@ func TestPrepareConfigForWriteKeepsRuntimeProfileDefaults(t *testing.T) {
 		"search:",
 		"cache:",
 		"queue:",
-		"remotes:",
+		"db:",
 	} {
 		if !strings.Contains(content, key) {
 			t.Fatalf("expected %q to be present in serialized config, got:\n%s", key, content)
@@ -279,20 +300,22 @@ func TestPrepareConfigForWriteKeepsRuntimeProfileDefaults(t *testing.T) {
 	if !strings.Contains(content, "xdebug: true") {
 		t.Fatalf("expected xdebug feature to be serialized, got:\n%s", content)
 	}
-	if strings.Contains(content, "redis:") {
-		t.Fatalf("expected derived feature redis to be omitted, got:\n%s", content)
+	if strings.Contains(content, "cache: true") {
+		t.Fatalf("expected feature cache to be OMITTED from YAML, got:\n%s", content)
 	}
-	if strings.Contains(content, "elasticsearch:") {
-		t.Fatalf("expected derived feature elasticsearch to be omitted, got:\n%s", content)
+	if strings.Contains(content, "search: true") {
+		t.Fatalf("expected feature search to be OMITTED from YAML, got:\n%s", content)
 	}
 }
 
 func TestPrepareConfigForWriteKeepsNonDefaultRuntimeOverrides(t *testing.T) {
 	config := engine.Config{
-		Framework:        "magento2",
-		FrameworkVersion: "2.4.7-p3",
+		Framework: "magento2",
 		Stack: engine.Stack{
-			PHPVersion: "8.2",
+			PHPVersion: "8.1",
+			Features: engine.Features{
+				Cache: true,
+			},
 			Services: engine.Services{
 				Cache: "valkey",
 			},
@@ -300,7 +323,7 @@ func TestPrepareConfigForWriteKeepsNonDefaultRuntimeOverrides(t *testing.T) {
 	}
 
 	writable := engine.PrepareConfigForWrite(config)
-	if writable.Stack.PHPVersion != "8.2" {
+	if writable.Stack.PHPVersion != "8.1" {
 		t.Fatalf("expected non-default php_version to remain, got %q", writable.Stack.PHPVersion)
 	}
 	if writable.Stack.Services.Cache != "valkey" {

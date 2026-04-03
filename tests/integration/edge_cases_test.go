@@ -239,10 +239,10 @@ func TestEdgeCaseDuplicateFeatureFlags(t *testing.T) {
 			PHPVersion: "8.3",
 			WebServer:  "nginx",
 			Features: engine.Features{
-				Xdebug:        true,
-				Redis:         true,
-				Varnish:       true,
-				Elasticsearch: true,
+				Xdebug:  true,
+				Cache:   true,
+				Varnish: true,
+				Search:  true,
 			},
 			Services: engine.Services{
 				WebServer: "nginx",
@@ -295,9 +295,9 @@ func TestEdgeCaseNilConfigFeatures(t *testing.T) {
 	engine.NormalizeConfig(&config, "")
 
 	if config.Stack.Features.Xdebug &&
-		config.Stack.Features.Redis &&
+		config.Stack.Features.Cache &&
 		config.Stack.Features.Varnish &&
-		config.Stack.Features.Elasticsearch {
+		config.Stack.Features.Search {
 		t.Error("Features should be false by default")
 	}
 }

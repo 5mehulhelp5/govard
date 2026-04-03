@@ -206,7 +206,7 @@ func TestServiceWrapperCommandsWithShims(t *testing.T) {
 	t.Run("RedisSwitchesToValkeyCLI", func(t *testing.T) {
 		projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "service-redis-valkey-m2")
 		overridePath := filepath.Join(projectDir, ".govard.local.yml")
-		if err := os.WriteFile(overridePath, []byte("stack:\n  services:\n    cache: valkey\n"), 0o644); err != nil {
+		if err := os.WriteFile(overridePath, []byte("stack:\n  features:\n    redis: true\n  services:\n    cache: valkey\n"), 0o644); err != nil {
 			t.Fatalf("failed to write .govard.local.yml: %v", err)
 		}
 
@@ -229,7 +229,7 @@ func TestServiceWrapperCommandsWithShims(t *testing.T) {
 		guardResult.AssertSuccess(t)
 		assertContains(t, guardResult.Stdout+guardResult.Stderr, "Valkey is not enabled")
 
-		if err := os.WriteFile(overridePath, []byte("stack:\n  services:\n    cache: valkey\n"), 0o644); err != nil {
+		if err := os.WriteFile(overridePath, []byte("stack:\n  features:\n    redis: true\n  services:\n    cache: valkey\n"), 0o644); err != nil {
 			t.Fatalf("failed to write .govard.local.yml: %v", err)
 		}
 

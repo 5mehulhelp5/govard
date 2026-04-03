@@ -329,11 +329,11 @@ func ApplyQuickstartProfile(config *engine.Config) {
 
 	config.Stack.Services.Search = "none"
 	config.Stack.SearchVersion = ""
-	config.Stack.Features.Elasticsearch = false
+	config.Stack.Features.Search = false
 
 	config.Stack.Services.Cache = "none"
 	config.Stack.CacheVersion = ""
-	config.Stack.Features.Redis = false
+	config.Stack.Features.Cache = false
 
 	config.Stack.Services.Queue = "none"
 	config.Stack.QueueVersion = ""

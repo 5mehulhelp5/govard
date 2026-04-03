@@ -157,7 +157,7 @@ Case Studies:
 		nodeVersion := profileResult.Profile.NodeVersion
 		xdebugSession := profileResult.Profile.XdebugSession
 		webRoot := profileResult.Profile.WebRoot
-		enableVarnish := false
+		enableVarnish := metadata.Framework == "magento2" && migrateFrom == "" && !hasExistingConfig
 
 		if metadata.Framework == "custom" {
 			pterm.Info.Println("Customize your stack services for the custom framework.")
@@ -211,6 +211,9 @@ Case Studies:
 				Features: engine.Features{
 					Xdebug:  true,
 					Varnish: enableVarnish,
+					Cache:   cache != "" && cache != "none",
+					Search:  search != "" && search != "none",
+					Queue:   queue != "" && queue != "none",
 				},
 			},
 		}
@@ -237,20 +240,39 @@ Case Studies:
 		if migrated.WebRoot != "" {
 			config.Stack.WebRoot = migrated.WebRoot
 		}
-		if migrated.SearchService != "" {
-			config.Stack.Services.Search = migrated.SearchService
-			config.Stack.SearchVersion = migrated.SearchVersion
-		}
-		if migrated.CacheService != "" {
-			config.Stack.Services.Cache = migrated.CacheService
-			config.Stack.CacheVersion = migrated.CacheVersion
-		}
-		if migrated.QueueService != "" {
-			config.Stack.Services.Queue = migrated.QueueService
-			config.Stack.QueueVersion = migrated.QueueVersion
-		}
-		if migrated.VarnishEnabled {
-			config.Stack.Features.Varnish = true
+		if migrateFrom != "" {
+			// Search
+			if migrated.SearchService != "" {
+				config.Stack.Services.Search = migrated.SearchService
+				config.Stack.SearchVersion = migrated.SearchVersion
+				config.Stack.Features.Search = migrated.SearchService != "none"
+			} else {
+				config.Stack.Services.Search = "none"
+				config.Stack.Features.Search = false
+			}
+
+			// Cache
+			if migrated.CacheService != "" {
+				config.Stack.Services.Cache = migrated.CacheService
+				config.Stack.CacheVersion = migrated.CacheVersion
+				config.Stack.Features.Cache = migrated.CacheService != "none"
+			} else {
+				config.Stack.Services.Cache = "none"
+				config.Stack.Features.Cache = false
+			}
+
+			// Queue
+			if migrated.QueueService != "" {
+				config.Stack.Services.Queue = migrated.QueueService
+				config.Stack.QueueVersion = migrated.QueueVersion
+				config.Stack.Features.Queue = migrated.QueueService != "none"
+			} else {
+				config.Stack.Services.Queue = "none"
+				config.Stack.Features.Queue = false
+			}
+
+			// Varnish
+			config.Stack.Features.Varnish = migrated.VarnishEnabled
 			if migrated.VarnishVersion != "" {
 				config.Stack.VarnishVersion = migrated.VarnishVersion
 			}
@@ -292,14 +314,17 @@ Case Studies:
 			if existingConfig.Stack.Services.Search != "" {
 				config.Stack.Services.Search = existingConfig.Stack.Services.Search
 				config.Stack.SearchVersion = existingConfig.Stack.SearchVersion
+				config.Stack.Features.Search = existingConfig.Stack.Services.Search != "none"
 			}
 			if existingConfig.Stack.Services.Cache != "" {
 				config.Stack.Services.Cache = existingConfig.Stack.Services.Cache
 				config.Stack.CacheVersion = existingConfig.Stack.CacheVersion
+				config.Stack.Features.Cache = existingConfig.Stack.Services.Cache != "none"
 			}
 			if existingConfig.Stack.Services.Queue != "" {
 				config.Stack.Services.Queue = existingConfig.Stack.Services.Queue
 				config.Stack.QueueVersion = existingConfig.Stack.QueueVersion
+				config.Stack.Features.Queue = existingConfig.Stack.Services.Queue != "none"
 			}
 			if existingConfig.Stack.Features.Varnish {
 				config.Stack.Features.Varnish = true

@@ -30,7 +30,7 @@ func TestEndToEndMagento2Workflow(t *testing.T) {
 			WebServer:  "nginx",
 			Features: engine.Features{
 				Xdebug: false,
-				Redis:  false,
+				Cache:  false,
 			},
 		},
 	}
@@ -148,10 +148,11 @@ func TestBlueprintRenderingWithAllFeatures(t *testing.T) {
 			PHPVersion: "8.1",
 			WebServer:  "nginx",
 			Features: engine.Features{
-				Xdebug:        true,
-				Redis:         true,
-				Varnish:       true,
-				Elasticsearch: true,
+				Xdebug:  true,
+				Cache:   true,
+				Varnish: true,
+				Search:  true,
+				Queue:   true,
 			},
 			Services: engine.Services{
 				Cache:  "redis",

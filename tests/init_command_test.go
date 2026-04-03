@@ -33,7 +33,7 @@ func TestInitCommandLogic(t *testing.T) {
 			WebServer:  "nginx",
 			Features: engine.Features{
 				Xdebug:  true,
-				Redis:   true,
+				Cache:   true,
 				Varnish: false,
 			},
 		},

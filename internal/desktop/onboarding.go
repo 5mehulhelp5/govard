@@ -331,6 +331,7 @@ func applyOnboardingOverrides(
 	}
 	if config.Stack.Services.Cache != cacheTarget {
 		config.Stack.Services.Cache = cacheTarget
+		config.Stack.Features.Cache = (cacheTarget != "none")
 		changed = true
 	}
 
@@ -340,6 +341,7 @@ func applyOnboardingOverrides(
 	}
 	if config.Stack.Services.Queue != queueTarget {
 		config.Stack.Services.Queue = queueTarget
+		config.Stack.Features.Queue = (queueTarget != "none")
 		changed = true
 	}
 
@@ -349,6 +351,7 @@ func applyOnboardingOverrides(
 	}
 	if config.Stack.Services.Search != searchTarget {
 		config.Stack.Services.Search = searchTarget
+		config.Stack.Features.Search = (searchTarget != "none")
 		changed = true
 	}
 

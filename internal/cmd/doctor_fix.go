@@ -42,6 +42,7 @@ var doctorFixHandlers = map[string]doctorFixHandler{
 	"host.govard.registry":    fixGovardRegistry,
 	"project.profile.sync":    tuneProjectProfile,
 	"project.runtime.images":  pullRuntimeImages,
+	"project.config.legacy":   fixLegacyConfig,
 }
 
 func runDoctorDiagnostics() engine.DoctorReport {
@@ -334,6 +335,113 @@ func pullRuntimeImages(check engine.DoctorCheck) DoctorFixResult {
 			return result
 		}
 		result.Actions = append(result.Actions, fmt.Sprintf("Pulled %s", image))
+	}
+
+	return result
+}
+
+func fixLegacyConfig(check engine.DoctorCheck) DoctorFixResult {
+	result := DoctorFixResult{
+		CheckID: strings.TrimSpace(check.ID),
+		Title:   strings.TrimSpace(check.Title),
+		Status:  DoctorFixStatusApplied,
+		Message: "Legacy configuration migrated to new standard.",
+		Actions: []string{},
+	}
+
+	data, err := os.ReadFile(engine.BaseConfigFile)
+	if err != nil {
+		result.Status = DoctorFixStatusFailed
+		result.Message = fmt.Sprintf("failed to read config: %v", err)
+		return result
+	}
+
+	var raw map[string]interface{}
+	if err := yaml.Unmarshal(data, &raw); err != nil {
+		result.Status = DoctorFixStatusFailed
+		result.Message = fmt.Sprintf("failed to parse yaml: %v", err)
+		return result
+	}
+
+	stackRaw, ok := raw["stack"].(map[string]interface{})
+	if !ok {
+		result.Status = DoctorFixStatusUnavailable
+		result.Message = "No stack configuration found to migrate."
+		return result
+	}
+
+	// Ensure services block exists
+	servicesRaw, ok := stackRaw["services"].(map[string]interface{})
+	if !ok {
+		servicesRaw = make(map[string]interface{})
+		stackRaw["services"] = servicesRaw
+	}
+
+	// 1. Move stack.db_type to services.db
+	if dbType, ok := stackRaw["db_type"]; ok {
+		if servicesRaw["db"] == nil || servicesRaw["db"] == "" {
+			servicesRaw["db"] = dbType
+			result.Actions = append(result.Actions, fmt.Sprintf("Moved db_type '%v' to services.db", dbType))
+		}
+		delete(stackRaw, "db_type")
+	}
+
+	// 2. Handle legacy features (redis, elasticsearch, rabbitmq)
+	if featuresRaw, ok := stackRaw["features"].(map[string]interface{}); ok {
+		// Map redis -> services.cache
+		if val, exists := featuresRaw["redis"]; exists {
+			if b, ok := val.(bool); ok && b {
+				if servicesRaw["cache"] == nil || servicesRaw["cache"] == "" {
+					servicesRaw["cache"] = "redis"
+					result.Actions = append(result.Actions, "Migrated feature 'redis' to services.cache='redis'")
+				}
+			}
+			delete(featuresRaw, "redis")
+		}
+
+		// Map elasticsearch -> services.search
+		if val, exists := featuresRaw["elasticsearch"]; exists {
+			if b, ok := val.(bool); ok && b {
+				if servicesRaw["search"] == nil || servicesRaw["search"] == "" {
+					servicesRaw["search"] = "elasticsearch"
+					result.Actions = append(result.Actions, "Migrated feature 'elasticsearch' to services.search='elasticsearch'")
+				}
+			}
+			delete(featuresRaw, "elasticsearch")
+		}
+
+		// Map rabbitmq -> services.queue
+		if val, exists := featuresRaw["rabbitmq"]; exists {
+			if b, ok := val.(bool); ok && b {
+				if servicesRaw["queue"] == nil || servicesRaw["queue"] == "" {
+					servicesRaw["queue"] = "rabbitmq"
+					result.Actions = append(result.Actions, "Migrated feature 'rabbitmq' to services.queue='rabbitmq'")
+				}
+			}
+			delete(featuresRaw, "rabbitmq")
+		}
+
+		// If features block is now empty (or only contains ignored internal keys), we'll let PrepareConfigForWrite handle it
+	}
+
+	// Re-marshal via Config struct to ensure standard field ordering is preserved
+	var cfg engine.Config
+	tempData, _ := yaml.Marshal(&raw)
+	_ = yaml.Unmarshal(tempData, &cfg)
+
+	// Clean up empty services/features if they match defaults via PrepareConfigForWrite
+	writableConfig := engine.PrepareConfigForWrite(cfg)
+	updated, err := yaml.Marshal(&writableConfig)
+	if err != nil {
+		result.Status = DoctorFixStatusFailed
+		result.Message = fmt.Sprintf("failed to marshal updated config: %v", err)
+		return result
+	}
+
+	if err := os.WriteFile(engine.BaseConfigFile, updated, 0o644); err != nil {
+		result.Status = DoctorFixStatusFailed
+		result.Message = fmt.Sprintf("failed to write updated config: %v", err)
+		return result
 	}
 
 	return result

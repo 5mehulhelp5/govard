@@ -95,10 +95,10 @@ func TestApplyQuickstartProfileDisablesOptionalServices(t *testing.T) {
 	config := engine.Config{
 		Stack: engine.Stack{
 			Features: engine.Features{
-				Xdebug:        true,
-				Varnish:       true,
-				Redis:         true,
-				Elasticsearch: true,
+				Xdebug:  true,
+				Varnish: true,
+				Cache:   true,
+				Search:  true,
 			},
 			Services: engine.Services{
 				Cache:  "redis",
@@ -119,11 +119,11 @@ func TestApplyQuickstartProfileDisablesOptionalServices(t *testing.T) {
 	if config.Stack.Features.Varnish {
 		t.Fatal("expected varnish disabled by quickstart")
 	}
-	if config.Stack.Services.Cache != "none" || config.Stack.CacheVersion != "" || config.Stack.Features.Redis {
-		t.Fatalf("expected cache disabled, got service=%s version=%s redis=%t", config.Stack.Services.Cache, config.Stack.CacheVersion, config.Stack.Features.Redis)
+	if config.Stack.Services.Cache != "none" || config.Stack.CacheVersion != "" || config.Stack.Features.Cache {
+		t.Fatalf("expected cache disabled, got service=%s version=%s cache=%t", config.Stack.Services.Cache, config.Stack.CacheVersion, config.Stack.Features.Cache)
 	}
-	if config.Stack.Services.Search != "none" || config.Stack.SearchVersion != "" || config.Stack.Features.Elasticsearch {
-		t.Fatalf("expected search disabled, got service=%s version=%s elastic=%t", config.Stack.Services.Search, config.Stack.SearchVersion, config.Stack.Features.Elasticsearch)
+	if config.Stack.Services.Search != "none" || config.Stack.SearchVersion != "" || config.Stack.Features.Search {
+		t.Fatalf("expected search disabled, got service=%s version=%s search=%t", config.Stack.Services.Search, config.Stack.SearchVersion, config.Stack.Features.Search)
 	}
 	if config.Stack.Services.Queue != "none" || config.Stack.QueueVersion != "" {
 		t.Fatalf("expected queue disabled, got service=%s version=%s", config.Stack.Services.Queue, config.Stack.QueueVersion)

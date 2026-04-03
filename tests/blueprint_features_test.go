@@ -16,6 +16,9 @@ func TestRenderBlueprintWithRabbitMQ(t *testing.T) {
 		Framework:   "magento2",
 		Domain:      "rabbitmq.test",
 		Stack: engine.Stack{
+			Features: engine.Features{
+				Queue: true,
+			},
 			Services: engine.Services{
 				Queue: "rabbitmq",
 			},
@@ -36,6 +39,9 @@ func TestRenderBlueprintWithValkey(t *testing.T) {
 		Framework:   "magento2",
 		Domain:      "valkey.test",
 		Stack: engine.Stack{
+			Features: engine.Features{
+				Cache: true,
+			},
 			Services: engine.Services{
 				Cache: "valkey",
 			},
@@ -54,6 +60,9 @@ func TestRenderBlueprintWithOpensearch(t *testing.T) {
 		Framework:   "magento2",
 		Domain:      "opensearch.test",
 		Stack: engine.Stack{
+			Features: engine.Features{
+				Search: true,
+			},
 			Services: engine.Services{
 				Search: "opensearch",
 			},

@@ -391,6 +391,9 @@ stack:
   features:
     xdebug: true
     varnish: false
+    redis: true
+    elasticsearch: true
+    rabbitmq: true
 `) + "\n"
 	if err := os.WriteFile(filepath.Join(root, ".govard.yml"), []byte(content), 0o644); err != nil {
 		t.Fatalf("write .govard.yml: %v", err)

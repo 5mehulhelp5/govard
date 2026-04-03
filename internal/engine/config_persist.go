@@ -22,16 +22,26 @@ func PrepareConfigForWrite(config Config) Config {
 	if strings.EqualFold(strings.TrimSpace(writable.Stack.WebServer), strings.TrimSpace(writable.Stack.Services.WebServer)) {
 		writable.Stack.WebServer = ""
 	}
-	cacheEnabled := strings.TrimSpace(strings.ToLower(writable.Stack.Services.Cache)) != "" &&
-		strings.TrimSpace(strings.ToLower(writable.Stack.Services.Cache)) != "none"
-	searchEnabled := strings.TrimSpace(strings.ToLower(writable.Stack.Services.Search)) != "" &&
-		strings.TrimSpace(strings.ToLower(writable.Stack.Services.Search)) != "none"
-	if writable.Stack.Features.Redis == cacheEnabled {
-		writable.Stack.Features.Redis = false
+
+	if writable.Stack.Services.Cache == "none" {
+		writable.Stack.Services.Cache = ""
 	}
-	if writable.Stack.Features.Elasticsearch == searchEnabled {
-		writable.Stack.Features.Elasticsearch = false
+	if writable.Stack.Services.Search == "none" {
+		writable.Stack.Services.Search = ""
 	}
+	if writable.Stack.Services.Queue == "none" {
+		writable.Stack.Services.Queue = ""
+	}
+
+	if writable.Stack.Services.DB == "none" {
+		writable.Stack.Services.DB = ""
+	}
+
+	// Double-ensure redundant fields are zeroed for serialization (though they are yaml:"-")
+	writable.Stack.DBType = ""
+	writable.Stack.Features.Cache = false
+	writable.Stack.Features.Search = false
+	writable.Stack.Features.Queue = false
 
 	if writable.Stack.UserID <= 0 {
 		writable.Stack.UserID = 0

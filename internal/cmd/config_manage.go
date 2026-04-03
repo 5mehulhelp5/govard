@@ -112,10 +112,13 @@ func setConfigValue(config *engine.Config, key string, value string) bool {
 		config.Stack.Services.WebServer = value
 	case "services.search", "search", "stack.services.search":
 		config.Stack.Services.Search = value
+		config.Stack.Features.Search = (value != "" && value != "none")
 	case "services.cache", "cache", "stack.services.cache":
 		config.Stack.Services.Cache = value
+		config.Stack.Features.Cache = (value != "" && value != "none")
 	case "services.queue", "queue", "stack.services.queue":
 		config.Stack.Services.Queue = value
+		config.Stack.Features.Queue = (value != "" && value != "none")
 	default:
 		return false
 	}

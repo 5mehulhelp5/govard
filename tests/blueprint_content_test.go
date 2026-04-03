@@ -215,10 +215,10 @@ func TestRenderBlueprintWithFeatures(t *testing.T) {
 			DBVersion:  "10.6",
 			WebServer:  "nginx",
 			Features: engine.Features{
-				Xdebug:        true,
-				Varnish:       true,
-				Redis:         true,
-				Elasticsearch: true,
+				Xdebug:  true,
+				Varnish: true,
+				Cache:   true,
+				Search:  true,
 			},
 		},
 	}
@@ -806,10 +806,10 @@ func testBlueprintRender(t *testing.T, framework string, expectedStrings []strin
 			DBVersion:   "10.6",
 			WebServer:   "nginx",
 			Features: engine.Features{
-				Xdebug:        false,
-				Varnish:       false,
-				Redis:         false,
-				Elasticsearch: false,
+				Xdebug:  false,
+				Varnish: false,
+				Cache:   false,
+				Search:  false,
 			},
 		},
 	}

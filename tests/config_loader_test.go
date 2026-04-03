@@ -18,6 +18,8 @@ stack:
   php_version: "8.3"
   services:
     cache: redis
+  features:
+    redis: true
 remotes:
   staging:
     host: staging.example.com
@@ -28,6 +30,8 @@ remotes:
   php_version: "8.4"
   services:
     cache: valkey
+  features:
+    redis: true
 remotes:
   staging:
     port: 2202
@@ -36,6 +40,8 @@ remotes:
 stack:
   services:
     search: elasticsearch
+  features:
+    elasticsearch: true
 `
 
 	if err := os.WriteFile(filepath.Join(tempDir, ".govard.yml"), []byte(base), 0644); err != nil {
@@ -125,6 +131,8 @@ stack:
   php_version: "8.2"
   services:
     cache: redis
+  features:
+    redis: true
 `
 	legacyLocal := `stack:
   php_version: "8.3"
@@ -133,6 +141,8 @@ stack:
   php_version: "8.4"
   services:
     cache: valkey
+  features:
+    redis: true
 `
 
 	if err := os.WriteFile(filepath.Join(tempDir, ".govard.yml"), []byte(base), 0644); err != nil {

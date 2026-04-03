@@ -36,7 +36,7 @@ func applyFrameworkAutoConfiguration(cmd *cobra.Command, config engine.Config) e
 	switch config.Framework {
 	case "magento2":
 		// Proactively fix search host in DB via CLI (using govard db query)
-		if config.Stack.Features.Elasticsearch || config.Stack.Services.Search != "none" {
+		if config.Stack.Features.Search || config.Stack.Services.Search != "none" {
 			_ = runMagentoSearchHostFixViaCLI(cmd, config)
 		}
 		return runMagento2AutoConfiguration(config.ProjectName, config)

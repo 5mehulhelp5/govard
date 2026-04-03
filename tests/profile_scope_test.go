@@ -21,11 +21,15 @@ stack:
   php_version: "8.1"
   services:
     search: elasticsearch
+  features:
+    elasticsearch: true
 `
 	profile := `stack:
   php_version: "8.2"
   services:
     search: opensearch
+  features:
+    elasticsearch: true
 `
 	if err := os.WriteFile(filepath.Join(tempDir, ".govard.yml"), []byte(base), 0644); err != nil {
 		t.Fatal(err)

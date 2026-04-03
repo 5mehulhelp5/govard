@@ -36,15 +36,18 @@ func NormalizeConfig(config *Config, root string) {
 		}
 	}
 
-	if config.Stack.DBType == "" {
+	if config.Stack.Services.DB == "" {
 		if profileAvailable && profile.DBType != "" {
-			config.Stack.DBType = profile.DBType
+			config.Stack.Services.DB = profile.DBType
 		} else if ok && fwConfig.DefaultDB != "" {
-			config.Stack.DBType = fwConfig.DefaultDB
+			config.Stack.Services.DB = fwConfig.DefaultDB
 		} else {
-			config.Stack.DBType = "mariadb"
+			config.Stack.Services.DB = "mariadb"
 		}
 	}
+
+	config.Stack.Services.DB = strings.ToLower(config.Stack.Services.DB)
+	config.Stack.DBType = config.Stack.Services.DB
 
 	if config.Stack.DBVersion == "" {
 		if config.Stack.DBType == "none" {
@@ -150,7 +153,7 @@ func NormalizeConfig(config *Config, root string) {
 			config.Stack.Services.Search = profile.Search
 		} else if ok && fwConfig.DefaultSearch != "" {
 			config.Stack.Services.Search = fwConfig.DefaultSearch
-		} else if config.Stack.Features.Elasticsearch {
+		} else if config.Stack.Features.Search {
 			config.Stack.Services.Search = "opensearch"
 		} else {
 			config.Stack.Services.Search = "none"
@@ -164,7 +167,7 @@ func NormalizeConfig(config *Config, root string) {
 			config.Stack.Services.Cache = profile.Cache
 		} else if ok && fwConfig.DefaultCache != "" {
 			config.Stack.Services.Cache = fwConfig.DefaultCache
-		} else if config.Stack.Features.Redis {
+		} else if config.Stack.Features.Cache {
 			config.Stack.Services.Cache = "redis"
 		} else {
 			config.Stack.Services.Cache = "none"
@@ -184,8 +187,13 @@ func NormalizeConfig(config *Config, root string) {
 	}
 	config.Stack.Services.Queue = strings.ToLower(config.Stack.Services.Queue)
 
-	config.Stack.Features.Redis = config.Stack.Services.Cache != "" && config.Stack.Services.Cache != "none"
-	config.Stack.Features.Elasticsearch = config.Stack.Services.Search != "" && config.Stack.Services.Search != "none"
+	// Sync Features and Services (Service Presence as Master)
+	// 1. If service string is missing or "none", ensure feature is false.
+	// 2. If feature is true but service is "none", service wins (it's disabled).
+
+	config.Stack.Features.Cache = config.Stack.Services.Cache != "" && config.Stack.Services.Cache != "none"
+	config.Stack.Features.Search = config.Stack.Services.Search != "" && config.Stack.Services.Search != "none"
+	config.Stack.Features.Queue = config.Stack.Services.Queue != "" && config.Stack.Services.Queue != "none"
 	config.Stack.WebServer = config.Stack.Services.WebServer
 
 	if config.Stack.Services.Cache == "none" {

@@ -93,3 +93,53 @@ func TestPrepareConfigForWriteKeepsCustomChownDirList(t *testing.T) {
 		t.Fatalf("expected custom path in serialized config, got:\n%s", content)
 	}
 }
+
+func TestPrepareConfigForWriteOmitsFalseFeatures(t *testing.T) {
+	config := engine.Config{
+		Framework: "magento2",
+		Stack: engine.Stack{
+			Features: engine.Features{
+				Varnish: false,
+				Xdebug:  false,
+			},
+		},
+	}
+
+	writable := engine.PrepareConfigForWrite(config)
+	data, err := yaml.Marshal(&writable)
+	if err != nil {
+		t.Fatalf("marshal writable config: %v", err)
+	}
+	content := string(data)
+	if strings.Contains(content, "varnish:") {
+		t.Fatalf("expected serialized config to omit varnish: false, got:\n%s", content)
+	}
+	if strings.Contains(content, "xdebug:") {
+		t.Fatalf("expected serialized config to omit xdebug: false, got:\n%s", content)
+	}
+}
+
+func TestPrepareConfigForWriteKeepsTrueFeatures(t *testing.T) {
+	config := engine.Config{
+		Framework: "magento2",
+		Stack: engine.Stack{
+			Features: engine.Features{
+				Varnish: true,
+				Xdebug:  true,
+			},
+		},
+	}
+
+	writable := engine.PrepareConfigForWrite(config)
+	data, err := yaml.Marshal(&writable)
+	if err != nil {
+		t.Fatalf("marshal writable config: %v", err)
+	}
+	content := string(data)
+	if !strings.Contains(content, "varnish: true") {
+		t.Fatalf("expected serialized config to include varnish: true, got:\n%s", content)
+	}
+	if !strings.Contains(content, "xdebug: true") {
+		t.Fatalf("expected serialized config to include xdebug: true, got:\n%s", content)
+	}
+}

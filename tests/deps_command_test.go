@@ -24,6 +24,9 @@ func TestRequiredRuntimeImagesMagento(t *testing.T) {
 			},
 			Features: engine.Features{
 				Varnish: true,
+				Cache:   true,
+				Search:  true,
+				Queue:   true,
 			},
 		},
 	}, "")
@@ -57,6 +60,10 @@ func TestRequiredRuntimeImagesNextjs(t *testing.T) {
 			Services: engine.Services{
 				Cache: "redis",
 				Queue: "rabbitmq",
+			},
+			Features: engine.Features{
+				Cache: true,
+				Queue: true,
 			},
 		},
 	}, "")

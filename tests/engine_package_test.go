@@ -29,6 +29,8 @@ stack:
   php_version: "8.3"
   services:
     cache: redis
+  features:
+    redis: true
 remotes:
   staging:
     host: staging.example.com
@@ -44,6 +46,9 @@ remotes:
 stack:
   services:
     cache: valkey
+  features:
+    redis: true
+    elasticsearch: true
 `)
 
 	cfg, loaded, err := engine.LoadConfigFromDir(root, true)
@@ -99,7 +104,15 @@ func TestEnginePkgValidateConfigAllowsHybridWebServer(t *testing.T) {
 }
 
 func TestEnginePkgNormalizeAndFrameworkDefaults(t *testing.T) {
-	cfg := engine.Config{Framework: "magento2"}
+	cfg := engine.Config{
+		Framework: "magento2",
+		Stack: engine.Stack{
+			Features: engine.Features{
+				Cache:  true,
+				Search: true,
+			},
+		},
+	}
 	engine.NormalizeConfig(&cfg, "")
 	if cfg.Stack.Services.Cache != "redis" || cfg.Stack.Services.Search != "opensearch" {
 

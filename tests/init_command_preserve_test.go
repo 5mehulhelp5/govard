@@ -105,7 +105,6 @@ func TestInitOmitsRuntimeUserAndGroupFromConfigFile(t *testing.T) {
 	for _, key := range []string{
 		"php_version:",
 		"node_version:",
-		"db_type:",
 		"db_version:",
 		"queue_version:",
 		"web_server:",
@@ -113,17 +112,11 @@ func TestInitOmitsRuntimeUserAndGroupFromConfigFile(t *testing.T) {
 		"search:",
 		"cache:",
 		"queue:",
-		"varnish:",
+		"db:",
 	} {
 		if !strings.Contains(content, key) {
 			t.Fatalf("expected .govard.yml to include %q, got:\n%s", key, content)
 		}
-	}
-	if strings.Contains(content, "redis:") {
-		t.Fatalf("expected derived feature redis to be omitted, got:\n%s", content)
-	}
-	if strings.Contains(content, "elasticsearch:") {
-		t.Fatalf("expected derived feature elasticsearch to be omitted, got:\n%s", content)
 	}
 
 	cfg, err := engine.LoadBaseConfigFromDir(tempDir, true)

@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 type DoctorCheckStatus string
@@ -63,6 +65,7 @@ type DoctorDependencies struct {
 	CheckProfileSync         func() error
 	CheckSystemDependencies  func() []string
 	CheckRuntimeImages       func() ([]string, error)
+	CheckLegacyConfig        func() error
 }
 
 func RunDoctorDiagnostics(dependencies DoctorDependencies) DoctorReport {
@@ -104,6 +107,9 @@ func RunDoctorDiagnostics(dependencies DoctorDependencies) DoctorReport {
 	}
 	if dependencies.CheckRuntimeImages == nil {
 		dependencies.CheckRuntimeImages = CheckRuntimeImages
+	}
+	if dependencies.CheckLegacyConfig == nil {
+		dependencies.CheckLegacyConfig = CheckLegacyConfig
 	}
 
 	report := DoctorReport{
@@ -366,6 +372,27 @@ func RunDoctorDiagnostics(dependencies DoctorDependencies) DoctorReport {
 			Status:  DoctorStatusPass,
 			Message: "All required Docker runtime images are cached locally.",
 		})
+	}
+
+	if err := dependencies.CheckLegacyConfig(); err != nil {
+		report.Checks = append(report.Checks, DoctorCheck{
+			ID:               "project.config.legacy",
+			Title:            "Legacy configuration naming",
+			Status:           DoctorStatusWarn,
+			Message:          err.Error(),
+			Hint:             "Run doctor --fix to automatically migrate your .govard.yml to the new standard.",
+			SuggestedCommand: "govard doctor --fix",
+		})
+	} else {
+		// Only report pass if base config exists and is healthy
+		if _, err := os.Stat(BaseConfigFile); err == nil {
+			report.Checks = append(report.Checks, DoctorCheck{
+				ID:      "project.config.legacy",
+				Title:   "Legacy configuration naming",
+				Status:  DoctorStatusPass,
+				Message: "Configuration file is using current naming standards.",
+			})
+		}
 	}
 
 	for _, check := range report.Checks {
@@ -636,4 +663,41 @@ func CheckRuntimeImages() ([]string, error) {
 		}
 	}
 	return missing, nil
+}
+
+func CheckLegacyConfig() error {
+	data, err := os.ReadFile(BaseConfigFile)
+	if err != nil {
+		return nil // skip if no config
+	}
+
+	var raw map[string]interface{}
+	if err := yaml.Unmarshal(data, &raw); err != nil {
+		return nil // invalid yaml will be caught by other checks
+	}
+
+	stackRaw, ok := raw["stack"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
+	foundLegacy := []string{}
+	if _, ok := stackRaw["db_type"]; ok {
+		foundLegacy = append(foundLegacy, "db_type")
+	}
+
+	if featuresRaw, ok := stackRaw["features"].(map[string]interface{}); ok {
+		legacyFeatures := []string{"redis", "elasticsearch", "rabbitmq"}
+		for _, lf := range legacyFeatures {
+			if _, ok := featuresRaw[lf]; ok {
+				foundLegacy = append(foundLegacy, lf)
+			}
+		}
+	}
+
+	if len(foundLegacy) > 0 {
+		return fmt.Errorf("found %d legacy configuration key(s): %s", len(foundLegacy), strings.Join(foundLegacy, ", "))
+	}
+
+	return nil
 }

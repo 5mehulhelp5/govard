@@ -42,7 +42,7 @@ func ConfigureMagento(projectName string, config Config) error {
 	}
 
 	// Proactively unblock search index (safe via curl, not a DB query)
-	if config.Stack.Features.Elasticsearch || config.Stack.Services.Search != "none" {
+	if config.Stack.Features.Search || config.Stack.Services.Search != "none" {
 		if err := FixElasticsearchIndexBlock(projectName, config); err != nil {
 			pterm.Warning.Printf("Could not unblock search index proactively (continuing): %v\n", err)
 		} else {

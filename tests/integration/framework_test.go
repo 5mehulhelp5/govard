@@ -275,6 +275,7 @@ func TestConfigLayeringIntegration(t *testing.T) {
 			"stack": map[string]interface{}{
 				"features": map[string]interface{}{
 					"xdebug": false,
+					"cache":  true,
 				},
 				"services": map[string]interface{}{
 					"cache": "redis",
@@ -298,7 +299,7 @@ func TestConfigLayeringIntegration(t *testing.T) {
 		t.Error("Expected Xdebug to be disabled by local override")
 	}
 
-	if !config.Stack.Features.Redis {
+	if !config.Stack.Features.Cache {
 		t.Error("Expected Redis to be enabled by local override")
 	}
 }

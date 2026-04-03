@@ -89,10 +89,10 @@ func TestRenderBlueprintWithFeatures(t *testing.T) {
 			PHPVersion: "8.3",
 			WebServer:  "nginx",
 			Features: engine.Features{
-				Xdebug:        true,
-				Redis:         true,
-				Varnish:       true,
-				Elasticsearch: true,
+				Xdebug:  true,
+				Cache:   true,
+				Varnish: true,
+				Search:  true,
 			},
 			Services: engine.Services{
 				WebServer: "nginx",
@@ -278,6 +278,9 @@ func TestRenderBlueprintWithRabbitMQ(t *testing.T) {
 				Search:    "none",
 				Cache:     "none",
 				Queue:     "rabbitmq",
+			},
+			Features: engine.Features{
+				Queue: true,
 			},
 			QueueVersion: "3.13.7",
 		},
