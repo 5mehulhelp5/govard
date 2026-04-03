@@ -47,10 +47,9 @@ type Remote struct {
 
 // Capabilities represents remote capabilities
 type Capabilities struct {
-	Files  bool `yaml:"files"`
-	Media  bool `yaml:"media"`
-	DB     bool `yaml:"db"`
-	Deploy bool `yaml:"deploy"`
+	Files *bool `yaml:"files,omitempty"`
+	Media *bool `yaml:"media,omitempty"`
+	DB    *bool `yaml:"db,omitempty"`
 }
 
 // RealEnvTest provides infrastructure for real environment tests
@@ -193,10 +192,9 @@ func (r *RealEnvTest) CopyConfig(t *testing.T, env string, projectDir string) {
 					KeyPath: r.SSHKeyPath,
 				},
 				Capabilities: Capabilities{
-					Files:  true,
-					Media:  true,
-					DB:     true,
-					Deploy: false,
+					Files: BoolPtr(true),
+					Media: BoolPtr(true),
+					DB:    BoolPtr(true),
 				},
 			},
 			"staging": {
@@ -208,10 +206,9 @@ func (r *RealEnvTest) CopyConfig(t *testing.T, env string, projectDir string) {
 					KeyPath: r.SSHKeyPath,
 				},
 				Capabilities: Capabilities{
-					Files:  true,
-					Media:  true,
-					DB:     true,
-					Deploy: false,
+					Files: BoolPtr(true),
+					Media: BoolPtr(true),
+					DB:    BoolPtr(true),
 				},
 			},
 			"production": {
@@ -224,10 +221,9 @@ func (r *RealEnvTest) CopyConfig(t *testing.T, env string, projectDir string) {
 					KeyPath: r.SSHKeyPath,
 				},
 				Capabilities: Capabilities{
-					Files:  true,
-					Media:  true,
-					DB:     true,
-					Deploy: true,
+					Files: BoolPtr(true),
+					Media: BoolPtr(true),
+					DB:    BoolPtr(true),
 				},
 			},
 		},
@@ -327,3 +323,5 @@ func findProjectRoot(t *testing.T) string {
 	t.Fatal("Could not find project root (no go.mod found)")
 	return ""
 }
+
+func BoolPtr(b bool) *bool { return &b }

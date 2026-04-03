@@ -179,9 +179,9 @@ func TestSnapshotCreateRemoteDBCapabilityCheck(t *testing.T) {
 		Path: "/var/www/app",
 		Port: 22,
 		Capabilities: engine.RemoteCapabilities{
-			Files: true,
-			Media: true,
-			DB:    false,
+			Files: engine.BoolPtr(true),
+			Media: engine.BoolPtr(true),
+			DB:    engine.BoolPtr(false),
 		},
 	}
 	if engine.RemoteCapabilityEnabled(remoteCfg, engine.RemoteCapabilityDB) {

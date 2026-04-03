@@ -10,11 +10,9 @@ const (
 	RemoteEnvStaging = "staging"
 	RemoteEnvProd    = "prod"
 
-	RemoteCapabilityFiles  = "files"
-	RemoteCapabilityMedia  = "media"
-	RemoteCapabilityDB     = "db"
-	RemoteCapabilityCache  = "cache"
-	RemoteCapabilityDeploy = "deploy"
+	RemoteCapabilityFiles = "files"
+	RemoteCapabilityMedia = "media"
+	RemoteCapabilityDB    = "db"
 )
 
 var validRemoteEnvironments = map[string]struct{}{
@@ -42,48 +40,30 @@ func IsValidRemoteEnvironment(value string) bool {
 	return ok
 }
 
-func normalizeRemoteCapabilities(capabilities RemoteCapabilities) RemoteCapabilities {
-	if !capabilities.Files && !capabilities.Media && !capabilities.DB && !capabilities.Cache && !capabilities.Deploy {
-		return defaultRemoteCapabilities()
-	}
-	return capabilities
-}
-
-func defaultRemoteCapabilities() RemoteCapabilities {
-	return RemoteCapabilities{
-		Files:  true,
-		Media:  true,
-		DB:     true,
-		Cache:  true,
-		Deploy: true,
-	}
-}
-
+// RemoteCapabilityEnabled returns true if the capability is allowed.
+// nil means "not set" → allowed by default.
+// Only an explicit false blocks the capability.
 func RemoteCapabilityEnabled(remoteCfg RemoteConfig, capability string) bool {
 	switch strings.ToLower(strings.TrimSpace(capability)) {
 	case RemoteCapabilityFiles:
-		return remoteCfg.Capabilities.Files
+		return remoteCfg.Capabilities.Files == nil || *remoteCfg.Capabilities.Files
 	case RemoteCapabilityMedia:
-		return remoteCfg.Capabilities.Media
+		return remoteCfg.Capabilities.Media == nil || *remoteCfg.Capabilities.Media
 	case RemoteCapabilityDB:
-		return remoteCfg.Capabilities.DB
-	case RemoteCapabilityCache:
-		return remoteCfg.Capabilities.Cache
-	case RemoteCapabilityDeploy:
-		return remoteCfg.Capabilities.Deploy
+		return remoteCfg.Capabilities.DB == nil || *remoteCfg.Capabilities.DB
 	default:
 		return false
 	}
 }
 
+// RemoteCapabilityList returns the list of enabled capabilities.
+// nil is treated as enabled (allow-by-default).
 func RemoteCapabilityList(remoteCfg RemoteConfig) []string {
-	names := make([]string, 0, 5)
+	names := make([]string, 0, 3)
 	for _, name := range []string{
 		RemoteCapabilityFiles,
 		RemoteCapabilityMedia,
 		RemoteCapabilityDB,
-		RemoteCapabilityCache,
-		RemoteCapabilityDeploy,
 	} {
 		if RemoteCapabilityEnabled(remoteCfg, name) {
 			names = append(names, name)
@@ -95,39 +75,32 @@ func RemoteCapabilityList(remoteCfg RemoteConfig) []string {
 	return names
 }
 
+// ParseRemoteCapabilitiesCSV parses a comma-separated list of capability names to BLOCK.
+// An empty string or "none" means block nothing (all enabled).
+// Example: "db" means block only db; "files,media" blocks files and media.
 func ParseRemoteCapabilitiesCSV(raw string) (RemoteCapabilities, error) {
-	parts := strings.Split(strings.TrimSpace(raw), ",")
-	if len(parts) == 1 {
-		switch strings.ToLower(strings.TrimSpace(parts[0])) {
-		case "", "all":
-			return defaultRemoteCapabilities(), nil
-		}
+	raw = strings.TrimSpace(raw)
+	if raw == "" || strings.EqualFold(raw, "none") || strings.EqualFold(raw, "all") {
+		return RemoteCapabilities{}, nil
 	}
 
 	parsed := RemoteCapabilities{}
-	for _, part := range parts {
+	falseVal := false
+	for _, part := range strings.Split(raw, ",") {
 		name := strings.ToLower(strings.TrimSpace(part))
 		if name == "" {
 			continue
 		}
 		switch name {
 		case RemoteCapabilityFiles:
-			parsed.Files = true
+			parsed.Files = &falseVal
 		case RemoteCapabilityMedia:
-			parsed.Media = true
+			parsed.Media = &falseVal
 		case RemoteCapabilityDB:
-			parsed.DB = true
-		case RemoteCapabilityCache:
-			parsed.Cache = true
-		case RemoteCapabilityDeploy:
-			parsed.Deploy = true
+			parsed.DB = &falseVal
 		default:
 			return RemoteCapabilities{}, fmt.Errorf("unsupported remote capability: %s", name)
 		}
-	}
-
-	if !parsed.Files && !parsed.Media && !parsed.DB && !parsed.Cache && !parsed.Deploy {
-		return RemoteCapabilities{}, fmt.Errorf("at least one remote capability is required")
 	}
 	return parsed, nil
 }

@@ -54,12 +54,8 @@ func TestRemoteAddWritesConfig(t *testing.T) {
 	if ok && staging["environment"] != nil {
 		t.Fatalf("expected environment field to be omitted from YAML, got %v", staging["environment"])
 	}
-	capabilities, ok := staging["capabilities"].(map[string]interface{})
-	if !ok {
-		t.Fatal("expected remotes.staging.capabilities")
-	}
-	if capabilities["files"] != true || capabilities["media"] != true || capabilities["db"] != true || capabilities["deploy"] != true {
-		t.Fatalf("expected all default capabilities true, got %#v", capabilities)
+	if staging["capabilities"] != nil {
+		t.Fatalf("expected capabilities to be omitted from YAML by default (allowed), got %v", staging["capabilities"])
 	}
 }
 

@@ -24,20 +24,50 @@ func TestNormalizeRemoteEnvironment(t *testing.T) {
 }
 
 func TestParseRemoteCapabilitiesCSV(t *testing.T) {
+	// "all" or "none" or "" should return empty struct (all nil -> allowed)
 	all, err := engine.ParseRemoteCapabilitiesCSV("all")
 	if err != nil {
 		t.Fatalf("parse all capabilities: %v", err)
 	}
-	if !all.Files || !all.Media || !all.DB || !all.Deploy {
-		t.Fatalf("expected all capabilities enabled, got %+v", all)
+	if all.Files != nil || all.Media != nil || all.DB != nil {
+		t.Fatalf("expected all capabilities nil (allowed), got %+v", all)
 	}
 
+	// "files,db" should set those to false (blocked)
 	custom, err := engine.ParseRemoteCapabilitiesCSV("files,db")
 	if err != nil {
 		t.Fatalf("parse custom capabilities: %v", err)
 	}
-	if !custom.Files || custom.Media || !custom.DB || custom.Deploy {
-		t.Fatalf("unexpected custom capabilities: %+v", custom)
+	if custom.Files == nil || *custom.Files != false {
+		t.Fatal("expected files to be false")
+	}
+	if custom.Media != nil {
+		t.Fatal("expected media to be nil (allowed)")
+	}
+	if custom.DB == nil || *custom.DB != false {
+		t.Fatal("expected db to be false")
+	}
+}
+
+func TestRemoteCapabilityEnabled(t *testing.T) {
+	// Default (all nil) should be enabled
+	cfg := engine.RemoteConfig{}
+	if !engine.RemoteCapabilityEnabled(cfg, engine.RemoteCapabilityFiles) {
+		t.Fatal("expected files enabled by default")
+	}
+
+	// Explicit false should be disabled
+	falseVal := false
+	cfg.Capabilities.Files = &falseVal
+	if engine.RemoteCapabilityEnabled(cfg, engine.RemoteCapabilityFiles) {
+		t.Fatal("expected files disabled when explicitly false")
+	}
+
+	// Explicit true should be enabled
+	trueVal := true
+	cfg.Capabilities.Files = &trueVal
+	if !engine.RemoteCapabilityEnabled(cfg, engine.RemoteCapabilityFiles) {
+		t.Fatal("expected files enabled when explicitly true")
 	}
 }
 
@@ -51,13 +81,13 @@ func TestParseRemoteCapabilitiesRejectsUnknown(t *testing.T) {
 	}
 }
 
-func TestParseRemoteCapabilitiesRejectsEmptySet(t *testing.T) {
-	_, err := engine.ParseRemoteCapabilitiesCSV(",")
-	if err == nil {
-		t.Fatal("expected empty capability set error")
+func TestParseRemoteCapabilitiesEmpty(t *testing.T) {
+	parsed, err := engine.ParseRemoteCapabilitiesCSV("")
+	if err != nil {
+		t.Fatalf("parse empty: %v", err)
 	}
-	if !strings.Contains(err.Error(), "at least one remote capability is required") {
-		t.Fatalf("unexpected parse error: %v", err)
+	if parsed.Files != nil || parsed.Media != nil || parsed.DB != nil {
+		t.Fatal("expected empty set to result in all nil")
 	}
 }
 

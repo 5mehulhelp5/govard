@@ -33,10 +33,9 @@ func addTestRemotesToGovardConfig(t *testing.T, projectDir string) {
 			User: "deploy",
 			Path: "/var/www/html",
 			Capabilities: engine.RemoteCapabilities{
-				Files:  true,
-				Media:  true,
-				DB:     true,
-				Deploy: false,
+				Files: engine.BoolPtr(true),
+				Media: engine.BoolPtr(true),
+				DB:    engine.BoolPtr(true),
 			},
 		},
 		"staging": {
@@ -44,10 +43,9 @@ func addTestRemotesToGovardConfig(t *testing.T, projectDir string) {
 			User: "deploy",
 			Path: "/srv/www/staging",
 			Capabilities: engine.RemoteCapabilities{
-				Files:  true,
-				Media:  true,
-				DB:     true,
-				Deploy: false,
+				Files: engine.BoolPtr(true),
+				Media: engine.BoolPtr(true),
+				DB:    engine.BoolPtr(true),
 			},
 		},
 	}

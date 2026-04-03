@@ -42,7 +42,9 @@ remotes:
 	if remote.Auth.KnownHostsFile != "" {
 		t.Fatalf("expected empty known hosts file default, got %s", remote.Auth.KnownHostsFile)
 	}
-	if !remote.Capabilities.Files || !remote.Capabilities.Media || !remote.Capabilities.DB || !remote.Capabilities.Deploy {
+	if !engine.RemoteCapabilityEnabled(remote, engine.RemoteCapabilityFiles) ||
+		!engine.RemoteCapabilityEnabled(remote, engine.RemoteCapabilityMedia) ||
+		!engine.RemoteCapabilityEnabled(remote, engine.RemoteCapabilityDB) {
 		t.Fatalf("expected default capabilities to be enabled, got %+v", remote.Capabilities)
 	}
 	if remote.Path == "" {

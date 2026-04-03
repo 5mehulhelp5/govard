@@ -24,11 +24,9 @@ type RemotePaths struct {
 }
 
 type RemoteCapabilities struct {
-	Files  bool `yaml:"files"`
-	Media  bool `yaml:"media"`
-	DB     bool `yaml:"db"`
-	Cache  bool `yaml:"cache"`
-	Deploy bool `yaml:"deploy"`
+	Files *bool `yaml:"files,omitempty"`
+	Media *bool `yaml:"media,omitempty"`
+	DB    *bool `yaml:"db,omitempty"`
 }
 
 type RemoteConfig struct {
@@ -38,7 +36,7 @@ type RemoteConfig struct {
 	Path         string             `yaml:"path"`
 	URL          string             `yaml:"url,omitempty"`
 	Protected    *bool              `yaml:"protected,omitempty"`
-	Capabilities RemoteCapabilities `yaml:"capabilities"`
+	Capabilities RemoteCapabilities `yaml:"capabilities,omitempty"`
 	Auth         RemoteAuth         `yaml:"auth,omitempty"`
 	Paths        RemotePaths        `yaml:"paths,omitempty"`
 }

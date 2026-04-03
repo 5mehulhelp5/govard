@@ -131,10 +131,9 @@ func BuildRemoteEntriesForTest(remotes map[string]RemoteConfigSnapshot) []Remote
 			URL:       strings.TrimSpace(snapshot.URL),
 			Protected: engine.BoolPtr(snapshot.Protected),
 			Capabilities: engine.RemoteCapabilities{
-				Files:  containsCapability(snapshot.Capabilities, engine.RemoteCapabilityFiles),
-				Media:  containsCapability(snapshot.Capabilities, engine.RemoteCapabilityMedia),
-				DB:     containsCapability(snapshot.Capabilities, engine.RemoteCapabilityDB),
-				Deploy: containsCapability(snapshot.Capabilities, engine.RemoteCapabilityDeploy),
+				Files: desktopBoolPtr(containsCapability(snapshot.Capabilities, engine.RemoteCapabilityFiles)),
+				Media: desktopBoolPtr(containsCapability(snapshot.Capabilities, engine.RemoteCapabilityMedia)),
+				DB:    desktopBoolPtr(containsCapability(snapshot.Capabilities, engine.RemoteCapabilityDB)),
 			},
 			Auth: engine.RemoteAuth{
 				Method: strings.TrimSpace(snapshot.AuthMethod),
@@ -159,10 +158,9 @@ func BuildRemoteEntriesWithLastSyncForTest(
 			URL:       strings.TrimSpace(snapshot.URL),
 			Protected: engine.BoolPtr(snapshot.Protected),
 			Capabilities: engine.RemoteCapabilities{
-				Files:  containsCapability(snapshot.Capabilities, engine.RemoteCapabilityFiles),
-				Media:  containsCapability(snapshot.Capabilities, engine.RemoteCapabilityMedia),
-				DB:     containsCapability(snapshot.Capabilities, engine.RemoteCapabilityDB),
-				Deploy: containsCapability(snapshot.Capabilities, engine.RemoteCapabilityDeploy),
+				Files: desktopBoolPtr(containsCapability(snapshot.Capabilities, engine.RemoteCapabilityFiles)),
+				Media: desktopBoolPtr(containsCapability(snapshot.Capabilities, engine.RemoteCapabilityMedia)),
+				DB:    desktopBoolPtr(containsCapability(snapshot.Capabilities, engine.RemoteCapabilityDB)),
 			},
 			Auth: engine.RemoteAuth{
 				Method: strings.TrimSpace(snapshot.AuthMethod),
@@ -261,10 +259,9 @@ func ResolveRemoteNameForOpenForTest(
 			Port: snapshot.Port,
 			URL:  strings.TrimSpace(snapshot.URL),
 			Capabilities: engine.RemoteCapabilities{
-				Files:  containsCapability(snapshot.Capabilities, engine.RemoteCapabilityFiles),
-				Media:  containsCapability(snapshot.Capabilities, engine.RemoteCapabilityMedia),
-				DB:     containsCapability(snapshot.Capabilities, engine.RemoteCapabilityDB),
-				Deploy: containsCapability(snapshot.Capabilities, engine.RemoteCapabilityDeploy),
+				Files: desktopBoolPtr(containsCapability(snapshot.Capabilities, engine.RemoteCapabilityFiles)),
+				Media: desktopBoolPtr(containsCapability(snapshot.Capabilities, engine.RemoteCapabilityMedia)),
+				DB:    desktopBoolPtr(containsCapability(snapshot.Capabilities, engine.RemoteCapabilityDB)),
 			},
 		}
 	}
@@ -716,4 +713,11 @@ func containsCapability(capabilities []string, name string) bool {
 		}
 	}
 	return false
+}
+
+func desktopBoolPtr(v bool) *bool {
+	if v {
+		return nil
+	}
+	return engine.BoolPtr(false)
 }

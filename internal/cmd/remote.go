@@ -552,7 +552,7 @@ func init() {
 	remoteAddCmd.Flags().String("user", "", "Remote user")
 	remoteAddCmd.Flags().String("path", "", "Remote path on target host (quote '~/...' in shell usage to preserve remote home expansion)")
 	remoteAddCmd.Flags().Int("port", 22, "Remote port")
-	remoteAddCmd.Flags().String("capabilities", "files,media,db,deploy", "Remote capabilities (files,media,db,deploy or all)")
+	remoteAddCmd.Flags().String("capabilities", "none", "Remote capabilities to block (comma-separated: files,media,db or none)")
 	remoteAddCmd.Flags().String("auth-method", remote.AuthMethodKeychain, "Remote auth method (keychain, ssh-agent, keyfile)")
 	remoteAddCmd.Flags().String("key-path", "", "SSH private key path (stored in auth store when --auth-method=keychain)")
 	remoteAddCmd.Flags().Bool("strict-host-key", false, "Enable strict SSH host key checking")

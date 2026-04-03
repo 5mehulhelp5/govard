@@ -344,10 +344,9 @@ func TestPrepareConfigForWritePrunesDefaultRemoteAuthAndPaths(t *testing.T) {
 				Port: 22,
 				Path: "/var/www/html",
 				Capabilities: engine.RemoteCapabilities{
-					Files:  true,
-					Media:  true,
-					DB:     true,
-					Deploy: true,
+					Files: engine.BoolPtr(true),
+					Media: engine.BoolPtr(true),
+					DB:    engine.BoolPtr(true),
 				},
 				Auth: engine.RemoteAuth{
 					Method: engine.RemoteAuthMethodKeychain,
@@ -394,10 +393,9 @@ func TestPrepareConfigForWriteKeepsNonDefaultRemoteAuthAndPaths(t *testing.T) {
 				Port: 22,
 				Path: "/srv/www/staging",
 				Capabilities: engine.RemoteCapabilities{
-					Files:  true,
-					Media:  true,
-					DB:     true,
-					Deploy: true,
+					Files: engine.BoolPtr(true),
+					Media: engine.BoolPtr(true),
+					DB:    engine.BoolPtr(true),
 				},
 				Auth: engine.RemoteAuth{
 					Method:         engine.RemoteAuthMethodKeyfile,

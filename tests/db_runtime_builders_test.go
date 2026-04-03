@@ -122,7 +122,7 @@ func TestBuildDBDumpCommandForTestRemoteBuildsSSHCommand(t *testing.T) {
 				Host: "example.com",
 				User: "deploy",
 				Capabilities: engine.RemoteCapabilities{
-					DB: true,
+					DB: engine.BoolPtr(true),
 				},
 			},
 		},
@@ -153,7 +153,7 @@ func TestBuildDBImportCommandForTestRemoteBuildsSSHCommand(t *testing.T) {
 				Host: "example.com",
 				User: "deploy",
 				Capabilities: engine.RemoteCapabilities{
-					DB: true,
+					DB: engine.BoolPtr(true),
 				},
 			},
 		},
@@ -190,7 +190,11 @@ func TestResolveDBRemoteForTestValidation(t *testing.T) {
 	t.Run("CapabilityMissing", func(t *testing.T) {
 		config := engine.Config{
 			Remotes: map[string]engine.RemoteConfig{
-				"dev": {},
+				"dev": {
+					Capabilities: engine.RemoteCapabilities{
+						DB: engine.BoolPtr(false),
+					},
+				},
 			},
 		}
 		_, err := cmd.ResolveDBRemoteForTest(config, "dev", false)
@@ -206,7 +210,7 @@ func TestResolveDBRemoteForTestValidation(t *testing.T) {
 		config := engine.Config{
 			Remotes: map[string]engine.RemoteConfig{
 				"prod": {
-					Capabilities: engine.RemoteCapabilities{DB: true},
+					Capabilities: engine.RemoteCapabilities{DB: engine.BoolPtr(true)},
 				},
 			},
 		}
@@ -223,7 +227,7 @@ func TestResolveDBRemoteForTestValidation(t *testing.T) {
 		config := engine.Config{
 			Remotes: map[string]engine.RemoteConfig{
 				"prod": {
-					Capabilities: engine.RemoteCapabilities{DB: true},
+					Capabilities: engine.RemoteCapabilities{DB: engine.BoolPtr(true)},
 				},
 			},
 		}
