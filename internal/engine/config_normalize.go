@@ -216,9 +216,9 @@ func NormalizeConfig(config *Config, root string) {
 		config.Stack.SearchVersion = fwConfig.DefaultSearchVer
 	} else if config.Stack.SearchVersion == "" {
 		if config.Stack.Services.Search == "elasticsearch" {
-			config.Stack.SearchVersion = "8.19.11"
+			config.Stack.SearchVersion = "8.15"
 		} else {
-			config.Stack.SearchVersion = "3.4.0"
+			config.Stack.SearchVersion = "3.0"
 		}
 	}
 

@@ -35,8 +35,8 @@ func TestFrameworkDefaultsMagento2(t *testing.T) {
 		t.Fatalf("Expected DefaultCacheVer 7.4, got %s", config.DefaultCacheVer)
 	}
 
-	if config.DefaultSearchVer != "2.19.0" {
-		t.Fatalf("Expected DefaultSearchVer 2.19.0, got %s", config.DefaultSearchVer)
+	if config.DefaultSearchVer != "2.19" {
+		t.Fatalf("Expected DefaultSearchVer 2.19, got %s", config.DefaultSearchVer)
 	}
 	if config.DefaultQueueVer != "3.13.7" {
 		t.Fatalf("Expected DefaultQueueVer 3.13.7, got %s", config.DefaultQueueVer)

@@ -48,8 +48,8 @@ func TestNormalizeConfigDefaultsMagento2(t *testing.T) {
 		t.Fatalf("Expected CacheVersion 7.4, got %s", config.Stack.CacheVersion)
 	}
 
-	if config.Stack.SearchVersion != "2.19.0" {
-		t.Fatalf("Expected SearchVersion 2.19.0, got %s", config.Stack.SearchVersion)
+	if config.Stack.SearchVersion != "2.19" {
+		t.Fatalf("Expected SearchVersion 2.19, got %s", config.Stack.SearchVersion)
 	}
 	if config.Stack.QueueVersion != "" {
 		t.Fatalf("Expected QueueVersion empty, got %s", config.Stack.QueueVersion)
@@ -99,8 +99,8 @@ func TestNormalizeConfigVersionAwareDefaultsMagento2(t *testing.T) {
 	if config.Stack.Services.Search != "opensearch" {
 		t.Fatalf("Expected Search opensearch, got %s", config.Stack.Services.Search)
 	}
-	if config.Stack.SearchVersion != "2.12.0" {
-		t.Fatalf("Expected SearchVersion 2.12.0, got %s", config.Stack.SearchVersion)
+	if config.Stack.SearchVersion != "2.12" {
+		t.Fatalf("Expected SearchVersion 2.12, got %s", config.Stack.SearchVersion)
 	}
 	if config.Stack.Services.Queue != "rabbitmq" {
 		t.Fatalf("Expected Queue rabbitmq, got %s", config.Stack.Services.Queue)
@@ -130,8 +130,8 @@ func TestNormalizeConfigCacheAndSearchVersions(t *testing.T) {
 		t.Fatalf("Expected CacheVersion 7.2, got %s", config.Stack.CacheVersion)
 	}
 
-	if config.Stack.SearchVersion != "2.19.0" {
-		t.Fatalf("Expected SearchVersion 2.19.0, got %s", config.Stack.SearchVersion)
+	if config.Stack.SearchVersion != "2.19" {
+		t.Fatalf("Expected SearchVersion 2.19, got %s", config.Stack.SearchVersion)
 	}
 }
 

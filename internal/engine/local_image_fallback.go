@@ -312,10 +312,11 @@ func localBuildSpecForGovardService(service string, tag string, repoPrefix strin
 			},
 		}, nil
 	case "opensearch":
+		actualVersion := resolveOpensearchBuildVersion(tag)
 		return localImageBuildSpec{
 			ContextRel: "opensearch",
 			BuildArgs: []localImageBuildArg{
-				{Name: "OPENSEARCH_VERSION", Value: tag},
+				{Name: "OPENSEARCH_VERSION", Value: actualVersion},
 			},
 		}, nil
 	case "elasticsearch":
@@ -323,10 +324,11 @@ func localBuildSpecForGovardService(service string, tag string, repoPrefix strin
 		if tag == "2.4.6" {
 			elasticsearchImage = "elasticsearch"
 		}
+		actualVersion := resolveElasticsearchBuildVersion(tag)
 		return localImageBuildSpec{
 			ContextRel: "elasticsearch",
 			BuildArgs: []localImageBuildArg{
-				{Name: "ELASTICSEARCH_VERSION", Value: tag},
+				{Name: "ELASTICSEARCH_VERSION", Value: actualVersion},
 				{Name: "ELASTICSEARCH_IMAGE", Value: elasticsearchImage},
 			},
 		}, nil
@@ -416,6 +418,39 @@ func resolveVarnishBuildVersions(tag string) (version string, imageTag string) {
 		return "6.0", "6.0"
 	default:
 		return tag, tag
+	}
+}
+
+func resolveElasticsearchBuildVersion(tag string) string {
+	tag = strings.TrimSpace(tag)
+	switch tag {
+	case "7.9":
+		return "7.9.3"
+	case "7.6":
+		return "7.6.2"
+	case "7.17":
+		return "7.17.10"
+	case "6.8":
+		return "6.8.23"
+	case "8.4":
+		return "8.4.3"
+	default:
+		return tag
+	}
+}
+
+func resolveOpensearchBuildVersion(tag string) string {
+	tag = strings.TrimSpace(tag)
+	switch tag {
+	case "2.12":
+		return "2.12.0"
+	case "2.5":
+		return "2.5.0"
+	default:
+		if majorMinorVersionPattern.MatchString(tag) {
+			return tag + ".0"
+		}
+		return tag
 	}
 }
 

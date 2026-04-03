@@ -71,8 +71,8 @@ services:
 		{"redis", "7.0", "ddtcorex/govard-", ContextSpec{Context: "redis", Arg: "REDIS_VERSION", Val: "7.0"}},
 		{"valkey", "7.2", "ddtcorex/govard-", ContextSpec{Context: "valkey", Arg: "VALKEY_VERSION", Val: "7.2"}},
 		{"rabbitmq", "3.11", "ddtcorex/govard-", ContextSpec{Context: "rabbitmq", Arg: "RABBITMQ_VERSION", Val: "3.11"}},
-		{"opensearch", "2.5", "ddtcorex/govard-", ContextSpec{Context: "opensearch", Arg: "OPENSEARCH_VERSION", Val: "2.5"}},
-		{"elasticsearch", "7.17", "ddtcorex/govard-", ContextSpec{Context: "elasticsearch", Arg: "ELASTICSEARCH_VERSION", Val: "7.17"}},
+		{"opensearch", "2.5", "ddtcorex/govard-", ContextSpec{Context: "opensearch", Arg: "OPENSEARCH_VERSION", Val: "2.5.0"}},
+		{"elasticsearch", "7.17", "ddtcorex/govard-", ContextSpec{Context: "elasticsearch", Arg: "ELASTICSEARCH_VERSION", Val: "7.17.10"}},
 		{"varnish", "7.0", "ddtcorex/govard-", ContextSpec{Context: "varnish", Arg: "VARNISH_VERSION", Val: "7.0"}},
 		{"dnsmasq", "latest", "ddtcorex/govard-", ContextSpec{Context: "dnsmasq"}},
 	}

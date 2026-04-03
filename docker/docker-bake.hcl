@@ -41,14 +41,22 @@ target "elasticsearch" {
   context    = "docker/elasticsearch"
   dockerfile = "Dockerfile"
   matrix = {
-    version = [
-      "8.15.0", "7.17.10", "7.16.3", "7.10.2",
-      "7.9.3", "7.7.1", "7.6.2", "6.8.23", "5.6.16", "2.4.6"
-    ]
+    version = ["8.15", "7.17", "7.16", "7.10", "7.9", "7.7", "7.6", "6.8", "5.6", "2.4"]
   }
   args = {
-    ELASTICSEARCH_VERSION = version
-    ELASTICSEARCH_IMAGE   = version == "2.4.6" ? "elasticsearch" : "docker.elastic.co/elasticsearch/elasticsearch"
+    ELASTICSEARCH_VERSION = (
+      version == "8.15" ? "8.15.0" :
+      version == "7.17" ? "7.17.10" :
+      version == "7.16" ? "7.16.3" :
+      version == "7.10" ? "7.10.2" :
+      version == "7.9"  ? "7.9.3" :
+      version == "7.7"  ? "7.7.1" :
+      version == "7.6"  ? "7.6.2" :
+      version == "6.8"  ? "6.8.23" :
+      version == "5.6"  ? "5.6.16" :
+      version == "2.4"  ? "2.4.6" : version
+    )
+    ELASTICSEARCH_IMAGE = version == "2.4" ? "elasticsearch" : "docker.elastic.co/elasticsearch/elasticsearch"
   }
   tags = ["${DOCKER_ORG}elasticsearch:${version}"]
 }
@@ -100,10 +108,17 @@ target "opensearch" {
   context    = "docker/opensearch"
   dockerfile = "Dockerfile"
   matrix = {
-    version = ["3.0.0", "2.19.0", "2.12.0", "2.5.0", "1.3.20", "1.2.0"]
+    version = ["3.0", "2.19", "2.12", "2.5", "1.3", "1.2"]
   }
   args = {
-    OPENSEARCH_VERSION = version
+    OPENSEARCH_VERSION = (
+      version == "3.0"  ? "3.0.0" :
+      version == "2.19" ? "2.19.0" :
+      version == "2.12" ? "2.12.0" :
+      version == "2.5"  ? "2.5.0" :
+      version == "1.3"  ? "1.3.20" :
+      version == "1.2"  ? "1.2.0" : version
+    )
   }
   tags = ["${DOCKER_ORG}opensearch:${version}"]
 }

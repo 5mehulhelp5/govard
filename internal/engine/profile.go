@@ -319,7 +319,7 @@ func resolveMagento24Override(major int, minor int, patch int, pPatch int) (runt
 		override.PHPVersion = "8.4"
 		override.DBVersion = "11.4"
 		override.CacheVersion = "7.2"
-		override.SearchVersion = "3.0.0"
+		override.SearchVersion = "3.0"
 		override.VarnishVersion = "7.6"
 		override.QueueVersion = "4.1"
 	case patch == 8:
@@ -329,19 +329,19 @@ func resolveMagento24Override(major int, minor int, patch int, pPatch int) (runt
 		override.VarnishVersion = "7.6"
 		override.QueueVersion = "4.1"
 		if pPatch >= 2 || pPatch == 0 {
-			override.SearchVersion = "3.0.0"
+			override.SearchVersion = "3.0"
 		} else {
-			override.SearchVersion = "2.19.0"
+			override.SearchVersion = "2.19"
 		}
 	case patch == 7:
 		override.PHPVersion = "8.3"
 		override.DBVersion = "10.6"
 		override.CacheVersion = "7.2"
-		override.SearchVersion = "2.12.0"
+		override.SearchVersion = "2.12"
 		override.VarnishVersion = "7.4"
 		override.QueueVersion = "3.13"
 		if pPatch >= 5 {
-			override.SearchVersion = "2.19.0"
+			override.SearchVersion = "2.19"
 		}
 		if pPatch >= 6 {
 			override.DBVersion = "10.11"
@@ -353,10 +353,10 @@ func resolveMagento24Override(major int, minor int, patch int, pPatch int) (runt
 		override.PHPVersion = "8.2"
 		override.DBVersion = "10.6"
 		override.CacheVersion = "7.0"
-		override.SearchVersion = "2.5.0"
+		override.SearchVersion = "2.5"
 		override.QueueVersion = "3.9"
 		if pPatch >= 5 {
-			override.SearchVersion = "2.12.0"
+			override.SearchVersion = "2.12"
 		}
 		if pPatch >= 6 {
 			override.QueueVersion = "3.12"
@@ -368,7 +368,7 @@ func resolveMagento24Override(major int, minor int, patch int, pPatch int) (runt
 			override.CacheVersion = "7.2"
 		}
 		if pPatch >= 10 {
-			override.SearchVersion = "2.19.0"
+			override.SearchVersion = "2.19"
 		}
 		if pPatch >= 11 {
 			override.DBVersion = "10.11"
@@ -380,10 +380,10 @@ func resolveMagento24Override(major int, minor int, patch int, pPatch int) (runt
 		override.PHPVersion = "8.1"
 		override.DBVersion = "10.4"
 		override.CacheVersion = "6.2"
-		override.SearchVersion = "1.2.0"
+		override.SearchVersion = "1.2"
 		override.QueueVersion = "3.9"
 		if pPatch >= 7 {
-			override.SearchVersion = "1.3.0"
+			override.SearchVersion = "1.3"
 			override.CacheVersion = "7.0"
 		}
 		if pPatch >= 8 {
@@ -398,10 +398,10 @@ func resolveMagento24Override(major int, minor int, patch int, pPatch int) (runt
 		}
 		if pPatch >= 11 {
 			override.DBVersion = "10.6"
-			override.SearchVersion = "1.3.20"
+			override.SearchVersion = "1.3"
 		}
 		if pPatch >= 12 {
-			override.SearchVersion = "2.19.0"
+			override.SearchVersion = "2.19"
 		}
 		if pPatch >= 14 {
 			override.QueueVersion = "4.1"
@@ -410,10 +410,10 @@ func resolveMagento24Override(major int, minor int, patch int, pPatch int) (runt
 		override.PHPVersion = "8.1"
 		override.DBVersion = "10.4"
 		override.CacheVersion = "6.2"
-		override.SearchVersion = "1.2.0"
+		override.SearchVersion = "1.2"
 		override.QueueVersion = "3.9"
 		if pPatch >= 8 {
-			override.SearchVersion = "1.3.0"
+			override.SearchVersion = "1.3"
 			override.CacheVersion = "7.0"
 		}
 		if pPatch >= 9 {
@@ -424,10 +424,10 @@ func resolveMagento24Override(major int, minor int, patch int, pPatch int) (runt
 		}
 		if pPatch >= 12 {
 			override.DBVersion = "10.6"
-			override.SearchVersion = "1.3.20"
+			override.SearchVersion = "1.3"
 		}
 		if pPatch >= 13 {
-			override.SearchVersion = "2.19.0"
+			override.SearchVersion = "2.19"
 		}
 	case patch == 3:
 		override.PHPVersion = "7.4"
@@ -435,7 +435,7 @@ func resolveMagento24Override(major int, minor int, patch int, pPatch int) (runt
 		override.Cache = "redis"
 		override.CacheVersion = "6.0"
 		override.Search = "elasticsearch"
-		override.SearchVersion = "7.10.2"
+		override.SearchVersion = "7.10"
 		override.VarnishVersion = "6.0"
 		override.QueueVersion = "3.8"
 	case patch == 2:
@@ -444,7 +444,7 @@ func resolveMagento24Override(major int, minor int, patch int, pPatch int) (runt
 		override.Cache = "redis"
 		override.CacheVersion = "6.0"
 		override.Search = "elasticsearch"
-		override.SearchVersion = "7.9.3"
+		override.SearchVersion = "7.9"
 		override.QueueVersion = "3.8"
 	case patch == 1:
 		override.PHPVersion = "7.4"
@@ -452,7 +452,7 @@ func resolveMagento24Override(major int, minor int, patch int, pPatch int) (runt
 		override.Cache = "redis"
 		override.CacheVersion = "6.0"
 		override.Search = "elasticsearch"
-		override.SearchVersion = "7.9.3"
+		override.SearchVersion = "7.9"
 		override.QueueVersion = "3.8"
 	case patch == 0:
 		override.PHPVersion = "7.4"
@@ -460,7 +460,7 @@ func resolveMagento24Override(major int, minor int, patch int, pPatch int) (runt
 		override.Cache = "redis"
 		override.CacheVersion = "5.0"
 		override.Search = "elasticsearch"
-		override.SearchVersion = "7.6.2"
+		override.SearchVersion = "7.6"
 		override.QueueVersion = "3.8"
 	default:
 		return runtimeProfileOverride{}, "", false
@@ -485,48 +485,48 @@ func resolveLegacyMagento2Override(major int, minor int, patch int, pPatch int) 
 			override.PHPVersion = "7.1"
 			override.DBVersion = "10.1"
 			override.CacheVersion = "5.0"
-			override.SearchVersion = "5.6.16"
+			override.SearchVersion = "5.6"
 			override.QueueVersion = "3.7"
 			override.ComposerVersion = "2.2"
 		} else if patch <= 2 {
 			override.PHPVersion = "7.2"
 			override.DBVersion = "10.2"
 			override.CacheVersion = "5.0"
-			override.SearchVersion = "6.8.23"
+			override.SearchVersion = "6.8"
 			override.QueueVersion = "3.7"
 			override.ComposerVersion = "2.2"
 		} else if patch == 3 {
 			override.PHPVersion = "7.2"
 			override.DBVersion = "10.2"
 			override.CacheVersion = "5.0"
-			override.SearchVersion = "6.8.23"
+			override.SearchVersion = "6.8"
 			override.QueueVersion = "3.8"
 			override.ComposerVersion = "2.2"
 		} else if patch == 4 {
 			override.PHPVersion = "7.2"
 			override.DBVersion = "10.2"
 			override.CacheVersion = "5.0"
-			override.SearchVersion = "6.8.23"
+			override.SearchVersion = "6.8"
 			override.QueueVersion = "3.8"
 			override.ComposerVersion = "2.2"
 		} else if patch <= 6 {
 			override.PHPVersion = "7.3"
 			override.DBVersion = "10.4"
 			override.CacheVersion = "5.0"
-			override.SearchVersion = "7.6.2"
+			override.SearchVersion = "7.6"
 			override.QueueVersion = "3.8"
 		} else {
 			override.PHPVersion = "7.4"
 			override.DBVersion = "10.4"
 			override.CacheVersion = "5.0"
-			override.SearchVersion = "7.9.3"
+			override.SearchVersion = "7.9"
 			override.QueueVersion = "3.8"
 		}
 	case major == 2 && minor == 2:
 		override.PHPVersion = "7.1"
 		override.DBVersion = "10.1"
 		override.CacheVersion = "5.0"
-		override.SearchVersion = "5.6.16"
+		override.SearchVersion = "5.6"
 		override.VarnishVersion = "6.0"
 		override.QueueVersion = "3.7"
 		override.ComposerVersion = "2.2"
@@ -537,7 +537,7 @@ func resolveLegacyMagento2Override(major int, minor int, patch int, pPatch int) 
 		override.PHPVersion = "7.1"
 		override.DBVersion = "10.0"
 		override.CacheVersion = "5.0"
-		override.SearchVersion = "2.4.6"
+		override.SearchVersion = "2.4"
 		override.VarnishVersion = "6.0"
 		override.QueueVersion = "3.7"
 		override.ComposerVersion = "2.2"
