@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.42.0] - 2026-04-03
+
+### ✨ New Features
+
+- **Configuration Audit:** Introduced the `project.config.audit` diagnostic check to proactively identify legacy configuration patterns and provide automated migration guidance.
+
+### 🛠 Improvements
+
+- **Standardized Configuration:** Transitioned to a service-centric configuration model where all infrastructure components (Database, Cache, Search, Queue) are defined within the `stack.services` block.
+- **Automated Legacy Migration:** Enhanced `doctor --fix` to automatically and safely migrate legacy `.govard.yml` files, mapping old `db_type` and feature flags to the new standardized model.
+- **Optimized Configuration Layout:** Standardized the logical field ordering in `.govard.yml`, prioritizing `web_root` and web server versions at the top of the file for better clarity.
+- **Refined Doctor UX:** Improved interactive diagnostic feedback; skipping optional fixes is now reported as `INFO` (Skipped) instead of `ERROR`, resulting in a cleaner and more accurate health summary.
+
+### 🧹 Cleanup
+
+- **Codebase:** Removed all legacy backward-compatibility mapping logic for old configuration keys, ensuring a clean and modern engine architecture.
+
 ## [1.41.0] - 2026-04-03
 
 ### ✨ New Features
