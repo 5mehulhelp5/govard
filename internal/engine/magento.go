@@ -137,6 +137,9 @@ func ConfigureMagento(projectName string, config Config) error {
 			}
 			if cmd.Optional {
 				pterm.Warning.Printf("Non-fatal Magento configure step failed (%s): %v\n", cmd.Desc, err)
+				if outText != "" {
+					pterm.Debug.Printf("Command output: %s\n", outText)
+				}
 				continue
 			}
 			return fmt.Errorf("command failed: %s %v\nOutput: %s", cmd.Desc, err, outText)
@@ -206,7 +209,10 @@ func isMagentoConfigPathUnavailable(output string) bool {
 		return false
 	}
 
-	if strings.Contains(normalized, "path") && strings.Contains(normalized, "doesn't exist") {
+	if strings.Contains(normalized, "path") && (strings.Contains(normalized, "doesn't exist") || strings.Contains(normalized, "not found")) {
+		return true
+	}
+	if strings.Contains(normalized, "is not defined") {
 		return true
 	}
 
@@ -550,11 +556,20 @@ func isMagentoElasticsuiteProject() bool {
 	}
 
 	configPHP := filepath.Join(cwd, "app", "etc", "config.php")
-	data, readErr := os.ReadFile(configPHP)
-	if readErr != nil {
-		return false
+	if data, readErr := os.ReadFile(configPHP); readErr == nil {
+		if strings.Contains(string(data), "'Smile_ElasticsuiteCore' => 1") {
+			return true
+		}
 	}
-	return strings.Contains(string(data), "'Smile_ElasticsuiteCore' => 1")
+
+	composerJSON := filepath.Join(cwd, "composer.json")
+	if data, readErr := os.ReadFile(composerJSON); readErr == nil {
+		if strings.Contains(string(data), "smile/elasticsuite") {
+			return true
+		}
+	}
+
+	return false
 }
 
 func patchMagentoElasticsearchSchemaForLibxml() (bool, error) {
@@ -697,4 +712,14 @@ func FixProjectPermissions(projectName string, config Config) error {
 	}
 
 	return nil
+}
+
+// IsMagentoElasticsuiteProjectForTest exposes isMagentoElasticsuiteProject for testing in /tests.
+func IsMagentoElasticsuiteProjectForTest() bool {
+	return isMagentoElasticsuiteProject()
+}
+
+// IsMagentoConfigPathUnavailableForTest exposes isMagentoConfigPathUnavailable for testing in /tests.
+func IsMagentoConfigPathUnavailableForTest(output string) bool {
+	return isMagentoConfigPathUnavailable(output)
 }

@@ -72,7 +72,8 @@ func ensureSpecificComposerVersion(config engine.Config, version string) error {
 	pterm.Success.Printf("Composer %s is now active.\n", version)
 
 	// Fix: Composer 2.2+ blocks plugins by default. Enable them globally in the container for bootstrap.
-	_ = runPHPContainerShellCommand(config, "composer config -g allow-plugins true")
+	// We check if the directory is writable first and redirect stderr to silence noise when it's a read-only mount (common in govard).
+	_ = runPHPContainerShellCommand(config, "[ -w ~/.composer ] && composer config -g allow-plugins true 2>/dev/null || true")
 	return nil
 }
 

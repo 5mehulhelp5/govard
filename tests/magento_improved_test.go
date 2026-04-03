@@ -1,0 +1,56 @@
+package tests
+
+import (
+	"os"
+	"testing"
+	"govard/internal/engine"
+)
+
+func TestIsMagentoElasticsuiteProjectImproved(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "govard-test-*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	origCwd, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origCwd)
+
+	// Test case 1: smile/elasticsuite in composer.json
+	composerContent := `{"require": {"smile/elasticsuite": "^2.11"}}`
+	os.WriteFile("composer.json", []byte(composerContent), 0644)
+	
+	if !engine.IsMagentoElasticsuiteProjectForTest() {
+		t.Errorf("Expected elasticsuite detection via composer.json to be true")
+	}
+
+	// Test case 2: Clear composer.json, test app/etc/config.php
+	os.WriteFile("composer.json", []byte("{}"), 0644)
+	os.MkdirAll("app/etc", 0755)
+	configContent := "<?php return ['modules' => ['Smile_ElasticsuiteCore' => 1]];"
+	os.WriteFile("app/etc/config.php", []byte(configContent), 0644)
+
+	if !engine.IsMagentoElasticsuiteProjectForTest() {
+		t.Errorf("Expected elasticsuite detection via config.php to be true")
+	}
+}
+
+func TestIsMagentoConfigPathUnavailableImproved(t *testing.T) {
+	tests := []struct {
+		output   string
+		expected bool
+	}{
+		{"path \"catalog/search/engine\" doesn't exist", true},
+		{"Path \"twofactorauth/general/enable\" not found", true},
+		{"The \"twofactorauth/general/enable\" configuration path is not defined", true},
+		{"some other error", false},
+		{"", false},
+	}
+
+	for _, tt := range tests {
+		if got := engine.IsMagentoConfigPathUnavailableForTest(tt.output); got != tt.expected {
+			t.Errorf("IsMagentoConfigPathUnavailable(%q) = %v; want %v", tt.output, got, tt.expected)
+		}
+	}
+}
