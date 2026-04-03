@@ -131,7 +131,7 @@ Case Studies:
 			}
 			sort.Strings(frameworkDisplayOptions)
 
-			selectedDisplay := selectOption("Select project framework", frameworkDisplayOptions, "Magento 2")
+			selectedDisplay := selectOption("Select project framework", frameworkDisplayOptions, "Custom")
 			metadata.Framework = frameworkMap[selectedDisplay]
 
 		}
@@ -183,7 +183,11 @@ Case Studies:
 			nodeVersion = textInput("Node.js version", nodeVersion)
 			webRoot = textInput("Web root (e.g. /public, leave empty for project root)", webRoot)
 			xdebugSession = textInput("Xdebug session cookie value", xdebugSession)
-			enableVarnish, _ = pterm.DefaultInteractiveConfirm.WithDefaultValue(false).Show("Enable Varnish?")
+			if initAssumeYes {
+				enableVarnish = false
+			} else {
+				enableVarnish, _ = pterm.DefaultInteractiveConfirm.WithDefaultValue(false).Show("Enable Varnish?")
+			}
 		}
 
 		config := engine.Config{
@@ -362,15 +366,20 @@ var (
 	initFramework        string
 	initFrameworkVersion string
 	migrateFrom          string
+	initAssumeYes        bool
 )
 
 func init() {
 	initCmd.Flags().StringVar(&initFramework, "framework", "", "Override detected framework (e.g., magento2)")
 	initCmd.Flags().StringVar(&initFrameworkVersion, "framework-version", "", "Override detected framework version (e.g., 11)")
 	initCmd.Flags().StringVar(&migrateFrom, "migrate-from", "", "Migrate configuration from another tool (ddev, warden)")
+	initCmd.Flags().BoolVarP(&initAssumeYes, "yes", "y", false, "Assume yes to all prompts (non-interactive mode)")
 }
 
 func selectOption(title string, options []string, defaultOption string) string {
+	if initAssumeYes {
+		return defaultOption
+	}
 	printer := pterm.DefaultInteractiveSelect.WithOptions(options)
 	if defaultOption != "" {
 		printer = printer.WithDefaultOption(defaultOption)
@@ -383,6 +392,9 @@ func selectOption(title string, options []string, defaultOption string) string {
 }
 
 func textInput(title string, defaultValue string) string {
+	if initAssumeYes {
+		return defaultValue
+	}
 	printer := pterm.DefaultInteractiveTextInput.WithDefaultValue(defaultValue)
 	result, err := printer.Show(title)
 	if err != nil {

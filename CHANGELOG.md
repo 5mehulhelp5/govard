@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.41.0] - 2026-04-03
+
+### ✨ New Features
+
+- **Performance:** Parallelized domain resolution checks during environment startup with configurable timeouts (3s default), significantly reducing wait times for projects with multiple domains.
+- **Engine:** Introduced `ComposerVersion` field in runtime profiles with intelligent auto-detection logic to ensure the correct Composer version is always available in the PHP container.
+- **Diagnostics:** Improved `govard doctor --fix` with automatic project profile synchronization and repository directory health repairs.
+- **Auto-Tune:** Introduced non-interactive initialization via `govard init --yes` and `govard bootstrap --yes` for seamless environment containerization.
+- **UX:** Integrated interactive remote environment prompting during bootstrap when no staging/dev remotes are configured.
+
+### 🛠 Improvements
+
+- **Search Engines:** Normalized search engine image tagging strategy (Major.Minor) and implemented dynamic build version resolution for Elasticsearch and OpenSearch in `docker-bake.hcl`.
+- **UI/UX:** Replaced the legacy `deps` command with proactive synchronization warnings during bootstrap and automated `doctor` repairs for a more streamlined developer experience.
+
+### 🔄 Refactors
+
+- **CLI:** Removed the redundant `deps` command and consolidated dependency management logic into the `doctor` and `bootstrap` workflows.
+- **Core:** Refactored domain verification to use concurrent workers for faster local resolution checks.
+
 ## [1.40.4] - 2026-04-02
 
 ### ✨ New Features

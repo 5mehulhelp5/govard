@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"govard/internal/engine"
-	"govard/internal/engine/remote"
 
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
@@ -184,38 +183,6 @@ func runBootstrapAdminCreate(cmd *cobra.Command, config engine.Config) {
 	}
 }
 
-func runBootstrapFixDeps(cmd *cobra.Command, opts BootstrapRuntimeOptions) {
-	args := []string{"custom", "fix-deps"}
-	if opts.MetaVersion != "" {
-		args = append(args, "--", "--framework-version="+opts.MetaVersion)
-	}
-	if err := runGovardSubcommand(cmd, args...); err != nil {
-		pterm.Warning.Printf("fix-deps step skipped: %v\n", err)
-	}
-}
-
-func maybeAutoDetectBootstrapVersion(config engine.Config, opts *BootstrapRuntimeOptions) {
-	if opts == nil {
-		return
-	}
-	if !opts.Clone || !opts.FixDeps || strings.TrimSpace(opts.MetaVersion) != "" {
-		return
-	}
-
-	remoteCfg, ok := config.Remotes[opts.Source]
-	if !ok {
-		return
-	}
-
-	detectedVersion, err := remote.DetectMagento2Version(opts.Source, remoteCfg)
-	if err != nil {
-		pterm.Warning.Printf("Could not auto-detect Magento version from remote '%s' for fix-deps (%v).\n", opts.Source, err)
-		return
-	}
-	opts.MetaVersion = detectedVersion
-	pterm.Info.Printf("Detected remote Magento version %s from '%s' for fix-deps.\n", detectedVersion, opts.Source)
-}
-
 // RunBootstrapHyvaInstallForTest exposes runBootstrapHyvaInstall for tests in /tests.
 func RunBootstrapHyvaInstallForTest(cmd *cobra.Command, hyvaToken string) error {
 	return runBootstrapHyvaInstall(cmd, BootstrapRuntimeOptions{
@@ -235,11 +202,4 @@ func RunBootstrapMagentoSetupInstallForTest(cmd *cobra.Command, config engine.Co
 // RunBootstrapSampleDataForTest exposes runBootstrapSampleData for tests in /tests.
 func RunBootstrapSampleDataForTest(cmd *cobra.Command) error {
 	return runBootstrapSampleData(cmd)
-}
-
-// RunBootstrapFixDepsForTest exposes runBootstrapFixDeps for tests in /tests.
-func RunBootstrapFixDepsForTest(cmd *cobra.Command, frameworkVersion string) {
-	runBootstrapFixDeps(cmd, BootstrapRuntimeOptions{
-		MetaVersion: strings.TrimSpace(frameworkVersion),
-	})
 }

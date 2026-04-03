@@ -297,26 +297,6 @@ func TestRunBootstrapSampleDataForTestRunsAllSteps(t *testing.T) {
 	}
 }
 
-func TestRunBootstrapFixDepsForTestIncludesVersionWhenProvided(t *testing.T) {
-	calls := make([][]string, 0, 1)
-	defer cmd.SetGovardSubcommandRunnerForTest(func(subCmd *cobra.Command, args ...string) error {
-		captured := make([]string, len(args))
-		copy(captured, args)
-		calls = append(calls, captured)
-		return nil
-	})()
-
-	cmd.RunBootstrapFixDepsForTest(&cobra.Command{}, "2.4.8")
-
-	want := []string{"custom", "fix-deps", "--", "--framework-version=2.4.8"}
-	if len(calls) != 1 {
-		t.Fatalf("expected one fix-deps call, got %d", len(calls))
-	}
-	if !reflect.DeepEqual(calls[0], want) {
-		t.Fatalf("fix-deps args = %#v, want %#v", calls[0], want)
-	}
-}
-
 func chdirForTest(t *testing.T, dir string) {
 	t.Helper()
 	cwd, err := os.Getwd()

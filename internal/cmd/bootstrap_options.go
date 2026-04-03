@@ -23,7 +23,6 @@ type BootstrapRuntimeOptions struct {
 	MetaPackage     string
 	MetaVersion     string
 	DBDump          string
-	FixDeps         bool
 	HyvaInstall     bool
 	HyvaToken       string
 	MageUsername    string
@@ -54,7 +53,6 @@ func resolveBootstrapOptions(cmd *cobra.Command) (BootstrapRuntimeOptions, error
 		MetaPackage:     strings.TrimSpace(bootstrapMetaPackage),
 		MetaVersion:     strings.TrimSpace(bootstrapFrameworkVersion),
 		DBDump:          strings.TrimSpace(bootstrapDBDump),
-		FixDeps:         bootstrapFixDeps,
 		HyvaInstall:     bootstrapHyvaInstall,
 		HyvaToken:       strings.TrimSpace(bootstrapHyvaToken),
 		MageUsername:    strings.TrimSpace(bootstrapMageUsername),
@@ -143,7 +141,6 @@ func ResetBootstrapFlags() {
 	bootstrapSkipUp = false
 	bootstrapMetaPackage = defaultBootstrapMetaPackage
 	bootstrapDBDump = ""
-	bootstrapFixDeps = false
 	bootstrapHyvaInstall = false
 	bootstrapHyvaToken = defaultBootstrapHyvaToken
 	bootstrapMageUsername = ""

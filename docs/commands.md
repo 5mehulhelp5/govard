@@ -96,7 +96,6 @@ Use `--plan` to print the summary and exit immediately without starting any serv
 - `--include-sample`: Install sample data during a fresh install.
 - `--hyva-install`: Automatically install the Hyva theme during bootstrap.
 - `--include-product`: Specifically sync catalog product images during media sync.
-- `--fix-deps`: Run a project-specific `fix-deps` command before bootstrap starts.
 
 During remote bootstrap flows, Govard runs `govard config auto` automatically for Magento 2, Magento 1, and OpenMage unless you use `--skip-up`.
 
@@ -550,24 +549,13 @@ govard doctor
 govard doctor --fix
 govard doctor --json
 govard doctor --pack
-govard doctor fix-deps
 govard doctor trust
 ```
 
 Checks include Docker, Compose, ports, disk sanity, Govard home readiness, compose directory saturation, and outbound connectivity.
 
-### `govard doctor fix-deps`
-
-Check host dependencies used by Govard:
-
-- `docker`
-- `docker compose`
-- `ssh`
-- `rsync`
-
-### `govard doctor trust`
-
-Install the Govard Root CA into the system trust store and attempt browser NSS import when possible.
+- **`govard doctor --fix`**: Automatically detect and repair common environment issues, including project profile synchronization, registry directory health, and stale Docker Compose configurations.
+- **`govard doctor trust`**: Install the Govard Root CA into the system trust store and attempt browser NSS import when possible.
 
 ## Utility Commands
 

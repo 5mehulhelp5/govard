@@ -65,12 +65,11 @@ func TestEnvCommandStructure(t *testing.T) {
 	}
 }
 
-func TestDoctorSubcommandsIncludeTrustAndFixDeps(t *testing.T) {
+func TestDoctorSubcommandsIncludeTrust(t *testing.T) {
 	root := cmd.RootCommandForTest()
 
 	for _, path := range [][]string{
 		{"doctor", "trust"},
-		{"doctor", "fix-deps"},
 	} {
 		command, _, err := root.Find(path)
 		if err != nil {

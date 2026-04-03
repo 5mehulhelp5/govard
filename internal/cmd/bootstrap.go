@@ -159,17 +159,41 @@ Note: -e/--environment accepts remote name aliases (e.g. 'dev' matches a remote 
 		if needsRemoteEnvironment(opts) || opts.Source != "" {
 			resolvedRemote, err = ResolveAutoRemote(config, opts.Source)
 			if err != nil {
-				return err
+				if stdinIsTerminal() && !opts.AssumeYes {
+					pterm.Warning.Printf("No remote environment found: %v\n", err)
+					options := []string{"dev", "staging", "production", "custom..."}
+					selected, _ := pterm.DefaultInteractiveSelect.
+						WithDefaultText("Select a remote to add").
+						WithOptions(options).
+						WithDefaultOption("dev").
+						Show()
+
+					remoteName := selected
+					if selected == "custom..." {
+						remoteName, _ = pterm.DefaultInteractiveTextInput.WithDefaultText("Enter remote name (e.g. qa)").Show()
+					}
+					remoteName = strings.ToLower(strings.TrimSpace(remoteName))
+
+					if remoteName != "" {
+						if err := runGovardSubcommand(cmd, "remote", "add", remoteName); err != nil {
+							return fmt.Errorf("failed to add remote: %w", err)
+						}
+						// Reload config and try again
+						config, _ = loadFullConfig()
+						resolvedRemote, err = ResolveAutoRemote(config, opts.Source)
+						if err != nil {
+							return err
+						}
+					} else {
+						return err
+					}
+				} else {
+					return err
+				}
 			}
 			opts.Source = resolvedRemote
 		}
 		operationSource = opts.Source
-
-		maybeAutoDetectBootstrapVersion(config, &opts)
-
-		if opts.FixDeps {
-			runBootstrapFixDeps(cmd, opts)
-		}
 
 		if !opts.Fresh {
 			plan, err := buildBootstrapRemotePlan(config, opts)
@@ -247,6 +271,9 @@ func ensureBootstrapInit(cmd *cobra.Command, cwd string) error {
 	}
 	if bootstrapFrameworkVersion != "" {
 		initArgs = append(initArgs, "--framework-version", bootstrapFrameworkVersion)
+	}
+	if bootstrapAssumeYes {
+		initArgs = append(initArgs, "--yes")
 	}
 	return runGovardSubcommand(cmd, initArgs...)
 }

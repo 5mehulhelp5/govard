@@ -112,44 +112,6 @@ func TestBootstrapOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 		assertMatrixNotContains(t, logs, "DROP DATABASE IF EXISTS")
 	})
 
-	t.Run("CloneIncludeProductAndFixDeps", func(t *testing.T) {
-		projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "bootstrap-options-include-product-fix-deps")
-		shim := env.SetupRuntimeShims(t, map[string]int{
-			"docker": 0,
-			"ssh":    0,
-			"rsync":  0,
-		})
-
-		result := env.RunGovardWithEnv(
-			t,
-			projectDir,
-			append(shim.Env(), isolatedHomeEnv(t)...),
-			"bootstrap",
-			"--clone",
-			"--environment", "dev",
-			"--skip-up",
-			"--no-composer",
-			"--no-db",
-			"--no-admin",
-			"--include-product",
-			"--fix-deps",
-			"--framework-version", "2.4.8",
-			"--yes",
-		)
-		result.AssertSuccess(t)
-
-		logs := shim.ReadLog(t)
-		assertMatrixContains(t, logs, "--exclude catalog/product/cache")
-		assertMatrixNotContains(t, logs, "--exclude catalog/product ")
-
-		fixDepsLog := filepath.Join(projectDir, ".govard", "fix-deps.log")
-		data, err := os.ReadFile(fixDepsLog)
-		if err != nil {
-			t.Fatalf("expected fix-deps invocation log at %s: %v", fixDepsLog, err)
-		}
-		assertMatrixContains(t, string(data), "--framework-version=2.4.8")
-	})
-
 	t.Run("FreshInstallCanonicalOptions", func(t *testing.T) {
 		projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "bootstrap-options-fresh-canonical")
 		shim := env.SetupRuntimeShims(t, map[string]int{

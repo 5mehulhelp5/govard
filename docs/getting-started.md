@@ -132,7 +132,6 @@ Root shortcuts map to `govard env`:
 
 ```bash
 govard doctor
-govard doctor fix-deps
 govard doctor trust
 ```
 
