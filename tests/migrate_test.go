@@ -90,4 +90,7 @@ WARDEN_SSH_PATH=/var/www/laravel
 	if remote.Path != "/var/www/laravel" {
 		t.Errorf("expected remote Path=/var/www/laravel, got %q", remote.Path)
 	}
+	if remote.Capabilities != nil {
+		t.Errorf("expected nil Capabilities, got %+v", remote.Capabilities)
+	}
 }

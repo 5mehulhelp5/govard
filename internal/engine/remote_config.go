@@ -30,15 +30,15 @@ type RemoteCapabilities struct {
 }
 
 type RemoteConfig struct {
-	Host         string             `yaml:"host"`
-	User         string             `yaml:"user"`
-	Port         int                `yaml:"port"`
-	Path         string             `yaml:"path"`
-	URL          string             `yaml:"url,omitempty"`
-	Protected    *bool              `yaml:"protected,omitempty"`
-	Capabilities RemoteCapabilities `yaml:"capabilities,omitempty"`
-	Auth         RemoteAuth         `yaml:"auth,omitempty"`
-	Paths        RemotePaths        `yaml:"paths,omitempty"`
+	Host         string              `yaml:"host"`
+	User         string              `yaml:"user"`
+	Port         int                 `yaml:"port"`
+	Path         string              `yaml:"path"`
+	URL          string              `yaml:"url,omitempty"`
+	Protected    *bool               `yaml:"protected,omitempty"`
+	Capabilities *RemoteCapabilities `yaml:"capabilities,omitempty"`
+	Auth         RemoteAuth          `yaml:"auth,omitempty"`
+	Paths        RemotePaths         `yaml:"paths,omitempty"`
 }
 
 // RemoteConfigMap is a specialized map that preserves sort order during YAML marshaling.

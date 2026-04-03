@@ -123,11 +123,10 @@ func MigrateFromWarden(root string) (MigrationResult, error) {
 	// Legacy Warden SSH variables
 	if host := env["WARDEN_SSH_HOST"]; host != "" {
 		result.Remotes["production"] = RemoteConfig{
-			Host:         host,
-			User:         env["WARDEN_SSH_USER"],
-			Path:         env["WARDEN_SSH_PATH"],
-			Protected:    BoolPtr(true),
-			Capabilities: RemoteCapabilities{},
+			Host:      host,
+			User:      env["WARDEN_SSH_USER"],
+			Path:      env["WARDEN_SSH_PATH"],
+			Protected: BoolPtr(true),
 		}
 	}
 
@@ -156,8 +155,7 @@ func MigrateFromWarden(root string) (MigrationResult, error) {
 		property := parts[len(parts)-1]
 		if _, ok := remotes[envName]; !ok {
 			remotes[envName] = &RemoteConfig{
-				Port:         22,
-				Capabilities: RemoteCapabilities{},
+				Port: 22,
 			}
 		}
 

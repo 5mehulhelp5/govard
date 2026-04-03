@@ -44,6 +44,10 @@ func IsValidRemoteEnvironment(value string) bool {
 // nil means "not set" → allowed by default.
 // Only an explicit false blocks the capability.
 func RemoteCapabilityEnabled(remoteCfg RemoteConfig, capability string) bool {
+	if remoteCfg.Capabilities == nil {
+		return true
+	}
+
 	switch strings.ToLower(strings.TrimSpace(capability)) {
 	case RemoteCapabilityFiles:
 		return remoteCfg.Capabilities.Files == nil || *remoteCfg.Capabilities.Files
@@ -78,13 +82,13 @@ func RemoteCapabilityList(remoteCfg RemoteConfig) []string {
 // ParseRemoteCapabilitiesCSV parses a comma-separated list of capability names to BLOCK.
 // An empty string or "none" means block nothing (all enabled).
 // Example: "db" means block only db; "files,media" blocks files and media.
-func ParseRemoteCapabilitiesCSV(raw string) (RemoteCapabilities, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" || strings.EqualFold(raw, "none") || strings.EqualFold(raw, "all") {
-		return RemoteCapabilities{}, nil
+func ParseRemoteCapabilitiesCSV(raw string) (*RemoteCapabilities, error) {
+	raw = strings.ToLower(strings.TrimSpace(raw))
+	if raw == "" || raw == "none" || raw == "all" {
+		return nil, nil
 	}
 
-	parsed := RemoteCapabilities{}
+	res := RemoteCapabilities{}
 	falseVal := false
 	for _, part := range strings.Split(raw, ",") {
 		name := strings.ToLower(strings.TrimSpace(part))
@@ -93,16 +97,16 @@ func ParseRemoteCapabilitiesCSV(raw string) (RemoteCapabilities, error) {
 		}
 		switch name {
 		case RemoteCapabilityFiles:
-			parsed.Files = &falseVal
+			res.Files = &falseVal
 		case RemoteCapabilityMedia:
-			parsed.Media = &falseVal
+			res.Media = &falseVal
 		case RemoteCapabilityDB:
-			parsed.DB = &falseVal
+			res.DB = &falseVal
 		default:
-			return RemoteCapabilities{}, fmt.Errorf("unsupported remote capability: %s", name)
+			return nil, fmt.Errorf("unsupported remote capability: %s", name)
 		}
 	}
-	return parsed, nil
+	return &res, nil
 }
 
 // RemoteWriteBlocked checks whether writes to a remote should be blocked.

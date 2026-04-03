@@ -29,7 +29,7 @@ func TestParseRemoteCapabilitiesCSV(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse all capabilities: %v", err)
 	}
-	if all.Files != nil || all.Media != nil || all.DB != nil {
+	if all != nil {
 		t.Fatalf("expected all capabilities nil (allowed), got %+v", all)
 	}
 
@@ -58,7 +58,7 @@ func TestRemoteCapabilityEnabled(t *testing.T) {
 
 	// Explicit false should be disabled
 	falseVal := false
-	cfg.Capabilities.Files = &falseVal
+	cfg.Capabilities = &engine.RemoteCapabilities{Files: &falseVal}
 	if engine.RemoteCapabilityEnabled(cfg, engine.RemoteCapabilityFiles) {
 		t.Fatal("expected files disabled when explicitly false")
 	}
@@ -86,8 +86,8 @@ func TestParseRemoteCapabilitiesEmpty(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse empty: %v", err)
 	}
-	if parsed.Files != nil || parsed.Media != nil || parsed.DB != nil {
-		t.Fatal("expected empty set to result in all nil")
+	if parsed != nil {
+		t.Fatal("expected empty set to result in nil")
 	}
 }
 

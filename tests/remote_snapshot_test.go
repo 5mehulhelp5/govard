@@ -178,7 +178,7 @@ func TestSnapshotCreateRemoteDBCapabilityCheck(t *testing.T) {
 		User: "deploy",
 		Path: "/var/www/app",
 		Port: 22,
-		Capabilities: engine.RemoteCapabilities{
+		Capabilities: &engine.RemoteCapabilities{
 			Files: engine.BoolPtr(true),
 			Media: engine.BoolPtr(true),
 			DB:    engine.BoolPtr(false),
