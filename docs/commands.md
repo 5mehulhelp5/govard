@@ -58,7 +58,7 @@ govard bootstrap -e staging --no-pii --no-noise
 
 Two primary ways to use `bootstrap`:
 
-- **Fresh Install**: Use `--fresh` with `--framework` and `--framework-version` to create a clean, vanilla project from a composer meta-package.
+- **Fresh Install**: Use `--fresh` with `--framework` and `--framework-version` to create a clean project from the framework's supported scaffolder. PHP frameworks typically use Composer. Emdash uses the official starter template.
 - **Remote Clone**: Use `--clone` with `--environment` to rsync the entire source code from a remote server. Use this when you don't have a local git repository.
 
 ### Source Selection
@@ -215,6 +215,8 @@ Open a shell in the application container.
 govard shell
 govard shell --no-tty
 ```
+
+For node-first frameworks such as Next.js and Emdash, `govard shell` opens the `web` container at `/app`. PHP frameworks continue to open the `php` container at `/var/www/html`.
 
 ### `govard env logs`
 
@@ -418,12 +420,15 @@ Open common browser and utility targets.
 
 ```bash
 govard open app
+govard open admin
 govard open mail
 govard open db
 govard open db --pma
 govard open db --client
 govard open db -e staging
 ```
+
+`govard open admin` opens `https://<project>.test/admin` by default. For Emdash it opens `https://<project>.test/_emdash/admin`.
 
 ### `govard tunnel`
 
@@ -503,6 +508,8 @@ govard tool npx [command]
 govard tool pnpm [command]
 govard tool grunt [command]
 ```
+
+For node-first frameworks, package-manager commands run in the `web` container at `/app`. Govard detects the package manager from standard project signals such as `package.json`, `pnpm-workspace.yaml`, and lockfiles.
 
 ## Configuration Commands
 

@@ -86,6 +86,30 @@ func TestRequiredRuntimeImagesNextjs(t *testing.T) {
 	}
 }
 
+func TestRequiredRuntimeImagesEmdash(t *testing.T) {
+	images := engine.RequiredRuntimeImages(engine.Config{
+		Framework: "emdash",
+		Stack: engine.Stack{
+			NodeVersion: "22",
+		},
+	}, "")
+
+	expected := map[string]bool{
+		"node:22": true,
+	}
+
+	for _, image := range images {
+		delete(expected, image)
+		if image == "ddtcorex/govard-php:8.4" || image == "ddtcorex/govard-nginx:1.28" {
+			t.Fatalf("unexpected php/webserver image for emdash: %s", image)
+		}
+	}
+
+	if len(expected) > 0 {
+		t.Fatalf("missing expected images: %+v (got %v)", expected, images)
+	}
+}
+
 func TestRequiredRuntimeImagesMagentoHybrid(t *testing.T) {
 	images := engine.RequiredRuntimeImages(engine.Config{
 		Framework: "magento2",

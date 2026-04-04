@@ -103,6 +103,22 @@ func TestEnginePkgValidateConfigAllowsHybridWebServer(t *testing.T) {
 	}
 }
 
+func TestEnginePkgValidateConfigAllowsNoneWebServer(t *testing.T) {
+	cfg := engine.Config{
+		ProjectName: "demo",
+		Domain:      "demo.test",
+		Stack: engine.Stack{Services: engine.Services{
+			WebServer: "none",
+			Search:    "none",
+			Cache:     "none",
+			Queue:     "none",
+		}},
+	}
+	if err := engine.ValidateConfig(cfg); err != nil {
+		t.Fatalf("expected none web server to be valid, got %v", err)
+	}
+}
+
 func TestEnginePkgNormalizeAndFrameworkDefaults(t *testing.T) {
 	cfg := engine.Config{
 		Framework: "magento2",

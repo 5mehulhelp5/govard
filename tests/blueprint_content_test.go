@@ -94,6 +94,81 @@ func TestRenderNextjsBlueprint(t *testing.T) {
 	})
 }
 
+func TestRenderEmdashBlueprint(t *testing.T) {
+	content := renderComposeWithConfig(t, engine.Config{
+		ProjectName: "emdash-test",
+		Framework:   "emdash",
+		Domain:      "emdash.test",
+		Stack: engine.Stack{
+			NodeVersion: "22",
+		},
+	})
+
+	for _, expected := range []string{
+		"image: node:22",
+		"working_dir: /app",
+		"exec npm run dev -- --host 0.0.0.0 --port 80 --allowed-hosts emdash.test",
+		"GOVARD_TRUSTED_DOMAIN=emdash.test",
+		"node_modules:/app/node_modules",
+	} {
+		if !strings.Contains(content, expected) {
+			t.Fatalf("Expected %q to be in generated compose file for emdash:\n%s", expected, content)
+		}
+	}
+	if strings.Contains(content, "PM=") || strings.Contains(content, "$PM") {
+		t.Fatalf("expected emdash compose output to avoid shell PM interpolation hazards:\n%s", content)
+	}
+}
+
+func TestRenderEmdashBlueprintWithDetectedPNPM(t *testing.T) {
+	tempDir := t.TempDir()
+	setTestGovardHome(t, tempDir)
+
+	_, filename, _, _ := runtime.Caller(0)
+	projectRoot := filepath.Join(filepath.Dir(filename), "..")
+	blueprintsDir := filepath.Join(projectRoot, "internal", "blueprints", "files")
+
+	destBlueprintsDir := filepath.Join(tempDir, "blueprints")
+	if err := copyDir(blueprintsDir, destBlueprintsDir); err != nil {
+		t.Fatalf("Failed to copy blueprints: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, "package.json"), []byte(`{"packageManager":"pnpm@10.11.0"}`), 0644); err != nil {
+		t.Fatalf("failed to write package.json: %v", err)
+	}
+
+	config := engine.Config{
+		ProjectName: "emdash-pnpm-test",
+		Framework:   "emdash",
+		Domain:      "emdash-pnpm.test",
+		Stack: engine.Stack{
+			NodeVersion: "22",
+		},
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("Failed to render blueprint: %v", err)
+	}
+
+	contentBytes, err := os.ReadFile(engine.ComposeFilePath(tempDir, config.ProjectName))
+	if err != nil {
+		t.Fatalf("Failed to read generated compose file: %v", err)
+	}
+	content := string(contentBytes)
+
+	if !strings.Contains(content, "exec pnpm dev --host 0.0.0.0 --port 80 --allowed-hosts emdash-pnpm.test") {
+		t.Fatalf("expected pnpm dev command in compose output:\n%s", content)
+	}
+	if !strings.Contains(content, "GOVARD_TRUSTED_DOMAIN=emdash-pnpm.test") {
+		t.Fatalf("expected trusted forwarded domain env in compose output:\n%s", content)
+	}
+	if !strings.Contains(content, "corepack enable") {
+		t.Fatalf("expected corepack bootstrapping in compose output:\n%s", content)
+	}
+	if strings.Contains(content, "PM=") || strings.Contains(content, "$PM") {
+		t.Fatalf("expected pnpm compose output to avoid shell PM interpolation hazards:\n%s", content)
+	}
+}
+
 func TestRenderNextjsBlueprintSkipsManagedWebServerAssets(t *testing.T) {
 	tempDir := t.TempDir()
 	homeDir := setTestGovardHome(t, tempDir)
@@ -126,6 +201,40 @@ func TestRenderNextjsBlueprintSkipsManagedWebServerAssets(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(homeDir, "apache", config.ProjectName, "httpd.conf")); !os.IsNotExist(err) {
 		t.Fatalf("expected nextjs not to render managed apache config, got err=%v", err)
+	}
+}
+
+func TestRenderEmdashBlueprintSkipsManagedWebServerAssets(t *testing.T) {
+	tempDir := t.TempDir()
+	homeDir := setTestGovardHome(t, tempDir)
+
+	_, filename, _, _ := runtime.Caller(0)
+	projectRoot := filepath.Join(filepath.Dir(filename), "..")
+	blueprintsDir := filepath.Join(projectRoot, "internal", "blueprints", "files")
+
+	destBlueprintsDir := filepath.Join(tempDir, "blueprints")
+	if err := copyDir(blueprintsDir, destBlueprintsDir); err != nil {
+		t.Fatalf("Failed to copy blueprints: %v", err)
+	}
+
+	config := engine.Config{
+		ProjectName: "test-emdash-no-managed-web-assets",
+		Framework:   "emdash",
+		Domain:      "emdash.test",
+		Stack: engine.Stack{
+			NodeVersion: "22",
+		},
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("Failed to render emdash blueprint: %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(homeDir, "nginx", config.ProjectName, "default.conf")); !os.IsNotExist(err) {
+		t.Fatalf("expected emdash not to render managed nginx config, got err=%v", err)
+	}
+	if _, err := os.Stat(filepath.Join(homeDir, "apache", config.ProjectName, "httpd.conf")); !os.IsNotExist(err) {
+		t.Fatalf("expected emdash not to render managed apache config, got err=%v", err)
 	}
 }
 

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os/exec"
 
+	"govard/internal/engine"
+
 	"github.com/spf13/cobra"
 )
 
@@ -18,24 +20,23 @@ var shellCmd = &cobra.Command{
 			return cmd.Help()
 		}
 		config := loadConfig()
-		containerName := fmt.Sprintf("%s-php-1", config.ProjectName)
-		user := ResolveProjectExecUser(config, "www-data")
+		containerName, workdir, user := resolveShellExecution(config)
 
 		var err error
 		if len(args) == 0 {
 			// Interactive session with colored PS1 trick (Cyan user@host to match Warden)
 			coloredPS1 := "\\[\\033[01;36m\\]\\u@\\h\\[\\033[00m\\]:\\w\\$ "
 			bashCmd := fmt.Sprintf("export PS1='%s'; exec bash", coloredPS1)
-			err = RunInContainer(containerName, user, "bash", []string{"-c", bashCmd})
+			err = RunInContainerAt(containerName, user, workdir, "bash", []string{"-c", bashCmd})
 		} else {
-			err = RunInContainer(containerName, user, "bash", args)
+			err = RunInContainerAt(containerName, user, workdir, "bash", args)
 		}
 
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			code := exitErr.ExitCode()
 			if code == 126 || code == 127 {
 				// bash not found or not executable — try sh
-				err = RunInContainer(containerName, user, "sh", args)
+				err = RunInContainerAt(containerName, user, workdir, "sh", args)
 			}
 		}
 
@@ -47,4 +48,14 @@ var shellCmd = &cobra.Command{
 }
 
 func init() {
+}
+
+func resolveShellExecution(config engine.Config) (string, string, string) {
+	serviceName := engine.ResolveFrameworkAppService(config.Framework)
+	workdir := engine.ResolveFrameworkAppWorkdir(config.Framework)
+	user := ""
+	if !engine.FrameworkUsesNodeRuntime(config.Framework) {
+		user = ResolveProjectExecUser(config, "www-data")
+	}
+	return fmt.Sprintf("%s-%s-1", config.ProjectName, serviceName), workdir, user
 }

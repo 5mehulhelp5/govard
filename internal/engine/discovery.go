@@ -80,6 +80,11 @@ func DetectFramework(root string) ProjectMetadata {
 	packagePath := filepath.Join(root, "package.json")
 	if _, err := os.Stat(packagePath); err == nil {
 		if deps, ok := readPackageDependencies(packagePath); ok {
+			if raw, ok := deps["emdash"]; ok {
+				metadata.Framework = "emdash"
+				metadata.Version = dependencyVersionString(raw)
+				return metadata
+			}
 			if raw, ok := deps["next"]; ok {
 				metadata.Framework = "nextjs"
 				metadata.Version = dependencyVersionString(raw)
@@ -149,13 +154,24 @@ func readPackageDependencies(path string) (map[string]interface{}, bool) {
 	}
 
 	var pkg struct {
-		Dependencies map[string]interface{} `json:"dependencies"`
+		Dependencies    map[string]interface{} `json:"dependencies"`
+		DevDependencies map[string]interface{} `json:"devDependencies"`
 	}
 	if err := json.Unmarshal(data, &pkg); err != nil {
 		return nil, false
 	}
-	if pkg.Dependencies == nil {
+	if pkg.Dependencies == nil && pkg.DevDependencies == nil {
 		return nil, false
 	}
-	return pkg.Dependencies, true
+
+	deps := make(map[string]interface{}, len(pkg.Dependencies)+len(pkg.DevDependencies))
+	for key, value := range pkg.Dependencies {
+		deps[key] = value
+	}
+	for key, value := range pkg.DevDependencies {
+		if _, exists := deps[key]; !exists {
+			deps[key] = value
+		}
+	}
+	return deps, true
 }

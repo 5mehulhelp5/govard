@@ -147,7 +147,7 @@ Note: -e/--environment accepts remote name aliases (e.g. 'dev' matches a remote 
 
 		supportedFrameworks := []string{"magento2", "magento1", "openmage", "laravel", "symfony", "wordpress"}
 		if opts.Fresh {
-			supportedFrameworks = []string{"magento2", "magento1", "laravel", "symfony", "openmage", "drupal", "wordpress", "nextjs", "shopware", "cakephp"}
+			supportedFrameworks = []string{"magento2", "magento1", "laravel", "symfony", "openmage", "drupal", "wordpress", "nextjs", "emdash", "shopware", "cakephp"}
 		}
 
 		if !stringSliceContains(supportedFrameworks, config.Framework) {
@@ -237,7 +237,8 @@ Note: -e/--environment accepts remote name aliases (e.g. 'dev' matches a remote 
 				return err
 			}
 		} else {
-			if !opts.SkipUp {
+			startEnvBeforeFreshInstall := !opts.SkipUp && frameworkRequiresRunningEnvForFreshInstall(config.Framework)
+			if startEnvBeforeFreshInstall {
 				if err := runGovardSubcommand(cmd, "env", "up", "--remove-orphans"); err != nil {
 					return fmt.Errorf("failed to start local environment: %w", err)
 				}
@@ -246,6 +247,11 @@ Note: -e/--environment accepts remote name aliases (e.g. 'dev' matches a remote 
 			pterm.Info.Printf("Bootstrapping fresh %s project...\n", config.Framework)
 			if err := runBootstrapFrameworkFreshInstall(cmd, config, opts); err != nil {
 				return err
+			}
+			if !opts.SkipUp && !startEnvBeforeFreshInstall {
+				if err := runGovardSubcommand(cmd, "env", "up", "--remove-orphans"); err != nil {
+					return fmt.Errorf("failed to start local environment: %w", err)
+				}
 			}
 		}
 
@@ -336,6 +342,15 @@ func runPHPContainerShellCommand(config engine.Config, commandLine string) error
 func fileExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
+}
+
+func frameworkRequiresRunningEnvForFreshInstall(framework string) bool {
+	switch strings.ToLower(strings.TrimSpace(framework)) {
+	case "nextjs", "emdash":
+		return false
+	default:
+		return true
+	}
 }
 
 func stringSliceContains(slice []string, item string) bool {

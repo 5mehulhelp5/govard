@@ -9,6 +9,7 @@ import (
 )
 
 var composeNameSanitizer = regexp.MustCompile(`[^a-zA-Z0-9._-]+`)
+var projectNameSanitizer = regexp.MustCompile(`[^a-zA-Z0-9_-]+`)
 
 // GovardHomeDir resolves the Govard home directory.
 func GovardHomeDir() string {
@@ -74,6 +75,17 @@ func sanitizeComposeProjectName(name string) string {
 	}
 	name = composeNameSanitizer.ReplaceAllString(name, "-")
 	name = strings.Trim(name, "-._")
+	return strings.ToLower(name)
+}
+
+func NormalizeProjectName(name string) string {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return ""
+	}
+	name = strings.ReplaceAll(name, " ", "-")
+	name = projectNameSanitizer.ReplaceAllString(name, "-")
+	name = strings.Trim(name, "-_")
 	return strings.ToLower(name)
 }
 

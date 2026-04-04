@@ -10,6 +10,7 @@ Govard detects supported frameworks and applies runtime defaults plus version-aw
 | Magento 1 / OpenMage | yes | framework defaults | project root |
 | Laravel | yes | yes | `/public` |
 | Next.js | yes | framework defaults | project root |
+| Emdash | yes | framework defaults | project root |
 | Drupal | yes | yes | `/web` |
 | Symfony | yes | yes | `/public` |
 | Shopware | yes | framework defaults | `/public` |
@@ -25,6 +26,7 @@ Govard detects supported frameworks and applies runtime defaults plus version-aw
 | Magento 1 / OpenMage | 8.1 | - | mariadb 10.11 | none | none | none |
 | Laravel | 8.4 | - | mariadb 11.4 | none | none | none |
 | Next.js | - | 24 | none | none | none | none |
+| Emdash | - | 22 | none | none | none | none |
 | Drupal | 8.4 | - | mariadb 11.4 | none | none | none |
 | Symfony | 8.4 | - | mariadb 11.4 | none | none | none |
 | Shopware | 8.4 | - | mariadb 11.4 | none | none | none |
@@ -339,6 +341,30 @@ Next.js uses Node-focused runtime defaults:
 - project-root web serving
 - Node 24
 - no DB forced by default
+
+## Emdash
+
+Emdash uses a node-first local runtime:
+
+- Node 22
+- no managed PHP, DB, cache, search, or queue services by default
+- `govard shell` and `govard tool npm|pnpm|npx` run in the `web` container at `/app`
+- `govard open admin` opens `/_emdash/admin`
+
+Fresh install support is available:
+
+```bash
+govard bootstrap --framework emdash --fresh
+govard env up
+```
+
+Current scope is local Node + SQLite + local uploads. Govard does not yet automate Cloudflare, D1, or R2 flows for Emdash.
+
+Package manager behavior:
+
+- Govard auto-detects from `package.json` (`packageManager`), `pnpm-workspace.yaml`, and lockfiles
+- if no package-manager signal exists, Govard falls back to `npm`
+- Govard also injects a trusted HTTPS domain override for the local admin passkey flow so Emdash setup works correctly behind the shared Govard proxy
 
 ## Custom
 

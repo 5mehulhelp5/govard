@@ -7,6 +7,7 @@ import (
 
 var (
 	validWebServers = map[string]struct{}{
+		"none":   {},
 		"nginx":  {},
 		"apache": {},
 		"hybrid": {},

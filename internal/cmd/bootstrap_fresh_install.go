@@ -32,6 +32,8 @@ func runBootstrapFrameworkFreshInstall(cmd *cobra.Command, config engine.Config,
 		return runBootstrapWordPressFreshInstall(cmd, config, opts, cwd)
 	case "nextjs":
 		return runBootstrapNextJSFreshInstall(cmd, config, opts, cwd)
+	case "emdash":
+		return runBootstrapEmdashFreshInstall(cmd, config, opts, cwd)
 	case "shopware":
 		return runBootstrapShopwareFreshInstall(cmd, config, opts, cwd)
 	case "cakephp":
@@ -280,6 +282,30 @@ func runBootstrapNextJSFreshInstall(cmd *cobra.Command, config engine.Config, op
 	}
 
 	pterm.Success.Println("Fresh Next.js bootstrap completed.")
+	return nil
+}
+
+func runBootstrapEmdashFreshInstall(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions, cwd string) error {
+	emdashOpts := bootstrap.Options{
+		Version: opts.MetaVersion,
+		Env:     opts.Source,
+	}
+
+	emdashBootstrap := bootstrap.NewEmdashBootstrap(emdashOpts)
+
+	if err := emdashBootstrap.CreateProject(cwd); err != nil {
+		return err
+	}
+
+	if err := emdashBootstrap.Install(cwd); err != nil {
+		return err
+	}
+
+	if err := emdashBootstrap.Configure(cwd); err != nil {
+		return err
+	}
+
+	pterm.Success.Println("Fresh Emdash bootstrap completed.")
 	return nil
 }
 

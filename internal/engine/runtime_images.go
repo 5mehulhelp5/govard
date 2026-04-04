@@ -24,8 +24,12 @@ func RequiredRuntimeImages(config Config, root string) []string {
 		}
 	}
 
-	if config.Framework == "nextjs" {
-		push(fmt.Sprintf("node:%s-alpine", config.Stack.NodeVersion))
+	if FrameworkUsesNodeRuntime(config.Framework) {
+		if config.Framework == "emdash" {
+			push(fmt.Sprintf("node:%s", config.Stack.NodeVersion))
+		} else {
+			push(fmt.Sprintf("node:%s-alpine", config.Stack.NodeVersion))
+		}
 	} else {
 		switch strings.ToLower(config.Stack.Services.WebServer) {
 		case "apache":
@@ -43,7 +47,7 @@ func RequiredRuntimeImages(config Config, root string) []string {
 		}
 	}
 
-	if config.Stack.DBType != "" && config.Stack.DBType != "none" && config.Framework != "nextjs" {
+	if config.Stack.DBType != "" && config.Stack.DBType != "none" && !FrameworkUsesNodeRuntime(config.Framework) {
 		push(fmt.Sprintf("%s%s:%s", imageRepo, config.Stack.DBType, config.Stack.DBVersion))
 	}
 

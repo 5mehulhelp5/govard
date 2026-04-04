@@ -16,6 +16,22 @@ func TestOpenAdminURL(t *testing.T) {
 	}
 }
 
+func TestOpenAdminURLEmdash(t *testing.T) {
+	cfg := engine.Config{Domain: "emdash.test", Framework: "emdash"}
+	url := cmd.OpenAdminURLForTest(cfg)
+	if url != "https://emdash.test/_emdash/admin" {
+		t.Fatalf("unexpected url: %s", url)
+	}
+}
+
+func TestDetectLocalAdminURLEmdash(t *testing.T) {
+	cfg := engine.Config{Domain: "emdash.test", Framework: "emdash"}
+	url := cmd.DetectLocalAdminURLForTest(cfg)
+	if url != "https://emdash.test/_emdash/admin" {
+		t.Fatalf("unexpected local admin url: %s", url)
+	}
+}
+
 func TestResolveOpenEnvironmentForTest(t *testing.T) {
 	cfg := engine.Config{
 		Remotes: map[string]engine.RemoteConfig{

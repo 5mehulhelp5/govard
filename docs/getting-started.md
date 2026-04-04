@@ -59,6 +59,7 @@ Detected frameworks:
 - Magento 2
 - Laravel
 - Next.js
+- Emdash
 - Drupal
 - Symfony
 - Shopware
@@ -107,6 +108,7 @@ govard shell
 Govard routes project domains through the shared proxy:
 
 - app URL: `https://<project>.test`
+- admin URL: `govard open admin` (Emdash uses `/_emdash/admin`)
 - mail: `govard open mail`
 - DB access: `govard open db`
 

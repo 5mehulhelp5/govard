@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	"govard/internal/engine"
 
@@ -17,6 +18,12 @@ type FrameworkCommand struct {
 	Binary      string
 	PrependArgs []string
 	DefaultUser string
+}
+
+type commandExecutionTarget struct {
+	ContainerName string
+	Workdir       string
+	User          string
 }
 
 var toolCmd = &cobra.Command{
@@ -169,19 +176,8 @@ func initFrameworkCommands() {
 					return fmt.Errorf("the '%s' command is only available for %s projects (current: %s)", name, target.Framework, config.Framework)
 				}
 
-				// Determine container and user
-				// Most frameworks use 'php' container, node-based use 'app' or 'web'
-				containerName := fmt.Sprintf("%s-php-1", config.ProjectName)
-
-				user := target.DefaultUser
-				// Override user if it's magento2
-				if config.Framework == "magento2" && (target.Binary == "php" || target.Binary == "composer" ||
-					target.Binary == "npm" || target.Binary == "yarn" || target.Binary == "npx" ||
-					target.Binary == "pnpm" || target.Binary == "grunt") {
-					user = config.ResolveProjectExecUser("www-data")
-				}
-
-				return RunInContainer(containerName, user, target.Binary, append(target.PrependArgs, args...))
+				targetExec := resolveToolExecution(config, target.Binary, target.DefaultUser)
+				return RunInContainerAt(targetExec.ContainerName, targetExec.User, targetExec.Workdir, target.Binary, append(target.PrependArgs, args...))
 			},
 		}
 		toolCmd.AddCommand(cmd)
@@ -190,6 +186,10 @@ func initFrameworkCommands() {
 }
 
 func RunInContainer(containerName string, user string, binary string, args []string) error {
+	return RunInContainerAt(containerName, user, "/var/www/html", binary, args)
+}
+
+func RunInContainerAt(containerName string, user string, workdir string, binary string, args []string) error {
 	dockerArgs := []string{"exec"}
 	if stdinIsTerminal() {
 		dockerArgs = append(dockerArgs, "-it")
@@ -199,7 +199,10 @@ func RunInContainer(containerName string, user string, binary string, args []str
 	if user != "" {
 		dockerArgs = append(dockerArgs, "-u", user)
 	}
-	dockerArgs = append(dockerArgs, "-w", "/var/www/html", containerName, binary)
+	if strings.TrimSpace(workdir) == "" {
+		workdir = "/var/www/html"
+	}
+	dockerArgs = append(dockerArgs, "-w", workdir, containerName, binary)
 	dockerArgs = append(dockerArgs, args...)
 
 	c := exec.Command("docker", dockerArgs...)
@@ -209,4 +212,37 @@ func RunInContainer(containerName string, user string, binary string, args []str
 
 func ResolveProjectExecUser(config engine.Config, fallback string) string {
 	return config.ResolveProjectExecUser(fallback)
+}
+
+func resolveToolExecution(config engine.Config, binary string, defaultUser string) commandExecutionTarget {
+	serviceName := engine.ResolveFrameworkAppService(config.Framework)
+	workdir := engine.ResolveFrameworkAppWorkdir(config.Framework)
+	user := defaultUser
+
+	if engine.FrameworkUsesNodeRuntime(config.Framework) {
+		return commandExecutionTarget{
+			ContainerName: fmt.Sprintf("%s-%s-1", config.ProjectName, serviceName),
+			Workdir:       workdir,
+			User:          user,
+		}
+	}
+
+	if config.Framework == "magento2" && (binary == "php" || binary == "composer" ||
+		binary == "npm" || binary == "yarn" || binary == "npx" ||
+		binary == "pnpm" || binary == "grunt") {
+		user = config.ResolveProjectExecUser("www-data")
+	} else if user == "" {
+		user = config.ResolveProjectExecUser("www-data")
+	}
+
+	return commandExecutionTarget{
+		ContainerName: fmt.Sprintf("%s-%s-1", config.ProjectName, serviceName),
+		Workdir:       workdir,
+		User:          user,
+	}
+}
+
+func ResolveToolExecutionForTest(config engine.Config, binary string) (string, string, string) {
+	target := resolveToolExecution(config, binary, "")
+	return target.ContainerName, target.Workdir, target.User
 }

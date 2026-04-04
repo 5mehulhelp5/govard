@@ -167,3 +167,39 @@ func TestInitOmitsEmptyQueueVersionAndHooks(t *testing.T) {
 		t.Fatalf("expected .govard.yml to omit empty hooks, got:\n%s", content)
 	}
 }
+
+func TestInitSanitizesProjectNameAndPreservesTestDomainSuffix(t *testing.T) {
+	parentDir := t.TempDir()
+	projectDir := filepath.Join(parentDir, "emdash.test")
+	if err := os.MkdirAll(projectDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(projectDir, "package.json"), []byte(`{"dependencies":{"emdash":"^0.1.0"}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cwd, _ := os.Getwd()
+	defer func() { _ = os.Chdir(cwd) }()
+	if err := os.Chdir(projectDir); err != nil {
+		t.Fatal(err)
+	}
+
+	root := cmd.RootCommandForTest()
+	root.SetOut(io.Discard)
+	root.SetErr(io.Discard)
+	root.SetArgs([]string{"init", "--framework", "emdash", "--yes"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("execute: %v", err)
+	}
+
+	cfg, err := engine.LoadBaseConfigFromDir(projectDir, true)
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	if cfg.ProjectName != "emdash-test" {
+		t.Fatalf("expected sanitized project name emdash-test, got %s", cfg.ProjectName)
+	}
+	if cfg.Domain != "emdash.test" {
+		t.Fatalf("expected domain emdash.test, got %s", cfg.Domain)
+	}
+}

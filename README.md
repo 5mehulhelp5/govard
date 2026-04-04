@@ -35,7 +35,7 @@ At a glance, these are the areas where Govard delivers stronger day-to-day value
 - **Redis & Valkey Management**: Full support for Redis and Valkey CLI, flushing, and info across local and remote environments.
 - **Database Observability**: Live query monitoring with `govard db top` and real-time progress bars for imports and syncs.
 - **Zero-Config Debugging**: Seamless Xdebug 2 & 3 integration with one-click toggling, project-specific isolation (`<project>-docker`), and structured subcommands.
-- **Framework Discovery**: Automatically detects Magento 1/OpenMage, Magento 2, Laravel, Next.js, Drupal, Symfony, Shopware, CakePHP, and WordPress to generate tailored configurations.
+- **Framework Discovery**: Automatically detects Magento 1/OpenMage, Magento 2, Laravel, Next.js, Emdash, Drupal, Symfony, Shopware, CakePHP, and WordPress to generate tailored configurations.
 - **Custom Framework**: Interactive prompt to pick web server, database, cache, search, queue, and varnish for bespoke stacks.
 - **Xdebug Routing**: Dedicated `php-debug` container, activated only when `XDEBUG_SESSION` cookie is present.
 - **Queue Support**: Optional RabbitMQ service for async workloads.
@@ -178,6 +178,14 @@ govard init
 ```
 
 This scans your project (via `composer.json` or `package.json`) and generates a `.govard.yml` configuration.
+
+Fresh Emdash projects are also supported:
+
+```bash
+govard bootstrap --framework emdash --fresh
+govard env up
+govard open admin
+```
 
 ### 2. Start the Environment
 

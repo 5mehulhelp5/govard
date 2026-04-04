@@ -115,6 +115,7 @@ Case Studies:
 				"CakePHP":   "cakephp",
 				"Custom":    "custom",
 				"Drupal":    "drupal",
+				"Emdash":    "emdash",
 				"Laravel":   "laravel",
 				"Magento 1": "magento1",
 				"Magento 2": "magento2",
@@ -191,10 +192,10 @@ Case Studies:
 		}
 
 		config := engine.Config{
-			ProjectName:      filepath.Base(cwd),
+			ProjectName:      engine.NormalizeProjectName(filepath.Base(cwd)),
 			Framework:        metadata.Framework,
 			FrameworkVersion: metadata.Version,
-			Domain:           fmt.Sprintf("%s.test", filepath.Base(cwd)),
+			Domain:           engine.InferProjectDomain(cwd),
 			Stack: engine.Stack{
 				PHPVersion:    phpVersion,
 				NodeVersion:   nodeVersion,
@@ -219,8 +220,12 @@ Case Studies:
 		}
 
 		if migrated.ProjectName != "" {
-			config.ProjectName = migrated.ProjectName
-			config.Domain = fmt.Sprintf("%s.test", migrated.ProjectName)
+			config.ProjectName = engine.NormalizeProjectName(migrated.ProjectName)
+			if strings.HasSuffix(strings.ToLower(strings.TrimSpace(migrated.ProjectName)), ".test") {
+				config.Domain = strings.ToLower(strings.TrimSpace(migrated.ProjectName))
+			} else {
+				config.Domain = fmt.Sprintf("%s.test", config.ProjectName)
+			}
 		}
 		if migrated.PHPVersion != "" {
 			config.Stack.PHPVersion = migrated.PHPVersion

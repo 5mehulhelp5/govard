@@ -140,6 +140,8 @@ func displayFramework(framework string) string {
 		return "Magento 2"
 	case "nextjs":
 		return "Next.js"
+	case "emdash":
+		return "Emdash"
 	case "cakephp":
 		return "CakePHP"
 	default:

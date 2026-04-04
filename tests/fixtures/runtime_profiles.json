@@ -149,6 +149,20 @@
     }
   },
   {
+    "name": "Emdash uses node-first local defaults",
+    "framework": "emdash",
+    "version": "^0.1.0",
+    "source": "framework-defaults",
+    "expected": {
+      "node_version": "22",
+      "db_type": "none",
+      "web_server": "none",
+      "cache": "none",
+      "search": "none",
+      "queue": "none"
+    }
+  },
+  {
     "name": "Symfony 5.2 uses legacy mapping",
     "framework": "symfony",
     "version": "5.2",

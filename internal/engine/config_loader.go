@@ -101,7 +101,7 @@ func LoadConfigFromDirWithProfile(root string, requireBase bool, profile string)
 		cfg.ProjectName = inferProjectName(root)
 	}
 	if cfg.Domain == "" && cfg.ProjectName != "" {
-		cfg.Domain = cfg.ProjectName + ".test"
+		cfg.Domain = inferProjectDomain(root)
 	}
 
 	NormalizeConfig(&cfg, root)
@@ -124,7 +124,7 @@ func LoadBaseConfigFromDir(root string, requireBase bool) (Config, error) {
 				ProjectName: inferProjectName(root),
 			}
 			if cfg.ProjectName != "" {
-				cfg.Domain = cfg.ProjectName + ".test"
+				cfg.Domain = inferProjectDomain(root)
 			}
 			NormalizeConfig(&cfg, root)
 			return cfg, nil
@@ -141,7 +141,7 @@ func LoadBaseConfigFromDir(root string, requireBase bool) (Config, error) {
 		cfg.ProjectName = inferProjectName(root)
 	}
 	if cfg.Domain == "" && cfg.ProjectName != "" {
-		cfg.Domain = cfg.ProjectName + ".test"
+		cfg.Domain = inferProjectDomain(root)
 	}
 
 	NormalizeConfig(&cfg, root)
@@ -154,6 +154,23 @@ func LoadBaseConfigFromDir(root string, requireBase bool) (Config, error) {
 
 func inferProjectName(root string) string {
 	base := strings.TrimSpace(filepath.Base(root))
+	return NormalizeProjectName(base)
+}
+
+func inferProjectDomain(root string) string {
+	base := strings.TrimSpace(filepath.Base(root))
 	base = strings.ToLower(strings.ReplaceAll(base, " ", "-"))
-	return base
+	if strings.HasSuffix(base, ".test") {
+		return base
+	}
+
+	name := NormalizeProjectName(base)
+	if name == "" {
+		return ""
+	}
+	return name + ".test"
+}
+
+func InferProjectDomain(root string) string {
+	return inferProjectDomain(root)
 }

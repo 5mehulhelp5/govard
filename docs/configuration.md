@@ -149,6 +149,7 @@ Each key is a local hostname. Govard routes those hostnames through the local pr
 - `stack.db_version`
 - `stack.web_root`
 - `stack.xdebug_session`
+- Node-first frameworks auto-detect the package manager from `package.json` (`packageManager`), `pnpm-workspace.yaml`, or lockfiles, then fall back to `npm`
 
 ### Safety and reproducibility
 

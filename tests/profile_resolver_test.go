@@ -49,6 +49,22 @@ func TestResolveRuntimeProfileNextjsNoDatabase(t *testing.T) {
 	}
 }
 
+func TestResolveRuntimeProfileEmdashUsesNodeAndNoDatabase(t *testing.T) {
+	result, err := engine.ResolveRuntimeProfile("emdash", "^0.1.0")
+	if err != nil {
+		t.Fatalf("resolve profile: %v", err)
+	}
+	if result.Profile.NodeVersion != "22" {
+		t.Fatalf("expected emdash node version 22, got %s", result.Profile.NodeVersion)
+	}
+	if result.Profile.DBType != "none" {
+		t.Fatalf("expected emdash db_type none, got %s", result.Profile.DBType)
+	}
+	if result.Profile.WebServer != "none" {
+		t.Fatalf("expected emdash web_server none, got %s", result.Profile.WebServer)
+	}
+}
+
 func TestExtractMajorVersion(t *testing.T) {
 	major, ok := engine.ExtractMajorVersion("^11.3")
 	if !ok {

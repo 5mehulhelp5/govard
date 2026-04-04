@@ -20,6 +20,8 @@ func Run(framework string, opts Options) error {
 		return BootstrapWordPress(opts)
 	case "nextjs":
 		return BootstrapNextJS(opts)
+	case "emdash":
+		return BootstrapEmdash(opts)
 	case "shopware":
 		return BootstrapShopware(opts)
 	case "cakephp":
@@ -72,6 +74,12 @@ func BootstrapWordPress(opts Options) error {
 
 func BootstrapNextJS(opts Options) error {
 	bootstrap := NewNextJSBootstrap(opts)
+	_ = bootstrap.FreshCommands()
+	return nil
+}
+
+func BootstrapEmdash(opts Options) error {
+	bootstrap := NewEmdashBootstrap(opts)
 	_ = bootstrap.FreshCommands()
 	return nil
 }

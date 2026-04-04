@@ -1,0 +1,30 @@
+# EmDash Docker Compose configuration.
+# Note: this blueprint is rendered through Go templates, so the raw source is
+# not expected to be standalone YAML before Govard renders it.
+
+services:
+  web:
+    image: node:{{ .Config.Stack.NodeVersion }}
+    working_dir: /app
+    user: root
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+    command: >
+      sh -lc '{{ emdashRuntimeCommand .PackageManager .Config.Domain }}'
+    environment:
+      - GOVARD_TRUSTED_DOMAIN={{ .Config.Domain }}
+      - NODE_ENV=development
+      - PORT=80
+    networks:
+      - govard-net
+      - govard-proxy
+
+volumes:
+  node_modules:
+
+networks:
+  govard-net:
+    driver: bridge
+  govard-proxy:
+    external: true

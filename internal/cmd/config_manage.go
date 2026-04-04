@@ -48,7 +48,11 @@ var configSetCmd = &cobra.Command{
 			return err
 		}
 		key, value := args[0], args[1]
-		if !setConfigValue(&config, key, value) {
+		ok, err := setConfigValue(&config, key, value)
+		if err != nil {
+			return err
+		}
+		if !ok {
 			return fmt.Errorf("unknown config key: %s", key)
 		}
 		wd, _ := os.Getwd()
@@ -90,7 +94,7 @@ func getConfigValue(config engine.Config, key string) (string, bool) {
 	return "", false
 }
 
-func setConfigValue(config *engine.Config, key string, value string) bool {
+func setConfigValue(config *engine.Config, key string, value string) (bool, error) {
 	switch strings.ToLower(key) {
 	case "project_name":
 		config.ProjectName = value
@@ -120,9 +124,9 @@ func setConfigValue(config *engine.Config, key string, value string) bool {
 		config.Stack.Services.Queue = value
 		config.Stack.Features.Queue = (value != "" && value != "none")
 	default:
-		return false
+		return false, nil
 	}
-	return true
+	return true, nil
 }
 
 func init() {

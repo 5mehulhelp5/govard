@@ -29,16 +29,23 @@ func runOpenAdminTarget(config engine.Config, requestedEnvironment string) error
 		return err
 	}
 
-	url := openAdminURL(config)
-	_ = url
+	var url string
 	if isRemote {
 		remoteCfg, err := ensureOpenRemote(config, environment, engine.RemoteCapabilityFiles)
 		if err != nil {
 			return err
 		}
-		adminPath, probeErr := detectRemoteMagentoAdminPath(config, environment, remoteCfg)
-		if probeErr != nil {
-			pterm.Warning.Printf("Could not auto-detect admin path for '%s': %v\n", environment, probeErr)
+		var adminPath string
+		if strings.EqualFold(strings.TrimSpace(config.Framework), "emdash") {
+			adminPath = "_emdash/admin"
+		} else {
+			detectedAdminPath, probeErr := detectRemoteMagentoAdminPath(config, environment, remoteCfg)
+			if probeErr != nil {
+				adminPath = "admin"
+				pterm.Warning.Printf("Could not auto-detect admin path for '%s': %v\n", environment, probeErr)
+			} else {
+				adminPath = detectedAdminPath
+			}
 		}
 		url = buildRemoteAdminURL(remoteCfg, adminPath)
 	} else {
@@ -147,10 +154,18 @@ func runOpenPortainerTarget(config engine.Config, requestedEnvironment string) e
 }
 
 func openAdminURL(config engine.Config) string {
-	return "https://" + config.Domain + "/admin"
+	baseURL := "https://" + strings.TrimSpace(config.Domain)
+	if strings.EqualFold(strings.TrimSpace(config.Framework), "emdash") {
+		return joinURLWithPath(baseURL, "_emdash/admin")
+	}
+	return joinURLWithPath(baseURL, "admin")
 }
 
 func detectLocalAdminURL(config engine.Config) string {
+	if strings.EqualFold(strings.TrimSpace(config.Framework), "emdash") {
+		return openAdminURL(config)
+	}
+
 	baseURL := "https://" + strings.TrimSpace(config.Domain)
 	if strings.ToLower(strings.TrimSpace(config.Framework)) != "magento2" {
 		return joinURLWithPath(baseURL, "admin")
@@ -163,13 +178,12 @@ func detectLocalAdminURL(config engine.Config) string {
 }
 
 func runOpenLocalShell(config engine.Config) error {
-	containerName := fmt.Sprintf("%s-php-1", config.ProjectName)
-	user := ResolveProjectExecUser(config, "www-data")
+	containerName, workdir, user := resolveShellExecution(config)
 
-	if err := RunInContainer(containerName, user, "bash", []string{}); err == nil {
+	if err := RunInContainerAt(containerName, user, workdir, "bash", []string{}); err == nil {
 		return nil
 	}
-	return RunInContainer(containerName, user, "sh", []string{})
+	return RunInContainerAt(containerName, user, workdir, "sh", []string{})
 }
 
 func buildRemoteShellCommand(projectPath string) string {
@@ -386,6 +400,10 @@ func buildSFTPURL(remoteCfg engine.RemoteConfig) string {
 
 func OpenAdminURLForTest(config engine.Config) string {
 	return openAdminURL(config)
+}
+
+func DetectLocalAdminURLForTest(config engine.Config) string {
+	return detectLocalAdminURL(config)
 }
 
 func ResolveOpenEnvironmentForTest(config engine.Config, requestedEnvironment string) (string, bool, error) {

@@ -19,6 +19,12 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+func renderTemplateFuncMap() template.FuncMap {
+	return template.FuncMap{
+		"emdashRuntimeCommand": buildEmdashRuntimeCommand,
+	}
+}
+
 // RenderData holds all data needed for template rendering
 type RenderData struct {
 	Config                Config
@@ -39,6 +45,7 @@ type RenderData struct {
 	HostComposerCacheDir  string
 	HostComposerConfigDir string
 	VarnishVclPath        string
+	PackageManager        string
 }
 
 func findBlueprintsDir(startDir string) (string, error) {
@@ -203,12 +210,13 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 		return fmt.Errorf("fingerprint compose override: %w", err)
 	}
 	envFingerprint := renderEnvironmentFingerprint()
+	packageManager := ResolveNodePackageManager(root)
 
 	outputPath := ComposeFilePathWithProfile(root, config.ProjectName, profile)
 	hashPath := outputPath + ".hash"
 
 	hashData, _ := json.Marshal(config)
-	hashSum := sha256.Sum256(append(hashData, []byte(profile+BlueprintVersion+blueprintFingerprint+overrideFingerprint+envFingerprint)...))
+	hashSum := sha256.Sum256(append(hashData, []byte(profile+BlueprintVersion+blueprintFingerprint+overrideFingerprint+envFingerprint+packageManager)...))
 	currentHash := hex.EncodeToString(hashSum[:])
 
 	if existingHash, err := os.ReadFile(hashPath); err == nil && string(existingHash) == currentHash {
@@ -241,6 +249,7 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 		ImageRepository:      imageRepo,
 		XdebugSessionPattern: buildXdebugSessionPattern(config.Stack.XdebugSession),
 		VarnishVclPath:       filepath.Join(GovardHomeDir(), "varnish", config.ProjectName, "default.vcl"),
+		PackageManager:       packageManager,
 	}
 	if config.Stack.WebRoot != "" {
 		renderData.NGINXPublic = config.Stack.WebRoot
@@ -395,17 +404,35 @@ func mergeProjectComposeOverride(root string, merged map[string]interface{}) err
 
 // renderTemplateFS renders a single template from an fs.FS
 func renderTemplateFS(bfs fs.FS, tmplPath string, data RenderData) (string, error) {
-	tmpl, err := template.ParseFS(bfs, tmplPath)
+	tmpl, err := template.New(path.Base(tmplPath)).Funcs(renderTemplateFuncMap()).ParseFS(bfs, tmplPath)
 	if err != nil {
 		return "", fmt.Errorf("parse template %s: %w", tmplPath, err)
 	}
 
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, data); err != nil {
+	if err := tmpl.ExecuteTemplate(&buf, path.Base(tmplPath), data); err != nil {
 		return "", fmt.Errorf("execute template %s: %w", tmplPath, err)
 	}
 
 	return buf.String(), nil
+}
+
+func buildEmdashRuntimeCommand(packageManager string, domain string) string {
+	domain = strings.TrimSpace(domain)
+
+	if packageManager == "pnpm" {
+		return strings.Join([]string{
+			"corepack enable >/dev/null 2>&1 || true;",
+			"if ! command -v pnpm >/dev/null 2>&1; then corepack prepare pnpm@latest --activate >/dev/null 2>&1; fi;",
+			`if [ ! -d node_modules ] || [ -z "$$(ls -A node_modules 2>/dev/null)" ]; then pnpm install; fi;`,
+			fmt.Sprintf("exec pnpm dev --host 0.0.0.0 --port 80 --allowed-hosts %s;", domain),
+		}, " ")
+	}
+
+	return strings.Join([]string{
+		`if [ ! -d node_modules ] || [ -z "$$(ls -A node_modules 2>/dev/null)" ]; then npm install; fi;`,
+		fmt.Sprintf("exec npm run dev -- --host 0.0.0.0 --port 80 --allowed-hosts %s;", domain),
+	}, " ")
 }
 
 func buildXdebugSessionPattern(raw string) string {

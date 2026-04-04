@@ -88,6 +88,18 @@ func TestFrameworkDetectionIntegration(t *testing.T) {
 			expectedVersion:   "14.2.0",
 		},
 		{
+			name: "Emdash",
+			files: map[string]string{
+				"package.json": MustMarshalJSON(t, map[string]interface{}{
+					"dependencies": map[string]string{
+						"emdash": "^0.1.0",
+					},
+				}),
+			},
+			expectedFramework: "emdash",
+			expectedVersion:   "^0.1.0",
+		},
+		{
 			name: "Drupal",
 			files: map[string]string{
 				"composer.json": MustMarshalJSON(t, map[string]interface{}{
@@ -194,6 +206,12 @@ func TestFrameworkAutoConfiguration(t *testing.T) {
 		{
 			name:             "Next.js",
 			framework:        "nextjs",
+			expectedPHP:      "",
+			expectedNginxPub: "",
+		},
+		{
+			name:             "Emdash",
+			framework:        "emdash",
 			expectedPHP:      "",
 			expectedNginxPub: "",
 		},

@@ -5,6 +5,9 @@ import "strings"
 // FrameworkConfig defines the configuration for a specific framework
 type FrameworkConfig struct {
 	Name              string
+	Runtime           string
+	AppService        string
+	AppWorkdir        string
 	NGINXPUBLIC       string
 	NGINXTemplate     string
 	DatabaseName      string
@@ -30,6 +33,9 @@ type FrameworkConfig struct {
 var FrameworkConfigs = map[string]FrameworkConfig{
 	"magento2": {
 		Name:              "magento2",
+		Runtime:           "php",
+		AppService:        "php",
+		AppWorkdir:        "/var/www/html",
 		NGINXPUBLIC:       "/pub",
 		NGINXTemplate:     "magento2.conf",
 		DatabaseName:      "magento",
@@ -61,6 +67,9 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 	},
 	"laravel": {
 		Name:              "laravel",
+		Runtime:           "php",
+		AppService:        "php",
+		AppWorkdir:        "/var/www/html",
 		NGINXPUBLIC:       "/public",
 		NGINXTemplate:     "laravel.conf",
 		DatabaseName:      "laravel",
@@ -88,17 +97,20 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 	},
 	"nextjs": {
 		Name:             "nextjs",
+		Runtime:          "node",
+		AppService:       "web",
+		AppWorkdir:       "/app",
 		NGINXPUBLIC:      "",
 		NGINXTemplate:    "nodejs.conf",
 		DatabaseName:     "",
 		DefaultPHP:       "",
 		DefaultNodeVer:   "24",
-		DefaultDB:        "",
+		DefaultDB:        "none",
 		DefaultDBVer:     "",
 		DefaultNginxVer:  "1.28",
 		DefaultApacheVer: "2.4",
 		DefaultQueueVer:  "3.13.7",
-		DefaultWebServer: "nginx",
+		DefaultWebServer: "none",
 		DefaultSearch:    "none",
 		DefaultCache:     "none",
 		DefaultQueue:     "none",
@@ -108,8 +120,34 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 			"includes/rabbitmq.yml",
 		},
 	},
+	"emdash": {
+		Name:             "emdash",
+		Runtime:          "node",
+		AppService:       "web",
+		AppWorkdir:       "/app",
+		NGINXPUBLIC:      "",
+		NGINXTemplate:    "",
+		DatabaseName:     "",
+		DefaultPHP:       "",
+		DefaultNodeVer:   "22",
+		DefaultDB:        "none",
+		DefaultDBVer:     "",
+		DefaultNginxVer:  "1.28",
+		DefaultApacheVer: "2.4",
+		DefaultQueueVer:  "3.13.7",
+		DefaultWebServer: "none",
+		DefaultSearch:    "none",
+		DefaultCache:     "none",
+		DefaultQueue:     "none",
+		Includes: []string{
+			"emdash/services.yml",
+		},
+	},
 	"drupal": {
 		Name:              "drupal",
+		Runtime:           "php",
+		AppService:        "php",
+		AppWorkdir:        "/var/www/html",
 		NGINXPUBLIC:       "/web",
 		NGINXTemplate:     "drupal.conf",
 		DatabaseName:      "drupal",
@@ -136,6 +174,9 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 	},
 	"symfony": {
 		Name:              "symfony",
+		Runtime:           "php",
+		AppService:        "php",
+		AppWorkdir:        "/var/www/html",
 		NGINXPUBLIC:       "/public",
 		NGINXTemplate:     "symfony.conf",
 		DatabaseName:      "symfony",
@@ -163,6 +204,9 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 	},
 	"magento1": {
 		Name:              "magento1",
+		Runtime:           "php",
+		AppService:        "php",
+		AppWorkdir:        "/var/www/html",
 		NGINXPUBLIC:       "",
 		NGINXTemplate:     "magento1.conf",
 		DatabaseName:      "magento",
@@ -188,6 +232,9 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 	},
 	"openmage": {
 		Name:              "openmage",
+		Runtime:           "php",
+		AppService:        "php",
+		AppWorkdir:        "/var/www/html",
 		NGINXPUBLIC:       "",
 		NGINXTemplate:     "magento1.conf",
 		DatabaseName:      "openmage",
@@ -213,6 +260,9 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 	},
 	"shopware": {
 		Name:              "shopware",
+		Runtime:           "php",
+		AppService:        "php",
+		AppWorkdir:        "/var/www/html",
 		NGINXPUBLIC:       "/public",
 		NGINXTemplate:     "shopware.conf",
 		DatabaseName:      "shopware",
@@ -240,6 +290,9 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 	},
 	"cakephp": {
 		Name:              "cakephp",
+		Runtime:           "php",
+		AppService:        "php",
+		AppWorkdir:        "/var/www/html",
 		NGINXPUBLIC:       "/webroot",
 		NGINXTemplate:     "cakephp.conf",
 		DatabaseName:      "cakephp",
@@ -264,6 +317,9 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 	},
 	"wordpress": {
 		Name:              "wordpress",
+		Runtime:           "php",
+		AppService:        "php",
+		AppWorkdir:        "/var/www/html",
 		NGINXPUBLIC:       "/wordpress",
 		NGINXTemplate:     "wordpress.conf",
 		DatabaseName:      "wordpress",
@@ -288,6 +344,9 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 	},
 	"custom": {
 		Name:              "custom",
+		Runtime:           "php",
+		AppService:        "php",
+		AppWorkdir:        "/var/www/html",
 		NGINXPUBLIC:       "",
 		NGINXTemplate:     "default.conf",
 		DatabaseName:      "app",
@@ -323,4 +382,25 @@ func GetFrameworkConfig(name string) (FrameworkConfig, bool) {
 	}
 	config, ok := FrameworkConfigs[name]
 	return config, ok
+}
+
+func FrameworkUsesNodeRuntime(name string) bool {
+	config, ok := GetFrameworkConfig(name)
+	return ok && strings.EqualFold(config.Runtime, "node")
+}
+
+func ResolveFrameworkAppService(name string) string {
+	config, ok := GetFrameworkConfig(name)
+	if ok && strings.TrimSpace(config.AppService) != "" {
+		return config.AppService
+	}
+	return "php"
+}
+
+func ResolveFrameworkAppWorkdir(name string) string {
+	config, ok := GetFrameworkConfig(name)
+	if ok && strings.TrimSpace(config.AppWorkdir) != "" {
+		return config.AppWorkdir
+	}
+	return "/var/www/html"
 }

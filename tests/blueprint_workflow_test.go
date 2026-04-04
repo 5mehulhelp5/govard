@@ -233,6 +233,61 @@ func TestRenderBlueprintReRendersWhenProjectComposeOverrideChanges(t *testing.T)
 	}
 }
 
+func TestRenderBlueprintReRendersWhenPackageManagerSignalChanges(t *testing.T) {
+	tempDir := t.TempDir()
+	setTestGovardHome(t, tempDir)
+
+	_, filename, _, _ := runtime.Caller(0)
+	projectRoot := filepath.Join(filepath.Dir(filename), "..")
+	blueprintsDir := filepath.Join(projectRoot, "internal", "blueprints", "files")
+
+	destBlueprintsDir := filepath.Join(tempDir, "blueprints")
+	if err := copyDir(blueprintsDir, destBlueprintsDir); err != nil {
+		t.Fatalf("Failed to copy blueprints: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, "package-lock.json"), []byte("{}"), 0o644); err != nil {
+		t.Fatalf("write package-lock.json: %v", err)
+	}
+
+	config := engine.Config{
+		ProjectName: "emdash-pm-switch",
+		Framework:   "emdash",
+		Domain:      "emdash-pm-switch.test",
+		Stack: engine.Stack{
+			NodeVersion: "22",
+		},
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("first render failed: %v", err)
+	}
+
+	composePath := engine.ComposeFilePath(tempDir, config.ProjectName)
+	before, err := os.ReadFile(composePath)
+	if err != nil {
+		t.Fatalf("read first compose file: %v", err)
+	}
+	if !strings.Contains(string(before), "exec npm run dev -- --host 0.0.0.0 --port 80 --allowed-hosts emdash-pm-switch.test") {
+		t.Fatalf("expected initial npm compose output, got:\n%s", string(before))
+	}
+
+	if err := os.WriteFile(filepath.Join(tempDir, "pnpm-workspace.yaml"), []byte("packages:\n  - .\n"), 0o644); err != nil {
+		t.Fatalf("write pnpm-workspace.yaml: %v", err)
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("second render failed: %v", err)
+	}
+
+	after, err := os.ReadFile(composePath)
+	if err != nil {
+		t.Fatalf("read second compose file: %v", err)
+	}
+	if !strings.Contains(string(after), "exec pnpm dev --host 0.0.0.0 --port 80 --allowed-hosts emdash-pm-switch.test") {
+		t.Fatalf("expected compose output to re-render for pnpm, got:\n%s", string(after))
+	}
+}
+
 func TestRenderBlueprintReRendersWhenSSHAuthSockChanges(t *testing.T) {
 	tempDir := t.TempDir()
 	setTestGovardHome(t, tempDir)
