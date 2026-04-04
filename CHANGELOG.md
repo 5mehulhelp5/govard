@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.43.0] - 2026-04-04
+
+### ✨ New Features
+
+- **Frameworks:** Added full support for the **Emdash** framework, including runtime configuration, bootstrap patching, and dynamic container execution targets.
+
+### 🔄 Refactors
+
+- **Bootstrap Engine:** Implemented **staged project initialization** to support frameworks that require empty directories during the initial bootstrap phase.
+- **Environment Core:** Modularized the environment startup logic with **dependency injection** and added project identity uniqueness validation for improved stability.
+
 ## [1.42.2] - 2026-04-03
 
 ### 🐛 Bug Fixes
