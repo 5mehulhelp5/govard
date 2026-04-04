@@ -165,10 +165,6 @@ func runBootstrapWordPressFreshInstall(cmd *cobra.Command, config engine.Config,
 		return err
 	}
 
-	if err := runGovardSubcommand(cmd, "env", "restart"); err != nil {
-		return fmt.Errorf("restart environment after WordPress core extraction: %w", err)
-	}
-
 	if err := wpBootstrap.Install(cwd); err != nil {
 		return err
 	}

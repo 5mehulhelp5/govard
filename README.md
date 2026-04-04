@@ -202,6 +202,10 @@ This renders a per-project compose file under `~/.govard/compose/` and starts yo
 
 `govard env up` also re-renders generated web-server assets under `~/.govard/` before container startup, so setup changes in the current Govard build are applied without depending on cached Apache or Nginx image configs.
 
+`govard env start` and `govard env restart` also re-apply local domain routing after containers come back up, so HTTPS and proxy registration stay in sync with the running project.
+
+Each local project must use a unique `project_name` and primary domain. Govard now blocks `init`/`env up` when another tracked project already uses the same identity, instead of silently colliding with an existing environment.
+
 Common root shortcuts are also available for day-to-day lifecycle work:
 
 - `govard up` → `govard env up`

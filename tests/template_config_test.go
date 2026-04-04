@@ -53,6 +53,14 @@ func TestMagento2TemplateHasLiveReloadRoute(t *testing.T) {
 	}
 }
 
+func TestWordPressTemplateSupportsDirectoryAdminRouting(t *testing.T) {
+	content := readTemplateFile(t, "wordpress.conf")
+
+	if !strings.Contains(content, "try_files $uri $uri/ /index.php?$query_string;") {
+		t.Fatalf("expected wordpress.conf to preserve directory requests like /wp-admin/ before falling back to index.php")
+	}
+}
+
 func TestHybridTemplateProxiesToApache(t *testing.T) {
 	content := readTemplateFile(t, "hybrid.conf")
 

@@ -2,6 +2,7 @@ package tests
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -109,5 +110,72 @@ func TestDeleteProjectRegistryEntry(t *testing.T) {
 	}
 	if len(entries) != 0 {
 		t.Fatalf("expected empty registry, got %d entries", len(entries))
+	}
+}
+
+func TestValidateProjectIdentityUniquenessRejectsDuplicateProjectName(t *testing.T) {
+	t.Setenv(engine.ProjectRegistryPathEnvVar, filepath.Join(t.TempDir(), "projects.json"))
+
+	if err := engine.UpsertProjectRegistryEntry(engine.ProjectRegistryEntry{
+		Path:        "/workspace/existing",
+		ProjectName: "wordpress",
+		Domain:      "existing.test",
+	}); err != nil {
+		t.Fatalf("seed registry: %v", err)
+	}
+
+	err := engine.ValidateProjectIdentityUniqueness("/workspace/new", engine.Config{
+		ProjectName: "wordpress",
+		Domain:      "new.test",
+	})
+	if err == nil {
+		t.Fatal("expected duplicate project_name error")
+	}
+	if !strings.Contains(strings.ToLower(err.Error()), "project_name wordpress is already used") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestValidateProjectIdentityUniquenessRejectsDuplicateExtraDomain(t *testing.T) {
+	t.Setenv(engine.ProjectRegistryPathEnvVar, filepath.Join(t.TempDir(), "projects.json"))
+
+	if err := engine.UpsertProjectRegistryEntry(engine.ProjectRegistryEntry{
+		Path:         "/workspace/existing",
+		ProjectName:  "shop",
+		Domain:       "shop.test",
+		ExtraDomains: []string{"store-a.test"},
+	}); err != nil {
+		t.Fatalf("seed registry: %v", err)
+	}
+
+	err := engine.ValidateProjectIdentityUniqueness("/workspace/new", engine.Config{
+		ProjectName: "new-shop",
+		Domain:      "store-a.test",
+	})
+	if err == nil {
+		t.Fatal("expected duplicate domain error")
+	}
+	if !strings.Contains(strings.ToLower(err.Error()), "domain store-a.test is already used") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestValidateProjectIdentityUniquenessAllowsSamePath(t *testing.T) {
+	t.Setenv(engine.ProjectRegistryPathEnvVar, filepath.Join(t.TempDir(), "projects.json"))
+
+	projectPath := "/workspace/wordpress"
+	if err := engine.UpsertProjectRegistryEntry(engine.ProjectRegistryEntry{
+		Path:        projectPath,
+		ProjectName: "wordpress",
+		Domain:      "wordpress.test",
+	}); err != nil {
+		t.Fatalf("seed registry: %v", err)
+	}
+
+	if err := engine.ValidateProjectIdentityUniqueness(projectPath, engine.Config{
+		ProjectName: "wordpress",
+		Domain:      "wordpress.test",
+	}); err != nil {
+		t.Fatalf("expected same-path validation to pass, got %v", err)
 	}
 }

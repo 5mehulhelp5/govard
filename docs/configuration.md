@@ -110,6 +110,8 @@ stack:
 
 `extra_domains` tells Govard which additional hostnames should resolve through the local proxy.
 
+`project_name` and the primary `domain` must be unique across tracked local Govard projects. If another project in the registry already uses the same identity, `govard init` and `govard env up` now fail fast instead of reusing the other project's runtime assets or proxy routes.
+
 `store_domains` is a Magento convenience map of:
 
 ```yaml

@@ -88,9 +88,10 @@ For Magento multi-site setups:
 ## How Routing Works
 
 1. `govard env up` renders the project stack and registers routes
-2. Caddy terminates HTTPS
-3. Caddy forwards traffic to the project web container
-4. Govard manages the local CA and exported root certificate
+2. `govard env start` and `govard env restart` re-apply those routes and local hosts entries after container lifecycle changes
+3. Caddy terminates HTTPS
+4. Caddy forwards traffic to the project web container
+5. Govard manages the local CA and exported root certificate
 
 ## Troubleshooting
 

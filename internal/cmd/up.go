@@ -97,6 +97,9 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 					ApplyQuickstartProfile(&context.Config)
 					pterm.Info.Println("Quickstart profile enabled: optional services reduced for faster first run.")
 				}
+				if err := engine.ValidateProjectIdentityUniqueness(context.Cwd, context.Config); err != nil {
+					return err
+				}
 				context.Compose = engine.ComposeFilePathWithProfile(context.Cwd, context.Config.ProjectName, context.Profile)
 				pterm.Info.Printf("Loaded config layers: %d\n", len(context.Loaded))
 				lockWarnings, lockErr := evaluateUpLockPolicy(context.Cwd, context.Config, context.UpdateLock)

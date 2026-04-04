@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -13,6 +15,28 @@ import (
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 )
+
+type EnvDependenciesForTest struct {
+	RunCompose                func(context.Context, engine.ComposeOptions) error
+	RegisterDomains           func([]string, string) error
+	UnregisterDomain          func(string) error
+	AddHostsEntry             func(string) error
+	RemoveHostsEntry          func(string) error
+	IsDomainResolvableLocally func(string) bool
+	RunHooks                  func(engine.Config, string, io.Writer, io.Writer) error
+	RefreshPMAActiveProjects  func() error
+}
+
+var envDeps = EnvDependenciesForTest{
+	RunCompose:                engine.RunCompose,
+	RegisterDomains:           proxy.RegisterDomains,
+	UnregisterDomain:          proxy.UnregisterDomain,
+	AddHostsEntry:             engine.AddHostsEntry,
+	RemoveHostsEntry:          engine.RemoveHostsEntry,
+	IsDomainResolvableLocally: engine.IsDomainResolvableLocally,
+	RunHooks:                  engine.RunHooks,
+	RefreshPMAActiveProjects:  engine.RefreshPMAActiveProjects,
+}
 
 var envCmd = &cobra.Command{
 	Use:   "env [command]",
@@ -79,7 +103,11 @@ func proxyEnvToCompose(cmd *cobra.Command, args []string) error {
 		fmt.Println()
 		pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Println(" Starting Govard Project ")
 		fmt.Println()
-		args = append([]string{"up", "-d"}, args[1:]...)
+		if err := startProjectEnvironment(cmd, config, cwd, composePath, args[1:]); err != nil {
+			return err
+		}
+		pterm.Success.Println("✅ Environment started.")
+		return nil
 	case "restart":
 		fmt.Println()
 		pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Println(" Restarting Govard Project ")
@@ -87,7 +115,11 @@ func proxyEnvToCompose(cmd *cobra.Command, args []string) error {
 		if err := proxyEnvToCompose(cmd, []string{"stop"}); err != nil {
 			return err
 		}
-		return proxyEnvToCompose(cmd, append([]string{"up", "-d"}, args[1:]...))
+		if err := startProjectEnvironment(cmd, config, cwd, composePath, args[1:]); err != nil {
+			return err
+		}
+		pterm.Success.Println("✅ Environment restarted.")
+		return nil
 	case "stop", "down":
 		action := "Stopping"
 		if subcommand == "down" {
@@ -97,11 +129,11 @@ func proxyEnvToCompose(cmd *cobra.Command, args []string) error {
 		pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Printf(" %s Govard Environment \n", action)
 		fmt.Println()
 
-		if err := engine.RunHooks(config, engine.HookPreStop, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
+		if err := envDeps.RunHooks(config, engine.HookPreStop, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
 			return fmt.Errorf("pre-stop hooks failed: %w", err)
 		}
 
-		err := engine.RunCompose(cmd.Context(), engine.ComposeOptions{
+		err := envDeps.RunCompose(cmd.Context(), engine.ComposeOptions{
 			ProjectDir:  cwd,
 			ProjectName: config.ProjectName,
 			ComposeFile: composePath,
@@ -115,15 +147,15 @@ func proxyEnvToCompose(cmd *cobra.Command, args []string) error {
 		}
 
 		for _, domain := range config.AllDomains() {
-			if err := proxy.UnregisterDomain(domain); err != nil {
+			if err := envDeps.UnregisterDomain(domain); err != nil {
 				pterm.Warning.Printf("Could not remove proxy route for %s: %v\n", domain, err)
 			}
-			if err := engine.RemoveHostsEntry(domain); err != nil {
+			if err := envDeps.RemoveHostsEntry(domain); err != nil {
 				pterm.Warning.Printf("Could not remove hosts entry for %s: %v\n", domain, err)
 			}
 		}
 
-		if err := engine.RunHooks(config, engine.HookPostStop, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
+		if err := envDeps.RunHooks(config, engine.HookPostStop, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
 			return fmt.Errorf("post-stop hooks failed: %w", err)
 		}
 
@@ -212,7 +244,7 @@ func proxyEnvToCompose(cmd *cobra.Command, args []string) error {
 	}
 
 	// Default proxy for everything else
-	return engine.RunCompose(cmd.Context(), engine.ComposeOptions{
+	return envDeps.RunCompose(cmd.Context(), engine.ComposeOptions{
 		ProjectDir:  cwd,
 		ProjectName: config.ProjectName,
 		ComposeFile: composePath,
@@ -221,6 +253,108 @@ func proxyEnvToCompose(cmd *cobra.Command, args []string) error {
 		Stderr:      cmd.ErrOrStderr(),
 		Stdin:       os.Stdin,
 	})
+}
+
+func startProjectEnvironment(cmd *cobra.Command, config engine.Config, cwd string, composePath string, extraArgs []string) error {
+	args := append([]string{"up", "-d"}, extraArgs...)
+	if err := envDeps.RunCompose(cmd.Context(), engine.ComposeOptions{
+		ProjectDir:  cwd,
+		ProjectName: config.ProjectName,
+		ComposeFile: composePath,
+		Args:        args,
+		Stdout:      cmd.OutOrStdout(),
+		Stderr:      cmd.ErrOrStderr(),
+		Stdin:       os.Stdin,
+	}); err != nil {
+		return fmt.Errorf("failed to start containers: %w", err)
+	}
+
+	ensureProjectDomainsAvailable(config)
+	return nil
+}
+
+func ensureProjectDomainsAvailable(config engine.Config) {
+	target := ResolveUpProxyTarget(config)
+	allDomains := config.AllDomains()
+
+	var proxyErr error
+	if len(allDomains) > 0 {
+		proxyErr = envDeps.RegisterDomains(allDomains, target)
+	}
+
+	for _, domain := range allDomains {
+		if envDeps.IsDomainResolvableLocally(domain) {
+			pterm.Success.Printf("Domain %s already resolves locally\n", domain)
+		} else if err := envDeps.AddHostsEntry(domain); err != nil {
+			pterm.Warning.Printf("Could not update hosts file for %s: %v\n", domain, err)
+			pterm.Info.Printf("Please manually add '127.0.0.1 %s' to your hosts file.\n", domain)
+		} else {
+			pterm.Success.Printf("Domain %s mapped to 127.0.0.1\n", domain)
+		}
+
+		if proxyErr != nil {
+			pterm.Warning.Printf("Could not register domain %s with Govard Proxy: %v\n", domain, proxyErr)
+		} else {
+			pterm.Success.Printf("Domain %s registered with Govard Proxy -> %s\n", domain, target)
+		}
+	}
+
+	if err := envDeps.RefreshPMAActiveProjects(); err != nil {
+		pterm.Warning.Printf("Could not refresh PMA active projects: %v\n", err)
+	}
+}
+
+func SetEnvDependenciesForTest(deps EnvDependenciesForTest) func() {
+	previous := envDeps
+
+	if deps.RunCompose != nil {
+		envDeps.RunCompose = deps.RunCompose
+	} else {
+		envDeps.RunCompose = engine.RunCompose
+	}
+	if deps.RegisterDomains != nil {
+		envDeps.RegisterDomains = deps.RegisterDomains
+	} else {
+		envDeps.RegisterDomains = proxy.RegisterDomains
+	}
+	if deps.UnregisterDomain != nil {
+		envDeps.UnregisterDomain = deps.UnregisterDomain
+	} else {
+		envDeps.UnregisterDomain = proxy.UnregisterDomain
+	}
+	if deps.AddHostsEntry != nil {
+		envDeps.AddHostsEntry = deps.AddHostsEntry
+	} else {
+		envDeps.AddHostsEntry = engine.AddHostsEntry
+	}
+	if deps.RemoveHostsEntry != nil {
+		envDeps.RemoveHostsEntry = deps.RemoveHostsEntry
+	} else {
+		envDeps.RemoveHostsEntry = engine.RemoveHostsEntry
+	}
+	if deps.IsDomainResolvableLocally != nil {
+		envDeps.IsDomainResolvableLocally = deps.IsDomainResolvableLocally
+	} else {
+		envDeps.IsDomainResolvableLocally = engine.IsDomainResolvableLocally
+	}
+	if deps.RunHooks != nil {
+		envDeps.RunHooks = deps.RunHooks
+	} else {
+		envDeps.RunHooks = engine.RunHooks
+	}
+	if deps.RefreshPMAActiveProjects != nil {
+		envDeps.RefreshPMAActiveProjects = deps.RefreshPMAActiveProjects
+	} else {
+		envDeps.RefreshPMAActiveProjects = engine.RefreshPMAActiveProjects
+	}
+
+	return func() {
+		envDeps = previous
+	}
+}
+
+func ProxyEnvToComposeForTest(cmd *cobra.Command, args []string) error {
+	return proxyEnvToCompose(cmd, args)
 }
 
 func init() {

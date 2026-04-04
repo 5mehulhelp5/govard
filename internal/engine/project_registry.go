@@ -129,6 +129,57 @@ func DeleteProjectRegistryEntry(path string) error {
 	return writeProjectRegistryEntries(ProjectRegistryPath(), filtered)
 }
 
+func ValidateProjectIdentityUniqueness(projectPath string, config Config) error {
+	entries, err := ReadProjectRegistryEntries()
+	if err != nil {
+		return fmt.Errorf("read project registry: %w", err)
+	}
+
+	cleanPath := filepath.Clean(strings.TrimSpace(projectPath))
+	projectName := strings.TrimSpace(strings.ToLower(config.ProjectName))
+	if projectName == "" && cleanPath != "." && cleanPath != "" {
+		projectName = NormalizeProjectName(filepath.Base(cleanPath))
+	}
+
+	requestedDomains := map[string]struct{}{}
+	for _, domain := range config.AllDomains() {
+		normalized := strings.TrimSpace(strings.ToLower(domain))
+		if normalized == "" {
+			continue
+		}
+		requestedDomains[normalized] = struct{}{}
+	}
+
+	for _, entry := range entries {
+		entryPath := filepath.Clean(strings.TrimSpace(entry.Path))
+		if cleanPath != "" && entryPath == cleanPath {
+			continue
+		}
+
+		if projectName != "" && strings.EqualFold(strings.TrimSpace(entry.ProjectName), projectName) {
+			return fmt.Errorf("project_name %s is already used by %s", projectName, entryPath)
+		}
+
+		for _, domain := range append([]string{entry.Domain}, entry.ExtraDomains...) {
+			normalized := strings.TrimSpace(strings.ToLower(domain))
+			if normalized == "" {
+				continue
+			}
+			if _, exists := requestedDomains[normalized]; !exists {
+				continue
+			}
+
+			projectLabel := strings.TrimSpace(entry.ProjectName)
+			if projectLabel == "" {
+				projectLabel = entryPath
+			}
+			return fmt.Errorf("domain %s is already used by project %s (%s)", normalized, projectLabel, entryPath)
+		}
+	}
+
+	return nil
+}
+
 func normalizeProjectRegistryEntry(entry ProjectRegistryEntry) (ProjectRegistryEntry, bool) {
 	entry.Path = strings.TrimSpace(entry.Path)
 	if entry.Path == "" {

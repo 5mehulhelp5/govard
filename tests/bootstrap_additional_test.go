@@ -10,6 +10,7 @@ import (
 
 	"govard/internal/cmd"
 	"govard/internal/engine"
+	bootstrapengine "govard/internal/engine/bootstrap"
 
 	"github.com/spf13/cobra"
 )
@@ -194,6 +195,49 @@ func TestRunBootstrapFrameworkFreshInstallForTestRejectsUnsupportedFramework(t *
 	}
 	if !strings.Contains(err.Error(), "fresh install not supported for framework: custom") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestRunBootstrapFrameworkFreshInstallForTestWordPressDoesNotRestartEnvironment(t *testing.T) {
+	tempDir := t.TempDir()
+	chdirForTest(t, tempDir)
+
+	restoreDownloader := bootstrapengine.SetWordPressCoreDownloaderForTest(func(projectDir string) error {
+		samplePath := filepath.Join(projectDir, "wp-config-sample.php")
+		return os.WriteFile(samplePath, []byte("<?php\n"), 0o644)
+	})
+	defer restoreDownloader()
+
+	defer cmd.SetPHPContainerShellRunnerForTest(func(config engine.Config, commandLine string) error {
+		return nil
+	})()
+
+	calls := make([][]string, 0, 2)
+	defer cmd.SetGovardSubcommandRunnerForTest(func(subCmd *cobra.Command, args ...string) error {
+		captured := append([]string{}, args...)
+		calls = append(calls, captured)
+		return nil
+	})()
+
+	err := cmd.RunBootstrapFrameworkFreshInstallForTest(
+		&cobra.Command{},
+		engine.Config{
+			ProjectName: "sample-project",
+			Framework:   "wordpress",
+			Domain:      "sample.test",
+		},
+		"dev",
+		"",
+	)
+	if err != nil {
+		t.Fatalf("RunBootstrapFrameworkFreshInstallForTest() error = %v", err)
+	}
+
+	want := [][]string{
+		{"config", "auto"},
+	}
+	if !reflect.DeepEqual(calls, want) {
+		t.Fatalf("subcommand calls = %#v, want %#v", calls, want)
 	}
 }
 

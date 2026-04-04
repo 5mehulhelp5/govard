@@ -132,6 +132,10 @@ Before starting containers, `govard env up` re-renders the per-project compose f
 - `~/.govard/nginx/<project>/mage-run-map.conf`
 - `~/.govard/apache/<project>/mage-run-map.conf`
 
+`govard env start` and `govard env restart` re-register the project's domains with the shared proxy and refresh local host mappings after containers start, so HTTPS keeps working after lifecycle restarts.
+
+`govard env up` also validates that the current project does not collide with another tracked project that already uses the same `project_name` or domain.
+
 `govard env down` supports:
 
 - `-v, --volumes`

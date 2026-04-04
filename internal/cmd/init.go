@@ -355,6 +355,9 @@ Case Studies:
 		if oldWebRoot == "/" && config.Stack.WebRoot != "/" && config.Stack.WebRoot != "" {
 			pterm.Info.Printf("Corrected web_root from '/' to '%s' based on framework conventions\n", config.Stack.WebRoot)
 		}
+		if err := engine.ValidateProjectIdentityUniqueness(cwd, config); err != nil {
+			return err
+		}
 
 		writableConfig := engine.PrepareConfigForWrite(config)
 
