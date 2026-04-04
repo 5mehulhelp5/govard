@@ -3,7 +3,6 @@ package bootstrap
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -57,33 +56,13 @@ func (d *DrupalBootstrap) FreshCommands() []string {
 func (d *DrupalBootstrap) CreateProject(projectDir string) error {
 	pterm.Info.Println("Creating fresh Drupal project...")
 
-	entries, err := os.ReadDir(projectDir)
-	if err != nil {
-		return fmt.Errorf("failed to read project directory: %w", err)
-	}
-
-	if len(entries) > 0 {
-		pterm.Warning.Println("Project directory is not empty. Cleaning up...")
-		for _, entry := range entries {
-			if entry.Name() == ".govard" || entry.Name() == ".govard.yml" {
-				continue
-			}
-			path := filepath.Join(projectDir, entry.Name())
-			if err := os.RemoveAll(path); err != nil {
-				return fmt.Errorf("failed to remove %s: %w", entry.Name(), err)
-			}
-		}
-	}
-
 	template := d.getDrupalTemplate(d.Options.Version)
 
-	cmd := exec.Command("composer", "create-project", template, ".", "--no-interaction")
-	cmd.Dir = projectDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-
-	if err := cmd.Run(); err != nil {
+	createInStage := func(stageDir string) error {
+		return runComposerProjectCommand(projectDir, nil, "create-project", template, stageDir, "--no-interaction")
+	}
+	runnerCommand := "composer create-project " + template + " \"$GOVARD_STAGE_DIR\" --no-interaction"
+	if err := runStagedCreateProject(projectDir, d.Options.Runner, createInStage, runnerCommand); err != nil {
 		return fmt.Errorf("failed to create Drupal project: %w", err)
 	}
 
@@ -217,12 +196,7 @@ func (d *DrupalBootstrap) getDrupalTemplate(version string) string {
 }
 
 func (d *DrupalBootstrap) runComposerCommand(projectDir string, args ...string) error {
-	cmd := exec.Command("composer", args...)
-	cmd.Dir = projectDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	return cmd.Run()
+	return runComposerProjectCommand(projectDir, d.Options.Runner, args...)
 }
 
 func (d *DrupalBootstrap) runDrushCommand(projectDir string, args ...string) error {
@@ -235,10 +209,5 @@ func (d *DrupalBootstrap) runDrushCommand(projectDir string, args ...string) err
 		}
 	}
 
-	args = append([]string{drushPath}, args...)
-	cmd := exec.Command("php", args...)
-	cmd.Dir = projectDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	return runPHPProjectScript(projectDir, d.Options.Runner, drushPath, args...)
 }

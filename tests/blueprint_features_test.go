@@ -84,7 +84,7 @@ func TestRenderNextjsNodeVersionOverride(t *testing.T) {
 		},
 	})
 
-	if !strings.Contains(content, "image: node:20-alpine") {
+	if !strings.Contains(content, "image: node:20") {
 		t.Fatalf("Expected node image to use overridden version")
 	}
 }

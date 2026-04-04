@@ -187,6 +187,10 @@ govard env up
 govard open admin
 ```
 
+Fresh framework scaffolders that require an empty project root now stage their generated files in a temporary directory before syncing them back into the initialized project. This keeps `.govard.yml` in place after `govard init`.
+
+Fresh WordPress bootstrap downloads core directly from `wordpress.org` and installs via PHP bootstrap scripts, so `wp-cli` is no longer required for the initial setup flow.
+
 ### 2. Start the Environment
 
 ```bash

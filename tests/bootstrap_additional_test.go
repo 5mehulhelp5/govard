@@ -174,6 +174,14 @@ func TestRunBootstrapFreshCreateProjectForTestBuildsExpectedCommand(t *testing.T
 	}
 }
 
+func TestBuildPHPContainerShellCommandForTestUsesRepoRootCDPrefix(t *testing.T) {
+	got := cmd.BuildPHPContainerShellCommandForTest("composer install --no-interaction")
+	want := "cd /var/www/html && composer install --no-interaction"
+	if got != want {
+		t.Fatalf("BuildPHPContainerShellCommandForTest() = %q, want %q", got, want)
+	}
+}
+
 func TestRunBootstrapFrameworkFreshInstallForTestRejectsUnsupportedFramework(t *testing.T) {
 	err := cmd.RunBootstrapFrameworkFreshInstallForTest(
 		&cobra.Command{},

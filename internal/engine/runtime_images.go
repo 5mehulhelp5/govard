@@ -25,7 +25,7 @@ func RequiredRuntimeImages(config Config, root string) []string {
 	}
 
 	if FrameworkUsesNodeRuntime(config.Framework) {
-		if config.Framework == "emdash" {
+		if config.Framework == "emdash" || config.Framework == "nextjs" {
 			push(fmt.Sprintf("node:%s", config.Stack.NodeVersion))
 		} else {
 			push(fmt.Sprintf("node:%s-alpine", config.Stack.NodeVersion))

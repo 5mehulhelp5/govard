@@ -243,7 +243,7 @@ func TestFrameworkAutoConfiguration(t *testing.T) {
 			name:             "WordPress",
 			framework:        "wordpress",
 			expectedPHP:      "8.3",
-			expectedNginxPub: "/wordpress",
+			expectedNginxPub: "",
 		},
 	}
 

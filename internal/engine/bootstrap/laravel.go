@@ -59,37 +59,13 @@ func (l *LaravelBootstrap) FreshCommands() []string {
 func (l *LaravelBootstrap) CreateProject(projectDir string) error {
 	pterm.Info.Println("Creating fresh Laravel project...")
 
-	entries, err := os.ReadDir(projectDir)
-	if err != nil {
-		return fmt.Errorf("failed to read project directory: %w", err)
-	}
-
-	if len(entries) > 0 {
-		pterm.Warning.Println("Project directory is not empty. Cleaning up...")
-		for _, entry := range entries {
-			if entry.Name() == ".govard" || entry.Name() == ".govard.yml" {
-				continue
-			}
-			path := filepath.Join(projectDir, entry.Name())
-			if err := os.RemoveAll(path); err != nil {
-				return fmt.Errorf("failed to remove %s: %w", entry.Name(), err)
-			}
-		}
-	}
-
 	laravelVersion := l.getLaravelVersion(l.Options.Version)
 
-	if l.Options.Runner != nil {
-		return l.Options.Runner("composer create-project " + laravelVersion + " . --no-interaction")
+	createInStage := func(stageDir string) error {
+		return runComposerProjectCommand(projectDir, nil, "create-project", laravelVersion, stageDir, "--no-interaction")
 	}
-
-	cmd := exec.Command("composer", "create-project", laravelVersion, ".", "--no-interaction")
-	cmd.Dir = projectDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-
-	if err := cmd.Run(); err != nil {
+	runnerCommand := "composer create-project " + laravelVersion + " \"$GOVARD_STAGE_DIR\" --no-interaction"
+	if err := runStagedCreateProject(projectDir, l.Options.Runner, createInStage, runnerCommand); err != nil {
 		return fmt.Errorf("failed to create Laravel project: %w", err)
 	}
 
@@ -246,17 +222,7 @@ func (l *LaravelBootstrap) getLaravelVersion(version string) string {
 }
 
 func (l *LaravelBootstrap) runComposerCommand(projectDir string, args ...string) error {
-	command := "composer " + strings.Join(args, " ")
-	if l.Options.Runner != nil {
-		return l.Options.Runner(command)
-	}
-
-	cmd := exec.Command("composer", args...)
-	cmd.Dir = projectDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	return cmd.Run()
+	return runComposerProjectCommand(projectDir, l.Options.Runner, args...)
 }
 
 func (l *LaravelBootstrap) runArtisanCommand(projectDir string, args ...string) error {

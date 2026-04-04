@@ -46,6 +46,12 @@ func TestDetectWebRoot(t *testing.T) {
 			expected:   "/wordpress",
 		},
 		{
+			name:       "WordPress at project root",
+			framework:  "wordpress",
+			setupFiles: []string{"wp-load.php"},
+			expected:   "",
+		},
+		{
 			name:       "CakePHP with webroot",
 			framework:  "cakephp",
 			setupFiles: []string{"webroot/index.php"},

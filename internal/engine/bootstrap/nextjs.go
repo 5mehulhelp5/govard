@@ -9,6 +9,8 @@ import (
 	"github.com/pterm/pterm"
 )
 
+var nextJSStageProjectCreator = createNextJSProjectInStage
+
 type NextJSBootstrap struct {
 	Options Options
 }
@@ -38,27 +40,18 @@ func (n *NextJSBootstrap) FreshCommands() []string {
 func (n *NextJSBootstrap) CreateProject(projectDir string) error {
 	pterm.Info.Println("Creating fresh Next.js project...")
 
-	entries, err := os.ReadDir(projectDir)
-	if err != nil {
-		return fmt.Errorf("failed to read project directory: %w", err)
+	if err := runStagedCreateProject(projectDir, nil, nextJSStageProjectCreator, ""); err != nil {
+		return fmt.Errorf("failed to create Next.js project: %w", err)
 	}
 
-	if len(entries) > 0 {
-		pterm.Warning.Println("Project directory is not empty. Cleaning up...")
-		for _, entry := range entries {
-			if entry.Name() == ".govard" || entry.Name() == ".govard.yml" {
-				continue
-			}
-			path := filepath.Join(projectDir, entry.Name())
-			if err := os.RemoveAll(path); err != nil {
-				return fmt.Errorf("failed to remove %s: %w", entry.Name(), err)
-			}
-		}
-	}
+	pterm.Success.Println("Next.js project created successfully")
+	return nil
+}
 
+func createNextJSProjectInStage(stageDir string) error {
 	pterm.Info.Println("Running npx create-next-app...")
 
-	cmd := exec.Command("npx", "create-next-app@latest", ".",
+	cmd := exec.Command("npx", "create-next-app@latest", stageDir,
 		"--typescript",
 		"--tailwind",
 		"--eslint",
@@ -68,16 +61,14 @@ func (n *NextJSBootstrap) CreateProject(projectDir string) error {
 		"--use-npm",
 		"--yes",
 	)
-	cmd.Dir = projectDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to create Next.js project: %w", err)
+		return err
 	}
 
-	pterm.Success.Println("Next.js project created successfully")
 	return nil
 }
 
@@ -143,4 +134,14 @@ func (n *NextJSBootstrap) PostClone(projectDir string) error {
 
 	pterm.Success.Println("Post-clone setup completed")
 	return nil
+}
+
+func SetNextJSStageProjectCreatorForTest(fn func(stageDir string) error) func() {
+	previous := nextJSStageProjectCreator
+	if fn != nil {
+		nextJSStageProjectCreator = fn
+	}
+	return func() {
+		nextJSStageProjectCreator = previous
+	}
 }

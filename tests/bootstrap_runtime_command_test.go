@@ -271,7 +271,9 @@ remotes:
 		t.Fatalf("shell runner project = %q, want sample-project", shellConfig.ProjectName)
 	}
 	// Post-clone setup runs for Laravel, which includes composer install in container
-	if shellCmdLine != "rm -rf vendor" && !strings.Contains(shellCmdLine, "composer install") {
+	if shellCmdLine != "rm -rf vendor" &&
+		!strings.Contains(shellCmdLine, "composer install") &&
+		!strings.Contains(shellCmdLine, "composer 'install' '--no-interaction'") {
 		t.Fatalf("shell runner command = %q, does not contain expected commands", shellCmdLine)
 	}
 

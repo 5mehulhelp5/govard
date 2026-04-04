@@ -311,7 +311,7 @@ var phpContainerShellRunner = func(config engine.Config, commandLine string) err
 	if user := ResolveProjectExecUser(config, "www-data"); strings.TrimSpace(user) != "" {
 		dockerArgs = append(dockerArgs, "-u", user)
 	}
-	dockerArgs = append(dockerArgs, "-w", "/var/www/html", containerName, "sh", "-lc", commandLine)
+	dockerArgs = append(dockerArgs, "-w", "/", containerName, "sh", "-lc", buildPHPContainerShellCommand(commandLine))
 	dockerCmd := exec.Command("docker", dockerArgs...)
 	dockerCmd.Stdin = os.Stdin
 	dockerCmd.Stdout = os.Stdout
@@ -337,6 +337,10 @@ func govardConfigureSubcommandArgs() []string {
 
 func runPHPContainerShellCommand(config engine.Config, commandLine string) error {
 	return phpContainerShellRunner(config, commandLine)
+}
+
+func buildPHPContainerShellCommand(commandLine string) string {
+	return "cd /var/www/html && " + commandLine
 }
 
 func fileExists(path string) bool {
@@ -457,6 +461,10 @@ func SetPHPContainerShellRunnerForTest(fn func(config engine.Config, commandLine
 	return func() {
 		phpContainerShellRunner = previous
 	}
+}
+
+func BuildPHPContainerShellCommandForTest(commandLine string) string {
+	return buildPHPContainerShellCommand(commandLine)
 }
 
 func init() {

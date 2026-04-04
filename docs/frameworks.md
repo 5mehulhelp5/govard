@@ -15,7 +15,7 @@ Govard detects supported frameworks and applies runtime defaults plus version-aw
 | Symfony | yes | yes | `/public` |
 | Shopware | yes | framework defaults | `/public` |
 | CakePHP | yes | framework defaults | `/webroot` |
-| WordPress | yes | yes | `/wordpress` |
+| WordPress | yes | yes | `/` |
 | Custom | manual | manual | project root |
 
 ## Runtime Defaults
@@ -54,6 +54,12 @@ Govard detects supported frameworks and applies runtime defaults plus version-aw
 | Magento 2 | 2.4.6 | PHP 8.2, MariaDB 10.6 or 10.11, Redis 7.0 or 7.2, OpenSearch 2.5.0 to 2.19.0, RabbitMQ 3.9.0 to 4.1.0 |
 
 Use `govard config profile --json` to inspect the selected runtime profile.
+
+## Fresh Bootstrap Notes
+
+For fresh framework installs, Govard initializes the project first so it can generate `.govard.yml`. Scaffolding frameworks that insist on an empty target directory now create their project in a staged temporary directory and then sync the generated files back into the initialized project root.
+
+WordPress fresh bootstrap downloads core directly from `wordpress.org` and completes the install with PHP bootstrap scripts, so `wp-cli` is not required for the initial `govard bootstrap --framework wordpress --fresh` flow.
 
 ## Magento 2
 
@@ -323,7 +329,7 @@ govard tool wp [command]
 
 Defaults:
 
-- web root: `/wordpress`
+- web root: `/`
 - MariaDB 11.4
 - PHP 8.3 by default
 

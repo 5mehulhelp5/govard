@@ -88,7 +88,7 @@ func TestRenderLaravelBlueprint(t *testing.T) {
 
 func TestRenderNextjsBlueprint(t *testing.T) {
 	testBlueprintRender(t, "nextjs", []string{
-		"image: node:24-alpine",
+		"image: node:24",
 		"working_dir: /app",
 		"command: npm run dev -- --hostname 0.0.0.0 --port 80",
 	})

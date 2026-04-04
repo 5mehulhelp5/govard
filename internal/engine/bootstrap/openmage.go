@@ -3,7 +3,6 @@ package bootstrap
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	"github.com/pterm/pterm"
@@ -38,37 +37,17 @@ func (o *OpenMageBootstrap) FreshCommands() []string {
 func (o *OpenMageBootstrap) CreateProject(projectDir string) error {
 	pterm.Info.Println("Creating fresh OpenMage project...")
 
-	entries, err := os.ReadDir(projectDir)
-	if err != nil {
-		return fmt.Errorf("failed to read project directory: %w", err)
-	}
-
-	if len(entries) > 0 {
-		pterm.Warning.Println("Project directory is not empty. Cleaning up...")
-		for _, entry := range entries {
-			if entry.Name() == ".govard" || entry.Name() == ".govard.yml" {
-				continue
-			}
-			path := filepath.Join(projectDir, entry.Name())
-			if err := os.RemoveAll(path); err != nil {
-				return fmt.Errorf("failed to remove %s: %w", entry.Name(), err)
-			}
-		}
-	}
-
 	version := o.Options.Version
 	packageName := "openmage/magento-lts"
 	if version != "" {
 		packageName = fmt.Sprintf("openmage/magento-lts:%s", version)
 	}
 
-	cmd := exec.Command("composer", "create-project", packageName, ".", "--no-interaction")
-	cmd.Dir = projectDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-
-	if err := cmd.Run(); err != nil {
+	createInStage := func(stageDir string) error {
+		return runComposerProjectCommand(projectDir, nil, "create-project", packageName, stageDir, "--no-interaction")
+	}
+	runnerCommand := "composer create-project " + packageName + " \"$GOVARD_STAGE_DIR\" --no-interaction"
+	if err := runStagedCreateProject(projectDir, o.Options.Runner, createInStage, runnerCommand); err != nil {
 		return fmt.Errorf("failed to create OpenMage project: %w", err)
 	}
 
@@ -200,10 +179,5 @@ func (o *OpenMageBootstrap) createLocalXml(projectDir string) error {
 }
 
 func (o *OpenMageBootstrap) runComposerCommand(projectDir string, args ...string) error {
-	cmd := exec.Command("composer", args...)
-	cmd.Dir = projectDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	return cmd.Run()
+	return runComposerProjectCommand(projectDir, o.Options.Runner, args...)
 }

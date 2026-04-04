@@ -320,7 +320,7 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 		Runtime:           "php",
 		AppService:        "php",
 		AppWorkdir:        "/var/www/html",
-		NGINXPUBLIC:       "/wordpress",
+		NGINXPUBLIC:       "",
 		NGINXTemplate:     "wordpress.conf",
 		DatabaseName:      "wordpress",
 		DefaultPHP:        "8.3",

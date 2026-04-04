@@ -83,25 +83,6 @@ func (e *EmdashBootstrap) PostClone(projectDir string) error {
 	return fmt.Errorf("post-clone bootstrap is not supported for emdash yet")
 }
 
-func removeProjectContents(projectDir string) error {
-	entries, err := os.ReadDir(projectDir)
-	if err != nil {
-		return fmt.Errorf("failed to read project directory: %w", err)
-	}
-
-	for _, entry := range entries {
-		if entry.Name() == ".govard" || entry.Name() == ".govard.yml" {
-			continue
-		}
-		targetPath := filepath.Join(projectDir, entry.Name())
-		if err := os.RemoveAll(targetPath); err != nil {
-			return fmt.Errorf("failed to remove %s: %w", entry.Name(), err)
-		}
-	}
-
-	return nil
-}
-
 func downloadAndExtractStarterTemplate(projectDir string) error {
 	client := &http.Client{Timeout: 2 * time.Minute}
 	resp, err := client.Get(emdashTemplateArchiveURL)

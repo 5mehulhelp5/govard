@@ -3,7 +3,6 @@ package bootstrap
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -39,31 +38,11 @@ func (s *ShopwareBootstrap) FreshCommands() []string {
 func (s *ShopwareBootstrap) CreateProject(projectDir string) error {
 	pterm.Info.Println("Creating fresh Shopware project...")
 
-	entries, err := os.ReadDir(projectDir)
-	if err != nil {
-		return fmt.Errorf("failed to read project directory: %w", err)
+	createInStage := func(stageDir string) error {
+		return runComposerProjectCommand(projectDir, nil, "create-project", "shopware/production", stageDir, "--no-interaction")
 	}
-
-	if len(entries) > 0 {
-		pterm.Warning.Println("Project directory is not empty. Cleaning up...")
-		for _, entry := range entries {
-			if entry.Name() == ".govard" || entry.Name() == ".govard.yml" {
-				continue
-			}
-			path := filepath.Join(projectDir, entry.Name())
-			if err := os.RemoveAll(path); err != nil {
-				return fmt.Errorf("failed to remove %s: %w", entry.Name(), err)
-			}
-		}
-	}
-
-	cmd := exec.Command("composer", "create-project", "shopware/production", ".", "--no-interaction")
-	cmd.Dir = projectDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-
-	if err := cmd.Run(); err != nil {
+	runnerCommand := "composer create-project shopware/production \"$GOVARD_STAGE_DIR\" --no-interaction"
+	if err := runStagedCreateProject(projectDir, s.Options.Runner, createInStage, runnerCommand); err != nil {
 		return fmt.Errorf("failed to create Shopware project: %w", err)
 	}
 
@@ -74,21 +53,25 @@ func (s *ShopwareBootstrap) CreateProject(projectDir string) error {
 func (s *ShopwareBootstrap) Install(projectDir string) error {
 	pterm.Info.Println("Running Shopware installation steps...")
 
+	dbHost, dbUser, dbPass, dbName := s.resolveDBConfig()
+	databaseURL := fmt.Sprintf("mysql://%s:%s@%s:3306/%s", dbUser, dbPass, dbHost, dbName)
+	siteURL := s.resolveSiteURL()
 	envPath := filepath.Join(projectDir, ".env")
 	if _, err := os.Stat(envPath); os.IsNotExist(err) {
 		content := `APP_ENV=dev
-APP_URL=http://localhost
-DATABASE_URL=mysql://shopware:shopware@db:3306/shopware
-MAILER_URL=smtp://mailpit:1025
+APP_URL=` + siteURL + `
+DATABASE_URL=` + databaseURL + `
+MAILER_DSN=smtp://mailpit:1025
+PROXY_URL=` + siteURL + `
 `
 		if err := os.WriteFile(envPath, []byte(content), 0600); err != nil {
 			return fmt.Errorf("failed to create .env: %w", err)
 		}
 		pterm.Success.Println("Created .env")
 	} else if data, err := os.ReadFile(envPath); err == nil {
-		content := string(data)
-		content = strings.ReplaceAll(content, "DATABASE_URL=mysql://root@127.0.0.1", "DATABASE_URL=mysql://shopware:shopware@db")
-		content = strings.ReplaceAll(content, "DATABASE_URL=mysql://shopware:shopware@127.0.0.1", "DATABASE_URL=mysql://shopware:shopware@db")
+		content := replaceOrAppendEnvAssignment(string(data), "DATABASE_URL", databaseURL)
+		content = replaceOrAppendEnvAssignment(content, "APP_URL", siteURL)
+		content = replaceOrAppendEnvAssignment(content, "PROXY_URL", siteURL)
 		_ = os.WriteFile(envPath, []byte(content), 0600)
 	}
 
@@ -100,6 +83,9 @@ MAILER_URL=smtp://mailpit:1025
 	if err := s.runBinConsole(projectDir, "system:install", "--basic-setup", "--force", "--drop-database"); err != nil {
 		pterm.Warning.Printf("System install warning: %v\n", err)
 	}
+	if err := s.syncSalesChannelDomain(projectDir, siteURL); err != nil {
+		pterm.Warning.Printf("Sales channel URL warning: %v\n", err)
+	}
 
 	pterm.Success.Println("Shopware installation completed")
 	return nil
@@ -108,19 +94,22 @@ MAILER_URL=smtp://mailpit:1025
 func (s *ShopwareBootstrap) Configure(projectDir string) error {
 	pterm.Info.Println("Configuring Shopware environment...")
 
+	dbHost, dbUser, dbPass, dbName := s.resolveDBConfig()
+	databaseURL := fmt.Sprintf("mysql://%s:%s@%s:3306/%s", dbUser, dbPass, dbHost, dbName)
+	siteURL := s.resolveSiteURL()
 	envPath := filepath.Join(projectDir, ".env")
 	if _, err := os.Stat(envPath); err == nil {
 		content, err := os.ReadFile(envPath)
 		if err == nil {
-			updated := string(content)
-			if !strings.Contains(updated, "@db") {
-				updated = strings.ReplaceAll(updated, "DATABASE_URL=mysql://", "DATABASE_URL=mysql://shopware:shopware@db:3306/shopware")
-				_ = os.WriteFile(envPath, []byte(updated), 0600)
-			}
+			updated := replaceOrAppendEnvAssignment(string(content), "DATABASE_URL", databaseURL)
+			updated = replaceOrAppendEnvAssignment(updated, "APP_URL", siteURL)
+			updated = replaceOrAppendEnvAssignment(updated, "PROXY_URL", siteURL)
+			_ = os.WriteFile(envPath, []byte(updated), 0600)
 		}
 	}
 
 	_ = s.runBinConsole(projectDir, "cache:clear")
+	_ = s.syncSalesChannelDomain(projectDir, siteURL)
 
 	pterm.Success.Println("Shopware configured successfully")
 	return nil
@@ -134,29 +123,32 @@ func (s *ShopwareBootstrap) PostClone(projectDir string) error {
 	}
 
 	envPath := filepath.Join(projectDir, ".env")
+	siteURL := s.resolveSiteURL()
 	if _, err := os.Stat(envPath); os.IsNotExist(err) {
 		envLocalPath := filepath.Join(projectDir, ".env.local")
 		if _, err := os.Stat(envLocalPath); err == nil {
 			data, _ := os.ReadFile(envLocalPath)
-			content := string(data)
-			content = strings.ReplaceAll(content, "DATABASE_URL=mysql://", "DATABASE_URL=mysql://shopware:shopware@db:3306/shopware")
+			dbHost, dbUser, dbPass, dbName := s.resolveDBConfig()
+			content := replaceOrAppendEnvAssignment(string(data), "DATABASE_URL", fmt.Sprintf("mysql://%s:%s@%s:3306/%s", dbUser, dbPass, dbHost, dbName))
+			content = replaceOrAppendEnvAssignment(content, "APP_URL", siteURL)
+			content = replaceOrAppendEnvAssignment(content, "PROXY_URL", siteURL)
 			_ = os.WriteFile(envPath, []byte(content), 0600)
 		}
+	} else if data, err := os.ReadFile(envPath); err == nil {
+		content := replaceOrAppendEnvAssignment(string(data), "APP_URL", siteURL)
+		content = replaceOrAppendEnvAssignment(content, "PROXY_URL", siteURL)
+		_ = os.WriteFile(envPath, []byte(content), 0600)
 	}
 
 	_ = s.runBinConsole(projectDir, "cache:clear")
+	_ = s.syncSalesChannelDomain(projectDir, siteURL)
 
 	pterm.Success.Println("Post-clone setup completed")
 	return nil
 }
 
 func (s *ShopwareBootstrap) runComposerCommand(projectDir string, args ...string) error {
-	cmd := exec.Command("composer", args...)
-	cmd.Dir = projectDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	return cmd.Run()
+	return runComposerProjectCommand(projectDir, s.Options.Runner, args...)
 }
 
 func (s *ShopwareBootstrap) runBinConsole(projectDir string, args ...string) error {
@@ -166,10 +158,58 @@ func (s *ShopwareBootstrap) runBinConsole(projectDir string, args ...string) err
 		return nil
 	}
 
-	args = append([]string{consolePath}, args...)
-	cmd := exec.Command("php", args...)
-	cmd.Dir = projectDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	return runPHPProjectScript(projectDir, s.Options.Runner, consolePath, args...)
+}
+
+func (s *ShopwareBootstrap) resolveDBConfig() (host, user, pass, name string) {
+	host = strings.TrimSpace(s.Options.DBHost)
+	if host == "" {
+		host = "db"
+	}
+	user = strings.TrimSpace(s.Options.DBUser)
+	if user == "" {
+		user = "shopware"
+	}
+	pass = s.Options.DBPass
+	if pass == "" {
+		pass = "shopware"
+	}
+	name = strings.TrimSpace(s.Options.DBName)
+	if name == "" {
+		name = "shopware"
+	}
+	return host, user, pass, name
+}
+
+func (s *ShopwareBootstrap) resolveSiteURL() string {
+	domain := strings.TrimSpace(s.Options.Domain)
+	if domain == "" {
+		return "http://localhost"
+	}
+
+	return "https://" + domain
+}
+
+func (s *ShopwareBootstrap) syncSalesChannelDomain(projectDir, siteURL string) error {
+	if siteURL == "" {
+		return nil
+	}
+
+	return s.runBinConsole(projectDir, "sales-channel:replace:url", "http://127.0.0.1:8000", siteURL)
+}
+
+func replaceOrAppendEnvAssignment(content, key, value string) string {
+	lines := strings.Split(content, "\n")
+	needle := key + "="
+	replaced := false
+	for i, line := range lines {
+		if strings.HasPrefix(strings.TrimSpace(line), needle) {
+			lines[i] = needle + value
+			replaced = true
+		}
+	}
+	if !replaced {
+		lines = append(lines, needle+value)
+	}
+	return strings.TrimRight(strings.Join(lines, "\n"), "\n") + "\n"
 }

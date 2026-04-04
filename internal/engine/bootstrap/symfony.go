@@ -3,7 +3,6 @@ package bootstrap
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -57,37 +56,13 @@ func (s *SymfonyBootstrap) FreshCommands() []string {
 func (s *SymfonyBootstrap) CreateProject(projectDir string) error {
 	pterm.Info.Println("Creating fresh Symfony project...")
 
-	entries, err := os.ReadDir(projectDir)
-	if err != nil {
-		return fmt.Errorf("failed to read project directory: %w", err)
-	}
-
-	if len(entries) > 0 {
-		pterm.Warning.Println("Project directory is not empty. Cleaning up...")
-		for _, entry := range entries {
-			if entry.Name() == ".govard" || entry.Name() == ".govard.yml" {
-				continue
-			}
-			path := filepath.Join(projectDir, entry.Name())
-			if err := os.RemoveAll(path); err != nil {
-				return fmt.Errorf("failed to remove %s: %w", entry.Name(), err)
-			}
-		}
-	}
-
 	skeleton := s.getSkeletonForVersion(s.Options.Version)
 
-	if s.Options.Runner != nil {
-		return s.Options.Runner("composer create-project " + skeleton + " . --no-interaction")
+	createInStage := func(stageDir string) error {
+		return runComposerProjectCommand(projectDir, nil, "create-project", skeleton, stageDir, "--no-interaction")
 	}
-
-	cmd := exec.Command("composer", "create-project", skeleton, ".", "--no-interaction")
-	cmd.Dir = projectDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-
-	if err := cmd.Run(); err != nil {
+	runnerCommand := "composer create-project " + skeleton + " \"$GOVARD_STAGE_DIR\" --no-interaction"
+	if err := runStagedCreateProject(projectDir, s.Options.Runner, createInStage, runnerCommand); err != nil {
 		return fmt.Errorf("failed to create Symfony project: %w", err)
 	}
 
@@ -237,17 +212,7 @@ func (s *SymfonyBootstrap) getSkeletonForVersion(version string) string {
 }
 
 func (s *SymfonyBootstrap) runComposerCommand(projectDir string, args ...string) error {
-	command := "composer " + strings.Join(args, " ")
-	if s.Options.Runner != nil {
-		return s.Options.Runner(command)
-	}
-
-	cmd := exec.Command("composer", args...)
-	cmd.Dir = projectDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	return cmd.Run()
+	return runComposerProjectCommand(projectDir, s.Options.Runner, args...)
 }
 
 func (s *SymfonyBootstrap) runSymfonyConsole(projectDir string, args ...string) error {
@@ -260,22 +225,5 @@ func (s *SymfonyBootstrap) runSymfonyConsole(projectDir string, args ...string) 
 		}
 	}
 
-	// When running in container, we use relative path from /var/www/html
-	// or assume the runner handles the working directory.
-	// Govard's runPHPContainerShellCommand uses -w /var/www/html
-	relConsolePath, err := filepath.Rel(projectDir, consolePath)
-	if err != nil {
-		relConsolePath = consolePath
-	}
-
-	command := "php " + relConsolePath + " " + strings.Join(args, " ")
-	if s.Options.Runner != nil {
-		return s.Options.Runner(command)
-	}
-
-	cmd := exec.Command("php", append([]string{consolePath}, args...)...)
-	cmd.Dir = projectDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	return runPHPProjectScript(projectDir, s.Options.Runner, consolePath, args...)
 }

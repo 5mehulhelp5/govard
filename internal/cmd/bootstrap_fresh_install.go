@@ -165,6 +165,10 @@ func runBootstrapWordPressFreshInstall(cmd *cobra.Command, config engine.Config,
 		return err
 	}
 
+	if err := runGovardSubcommand(cmd, "env", "restart"); err != nil {
+		return fmt.Errorf("restart environment after WordPress core extraction: %w", err)
+	}
+
 	if err := wpBootstrap.Install(cwd); err != nil {
 		return err
 	}
@@ -250,8 +254,8 @@ func runBootstrapOpenMageFreshInstall(cmd *cobra.Command, config engine.Config, 
 		return err
 	}
 
-	if err := runGovardSubcommand(cmd, govardConfigureSubcommandArgs()...); err != nil {
-		return fmt.Errorf("configure failed: %w", err)
+	if err := openmageBootstrap.Configure(cwd); err != nil {
+		return fmt.Errorf("configure OpenMage: %w", err)
 	}
 
 	pterm.Success.Println("Fresh OpenMage bootstrap completed.")
