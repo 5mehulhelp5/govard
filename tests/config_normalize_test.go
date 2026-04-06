@@ -23,11 +23,11 @@ func TestNormalizeConfigDefaultsMagento2(t *testing.T) {
 
 	engine.NormalizeConfig(&config, "")
 
-	if config.Stack.DBType != "mariadb" {
-		t.Fatalf("Expected DBType mariadb, got %s", config.Stack.DBType)
+	if config.Stack.DBType != "none" {
+		t.Fatalf("Expected DBType none, got %s", config.Stack.DBType)
 	}
-	if config.Stack.DBVersion != "11.4" {
-		t.Fatalf("Expected DBVersion 11.4, got %s", config.Stack.DBVersion)
+	if config.Stack.DBVersion != "" {
+		t.Fatalf("Expected DBVersion empty, got %s", config.Stack.DBVersion)
 	}
 	if config.Stack.PHPVersion != "8.4" {
 		t.Fatalf("Expected PHPVersion 8.4, got %s", config.Stack.PHPVersion)
@@ -39,23 +39,23 @@ func TestNormalizeConfigDefaultsMagento2(t *testing.T) {
 	if config.Stack.Services.WebServer != "nginx" {
 		t.Fatalf("Expected WebServer nginx, got %s", config.Stack.Services.WebServer)
 	}
-	if config.Stack.Services.Cache != "redis" {
-		t.Fatalf("Expected Cache redis, got %s", config.Stack.Services.Cache)
+	if config.Stack.Services.Cache != "none" {
+		t.Fatalf("Expected Cache none, got %s", config.Stack.Services.Cache)
 	}
 
-	if config.Stack.Services.Search != "opensearch" {
-		t.Fatalf("Expected Search opensearch, got %s", config.Stack.Services.Search)
+	if config.Stack.Services.Search != "none" {
+		t.Fatalf("Expected Search none, got %s", config.Stack.Services.Search)
 	}
 	if config.Stack.Services.Queue != "none" {
 		t.Fatalf("Expected Queue none, got %s", config.Stack.Services.Queue)
 	}
 
-	if config.Stack.CacheVersion != "7.4" {
-		t.Fatalf("Expected CacheVersion 7.4, got %s", config.Stack.CacheVersion)
+	if config.Stack.CacheVersion != "" {
+		t.Fatalf("Expected CacheVersion empty, got %s", config.Stack.CacheVersion)
 	}
 
-	if config.Stack.SearchVersion != "2.19" {
-		t.Fatalf("Expected SearchVersion 2.19, got %s", config.Stack.SearchVersion)
+	if config.Stack.SearchVersion != "" {
+		t.Fatalf("Expected SearchVersion empty, got %s", config.Stack.SearchVersion)
 	}
 	if config.Stack.QueueVersion != "" {
 		t.Fatalf("Expected QueueVersion empty, got %s", config.Stack.QueueVersion)
@@ -87,6 +87,12 @@ func TestNormalizeConfigVersionAwareDefaultsMagento2(t *testing.T) {
 		Framework:        "magento2",
 		FrameworkVersion: "2.4.7-p3",
 		Stack: engine.Stack{
+			Services: engine.Services{
+				DB:     "mariadb",
+				Cache:  "redis",
+				Search: "opensearch",
+				Queue:  "rabbitmq",
+			},
 			Features: engine.Features{
 				Cache:  true,
 				Search: true,
@@ -563,7 +569,7 @@ func TestPrepareConfigForWritePreservesNoneServicesRoundTrip(t *testing.T) {
 		},
 	}
 
-	// Step 1: PrepareConfigForWrite should preserve queue: none
+	// Step 1: PrepareConfigForWrite should strip queue: none
 	writable := engine.PrepareConfigForWrite(config)
 	data, err := yaml.Marshal(&writable)
 	if err != nil {
@@ -574,8 +580,8 @@ func TestPrepareConfigForWritePreservesNoneServicesRoundTrip(t *testing.T) {
 	if strings.Contains(content, "queue_version:") {
 		t.Fatalf("expected queue_version to be omitted when queue is none, got:\n%s", content)
 	}
-	if !strings.Contains(content, "queue: none") {
-		t.Fatalf("expected queue: none to be explicitly preserved, got:\n%s", content)
+	if strings.Contains(content, "queue: none") {
+		t.Fatalf("expected queue: none to be stripped from YAML, got:\n%s", content)
 	}
 
 	// Step 2: Simulate re-loading: unmarshal and normalize
@@ -586,12 +592,64 @@ func TestPrepareConfigForWritePreservesNoneServicesRoundTrip(t *testing.T) {
 	engine.NormalizeConfig(&reloaded, "")
 
 	if reloaded.Stack.Services.Queue != "none" {
-		t.Fatalf("expected queue to remain 'none' after roundtrip, got %q", reloaded.Stack.Services.Queue)
+		t.Fatalf("expected queue to remain 'none' (absent in YAML) after roundtrip, got %q", reloaded.Stack.Services.Queue)
 	}
 	if reloaded.Stack.QueueVersion != "" {
 		t.Fatalf("expected queue_version to remain empty after roundtrip, got %q", reloaded.Stack.QueueVersion)
 	}
 	if reloaded.Stack.Features.Queue {
 		t.Fatalf("expected queue feature to remain false after roundtrip")
+	}
+}
+
+func TestNormalizeConfigAbsentServiceTreatedAsNone(t *testing.T) {
+	config := engine.Config{
+		Framework: "magento2",
+		Stack: engine.Stack{
+			Services: engine.Services{
+				DB: "mysql", // Explicitly provided
+			},
+		},
+	}
+
+	engine.NormalizeConfig(&config, "")
+
+	if config.Stack.Services.DB != "mysql" {
+		t.Fatalf("expected db: mysql to be preserved, got %q", config.Stack.Services.DB)
+	}
+	if config.Stack.Services.Cache != "none" {
+		t.Fatalf("expected cache: none (absent in input), got %q", config.Stack.Services.Cache)
+	}
+	if config.Stack.Services.Search != "none" {
+		t.Fatalf("expected search: none (absent in input), got %q", config.Stack.Services.Search)
+	}
+	if config.Stack.Services.Queue != "none" {
+		t.Fatalf("expected queue: none (absent in input), got %q", config.Stack.Services.Queue)
+	}
+}
+
+func TestPrepareConfigForWriteStripsNoneServices(t *testing.T) {
+	config := engine.Config{
+		Stack: engine.Stack{
+			Services: engine.Services{
+				DB:     "none",
+				Cache:  "none",
+				Search: "none",
+				Queue:  "none",
+			},
+		},
+	}
+
+	writable := engine.PrepareConfigForWrite(config)
+	data, err := yaml.Marshal(&writable)
+	if err != nil {
+		t.Fatalf("marshal config: %v", err)
+	}
+
+	content := string(data)
+	for _, key := range []string{"db:", "cache:", "search:", "queue:"} {
+		if strings.Contains(content, key) {
+			t.Fatalf("expected %q to be stripped when set to 'none', got:\n%s", key, content)
+		}
 	}
 }

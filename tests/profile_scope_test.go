@@ -149,6 +149,11 @@ func TestRenderBlueprintProfileVolumeIsolation(t *testing.T) {
 		ProjectName: "vol-iso",
 		Framework:   "magento2",
 		Domain:      "vol-iso.test",
+		Stack: engine.Stack{
+			Services: engine.Services{
+				DB: "mariadb",
+			},
+		},
 	})
 	if !strings.Contains(content1, "db-data:") {
 		t.Fatal("expected default db-data volume")
@@ -159,6 +164,11 @@ func TestRenderBlueprintProfileVolumeIsolation(t *testing.T) {
 		Framework:   "magento2",
 		Domain:      "vol-iso.test",
 		Profile:     "upgrade",
+		Stack: engine.Stack{
+			Services: engine.Services{
+				DB: "mariadb",
+			},
+		},
 	})
 
 	if !strings.Contains(content2, "db-data-upgrade:") {

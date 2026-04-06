@@ -36,14 +36,10 @@ func NormalizeConfig(config *Config, root string) {
 		}
 	}
 
+	// If db is not declared, treat as "none" (e.g. frontend-only or external DB projects).
+	// Callers must explicitly declare the DB service they want.
 	if config.Stack.Services.DB == "" {
-		if profileAvailable && profile.DBType != "" {
-			config.Stack.Services.DB = profile.DBType
-		} else if ok && fwConfig.DefaultDB != "" {
-			config.Stack.Services.DB = fwConfig.DefaultDB
-		} else {
-			config.Stack.Services.DB = "mariadb"
-		}
+		config.Stack.Services.DB = "none"
 	}
 
 	config.Stack.Services.DB = strings.ToLower(config.Stack.Services.DB)
@@ -148,42 +144,20 @@ func NormalizeConfig(config *Config, root string) {
 
 	config.Stack.Services.WebServer = strings.ToLower(config.Stack.Services.WebServer)
 
+	// If search/cache/queue are not declared, treat as "none".
+	// Callers must explicitly set the service they want — we do not auto-fill from profile.
 	if config.Stack.Services.Search == "" {
-		if profileAvailable && profile.Search != "" {
-			config.Stack.Services.Search = profile.Search
-		} else if ok && fwConfig.DefaultSearch != "" {
-			config.Stack.Services.Search = fwConfig.DefaultSearch
-		} else if config.Stack.Features.Search {
-			config.Stack.Services.Search = "opensearch"
-		} else {
-			config.Stack.Services.Search = "none"
-		}
+		config.Stack.Services.Search = "none"
 	}
-
 	config.Stack.Services.Search = strings.ToLower(config.Stack.Services.Search)
 
 	if config.Stack.Services.Cache == "" {
-		if profileAvailable && profile.Cache != "" {
-			config.Stack.Services.Cache = profile.Cache
-		} else if ok && fwConfig.DefaultCache != "" {
-			config.Stack.Services.Cache = fwConfig.DefaultCache
-		} else if config.Stack.Features.Cache {
-			config.Stack.Services.Cache = "redis"
-		} else {
-			config.Stack.Services.Cache = "none"
-		}
+		config.Stack.Services.Cache = "none"
 	}
-
 	config.Stack.Services.Cache = strings.ToLower(config.Stack.Services.Cache)
 
 	if config.Stack.Services.Queue == "" {
-		if profileAvailable && profile.Queue != "" {
-			config.Stack.Services.Queue = profile.Queue
-		} else if ok && fwConfig.DefaultQueue != "" {
-			config.Stack.Services.Queue = fwConfig.DefaultQueue
-		} else {
-			config.Stack.Services.Queue = "none"
-		}
+		config.Stack.Services.Queue = "none"
 	}
 	config.Stack.Services.Queue = strings.ToLower(config.Stack.Services.Queue)
 

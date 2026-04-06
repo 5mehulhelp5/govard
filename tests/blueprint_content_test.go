@@ -34,7 +34,12 @@ func TestRenderMagento2Blueprint(t *testing.T) {
 		ProjectName: "sample-project",
 		Framework:   "magento2",
 		Domain:      "sample-project.test",
-		Stack:       engine.Stack{PHPVersion: "8.3"},
+		Stack: engine.Stack{
+			PHPVersion: "8.3",
+			Services: engine.Services{
+				DB: "mariadb",
+			},
+		},
 	}
 	if err := engine.RenderBlueprint(tempDir, config); err != nil {
 		t.Fatalf("render failed: %v", err)
@@ -323,6 +328,11 @@ func TestRenderBlueprintWithFeatures(t *testing.T) {
 			DBType:     "mariadb",
 			DBVersion:  "10.6",
 			WebServer:  "nginx",
+			Services: engine.Services{
+				DB:     "mariadb",
+				Cache:  "redis",
+				Search: "opensearch",
+			},
 			Features: engine.Features{
 				Xdebug:  true,
 				Varnish: true,
@@ -384,6 +394,7 @@ func TestRenderMagento2BlueprintHybridWebServer(t *testing.T) {
 			DBVersion:  "11.4",
 			Services: engine.Services{
 				WebServer: "hybrid",
+				DB:        "mariadb",
 				Search:    "none",
 				Cache:     "none",
 				Queue:     "none",
@@ -466,6 +477,7 @@ func TestRenderMagento2BlueprintWithVarnishAcrossWebServers(t *testing.T) {
 					},
 					Services: engine.Services{
 						WebServer: tc.webServer,
+						DB:        "mariadb",
 						Search:    "none",
 						Cache:     "none",
 						Queue:     "none",
@@ -552,6 +564,7 @@ func TestRenderMagento2BlueprintWithMageRunMappings(t *testing.T) {
 			PHPVersion: "8.4",
 			Services: engine.Services{
 				WebServer: "nginx",
+				DB:        "mariadb",
 				Search:    "none",
 				Cache:     "none",
 				Queue:     "none",
@@ -609,6 +622,7 @@ func TestRenderMagento2BlueprintWithRenderedNginxConfig(t *testing.T) {
 			WebRoot:    "/pub",
 			Services: engine.Services{
 				WebServer: "nginx",
+				DB:        "mariadb",
 				Search:    "none",
 				Cache:     "none",
 				Queue:     "none",
@@ -665,6 +679,7 @@ func TestRenderMagento2BlueprintHybridWithRenderedNginxConfig(t *testing.T) {
 			PHPVersion: "8.4",
 			Services: engine.Services{
 				WebServer: "hybrid",
+				DB:        "mariadb",
 				Search:    "none",
 				Cache:     "none",
 				Queue:     "none",
@@ -729,6 +744,7 @@ func TestRenderMagento1BlueprintApacheWithMageRunMappings(t *testing.T) {
 			PHPVersion: "8.1",
 			Services: engine.Services{
 				WebServer: "apache",
+				DB:        "mariadb",
 				Search:    "none",
 				Cache:     "none",
 				Queue:     "none",
@@ -794,6 +810,7 @@ func TestRenderMagento1BlueprintApacheWithRenderedHTTPDConfig(t *testing.T) {
 			PHPVersion: "8.1",
 			Services: engine.Services{
 				WebServer: "apache",
+				DB:        "mariadb",
 				Search:    "none",
 				Cache:     "none",
 				Queue:     "none",
@@ -856,6 +873,7 @@ func TestRenderMagento2BlueprintHybridWithRenderedApacheHTTPDConfig(t *testing.T
 			WebRoot:    "/pub",
 			Services: engine.Services{
 				WebServer: "hybrid",
+				DB:        "mariadb",
 				Search:    "none",
 				Cache:     "none",
 				Queue:     "none",
@@ -914,6 +932,9 @@ func testBlueprintRender(t *testing.T, framework string, expectedStrings []strin
 			DBType:      "mariadb",
 			DBVersion:   "10.6",
 			WebServer:   "nginx",
+			Services: engine.Services{
+				DB: "mariadb",
+			},
 			Features: engine.Features{
 				Xdebug:  false,
 				Varnish: false,

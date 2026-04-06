@@ -18,6 +18,7 @@ func TestRequiredRuntimeImagesMagento(t *testing.T) {
 			QueueVersion:  "3.13.7",
 			Services: engine.Services{
 				WebServer: "nginx",
+				DB:        "mariadb",
 				Cache:     "redis",
 				Search:    "opensearch",
 				Queue:     "rabbitmq",
@@ -119,6 +120,7 @@ func TestRequiredRuntimeImagesMagentoHybrid(t *testing.T) {
 			DBVersion:  "10.6",
 			Services: engine.Services{
 				WebServer: "hybrid",
+				DB:        "mariadb",
 				Cache:     "none",
 				Search:    "none",
 				Queue:     "none",

@@ -123,6 +123,10 @@ func TestEnginePkgNormalizeAndFrameworkDefaults(t *testing.T) {
 	cfg := engine.Config{
 		Framework: "magento2",
 		Stack: engine.Stack{
+			Services: engine.Services{
+				Cache:  "redis",
+				Search: "opensearch",
+			},
 			Features: engine.Features{
 				Cache:  true,
 				Search: true,

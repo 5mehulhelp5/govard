@@ -205,6 +205,7 @@ Case Studies:
 				XdebugSession: xdebugSession,
 				Services: engine.Services{
 					WebServer: webServer,
+					DB:        dbType,
 					Search:    search,
 					Cache:     cache,
 					Queue:     queue,
@@ -381,8 +382,8 @@ Case Studies:
 		if migrateFrom != "" {
 			fmt.Println()
 			pterm.Info.Printf("Running environment diagnostics to finalize migration from %s...\n", migrateFrom)
-			
-			// Auto-run doctor --fix but explicitly skip the interactive framework tune profile check 
+
+			// Auto-run doctor --fix but explicitly skip the interactive framework tune profile check
 			// because the user already established their configuration during migration.
 			opts := map[string]bool{"project.profile.sync": true}
 			if err := ExecuteDoctor(cmd, false, true, false, "", opts); err != nil {
