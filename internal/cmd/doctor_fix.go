@@ -207,11 +207,7 @@ func tuneProjectProfile(check engine.DoctorCheck) DoctorFixResult {
 		Actions: []string{},
 	}
 
-	confirmed, _ := pterm.DefaultInteractiveConfirm.
-		WithDefaultValue(true).
-		Show("Do you want to automatically tune the framework runtime profile now?")
-
-	if !confirmed {
+	if !confirmAction("Do you want to automatically tune the framework runtime profile now?") {
 		result.Status = DoctorFixStatusSkipped
 		result.Message = "Skipped by user."
 		return result
@@ -257,11 +253,11 @@ func tuneProjectProfile(check engine.DoctorCheck) DoctorFixResult {
 		result.Actions = append(result.Actions, fmt.Sprintf("Preserved PHP version %s (no version-specific profile available)", existingPHPVersion))
 	}
 
-	// Keep DB version if the user explicitly set a logically newer one to prevent data loss via downgrade
+	// Keep DB version if the user explicitly set one to prevent data loss or unexpected upgrades
 	if shouldPreserveConfiguredDB(existingDBType, existingDBVersion, config.Stack.DBType, config.Stack.DBVersion) {
 		config.Stack.DBType = existingDBType
 		config.Stack.DBVersion = existingDBVersion
-		result.Actions = append(result.Actions, fmt.Sprintf("Preserved database %s:%s to prevent risk of data loss", existingDBType, existingDBVersion))
+		result.Actions = append(result.Actions, fmt.Sprintf("Preserved database %s:%s (explicit version in config)", existingDBType, existingDBVersion))
 	}
 
 	// Persist the user's explicit web server choice if they explicitly selected apache/nginx
@@ -298,11 +294,7 @@ func pullRuntimeImages(check engine.DoctorCheck) DoctorFixResult {
 		Actions: []string{},
 	}
 
-	confirmed, _ := pterm.DefaultInteractiveConfirm.
-		WithDefaultValue(true).
-		Show("Do you want to pull missing Docker images now? This may take several minutes.")
-
-	if !confirmed {
+	if !confirmAction("Do you want to pull missing Docker images now? This may take several minutes.") {
 		result.Status = DoctorFixStatusSkipped
 		result.Message = "Skipped by user."
 		return result
@@ -546,4 +538,14 @@ func SetDoctorDependenciesForTest(dependencies engine.DoctorDependencies) func()
 // ApplyDoctorSafeFixesForTest exposes doctor fix planning/execution for tests.
 func ApplyDoctorSafeFixesForTest(report engine.DoctorReport) []DoctorFixResult {
 	return applyDoctorSafeFixes(report)
+}
+
+func confirmAction(message string) bool {
+	if os.Getenv("GOVARD_ASSUME_YES") == "true" {
+		return true
+	}
+	confirmed, _ := pterm.DefaultInteractiveConfirm.
+		WithDefaultValue(true).
+		Show(message)
+	return confirmed
 }

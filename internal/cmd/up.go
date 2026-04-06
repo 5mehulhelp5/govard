@@ -576,8 +576,9 @@ func shouldPreserveConfiguredDB(existingType, existingVersion, tunedType, tunedV
 		return false
 	}
 
-	comparison, comparable := compareNumericDotVersions(existingVersion, tunedVersion)
-	return comparable && comparison > 0
+	// If the database type matches, always preserve the existing explicit version
+	// to avoid unexpected data-loss/migration issues during auto-tuning.
+	return true
 }
 
 func compareNumericDotVersions(left, right string) (int, bool) {

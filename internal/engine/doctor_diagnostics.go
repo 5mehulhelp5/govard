@@ -609,6 +609,8 @@ func CheckProfileSync() error {
 	// For database, we just warn if it's completely different
 	if p.DBType != "" && config.Stack.DBType != "" && config.Stack.DBType != p.DBType {
 		mismatches = append(mismatches, fmt.Sprintf("DB %s (expected %s)", config.Stack.DBType, p.DBType))
+	} else if p.DBVersion != "" && config.Stack.DBVersion != "" && config.Stack.DBVersion != p.DBVersion {
+		mismatches = append(mismatches, fmt.Sprintf("DB version %s (recommended %s)", config.Stack.DBVersion, p.DBVersion))
 	}
 	if p.Search != "" && config.Stack.Services.Search != "none" && config.Stack.Services.Search != p.Search {
 		mismatches = append(mismatches, fmt.Sprintf("Search %s (expected %s)", config.Stack.Services.Search, p.Search))

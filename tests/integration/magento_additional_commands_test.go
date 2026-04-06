@@ -30,7 +30,7 @@ func TestProfileCommandJSONAndApply(t *testing.T) {
 	}
 	config := string(configBytes)
 	assertContains(t, config, "project_name: m2-clone-basic")
-	assertContains(t, config, "php_version:")
+	assertContains(t, config, "framework_version: 2.4.8")
 }
 
 func TestSnapshotCommandsWithShims(t *testing.T) {
