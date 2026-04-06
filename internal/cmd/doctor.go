@@ -46,81 +46,90 @@ Use --pack to export a diagnostics support bundle for sharing with support.
 		fixEnabled, _ := cmd.Flags().GetBool("fix")
 		packEnabled, _ := cmd.Flags().GetBool("pack")
 		packDir, _ := cmd.Flags().GetString("pack-dir")
-		if !outputJSON {
-			fmt.Println()
-			pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Println(" Govard System Doctor ")
-			fmt.Println()
-		}
 
-		report := runDoctorDiagnostics()
-		if fixEnabled {
-			// Multi-pass fix: Some fixes (like profile sync) can trigger others (like missing images).
-			// We loop a few times if fixes were applied to try and get a clean report.
-			maxPasses := 3
-			skippedCheckIDs := make(map[string]bool)
-			for i := 0; i < maxPasses; i++ {
-				fixResults := applyDoctorSafeFixes(report, skippedCheckIDs)
-				if len(fixResults) == 0 {
+		return ExecuteDoctor(cmd, outputJSON, fixEnabled, packEnabled, packDir, nil)
+	},
+}
+
+// ExecuteDoctor runs the doctor logic. It can be invoked programmatically from other commands.
+func ExecuteDoctor(cmd *cobra.Command, outputJSON bool, fixEnabled bool, packEnabled bool, packDir string, preSkipped map[string]bool) error {
+	if !outputJSON {
+		fmt.Println()
+		pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Println(" Govard System Doctor ")
+		fmt.Println()
+	}
+
+	report := runDoctorDiagnostics()
+	if fixEnabled {
+		// Multi-pass fix: Some fixes (like profile sync) can trigger others (like missing images).
+		// We loop a few times if fixes were applied to try and get a clean report.
+		maxPasses := 3
+		skippedCheckIDs := make(map[string]bool)
+		for k, v := range preSkipped {
+			skippedCheckIDs[k] = v
+		}
+		for i := 0; i < maxPasses; i++ {
+			fixResults := applyDoctorSafeFixes(report, skippedCheckIDs)
+			if len(fixResults) == 0 {
+				break
+			}
+
+			appliedAny := false
+			for _, res := range fixResults {
+				if res.Status == DoctorFixStatusApplied {
+					appliedAny = true
 					break
 				}
-
-				appliedAny := false
-				for _, res := range fixResults {
-					if res.Status == DoctorFixStatusApplied {
-						appliedAny = true
-						break
-					}
-				}
-
-				if outputJSON {
-					for _, line := range summarizeDoctorFixResults(fixResults) {
-						fmt.Fprintln(cmd.ErrOrStderr(), line)
-					}
-				} else {
-					renderDoctorFixResults(fixResults)
-				}
-
-				if !appliedAny {
-					break // No fixes were actually applied, don't loop
-				}
-
-				// Re-run diagnostics to see what's left
-				report = runDoctorDiagnostics()
 			}
-		}
 
-		packPath := ""
-		if packEnabled {
-			cwd, _ := os.Getwd()
-			resolvedPath, err := CreateDoctorDiagnosticsPack(packDir, cwd, report)
-			if err != nil {
-				return fmt.Errorf("create doctor diagnostics pack: %w", err)
-			}
-			packPath = resolvedPath
-		}
-
-		if outputJSON {
-			payload, err := json.MarshalIndent(report, "", "  ")
-			if err != nil {
-				return fmt.Errorf("marshal doctor report: %w", err)
-			}
-			fmt.Fprintln(cmd.OutOrStdout(), string(payload))
-		} else {
-			renderDoctorReport(report, fixEnabled)
-		}
-		if packPath != "" {
 			if outputJSON {
-				fmt.Fprintf(cmd.ErrOrStderr(), "Doctor diagnostics pack: %s\n", packPath)
+				for _, line := range summarizeDoctorFixResults(fixResults) {
+					fmt.Fprintln(cmd.ErrOrStderr(), line)
+				}
 			} else {
-				pterm.Success.Printf("Doctor diagnostics pack: %s\n", packPath)
+				renderDoctorFixResults(fixResults)
 			}
-		}
 
-		if report.HasFailures() {
-			return fmt.Errorf("doctor found %d blocking issue(s)", report.Failures)
+			if !appliedAny {
+				break // No fixes were actually applied, don't loop
+			}
+
+			// Re-run diagnostics to see what's left
+			report = runDoctorDiagnostics()
 		}
-		return nil
-	},
+	}
+
+	packPath := ""
+	if packEnabled {
+		cwd, _ := os.Getwd()
+		resolvedPath, err := CreateDoctorDiagnosticsPack(packDir, cwd, report)
+		if err != nil {
+			return fmt.Errorf("create doctor diagnostics pack: %w", err)
+		}
+		packPath = resolvedPath
+	}
+
+	if outputJSON {
+		payload, err := json.MarshalIndent(report, "", "  ")
+		if err != nil {
+			return fmt.Errorf("marshal doctor report: %w", err)
+		}
+		fmt.Fprintln(cmd.OutOrStdout(), string(payload))
+	} else {
+		renderDoctorReport(report, fixEnabled)
+	}
+	if packPath != "" {
+		if outputJSON {
+			fmt.Fprintf(cmd.ErrOrStderr(), "Doctor diagnostics pack: %s\n", packPath)
+		} else {
+			pterm.Success.Printf("Doctor diagnostics pack: %s\n", packPath)
+		}
+	}
+
+	if report.HasFailures() {
+		return fmt.Errorf("doctor found %d blocking issue(s)", report.Failures)
+	}
+	return nil
 }
 
 var doctorTrustCmd = &cobra.Command{

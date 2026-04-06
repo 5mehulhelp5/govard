@@ -377,6 +377,19 @@ Case Studies:
 		}
 		composePath := engine.ComposeFilePath(cwd, config.ProjectName)
 		pterm.Success.Printf("✅ Rendered compose file at %s\n", composePath)
+
+		if migrateFrom != "" {
+			fmt.Println()
+			pterm.Info.Printf("Running environment diagnostics to finalize migration from %s...\n", migrateFrom)
+			
+			// Auto-run doctor --fix but explicitly skip the interactive framework tune profile check 
+			// because the user already established their configuration during migration.
+			opts := map[string]bool{"project.profile.sync": true}
+			if err := ExecuteDoctor(cmd, false, true, false, "", opts); err != nil {
+				pterm.Warning.Printf("Migration diagnostics encountered an issue: %v\n", err)
+			}
+		}
+
 		return nil
 	},
 }
