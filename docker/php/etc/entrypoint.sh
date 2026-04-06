@@ -3,20 +3,15 @@ set -e
 
 # ─── Synchronization ───────────────────────────────────────────────────────
 
-# Ensure www-data matches the host PUID/PGID
-if [ -n "${PUID:-}" ]; then
-  CURRENT_UID=$(id -u www-data)
-  if [ "${CURRENT_UID}" != "${PUID}" ]; then
-    echo "Updating www-data UID to ${PUID}..."
-    sudo usermod -u "${PUID}" www-data
-  fi
-fi
-
+# Ensure www-data group changes happen before UID changes. Once the current
+# process rewrites its own UID mapping, later sudo calls may stop resolving.
 if [ -n "${PGID:-}" ]; then
   CURRENT_GID=$(id -g www-data)
   if [ "${CURRENT_GID}" != "${PGID}" ]; then
     echo "Updating www-data GID to ${PGID}..."
-    sudo groupmod -g "${PGID}" www-data
+    if ! sudo groupmod -g "${PGID}" www-data; then
+      echo "Warning: could not update www-data GID to ${PGID}; continuing with GID ${CURRENT_GID}." >&2
+    fi
   fi
 fi
 
@@ -25,6 +20,16 @@ if [ -n "${PUID:-}" ] && [ "${PUID}" != "1000" ]; then
   if ! getent group govard-legacy >/dev/null; then
     sudo groupadd -g 1000 govard-legacy || true
     sudo usermod -aG govard-legacy www-data || true
+  fi
+fi
+
+if [ -n "${PUID:-}" ]; then
+  CURRENT_UID=$(id -u www-data)
+  if [ "${CURRENT_UID}" != "${PUID}" ]; then
+    echo "Updating www-data UID to ${PUID}..."
+    if ! sudo usermod -u "${PUID}" www-data; then
+      echo "Warning: could not update www-data UID to ${PUID}; continuing with UID ${CURRENT_UID}." >&2
+    fi
   fi
 fi
 
@@ -43,7 +48,7 @@ sudo chown -R www-data:www-data /var/log/php /var/lib/php 2>/dev/null || true
 
 # Start cron so Magento cron:install entries can execute inside the container.
 if command -v crond >/dev/null 2>&1; then
-  sudo crond
+  sudo crond 2>/dev/null || true
 fi
 
 exec "$@"

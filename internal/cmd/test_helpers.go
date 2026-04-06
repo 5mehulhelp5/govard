@@ -88,6 +88,21 @@ func SetUpReadinessProbeRunnerForTest(fn func(containerName string, probeArgs []
 	}
 }
 
+// SetUpContainerStateRunnerForTest overrides container state inspection during readiness checks.
+func SetUpContainerStateRunnerForTest(fn func(containerName string) (string, error)) func() {
+	previous := upContainerStateRunner
+	if fn == nil {
+		upContainerStateRunner = previous
+		return func() {
+			upContainerStateRunner = previous
+		}
+	}
+	upContainerStateRunner = fn
+	return func() {
+		upContainerStateRunner = previous
+	}
+}
+
 // SetUpReadinessProbeIntervalForTest overrides readiness retry intervals.
 func SetUpReadinessProbeIntervalForTest(interval time.Duration) func() {
 	previous := upReadinessProbeInterval

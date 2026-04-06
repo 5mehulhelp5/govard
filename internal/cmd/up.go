@@ -61,6 +61,24 @@ var upReadinessProbeRunner = func(containerName string, probeArgs []string) erro
 	}
 	return fmt.Errorf("%w (%s)", err, trimmed)
 }
+var upContainerStateRunner = func(containerName string) (string, error) {
+	cmd := exec.Command(
+		"docker",
+		"inspect",
+		"-f",
+		"{{.State.Status}}|{{.State.ExitCode}}|{{.State.OOMKilled}}|{{.State.Error}}",
+		containerName,
+	)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		trimmed := strings.TrimSpace(string(output))
+		if trimmed == "" {
+			return "", err
+		}
+		return "", fmt.Errorf("%w (%s)", err, trimmed)
+	}
+	return strings.TrimSpace(string(output)), nil
+}
 
 type upPipelineStage struct {
 	Name         string
@@ -72,6 +90,13 @@ type upReadinessCheck struct {
 	Service       string
 	ContainerName string
 	ProbeArgs     []string
+}
+
+type upContainerState struct {
+	Status    string
+	ExitCode  string
+	OOMKilled string
+	Error     string
 }
 
 type upRuntimeContext struct {
@@ -392,6 +417,11 @@ func waitForUpRuntimeReadiness(config engine.Config, timeout time.Duration) erro
 
 		var lastErr error
 		for attempt := 1; attempt <= maxAttempts; attempt++ {
+			state, stateErr := inspectUpContainerState(check.ContainerName)
+			if stateErr == nil && shouldAbortReadinessForContainerState(state) {
+				return fmt.Errorf("%s container %s is %s (exit code %s, oom=%s): %s", check.Service, check.ContainerName, state.Status, state.ExitCode, state.OOMKilled, firstNonEmpty(state.Error, "container stopped during startup"))
+			}
+
 			lastErr = upReadinessProbeRunner(check.ContainerName, check.ProbeArgs)
 			if lastErr == nil {
 				pterm.Success.Printf("%s runtime is ready\n", check.Service)
@@ -408,6 +438,43 @@ func waitForUpRuntimeReadiness(config engine.Config, timeout time.Duration) erro
 	}
 
 	return nil
+}
+
+func inspectUpContainerState(containerName string) (upContainerState, error) {
+	raw, err := upContainerStateRunner(containerName)
+	if err != nil {
+		return upContainerState{}, err
+	}
+
+	parts := strings.SplitN(raw, "|", 4)
+	for len(parts) < 4 {
+		parts = append(parts, "")
+	}
+
+	return upContainerState{
+		Status:    strings.TrimSpace(parts[0]),
+		ExitCode:  strings.TrimSpace(parts[1]),
+		OOMKilled: strings.TrimSpace(parts[2]),
+		Error:     strings.TrimSpace(parts[3]),
+	}, nil
+}
+
+func shouldAbortReadinessForContainerState(state upContainerState) bool {
+	switch strings.ToLower(strings.TrimSpace(state.Status)) {
+	case "exited", "dead", "removing":
+		return true
+	default:
+		return false
+	}
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if trimmed := strings.TrimSpace(value); trimmed != "" {
+			return trimmed
+		}
+	}
+	return ""
 }
 
 func runUpPipeline(stages []upPipelineStage) error {
