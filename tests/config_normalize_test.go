@@ -534,3 +534,64 @@ func TestPrepareConfigForWriteKeepsNonEmptyFrameworkVersion(t *testing.T) {
 		t.Fatalf("expected non-empty framework_version to be serialized, got:\n%s", content)
 	}
 }
+
+func TestPrepareConfigForWritePreservesNoneServicesRoundTrip(t *testing.T) {
+	// Simulate user config with queue: none (no queue service desired)
+	config := engine.Config{
+		ProjectName:      "demo",
+		Framework:        "magento2",
+		FrameworkVersion: "2.4.7-p3",
+		Domain:           "demo.test",
+		Stack: engine.Stack{
+			PHPVersion:    "8.3",
+			NodeVersion:   "20",
+			DBType:        "mariadb",
+			DBVersion:     "10.6",
+			WebRoot:       "/pub",
+			CacheVersion:  "7.2",
+			SearchVersion: "2.12",
+			Services: engine.Services{
+				WebServer: "apache",
+				DB:        "mariadb",
+				Cache:     "redis",
+				Search:    "elasticsearch",
+				Queue:     "none",
+			},
+			Features: engine.Features{
+				Xdebug: true,
+			},
+		},
+	}
+
+	// Step 1: PrepareConfigForWrite should preserve queue: none
+	writable := engine.PrepareConfigForWrite(config)
+	data, err := yaml.Marshal(&writable)
+	if err != nil {
+		t.Fatalf("marshal writable config: %v", err)
+	}
+	content := string(data)
+
+	if strings.Contains(content, "queue_version:") {
+		t.Fatalf("expected queue_version to be omitted when queue is none, got:\n%s", content)
+	}
+	if !strings.Contains(content, "queue: none") {
+		t.Fatalf("expected queue: none to be explicitly preserved, got:\n%s", content)
+	}
+
+	// Step 2: Simulate re-loading: unmarshal and normalize
+	var reloaded engine.Config
+	if err := yaml.Unmarshal(data, &reloaded); err != nil {
+		t.Fatalf("unmarshal roundtrip config: %v", err)
+	}
+	engine.NormalizeConfig(&reloaded, "")
+
+	if reloaded.Stack.Services.Queue != "none" {
+		t.Fatalf("expected queue to remain 'none' after roundtrip, got %q", reloaded.Stack.Services.Queue)
+	}
+	if reloaded.Stack.QueueVersion != "" {
+		t.Fatalf("expected queue_version to remain empty after roundtrip, got %q", reloaded.Stack.QueueVersion)
+	}
+	if reloaded.Stack.Features.Queue {
+		t.Fatalf("expected queue feature to remain false after roundtrip")
+	}
+}

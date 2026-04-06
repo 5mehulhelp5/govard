@@ -342,7 +342,7 @@ func tuneProjectProfileCore(check engine.DoctorCheck, forceTune bool, forceOverr
 
 	engine.NormalizeConfig(&config, wd)
 
-	// FINAL MINIMALIST FILTER: 
+	// FINAL MINIMALIST FILTER:
 	// We run this AFTER NormalizeConfig to ensure we strictly preserve 'none' state
 	// even if the normalization or profile auto-injection tried to re-enable them.
 	// If a user consciously chose 'none', we don't force a service on them.

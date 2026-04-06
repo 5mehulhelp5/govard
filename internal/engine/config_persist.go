@@ -35,21 +35,19 @@ func PrepareConfigForWrite(config Config) Config {
 		}
 	}
 
+	// Preserve explicit "none" so it survives YAML round-trips (omitempty would
+	// strip an empty string, causing NormalizeConfig to refill from profile defaults).
 	if writable.Stack.Services.Cache == "none" || writable.Stack.Services.Cache == "" {
-		writable.Stack.Services.Cache = ""
 		writable.Stack.CacheVersion = ""
 	}
 	if writable.Stack.Services.Search == "none" || writable.Stack.Services.Search == "" {
-		writable.Stack.Services.Search = ""
 		writable.Stack.SearchVersion = ""
 	}
 	if writable.Stack.Services.Queue == "none" || writable.Stack.Services.Queue == "" {
-		writable.Stack.Services.Queue = ""
 		writable.Stack.QueueVersion = ""
 	}
 
 	if writable.Stack.Services.DB == "none" || writable.Stack.Services.DB == "" {
-		writable.Stack.Services.DB = ""
 		writable.Stack.DBVersion = ""
 	}
 
