@@ -32,6 +32,26 @@ func TestPHPEntrypointDoesNotAbortOnUIDGIDRemapFailure(t *testing.T) {
 	}
 }
 
+func TestPHPEntrypointUpdatesGIDBeforeUID(t *testing.T) {
+	content := readProjectFileForTest(t, filepath.Join("docker", "php", "etc", "entrypoint.sh"))
+
+	gidIndex := strings.Index(content, "CURRENT_GID=$(id -g www-data)")
+	uidIndex := strings.Index(content, "CURRENT_UID=$(id -u www-data)")
+	if gidIndex == -1 || uidIndex == -1 {
+		t.Fatalf("expected php entrypoint to contain both UID and GID remap blocks, got:\n%s", content)
+	}
+	if gidIndex > uidIndex {
+		t.Fatalf("expected php entrypoint to update GID before UID, got:\n%s", content)
+	}
+}
+
+func TestPHPEntrypointStartsCrondBestEffort(t *testing.T) {
+	content := readProjectFileForTest(t, filepath.Join("docker", "php", "etc", "entrypoint.sh"))
+	if !strings.Contains(content, "sudo crond 2>/dev/null || true") {
+		t.Fatalf("expected php entrypoint to start crond in best-effort mode, got:\n%s", content)
+	}
+}
+
 func readProjectFileForTest(t *testing.T, relPath string) string {
 	t.Helper()
 
