@@ -5,17 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.44.3] - 2026-04-06
+
+### 🛠 Improvements
+
+- **Diagnostics:** Improved database version preservation logic. `doctor --fix` now respects user-defined DB versions even when they don't match framework defaults, preventing unintended overwrites and data corruption.
+- **Diagnostics:** Added `GOVARD_ASSUME_YES=true` environment variable to auto-confirm `doctor --fix` changes, improving support for automation and CI/CD pipelines.
+- **Diagnostics:** `govard doctor` now displays warnings for database version mismatches against recommendations while avoiding automated upgrades for explicit user-defined configurations.
+
+### 🐛 Bug Fixes
+
+- **Environment:** Fixed logic separation between version checks and profile synchronization in the `doctor` command.
+- **Testing:** Updated integration tests to be compatible with the new "Clean Config" behavior.
+
 ## [1.44.2] - 2026-04-06
 
 ### 🔄 Refactors
 
-- **Configuration:** Implemented "Clean Config" persistence. Redundant default values (PHP, Node, DB versions, and capabilities) are giờ đây được bỏ qua trong file `.govard.yml` để làm gọn cấu hình và tăng tính di động.
+- **Configuration:** Implemented "Clean Config" persistence. Redundant default values (PHP, Node, DB versions, and capabilities) are now omitted from `.govard.yml` to streamline configuration and improve portability.
 
 ### 🛠 Improvements
 
-- **Diagnostics:** Nâng cấp `doctor --fix` với **vòng lặp thực thi nhiều bước (multi-pass)**. Các lỗi liên đới (ví dụ: đổi profile dẫn tới thiếu Docker images) hiện được xử lý triệt để trong một lần chạy lệnh.
-- **Diagnostics:** Cải thiện logic bảo tồn phiên bản PHP. `doctor --fix` hiện tôn trọng các cấu hình PHP thủ công của người dùng khi không tìm thấy profile phiên bản framework cụ thể.
-- **UI/UX:** Loại bỏ các cảnh báo "out of sync" không chính xác trong `doctor` khi người dùng sử dụng framework mặc định với các phiên bản tùy chỉnh thủ công.
+- **Diagnostics:** Upgraded `doctor --fix` with **multi-pass execution loops**. Related cascades (e.g., changing a profile resulting in missing Docker images) are now resolved comprehensively in a single command run.
+- **Diagnostics:** Enhanced PHP version preservation logic. `doctor --fix` now respects manual PHP configurations when a specific framework version profile is not found.
+- **UI/UX:** Removed incorrect "out of sync" warnings in `doctor` when using manual version overrides on default frameworks.
 
 ## [1.44.1] - 2026-04-06
 
