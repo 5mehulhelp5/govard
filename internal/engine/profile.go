@@ -112,6 +112,7 @@ func ResolveRuntimeProfile(framework string, version string) (RuntimeProfileResu
 			VarnishVersion:   fwConfig.DefaultVarnishVer,
 			Queue:            normalizeProfileValue(fwConfig.DefaultQueue, "none"),
 			QueueVersion:     fwConfig.DefaultQueueVer,
+			ComposerVersion:  fwConfig.DefaultComposerVer,
 			XdebugSession:    "PHPSTORM",
 		},
 		Source: "framework-defaults",

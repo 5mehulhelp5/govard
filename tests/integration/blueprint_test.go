@@ -86,6 +86,7 @@ func TestRenderBlueprintWithFeatures(t *testing.T) {
 		Framework:   "magento2",
 		Domain:      "test-features.test",
 		Stack: engine.Stack{
+			DBType:     "mariadb",
 			PHPVersion: "8.3",
 			WebServer:  "nginx",
 			Features: engine.Features{
@@ -96,6 +97,7 @@ func TestRenderBlueprintWithFeatures(t *testing.T) {
 			},
 			Services: engine.Services{
 				WebServer: "nginx",
+				DB:        "mariadb",
 				Search:    "elasticsearch",
 				Cache:     "redis",
 				Queue:     "none",

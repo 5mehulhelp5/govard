@@ -102,7 +102,18 @@ func PrepareConfigForWrite(config Config) Config {
 		writable.Stack.ChownDirList = nil
 	}
 
-	// Strip ComposerVersion when it matches the auto-derived default
+	// Strip ComposerVersion when it matches the auto-derived default.
+	// This keeps .govard.yml minimal: only non-default values are written.
+	if profileResult, err := ResolveRuntimeProfile(writable.Framework, writable.FrameworkVersion); err == nil {
+		defaultComposer := profileResult.Profile.ComposerVersion
+		if defaultComposer == "" {
+			defaultComposer = "latest"
+		}
+		if writable.Stack.ComposerVersion == defaultComposer {
+			writable.Stack.ComposerVersion = ""
+		}
+	}
+
 	return writable
 }
 

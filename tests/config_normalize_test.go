@@ -653,3 +653,108 @@ func TestPrepareConfigForWriteStripsNoneServices(t *testing.T) {
 		}
 	}
 }
+
+// TestNormalizeConfigComposerVersionMagento1Default verifies that magento1 gets
+// "2.2" as the default composer version (legacy PHP runtime).
+func TestNormalizeConfigComposerVersionMagento1Default(t *testing.T) {
+	config := engine.Config{
+		Framework: "magento1",
+	}
+	engine.NormalizeConfig(&config, "")
+
+	if config.Stack.ComposerVersion != "2.2" {
+		t.Fatalf("Expected ComposerVersion 2.2 for magento1, got %q", config.Stack.ComposerVersion)
+	}
+}
+
+// TestNormalizeConfigComposerVersionMagento2Default verifies that magento2 gets
+// "latest" as the default composer version (modern PHP runtime).
+func TestNormalizeConfigComposerVersionMagento2Default(t *testing.T) {
+	config := engine.Config{
+		Framework: "magento2",
+	}
+	engine.NormalizeConfig(&config, "")
+
+	if config.Stack.ComposerVersion != "latest" {
+		t.Fatalf("Expected ComposerVersion latest for magento2, got %q", config.Stack.ComposerVersion)
+	}
+}
+
+// TestNormalizeConfigComposerVersionSafetyOverride verifies that when PHP < 7.2.5
+// and composer_version is "latest", the safety check forces it to "2.2".
+func TestNormalizeConfigComposerVersionSafetyOverride(t *testing.T) {
+	config := engine.Config{
+		Framework: "custom",
+		Stack: engine.Stack{
+			PHPVersion:      "7.1",
+			ComposerVersion: "latest", // user explicitly set latest
+		},
+	}
+	engine.NormalizeConfig(&config, "")
+
+	if config.Stack.ComposerVersion != "2.2" {
+		t.Fatalf("Expected ComposerVersion 2.2 when PHP=7.1 (safety override), got %q", config.Stack.ComposerVersion)
+	}
+}
+
+// TestNormalizeConfigComposerVersionExplicitPreserved verifies that an explicit
+// user-defined composer_version is not overwritten by framework defaults.
+func TestNormalizeConfigComposerVersionExplicitPreserved(t *testing.T) {
+	config := engine.Config{
+		Framework: "magento2",
+		Stack: engine.Stack{
+			ComposerVersion: "2.5.1",
+		},
+	}
+	engine.NormalizeConfig(&config, "")
+
+	if config.Stack.ComposerVersion != "2.5.1" {
+		t.Fatalf("Expected ComposerVersion 2.5.1 to be preserved, got %q", config.Stack.ComposerVersion)
+	}
+}
+
+// TestPrepareConfigForWriteStripsDefaultComposer verifies that the default
+// composer_version ("latest" for magento2) is stripped from the YAML output.
+func TestPrepareConfigForWriteStripsDefaultComposer(t *testing.T) {
+	config := engine.Config{
+		ProjectName: "test-project",
+		Framework:   "magento2",
+		Domain:      "test.test",
+		Stack: engine.Stack{
+			ComposerVersion: "latest", // same as magento2 default
+		},
+	}
+
+	writable := engine.PrepareConfigForWrite(config)
+	data, err := yaml.Marshal(&writable)
+	if err != nil {
+		t.Fatalf("marshal config: %v", err)
+	}
+
+	if strings.Contains(string(data), "composer_version") {
+		t.Fatalf("Expected composer_version to be stripped (matches default), got:\n%s", string(data))
+	}
+}
+
+// TestPrepareConfigForWriteKeepsCustomComposer verifies that a non-default
+// composer_version is preserved in the YAML output.
+func TestPrepareConfigForWriteKeepsCustomComposer(t *testing.T) {
+	config := engine.Config{
+		ProjectName: "test-project",
+		Framework:   "magento2",
+		Domain:      "test.test",
+		Stack: engine.Stack{
+			ComposerVersion: "2.2", // non-default for magento2
+		},
+	}
+
+	writable := engine.PrepareConfigForWrite(config)
+	data, err := yaml.Marshal(&writable)
+	if err != nil {
+		t.Fatalf("marshal config: %v", err)
+	}
+
+	if !strings.Contains(string(data), "composer_version") || !strings.Contains(string(data), "2.2") {
+		t.Fatalf("Expected composer_version: 2.2 in YAML output, got:\n%s", string(data))
+	}
+}

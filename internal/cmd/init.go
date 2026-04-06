@@ -156,6 +156,7 @@ Case Studies:
 		dbVersion := profileResult.Profile.DBVersion
 		phpVersion := profileResult.Profile.PHPVersion
 		nodeVersion := profileResult.Profile.NodeVersion
+		composerVersion := profileResult.Profile.ComposerVersion
 		xdebugSession := profileResult.Profile.XdebugSession
 		webRoot := profileResult.Profile.WebRoot
 		enableVarnish := metadata.Framework == "magento2" && migrateFrom == "" && !hasExistingConfig
@@ -181,6 +182,7 @@ Case Studies:
 			}
 
 			phpVersion = textInput("PHP version", phpVersion)
+			composerVersion = textInput("Composer version", composerVersion)
 			nodeVersion = textInput("Node.js version", nodeVersion)
 			webRoot = textInput("Web root (e.g. /public, leave empty for project root)", webRoot)
 			xdebugSession = textInput("Xdebug session cookie value", xdebugSession)
@@ -197,12 +199,13 @@ Case Studies:
 			FrameworkVersion: metadata.Version,
 			Domain:           engine.InferProjectDomain(cwd),
 			Stack: engine.Stack{
-				PHPVersion:    phpVersion,
-				NodeVersion:   nodeVersion,
-				DBType:        dbType,
-				DBVersion:     dbVersion,
-				WebRoot:       webRoot,
-				XdebugSession: xdebugSession,
+				PHPVersion:      phpVersion,
+				NodeVersion:     nodeVersion,
+				ComposerVersion: composerVersion,
+				DBType:          dbType,
+				DBVersion:       dbVersion,
+				WebRoot:         webRoot,
+				XdebugSession:   xdebugSession,
 				Services: engine.Services{
 					WebServer: webServer,
 					DB:        dbType,
