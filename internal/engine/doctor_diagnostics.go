@@ -570,7 +570,7 @@ func CheckSearchIndexBlock() error {
 
 func loadConfig() Config {
 	wd, _ := os.Getwd()
-	config, _, err := LoadConfigFromDir(wd, false)
+	config, err := LoadRawConfigFromDir(wd, false)
 	if err != nil {
 		return Config{}
 	}
@@ -586,12 +586,27 @@ func CheckProfileSync() error {
 	wd, _ := os.Getwd()
 	metadata := DetectFramework(wd)
 
-	version := strings.TrimSpace(metadata.Version)
-	if version == "" {
-		version = strings.TrimSpace(config.FrameworkVersion)
+	warnings := CollectProfileSyncWarnings(config, metadata)
+	if len(warnings) > 0 {
+		version := strings.TrimSpace(metadata.Version)
+		if version == "" {
+			version = strings.TrimSpace(config.FrameworkVersion)
+		}
+		return fmt.Errorf("%s %s environment is out of sync: %s", config.Framework, version, strings.Join(warnings, ", "))
 	}
 
-	profileResult, err := ResolveRuntimeProfile(config.Framework, version)
+	return nil
+}
+
+// CollectProfileSyncWarnings compares the raw user configuration against framework profile recommendations.
+// It silences warnings for fields that were explicitly set by the user (non-empty in rawConfig).
+func CollectProfileSyncWarnings(rawConfig Config, metadata ProjectMetadata) []string {
+	version := strings.TrimSpace(metadata.Version)
+	if version == "" {
+		version = strings.TrimSpace(rawConfig.FrameworkVersion)
+	}
+
+	profileResult, err := ResolveRuntimeProfile(rawConfig.Framework, version)
 	if err != nil {
 		return nil // skip check if profile resolution fails
 	}
@@ -599,28 +614,59 @@ func CheckProfileSync() error {
 	mismatches := []string{}
 	p := profileResult.Profile
 
-	if p.PHPVersion != "" && config.Stack.PHPVersion != p.PHPVersion {
-		// Only warn if we have a version-specific profile, or if the user has NO version set.
-		// If it's just 'framework-defaults' and the user has a version, assume they know what they are doing.
-		if !strings.HasPrefix(profileResult.Source, "framework-defaults") || config.Stack.PHPVersion == "" {
-			mismatches = append(mismatches, fmt.Sprintf("PHP %s (expected %s)", config.Stack.PHPVersion, p.PHPVersion))
+	if p.PHPVersion != "" {
+		normalized := rawConfig
+		NormalizeConfig(&normalized, "")
+		if normalized.Stack.PHPVersion != p.PHPVersion {
+			if rawConfig.Stack.PHPVersion != "" {
+				mismatches = append(mismatches, fmt.Sprintf("PHP %s [Explicit] (advisory: recommended %s)", rawConfig.Stack.PHPVersion, p.PHPVersion))
+			} else {
+				mismatches = append(mismatches, fmt.Sprintf("PHP %s (expected %s)", normalized.Stack.PHPVersion, p.PHPVersion))
+			}
 		}
 	}
-	// For database, we just warn if it's completely different
-	if p.DBType != "" && config.Stack.DBType != "" && config.Stack.DBType != p.DBType {
-		mismatches = append(mismatches, fmt.Sprintf("DB %s (expected %s)", config.Stack.DBType, p.DBType))
-	} else if p.DBVersion != "" && config.Stack.DBVersion != "" && config.Stack.DBVersion != p.DBVersion {
-		mismatches = append(mismatches, fmt.Sprintf("DB version %s (recommended %s)", config.Stack.DBVersion, p.DBVersion))
-	}
-	if p.Search != "" && config.Stack.Services.Search != "none" && config.Stack.Services.Search != p.Search {
-		mismatches = append(mismatches, fmt.Sprintf("Search %s (expected %s)", config.Stack.Services.Search, p.Search))
+
+	if p.DBType != "" {
+		if rawConfig.Stack.DBType != "" && rawConfig.Stack.DBType != p.DBType {
+			mismatches = append(mismatches, fmt.Sprintf("DB %s [Explicit] (expected %s)", rawConfig.Stack.DBType, p.DBType))
+		} else if p.DBVersion != "" {
+			normalized := rawConfig
+			NormalizeConfig(&normalized, "")
+			if normalized.Stack.DBVersion != p.DBVersion {
+				if rawConfig.Stack.DBVersion != "" {
+					mismatches = append(mismatches, fmt.Sprintf("DB version %s [Explicit] (recommended %s)", rawConfig.Stack.DBVersion, p.DBVersion))
+				} else {
+					mismatches = append(mismatches, fmt.Sprintf("DB version %s (recommended %s)", normalized.Stack.DBVersion, p.DBVersion))
+				}
+			}
+		}
 	}
 
-	if len(mismatches) > 0 {
-		return fmt.Errorf("%s %s environment is out of sync: %s", config.Framework, version, strings.Join(mismatches, ", "))
+	if p.Search != "" {
+		normalized := rawConfig
+		NormalizeConfig(&normalized, "")
+		if normalized.Stack.Services.Search != p.Search {
+			if rawConfig.Stack.Services.Search != "" {
+				mismatches = append(mismatches, fmt.Sprintf("Search %s [Explicit] (expected %s)", rawConfig.Stack.Services.Search, p.Search))
+			} else {
+				mismatches = append(mismatches, fmt.Sprintf("Search %s (expected %s)", normalized.Stack.Services.Search, p.Search))
+			}
+		}
 	}
 
-	return nil
+	if p.Cache != "" {
+		normalized := rawConfig
+		NormalizeConfig(&normalized, "")
+		if normalized.Stack.Services.Cache != p.Cache {
+			if rawConfig.Stack.Services.Cache != "" {
+				mismatches = append(mismatches, fmt.Sprintf("Cache %s [Explicit] (expected %s)", rawConfig.Stack.Services.Cache, p.Cache))
+			} else {
+				mismatches = append(mismatches, fmt.Sprintf("Cache %s (expected %s)", normalized.Stack.Services.Cache, p.Cache))
+			}
+		}
+	}
+
+	return mismatches
 }
 
 func CheckSystemDependencies() []string {

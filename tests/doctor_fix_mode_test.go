@@ -31,7 +31,7 @@ func TestApplyDoctorSafeFixesForTestCreatesGovardHomeDirectories(t *testing.T) {
 		},
 	}
 
-	results := cmd.ApplyDoctorSafeFixesForTest(report)
+	results := cmd.ApplyDoctorSafeFixesForTest(report, nil)
 	if len(results) != 1 {
 		t.Fatalf("expected 1 fix result, got %d", len(results))
 	}

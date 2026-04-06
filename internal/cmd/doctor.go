@@ -57,8 +57,9 @@ Use --pack to export a diagnostics support bundle for sharing with support.
 			// Multi-pass fix: Some fixes (like profile sync) can trigger others (like missing images).
 			// We loop a few times if fixes were applied to try and get a clean report.
 			maxPasses := 3
+			skippedCheckIDs := make(map[string]bool)
 			for i := 0; i < maxPasses; i++ {
-				fixResults := applyDoctorSafeFixes(report)
+				fixResults := applyDoctorSafeFixes(report, skippedCheckIDs)
 				if len(fixResults) == 0 {
 					break
 				}

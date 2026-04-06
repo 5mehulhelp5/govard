@@ -113,15 +113,15 @@ func TestInitOmitsRuntimeUserAndGroupFromConfigFile(t *testing.T) {
 		}
 	}
 
-	// Verify redundant versions are omitted in fresh init
+	// Verify redundant versions are preserved in fresh init for explicit configuration
 	for _, key := range []string{
 		"php_version:",
 		"node_version:",
 		"db_version:",
 		"queue_version:",
 	} {
-		if strings.Contains(content, key) {
-			t.Fatalf("expected .govard.yml to omit redundant %q, got:\n%s", key, content)
+		if !strings.Contains(content, key) {
+			t.Fatalf("expected .govard.yml to include explicit %q, got:\n%s", key, content)
 		}
 	}
 

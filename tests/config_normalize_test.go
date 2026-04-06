@@ -275,10 +275,9 @@ func TestPrepareConfigForWriteKeepsRuntimeProfileDefaults(t *testing.T) {
 		"cache_version:",
 		"search_version:",
 		"queue_version:",
-		"\n    web_server:",
 	} {
-		if strings.Contains(content, key) {
-			t.Fatalf("expected redundant %q to be omitted from serialized config, got:\n%s", key, content)
+		if !strings.Contains(content, key) {
+			t.Fatalf("expected explicit %q to be preserved in serialized config, got:\n%s", key, content)
 		}
 	}
 	for _, key := range []string{

@@ -50,7 +50,7 @@ func runDoctorDiagnostics() engine.DoctorReport {
 	return doctorRunDiagnostics(doctorDependencies)
 }
 
-func applyDoctorSafeFixes(report engine.DoctorReport) []DoctorFixResult {
+func applyDoctorSafeFixes(report engine.DoctorReport, skippedCheckIDs map[string]bool) []DoctorFixResult {
 	results := make([]DoctorFixResult, 0)
 	seen := map[string]bool{}
 
@@ -60,7 +60,7 @@ func applyDoctorSafeFixes(report engine.DoctorReport) []DoctorFixResult {
 		}
 
 		checkID := strings.TrimSpace(check.ID)
-		if checkID == "" || seen[checkID] {
+		if checkID == "" || seen[checkID] || skippedCheckIDs[checkID] {
 			continue
 		}
 		seen[checkID] = true
@@ -76,7 +76,11 @@ func applyDoctorSafeFixes(report engine.DoctorReport) []DoctorFixResult {
 			continue
 		}
 
-		results = append(results, handler(check))
+		res := handler(check)
+		if res.Status == DoctorFixStatusSkipped {
+			skippedCheckIDs[checkID] = true
+		}
+		results = append(results, res)
 	}
 
 	return results
@@ -198,7 +202,16 @@ func fixGovardRegistry(check engine.DoctorCheck) DoctorFixResult {
 	return result
 }
 
+// TuneProjectProfileForTest is a non-interactive wrapper for unit tests.
+func TuneProjectProfileForTest(check engine.DoctorCheck, forceOverride bool) DoctorFixResult {
+	return tuneProjectProfileCore(check, true, forceOverride)
+}
+
 func tuneProjectProfile(check engine.DoctorCheck) DoctorFixResult {
+	return tuneProjectProfileCore(check, false, false)
+}
+
+func tuneProjectProfileCore(check engine.DoctorCheck, forceTune bool, forceOverride bool) DoctorFixResult {
 	result := DoctorFixResult{
 		CheckID: strings.TrimSpace(check.ID),
 		Title:   strings.TrimSpace(check.Title),
@@ -207,7 +220,7 @@ func tuneProjectProfile(check engine.DoctorCheck) DoctorFixResult {
 		Actions: []string{},
 	}
 
-	if !confirmAction("Do you want to automatically tune the framework runtime profile now?") {
+	if !forceTune && !confirmAction("Do you want to automatically tune the framework runtime profile now?") {
 		result.Status = DoctorFixStatusSkipped
 		result.Message = "Skipped by user."
 		return result
@@ -221,6 +234,9 @@ func tuneProjectProfile(check engine.DoctorCheck) DoctorFixResult {
 		result.Message = err.Error()
 		return result
 	}
+
+	// Read original bytes for no-op detection
+	originalBytes, _ := os.ReadFile(engine.BaseConfigFile)
 
 	metadata := engine.DetectFramework(wd)
 	version := strings.TrimSpace(metadata.Version)
@@ -236,52 +252,191 @@ func tuneProjectProfile(check engine.DoctorCheck) DoctorFixResult {
 	}
 
 	existingPHPVersion := strings.TrimSpace(config.Stack.PHPVersion)
+	existingNodeVersion := strings.TrimSpace(config.Stack.NodeVersion)
+	existingComposerVersion := strings.TrimSpace(config.Stack.ComposerVersion)
+	existingNginxVersion := strings.TrimSpace(config.Stack.NginxVersion)
+	existingApacheVersion := strings.TrimSpace(config.Stack.ApacheVersion)
 	existingDBType := strings.TrimSpace(config.Stack.DBType)
 	existingDBVersion := strings.TrimSpace(config.Stack.DBVersion)
+	existingCacheService := strings.TrimSpace(config.Stack.Services.Cache)
+	existingCacheVersion := strings.TrimSpace(config.Stack.CacheVersion)
+	existingSearchService := strings.TrimSpace(config.Stack.Services.Search)
+	existingSearchVersion := strings.TrimSpace(config.Stack.SearchVersion)
+	existingQueueService := strings.TrimSpace(config.Stack.Services.Queue)
+	existingQueueVersion := strings.TrimSpace(config.Stack.QueueVersion)
+	existingVarnishVersion := strings.TrimSpace(config.Stack.VarnishVersion)
 	existingWebServer := strings.TrimSpace(config.Stack.Services.WebServer)
 
 	engine.ApplyRuntimeProfileToConfig(&config, profileResult.Profile)
 
-	// Preserve PHP version if the user already set one explicitly and the resolved profile
-	// only uses framework-level defaults (i.e., no version-specific override was found).
-	// This prevents doctor --fix from blindly overwriting the user's PHP choice when it
-	// cannot determine a better version (e.g., magento1, or magento2 with no detected version).
-	// Projects with a detectable version (magento2 2.4.x) still get auto-tuned because
-	// their profileResult.Source will be "version-specific:...", not "framework-defaults".
-	if existingPHPVersion != "" && strings.HasPrefix(profileResult.Source, "framework-defaults") {
+	type manualOverride struct {
+		Field    string
+		UserVal  string
+		Standard string
+	}
+	overrides := []manualOverride{}
+
+	if existingPHPVersion != "" && existingPHPVersion != profileResult.Profile.PHPVersion {
+		overrides = append(overrides, manualOverride{"PHP version", existingPHPVersion, profileResult.Profile.PHPVersion})
+	}
+	if existingNodeVersion != "" && existingNodeVersion != profileResult.Profile.NodeVersion {
+		overrides = append(overrides, manualOverride{"Node version", existingNodeVersion, profileResult.Profile.NodeVersion})
+	}
+	if existingDBVersion != "" && existingDBVersion != profileResult.Profile.DBVersion {
+		overrides = append(overrides, manualOverride{"DB version", existingDBVersion, profileResult.Profile.DBVersion})
+	}
+	if existingDBType != "" && existingDBType != profileResult.Profile.DBType {
+		overrides = append(overrides, manualOverride{"DB type", existingDBType, profileResult.Profile.DBType})
+	}
+	if existingSearchService != "" && existingSearchService != profileResult.Profile.Search {
+		overrides = append(overrides, manualOverride{"Search service", existingSearchService, profileResult.Profile.Search})
+	}
+	if existingCacheService != "" && existingCacheService != profileResult.Profile.Cache {
+		overrides = append(overrides, manualOverride{"Cache service", existingCacheService, profileResult.Profile.Cache})
+	}
+	if existingQueueService != "" && existingQueueService != profileResult.Profile.Queue {
+		overrides = append(overrides, manualOverride{"Queue service", existingQueueService, profileResult.Profile.Queue})
+	}
+	if existingVarnishVersion != "" && existingVarnishVersion != profileResult.Profile.VarnishVersion {
+		overrides = append(overrides, manualOverride{"Varnish version", existingVarnishVersion, profileResult.Profile.VarnishVersion})
+	}
+	if existingWebServer != "" && existingWebServer != profileResult.Profile.WebServer {
+		overrides = append(overrides, manualOverride{"Web server", existingWebServer, profileResult.Profile.WebServer})
+	}
+
+	canOverrideExplicts := forceOverride
+	if !forceOverride && len(overrides) > 0 {
+		pterm.Info.Println("Detected manual overrides that deviate from the framework profile:")
+		for _, o := range overrides {
+			pterm.Println(fmt.Sprintf("  - %s: %s (Standard: %s)", o.Field, o.UserVal, o.Standard))
+		}
+		if confirmAction("Would you like to reset these manual settings to standard profile defaults?") {
+			canOverrideExplicts = true
+			result.Actions = append(result.Actions, "Overriding manual version settings with profile standards")
+		}
+	}
+
+	if existingPHPVersion != "" && !canOverrideExplicts {
 		config.Stack.PHPVersion = existingPHPVersion
-		result.Actions = append(result.Actions, fmt.Sprintf("Preserved PHP version %s (no version-specific profile available)", existingPHPVersion))
+	} else if existingPHPVersion == "" && !canOverrideExplicts {
+		config.Stack.PHPVersion = ""
 	}
 
-	// Keep DB version if the user explicitly set one to prevent data loss or unexpected upgrades
-	if shouldPreserveConfiguredDB(existingDBType, existingDBVersion, config.Stack.DBType, config.Stack.DBVersion) {
-		config.Stack.DBType = existingDBType
+	if existingNodeVersion != "" && !canOverrideExplicts {
+		config.Stack.NodeVersion = existingNodeVersion
+	} else if existingNodeVersion == "" && !canOverrideExplicts {
+		config.Stack.NodeVersion = ""
+	}
+
+	if existingComposerVersion != "" {
+		config.Stack.ComposerVersion = existingComposerVersion
+	}
+
+	activeWebServer := strings.ToLower(strings.TrimSpace(config.Stack.Services.WebServer))
+
+	if existingDBVersion != "" && !canOverrideExplicts {
 		config.Stack.DBVersion = existingDBVersion
-		result.Actions = append(result.Actions, fmt.Sprintf("Preserved database %s:%s (explicit version in config)", existingDBType, existingDBVersion))
-	}
-
-	// Persist the user's explicit web server choice if they explicitly selected apache/nginx
-	if existingWebServer != "" && existingWebServer != config.Stack.Services.WebServer && existingWebServer != "hybrid" {
-		config.Stack.Services.WebServer = existingWebServer
+	} else if existingDBVersion == "" && !canOverrideExplicts {
+		config.Stack.DBVersion = ""
 	}
 
 	engine.NormalizeConfig(&config, wd)
 
+	// FINAL MINIMALIST FILTER: 
+	// We run this AFTER NormalizeConfig to ensure we strictly preserve 'none' state
+	// even if the normalization or profile auto-injection tried to re-enable them.
+	// If a user consciously chose 'none', we don't force a service on them.
+	if existingCacheService == "none" || existingCacheService == "" {
+		config.Stack.Services.Cache = "none"
+		config.Stack.CacheVersion = ""
+		config.Stack.Features.Cache = false
+	} else if !canOverrideExplicts {
+		config.Stack.Services.Cache = existingCacheService
+		if existingCacheVersion == "" {
+			config.Stack.CacheVersion = ""
+		} else {
+			config.Stack.CacheVersion = existingCacheVersion
+		}
+	}
+
+	if existingSearchService == "none" || existingSearchService == "" {
+		config.Stack.Services.Search = "none"
+		config.Stack.SearchVersion = ""
+		config.Stack.Features.Search = false
+	} else if !canOverrideExplicts {
+		config.Stack.Services.Search = existingSearchService
+		if existingSearchVersion == "" {
+			config.Stack.SearchVersion = ""
+		} else {
+			config.Stack.SearchVersion = existingSearchVersion
+		}
+	}
+
+	if existingQueueService == "none" || existingQueueService == "" {
+		config.Stack.Services.Queue = "none"
+		config.Stack.QueueVersion = ""
+		config.Stack.Features.Queue = false
+	} else if !canOverrideExplicts {
+		config.Stack.Services.Queue = existingQueueService
+		if existingQueueVersion == "" {
+			config.Stack.QueueVersion = ""
+		} else {
+			config.Stack.QueueVersion = existingQueueVersion
+		}
+	}
+
+	if existingVarnishVersion == "" || existingVarnishVersion == "none" {
+		config.Stack.VarnishVersion = ""
+		config.Stack.Features.Varnish = false
+	} else if !canOverrideExplicts {
+		config.Stack.VarnishVersion = existingVarnishVersion
+	}
+
+	if !canOverrideExplicts {
+		if activeWebServer == "nginx" || activeWebServer == "hybrid" {
+			if existingNginxVersion == "" {
+				config.Stack.NginxVersion = ""
+			} else {
+				config.Stack.NginxVersion = existingNginxVersion
+			}
+		}
+		if activeWebServer == "apache" || activeWebServer == "hybrid" {
+			if existingApacheVersion == "" {
+				config.Stack.ApacheVersion = ""
+			} else {
+				config.Stack.ApacheVersion = existingApacheVersion
+			}
+		}
+	}
+
+	if existingWebServer != "" && existingWebServer != "none" && !canOverrideExplicts {
+		config.Stack.Services.WebServer = existingWebServer
+	}
+
 	writableConfig := engine.PrepareConfigForWrite(config)
-	data, err := yaml.Marshal(&writableConfig)
+	updated, err := yaml.Marshal(&writableConfig)
 	if err != nil {
 		result.Status = DoctorFixStatusFailed
 		result.Message = fmt.Sprintf("failed to marshal config: %v", err)
 		return result
 	}
 
-	if err := os.WriteFile(engine.BaseConfigFile, data, 0644); err != nil {
+	// If the config hasn't actually changed (because all framework recommendations were overridden
+	// by explicit user settings), skip the update and return "Skipped" to break the infinite fix loop.
+	if string(updated) == string(originalBytes) {
+		result.Status = DoctorFixStatusSkipped
+		result.Message = "Advisory: Explicit user settings preserved (no safe profile changes to apply)."
+		return result
+	}
+
+	if err := os.WriteFile(engine.BaseConfigFile, updated, 0o644); err != nil {
 		result.Status = DoctorFixStatusFailed
-		result.Message = fmt.Sprintf("failed to write config: %v", err)
+		result.Message = fmt.Sprintf("failed to write updated config: %v", err)
 		return result
 	}
 
 	result.Message = fmt.Sprintf("Environment updated to %s profile (%s)", config.Framework, profileResult.Source)
+	result.Status = DoctorFixStatusApplied
 	return result
 }
 
@@ -536,8 +691,11 @@ func SetDoctorDependenciesForTest(dependencies engine.DoctorDependencies) func()
 }
 
 // ApplyDoctorSafeFixesForTest exposes doctor fix planning/execution for tests.
-func ApplyDoctorSafeFixesForTest(report engine.DoctorReport) []DoctorFixResult {
-	return applyDoctorSafeFixes(report)
+func ApplyDoctorSafeFixesForTest(report engine.DoctorReport, skippedCheckIDs map[string]bool) []DoctorFixResult {
+	if skippedCheckIDs == nil {
+		skippedCheckIDs = make(map[string]bool)
+	}
+	return applyDoctorSafeFixes(report, skippedCheckIDs)
 }
 
 func confirmAction(message string) bool {

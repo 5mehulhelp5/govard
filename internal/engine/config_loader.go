@@ -112,6 +112,31 @@ func LoadConfigFromDirWithProfile(root string, requireBase bool, profile string)
 	return cfg, loaded, nil
 }
 
+// LoadRawConfigFromDir loads the base configuration WITHOUT applying normalization or validation.
+// This is used to detect which fields were explicitly provided in the file by the user.
+func LoadRawConfigFromDir(root string, requireBase bool) (Config, error) {
+	path := filepath.Join(root, BaseConfigFile)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			if requireBase {
+				return Config{}, fmt.Errorf("%s not found", BaseConfigFile)
+			}
+			return Config{
+				ProjectName: inferProjectName(root),
+			}, nil
+		}
+		return Config{}, fmt.Errorf("failed to read %s: %w", path, err)
+	}
+
+	var cfg Config
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return Config{}, fmt.Errorf("failed to parse %s: %w", path, err)
+	}
+
+	return cfg, nil
+}
+
 func LoadBaseConfigFromDir(root string, requireBase bool) (Config, error) {
 	path := filepath.Join(root, BaseConfigFile)
 	data, err := os.ReadFile(path)

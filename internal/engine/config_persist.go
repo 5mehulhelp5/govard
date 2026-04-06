@@ -35,18 +35,22 @@ func PrepareConfigForWrite(config Config) Config {
 		}
 	}
 
-	if writable.Stack.Services.Cache == "none" {
+	if writable.Stack.Services.Cache == "none" || writable.Stack.Services.Cache == "" {
 		writable.Stack.Services.Cache = ""
+		writable.Stack.CacheVersion = ""
 	}
-	if writable.Stack.Services.Search == "none" {
+	if writable.Stack.Services.Search == "none" || writable.Stack.Services.Search == "" {
 		writable.Stack.Services.Search = ""
+		writable.Stack.SearchVersion = ""
 	}
-	if writable.Stack.Services.Queue == "none" {
+	if writable.Stack.Services.Queue == "none" || writable.Stack.Services.Queue == "" {
 		writable.Stack.Services.Queue = ""
+		writable.Stack.QueueVersion = ""
 	}
 
-	if writable.Stack.Services.DB == "none" {
+	if writable.Stack.Services.DB == "none" || writable.Stack.Services.DB == "" {
 		writable.Stack.Services.DB = ""
+		writable.Stack.DBVersion = ""
 	}
 
 	// Double-ensure redundant fields are zeroed for serialization (though they are yaml:"-")
@@ -97,72 +101,6 @@ func PrepareConfigForWrite(config Config) Config {
 	}
 
 	// Strip ComposerVersion when it matches the auto-derived default
-	if writable.Stack.ComposerVersion != "" {
-		derivedDefault := "latest"
-		if writable.Stack.PHPVersion != "" && !IsNumericDotVersionAtLeast(writable.Stack.PHPVersion, "7.2.5") {
-			derivedDefault = "2.2"
-		}
-		if profileResult, err := ResolveRuntimeProfile(writable.Framework, writable.FrameworkVersion); err == nil {
-			if profileResult.Profile.ComposerVersion != "" {
-				derivedDefault = profileResult.Profile.ComposerVersion
-			}
-		}
-		if writable.Stack.ComposerVersion == derivedDefault {
-			writable.Stack.ComposerVersion = ""
-		}
-	}
-
-	// Strip PHPVersion when it matches the auto-derived default
-	if writable.Stack.PHPVersion != "" {
-		var derivedDefault string
-		if profileResult, err := ResolveRuntimeProfile(writable.Framework, writable.FrameworkVersion); err == nil {
-			derivedDefault = profileResult.Profile.PHPVersion
-		}
-		if writable.Stack.PHPVersion == derivedDefault {
-			writable.Stack.PHPVersion = ""
-		}
-	}
-
-	// Strip NodeVersion when it matches the auto-derived default
-	if writable.Stack.NodeVersion != "" {
-		derivedDefault := "24"
-		if profileResult, err := ResolveRuntimeProfile(writable.Framework, writable.FrameworkVersion); err == nil {
-			if profileResult.Profile.NodeVersion != "" {
-				derivedDefault = profileResult.Profile.NodeVersion
-			}
-		}
-		if writable.Stack.NodeVersion == derivedDefault {
-			writable.Stack.NodeVersion = ""
-		}
-	}
-
-	// Strip DBVersion when it matches the auto-derived default
-	if writable.Stack.DBVersion != "" {
-		var derivedDefault string
-		if profileResult, err := ResolveRuntimeProfile(writable.Framework, writable.FrameworkVersion); err == nil {
-			derivedDefault = profileResult.Profile.DBVersion
-		}
-		if writable.Stack.DBVersion == derivedDefault {
-			writable.Stack.DBVersion = ""
-		}
-	}
-
-	// Strip Cache, Search, and Queue versions if they match defaults
-	if profileResult, err := ResolveRuntimeProfile(writable.Framework, writable.FrameworkVersion); err == nil {
-		if writable.Stack.WebRoot == profileResult.Profile.WebRoot {
-			writable.Stack.WebRoot = ""
-		}
-		if writable.Stack.CacheVersion == profileResult.Profile.CacheVersion {
-			writable.Stack.CacheVersion = ""
-		}
-		if writable.Stack.SearchVersion == profileResult.Profile.SearchVersion {
-			writable.Stack.SearchVersion = ""
-		}
-		if writable.Stack.QueueVersion == profileResult.Profile.QueueVersion {
-			writable.Stack.QueueVersion = ""
-		}
-	}
-
 	return writable
 }
 

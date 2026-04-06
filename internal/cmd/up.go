@@ -140,7 +140,8 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 				if err != nil {
 					return fmt.Errorf("load layered config: %w", err)
 				}
-				if warnings := CheckMagentoRuntimeSync(context.Config, context.Metadata); len(warnings) > 0 {
+				rawConfig, _ := engine.LoadRawConfigFromDir(context.Cwd, false)
+				if warnings := engine.CollectProfileSyncWarnings(rawConfig, context.Metadata); len(warnings) > 0 {
 					for _, warning := range warnings {
 						pterm.Warning.Println(warning)
 					}
@@ -533,27 +534,18 @@ func CheckMagentoRuntimeSync(config engine.Config, metadata engine.ProjectMetada
 		return nil
 	}
 
-	version := strings.TrimSpace(metadata.Version)
-	if version == "" {
-		version = strings.TrimSpace(config.FrameworkVersion)
-	}
-
-	profileResult, err := engine.ResolveRuntimeProfile("magento2", version)
+	cwd, _ := os.Getwd()
+	rawConfig, err := engine.LoadRawConfigFromDir(cwd, false)
 	if err != nil {
-		return nil // skip check if profile fails to resolve
+		return nil
 	}
 
-	var warnings []string
-	p := profileResult.Profile
-
-	if p.PHPVersion != "" && config.Stack.PHPVersion != p.PHPVersion {
-		warnings = append(warnings, fmt.Sprintf("PHP %s (expected %s)", config.Stack.PHPVersion, p.PHPVersion))
-	}
-	if p.Search != "" && config.Stack.Services.Search != "none" && config.Stack.Services.Search != p.Search {
-		warnings = append(warnings, fmt.Sprintf("Search %s (expected %s)", config.Stack.Services.Search, p.Search))
-	}
-
+	warnings := engine.CollectProfileSyncWarnings(rawConfig, metadata)
 	if len(warnings) > 0 {
+		version := strings.TrimSpace(metadata.Version)
+		if version == "" {
+			version = strings.TrimSpace(config.FrameworkVersion)
+		}
 		return []string{fmt.Sprintf(
 			"Magento %s expects different services: %s. Run 'govard doctor --fix' to align.",
 			version, strings.Join(warnings, ", "),
@@ -561,24 +553,6 @@ func CheckMagentoRuntimeSync(config engine.Config, metadata engine.ProjectMetada
 	}
 
 	return nil
-}
-
-func shouldPreserveConfiguredDB(existingType, existingVersion, tunedType, tunedVersion string) bool {
-	existingType = strings.ToLower(strings.TrimSpace(existingType))
-	tunedType = strings.ToLower(strings.TrimSpace(tunedType))
-	existingVersion = strings.TrimSpace(existingVersion)
-	tunedVersion = strings.TrimSpace(tunedVersion)
-
-	if existingType == "" || existingVersion == "" || tunedType == "" || tunedVersion == "" {
-		return false
-	}
-	if existingType != tunedType {
-		return false
-	}
-
-	// If the database type matches, always preserve the existing explicit version
-	// to avoid unexpected data-loss/migration issues during auto-tuning.
-	return true
 }
 
 func compareNumericDotVersions(left, right string) (int, bool) {
