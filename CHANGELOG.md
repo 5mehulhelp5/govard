@@ -5,7 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.44.5] - 2026-04-07
+
+### ✨ New Features
+
+- **Diagnostics:** Set `GOVARD_ASSUME_YES=true` environment variable when the `-y` / `--yes` flag is enabled during `init`, ensuring consistent non-interactive behavior for internal diagnostic checks.
+
+### 🐛 Bug Fixes
+
+- **Environment:** Use architecture-aware Mailpit download URLs in the installer to prevent rate limiting and ensure compatibility across different CPU architectures.
+- **Diagnostics:** Safely ignore the return value of `os.Setenv` during initialization to prevent unnecessary execution failures in environments with restricted environment variable access.
+
 ## [1.44.4] - 2026-04-06
+
 
 ### 🚀 New Features
 
