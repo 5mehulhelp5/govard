@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.44.0] - 2026-04-06
+
+### ✨ New Features
+
+- **Documentation:** Migrated documentation from `/docs` to `/wiki` and added automated wiki synchronization workflow.
+
+### 🛠 Improvements
+
+- **Environment:** Enhanced proxy verification by ensuring the PHP runtime is fully ready before execution.
+
 ## [1.43.0] - 2026-04-04
 
 ### ✨ New Features
