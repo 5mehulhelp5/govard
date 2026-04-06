@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.44.2] - 2026-04-06
+
+### 🔄 Refactors
+
+- **Configuration:** Implemented "Clean Config" persistence. Redundant default values (PHP, Node, DB versions, and capabilities) are giờ đây được bỏ qua trong file `.govard.yml` để làm gọn cấu hình và tăng tính di động.
+
+### 🛠 Improvements
+
+- **Diagnostics:** Nâng cấp `doctor --fix` với **vòng lặp thực thi nhiều bước (multi-pass)**. Các lỗi liên đới (ví dụ: đổi profile dẫn tới thiếu Docker images) hiện được xử lý triệt để trong một lần chạy lệnh.
+- **Diagnostics:** Cải thiện logic bảo tồn phiên bản PHP. `doctor --fix` hiện tôn trọng các cấu hình PHP thủ công của người dùng khi không tìm thấy profile phiên bản framework cụ thể.
+- **UI/UX:** Loại bỏ các cảnh báo "out of sync" không chính xác trong `doctor` khi người dùng sử dụng framework mặc định với các phiên bản tùy chỉnh thủ công.
+
 ## [1.44.1] - 2026-04-06
 
 ### 🐛 Bug Fixes
