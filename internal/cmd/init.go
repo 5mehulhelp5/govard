@@ -53,7 +53,7 @@ Case Studies:
 
 		fmt.Println("🔍 Detecting project framework...")
 		if initAssumeYes {
-			os.Setenv("GOVARD_ASSUME_YES", "true")
+			_ = os.Setenv("GOVARD_ASSUME_YES", "true")
 		}
 		cwd, _ := os.Getwd()
 		configForObservability := engine.Config{}
