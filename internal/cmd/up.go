@@ -7,6 +7,7 @@ import (
 	"govard/internal/updater"
 	"io"
 	"os"
+	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -27,7 +28,8 @@ The startup process follows these stages:
 2. Validate: Checks Docker status, port conflicts, and layered config.
 3. Render: Generates the specialized Docker Compose file.
 4. Start: Runs 'docker compose up' in detached mode.
-5. Verify: Maps the .test domain to 127.0.0.1 and registers it with the Govard Proxy.
+5. Ready: Waits for the local runtime to accept requests.
+6. Verify: Maps the .test domain to 127.0.0.1 and registers it with the Govard Proxy.
 
 Case Studies:
 - Standard Startup: Simply run 'govard env up' to get your full stack running.
@@ -41,10 +43,35 @@ Case Studies:
 	RunE: runUpCommand,
 }
 
+const defaultUpReadinessTimeout = 90 * time.Second
+
+var upReadinessProbeInterval = 1500 * time.Millisecond
+var upReadinessSleep = time.Sleep
+var upReadinessProbeRunner = func(containerName string, probeArgs []string) error {
+	args := append([]string{"exec", containerName}, probeArgs...)
+	cmd := exec.Command("docker", args...)
+	output, err := cmd.CombinedOutput()
+	if err == nil {
+		return nil
+	}
+
+	trimmed := strings.TrimSpace(string(output))
+	if trimmed == "" {
+		return err
+	}
+	return fmt.Errorf("%w (%s)", err, trimmed)
+}
+
 type upPipelineStage struct {
 	Name         string
 	OnFailureTip string
 	Run          func() error
+}
+
+type upReadinessCheck struct {
+	Service       string
+	ContainerName string
+	ProbeArgs     []string
 }
 
 type upRuntimeContext struct {
@@ -246,6 +273,13 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 			},
 		},
 		{
+			Name:         "Ready",
+			OnFailureTip: "govard env logs php -f",
+			Run: func() error {
+				return waitForUpRuntimeReadiness(context.Config, defaultUpReadinessTimeout)
+			},
+		},
+		{
 			Name:         "Verify",
 			OnFailureTip: "govard doctor",
 			Run: func() error {
@@ -291,6 +325,89 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 			},
 		},
 	}
+}
+
+func buildUpReadinessChecks(config engine.Config) []upReadinessCheck {
+	if strings.TrimSpace(config.ProjectName) == "" {
+		return nil
+	}
+
+	frameworkConfig, ok := engine.GetFrameworkConfig(config.Framework)
+	if !ok || frameworkConfig.Runtime != "php" {
+		return nil
+	}
+
+	phpFPMProbe := []string{
+		"php",
+		"-r",
+		`$s=@fsockopen("127.0.0.1",9000,$errno,$errstr,1); if($s===false){fwrite(STDERR,$errno . ":" . $errstr); exit(1);} fclose($s);`,
+	}
+
+	checks := []upReadinessCheck{
+		{
+			Service:       "php",
+			ContainerName: fmt.Sprintf("%s-php-1", config.ProjectName),
+			ProbeArgs:     phpFPMProbe,
+		},
+	}
+
+	if config.Stack.Features.Xdebug {
+		checks = append(checks, upReadinessCheck{
+			Service:       "php-debug",
+			ContainerName: fmt.Sprintf("%s-php-debug-1", config.ProjectName),
+			ProbeArgs:     phpFPMProbe,
+		})
+	}
+
+	return checks
+}
+
+func readinessProbeAttempts(timeout time.Duration) int {
+	if timeout <= 0 {
+		return 1
+	}
+	if upReadinessProbeInterval <= 0 {
+		return 1
+	}
+
+	attempts := int(timeout / upReadinessProbeInterval)
+	if timeout%upReadinessProbeInterval != 0 {
+		attempts++
+	}
+	if attempts < 1 {
+		return 1
+	}
+	return attempts
+}
+
+func waitForUpRuntimeReadiness(config engine.Config, timeout time.Duration) error {
+	checks := buildUpReadinessChecks(config)
+	if len(checks) == 0 {
+		return nil
+	}
+
+	maxAttempts := readinessProbeAttempts(timeout)
+	for _, check := range checks {
+		pterm.Info.Printf("Waiting for %s runtime readiness...\n", check.Service)
+
+		var lastErr error
+		for attempt := 1; attempt <= maxAttempts; attempt++ {
+			lastErr = upReadinessProbeRunner(check.ContainerName, check.ProbeArgs)
+			if lastErr == nil {
+				pterm.Success.Printf("%s runtime is ready\n", check.Service)
+				break
+			}
+			if attempt < maxAttempts {
+				upReadinessSleep(upReadinessProbeInterval)
+			}
+		}
+
+		if lastErr != nil {
+			return fmt.Errorf("%s runtime did not become ready after %s: %w", check.Service, timeout, lastErr)
+		}
+	}
+
+	return nil
 }
 
 func runUpPipeline(stages []upPipelineStage) error {

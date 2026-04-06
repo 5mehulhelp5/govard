@@ -1,8 +1,11 @@
 package tests
 
 import (
+	"errors"
+	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"govard/internal/cmd"
 	"govard/internal/engine"
@@ -88,6 +91,94 @@ func TestResolveUpProxyTargetWithVarnish(t *testing.T) {
 	})
 	if target != "demo-varnish-1" {
 		t.Fatalf("expected demo-varnish-1, got %s", target)
+	}
+}
+
+func TestBuildUpReadinessChecksForPHPRuntime(t *testing.T) {
+	checks := cmd.BuildUpReadinessChecksForTest(engine.Config{
+		ProjectName: "demo",
+		Framework:   "laravel",
+		Stack: engine.Stack{
+			Features: engine.Features{
+				Xdebug: true,
+			},
+		},
+	})
+
+	expected := []cmd.UpReadinessCheckForTest{
+		{Service: "php", ContainerName: "demo-php-1"},
+		{Service: "php-debug", ContainerName: "demo-php-debug-1"},
+	}
+
+	if !reflect.DeepEqual(checks, expected) {
+		t.Fatalf("expected readiness checks %v, got %v", expected, checks)
+	}
+}
+
+func TestBuildUpReadinessChecksForNonPHPRuntime(t *testing.T) {
+	checks := cmd.BuildUpReadinessChecksForTest(engine.Config{
+		ProjectName: "demo",
+		Framework:   "nextjs",
+	})
+	if len(checks) != 0 {
+		t.Fatalf("expected no readiness checks for non-PHP runtime, got %v", checks)
+	}
+}
+
+func TestWaitForUpRuntimeReadinessRetriesUntilSuccess(t *testing.T) {
+	attempts := 0
+
+	restoreRunner := cmd.SetUpReadinessProbeRunnerForTest(func(containerName string, probeArgs []string) error {
+		if containerName != "demo-php-1" {
+			t.Fatalf("unexpected container %q", containerName)
+		}
+		attempts++
+		if attempts < 3 {
+			return errors.New("not ready")
+		}
+		return nil
+	})
+	defer restoreRunner()
+
+	restoreInterval := cmd.SetUpReadinessProbeIntervalForTest(1 * time.Millisecond)
+	defer restoreInterval()
+
+	restoreSleep := cmd.SetUpReadinessSleepForTest(func(time.Duration) {})
+	defer restoreSleep()
+
+	err := cmd.WaitForUpRuntimeReadinessForTest(engine.Config{
+		ProjectName: "demo",
+		Framework:   "laravel",
+	}, 3*time.Millisecond)
+	if err != nil {
+		t.Fatalf("expected readiness wait to succeed, got %v", err)
+	}
+	if attempts != 3 {
+		t.Fatalf("expected 3 probe attempts, got %d", attempts)
+	}
+}
+
+func TestWaitForUpRuntimeReadinessReturnsErrorAfterTimeout(t *testing.T) {
+	restoreRunner := cmd.SetUpReadinessProbeRunnerForTest(func(containerName string, probeArgs []string) error {
+		return errors.New("still booting")
+	})
+	defer restoreRunner()
+
+	restoreInterval := cmd.SetUpReadinessProbeIntervalForTest(1 * time.Millisecond)
+	defer restoreInterval()
+
+	restoreSleep := cmd.SetUpReadinessSleepForTest(func(time.Duration) {})
+	defer restoreSleep()
+
+	err := cmd.WaitForUpRuntimeReadinessForTest(engine.Config{
+		ProjectName: "demo",
+		Framework:   "laravel",
+	}, 2*time.Millisecond)
+	if err == nil {
+		t.Fatal("expected readiness wait to fail")
+	}
+	if !strings.Contains(err.Error(), "php runtime did not become ready") {
+		t.Fatalf("expected php readiness error, got %v", err)
 	}
 }
 
