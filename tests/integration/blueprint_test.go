@@ -404,3 +404,48 @@ func TestBlueprintNetworkConfiguration(t *testing.T) {
 		t.Error("govard-proxy network should be external")
 	}
 }
+
+func TestRenderBlueprintWithComposerVersion(t *testing.T) {
+	env := NewTestEnvironment(t)
+
+	projectDir := t.TempDir()
+
+	CopyBlueprints(t, env.BlueprintsPath, filepath.Join(projectDir, "blueprints"))
+
+	config := engine.Config{
+		ProjectName: "test-composer-ver",
+		Framework:   "magento2",
+		Domain:      "test-composer-ver.test",
+		Stack: engine.Stack{
+			PHPVersion:      "8.3",
+			WebServer:       "nginx",
+			ComposerVersion: "2.2.24",
+			Services: engine.Services{
+				WebServer: "nginx",
+				Search:    "none",
+				Cache:     "none",
+				Queue:     "none",
+			},
+		},
+	}
+
+	versions := []string{"1", "2", "2.2", "2.7.2"}
+	for _, v := range versions {
+		t.Run("version-"+v, func(t *testing.T) {
+			config.Stack.ComposerVersion = v
+			err := engine.RenderBlueprint(projectDir, config)
+			if err != nil {
+				t.Fatalf("Failed to render blueprint for version %s: %v", v, err)
+			}
+
+			composePath := engine.ComposeFilePath(projectDir, config.ProjectName)
+			content, _ := os.ReadFile(composePath)
+			contentStr := string(content)
+
+			if !strings.Contains(contentStr, v) {
+				t.Logf("Rendered content for version %s:\n%s", v, contentStr)
+				t.Errorf("COMPOSER_VERSION %s not found in rendered blueprint", v)
+			}
+		})
+	}
+}

@@ -27,7 +27,7 @@ php_version: "8.3"
 		t.Fatal(err)
 	}
 
-	result := env.RunGovard(t, projectDir, "init", "--migrate-from", "ddev")
+	result := env.RunGovard(t, projectDir, "init", "--migrate-from", "ddev", "-y")
 	result.AssertSuccess(t)
 
 	// Verify .govard.yml exists and has migrated values

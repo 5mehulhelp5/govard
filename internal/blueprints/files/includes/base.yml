@@ -98,6 +98,7 @@ services:
       {{ end }}
       GIT_SSH_COMMAND: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
       COMPOSER_CACHE_DIR: "/home/www-data/.cache/composer"
+      COMPOSER_VERSION: "{{ .ComposerVersion }}"
       PUID: {{ .Config.Stack.UserID }}
       PGID: {{ .Config.Stack.GroupID }}
       CHOWN_DIR_LIST: "{{ range $i, $dir := .Config.Stack.ChownDirList }}{{ if $i }} {{ end }}{{ $dir }}{{ end }}"
@@ -144,6 +145,7 @@ services:
       {{ end }}
       GIT_SSH_COMMAND: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
       COMPOSER_CACHE_DIR: "/home/www-data/.cache/composer"
+      COMPOSER_VERSION: "{{ .ComposerVersion }}"
       PUID: {{ .Config.Stack.UserID }}
       PGID: {{ .Config.Stack.GroupID }}
       CHOWN_DIR_LIST: "{{ range $i, $dir := .Config.Stack.ChownDirList }}{{ if $i }} {{ end }}{{ $dir }}{{ end }}"
@@ -177,7 +179,7 @@ networks:
   govard-proxy:
     external: true
 
+{{ if and .Config.Stack.DBType (ne .Config.Stack.DBType "none") }}
 volumes:
-  {{ if ne .Config.Stack.DBType "none" }}
   db-data{{ if .Config.Profile }}-{{ .Config.Profile }}{{ end }}:
-  {{ end }}
+{{ end }}

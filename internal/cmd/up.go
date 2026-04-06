@@ -309,6 +309,12 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 			Name:         "Verify",
 			OnFailureTip: "govard doctor",
 			Run: func() error {
+				{
+					if err := FixComposerCompatibility(context.Config); err != nil {
+						pterm.Warning.Printf("Could not ensure Composer version: %v\n", err)
+					}
+				}
+
 				target := ResolveUpProxyTarget(context.Config)
 				allDomains := context.Config.AllDomains()
 

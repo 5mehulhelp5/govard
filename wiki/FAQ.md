@@ -147,6 +147,15 @@ If you changed `stack.php_version` or other stack settings, containers need to b
 
 `govard config set` only writes to `.govard.yml` (the base config). Profile and local override files are read-only from the CLI.
 
+### Q: How do I change the Composer version and which ones are fastest?
+
+Modify `stack.composer_version` in `.govard.yml`. Govard optimizes for:
+- `1`
+- `2`
+- `2.2` (LTS)
+
+These versions are pre-baked in the image and switch instantly. Any other version (e.g. `2.7.2`) will be downloaded automatically on the first `env up`.
+
 ### Q: `doctor --fix` shows "skipped" for optional fixes
 
 This is correct behavior — skipping optional fixes is reported as `INFO (Skipped)` instead of `ERROR`. Your environment is healthy.

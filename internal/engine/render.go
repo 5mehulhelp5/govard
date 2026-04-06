@@ -46,6 +46,7 @@ type RenderData struct {
 	HostComposerConfigDir string
 	VarnishVclPath        string
 	PackageManager        string
+	ComposerVersion       string
 }
 
 func findBlueprintsDir(startDir string) (string, error) {
@@ -190,7 +191,7 @@ func RenderBlueprint(root string, config Config) error {
 
 // BlueprintVersion should be incremented whenever architectural changes are made to the embedded blueprints
 // to ensure that 'govard env up' re-renders existing environments.
-const BlueprintVersion = "1.27"
+const BlueprintVersion = "1.28"
 
 func RenderBlueprintWithProfile(root string, config Config, profile string) error {
 	blueprintsFS, err := resolveBlueprintsDirForConfig(root, config)
@@ -250,6 +251,7 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 		XdebugSessionPattern: buildXdebugSessionPattern(config.Stack.XdebugSession),
 		VarnishVclPath:       filepath.Join(GovardHomeDir(), "varnish", config.ProjectName, "default.vcl"),
 		PackageManager:       packageManager,
+		ComposerVersion:      config.Stack.ComposerVersion,
 	}
 	if config.Stack.WebRoot != "" {
 		renderData.NGINXPublic = config.Stack.WebRoot
@@ -361,6 +363,13 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 		return fmt.Errorf("create compose output %s: %w", outputPath, err)
 	}
 	defer f.Close()
+
+	// Prune empty root-level maps to avoid validation errors (e.g., "volumes must be a mapping")
+	if volumes, ok := merged["volumes"].(map[string]interface{}); ok && len(volumes) == 0 {
+		delete(merged, "volumes")
+	} else if merged["volumes"] == nil {
+		delete(merged, "volumes")
+	}
 
 	out, err := yaml.Marshal(merged)
 	if err != nil {

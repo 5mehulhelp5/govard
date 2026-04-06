@@ -31,7 +31,7 @@ func TestCLIInitCommand(t *testing.T) {
 
 	projectDir := env.CreateTestProject(t, "init-cmd-test", files)
 
-	result := env.RunGovard(t, projectDir, "init", "--framework", "magento2")
+	result := env.RunGovard(t, projectDir, "init", "--framework", "magento2", "-y")
 	result.AssertSuccess(t)
 
 	configPath := filepath.Join(projectDir, ".govard.yml")
@@ -451,7 +451,7 @@ func TestCLIWebRootCorrection(t *testing.T) {
 
 	projectDir := env.CreateTestProject(t, "webroot-correction-test", files)
 
-	result := env.RunGovard(t, projectDir, "init")
+	result := env.RunGovard(t, projectDir, "init", "-y")
 	result.AssertSuccess(t)
 
 	result.AssertOutputContains(t, "Corrected web_root from '/' to '/public'")

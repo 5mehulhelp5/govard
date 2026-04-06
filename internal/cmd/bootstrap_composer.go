@@ -57,16 +57,32 @@ func ensureSpecificComposerVersion(config engine.Config, version string) error {
 		} else if version == "1" {
 			downloadUrl = "https://getcomposer.org/composer-1.phar"
 		} else if version == "2.2" {
-			downloadUrl = "https://getcomposer.org/download/2.2.24/composer.phar"
+			downloadUrl = "https://getcomposer.org/download/latest-2.2.x/composer.phar"
 		} else if strings.Contains(version, ".") {
 			downloadUrl = fmt.Sprintf("https://getcomposer.org/download/%s/composer.phar", version)
 		}
 	}
 
-	script := fmt.Sprintf("curl -sSf %s -o /tmp/composer.phar && chmod +x /tmp/composer.phar && mv /tmp/composer.phar $(which composer)", downloadUrl)
+	// Build a shell script that checks for pre-baked local binaries first
+	script := fmt.Sprintf(`
+		case "%[1]s" in
+			1)   [ -f /usr/local/bin/composer1 ]   && echo "Using pre-baked Composer version 1..." && ln -sf /usr/local/bin/composer1 $(which composer) && exit 0 ;;
+			2)   [ -f /usr/local/bin/composer2 ]   && echo "Using pre-baked Composer version 2..." && ln -sf /usr/local/bin/composer2 $(which composer) && exit 0 ;;
+			2.2) [ -f /usr/local/bin/composer2lts ] && echo "Using pre-baked Composer version 2.2..." && ln -sf /usr/local/bin/composer2lts $(which composer) && exit 0 ;;
+		esac
+		echo "Ensuring Composer version %[1]s (downloading from %[2]s)..."
+		curl -sSfL %[2]s -o /tmp/composer.phar && chmod +x /tmp/composer.phar && mv /tmp/composer.phar $(which composer)
+	`, version, downloadUrl)
+
 	cmd := exec.Command("docker", "exec", "-u", "root", containerName, "sh", "-c", script)
-	if out, err := cmd.CombinedOutput(); err != nil {
+	out, err := cmd.CombinedOutput()
+	if err != nil {
 		return fmt.Errorf("composer setup failed (%s): %w: %s", version, err, string(out))
+	}
+
+	trimmedOut := strings.TrimSpace(string(out))
+	if trimmedOut != "" {
+		pterm.Info.Println(trimmedOut)
 	}
 
 	pterm.Success.Printf("Composer %s is now active.\n", version)

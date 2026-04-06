@@ -51,4 +51,46 @@ if command -v crond >/dev/null 2>&1; then
   sudo crond 2>/dev/null || true
 fi
 
+# Ensure specific Composer version is active if requested
+if [ -n "${COMPOSER_VERSION:-}" ] && [ "${COMPOSER_VERSION}" != "latest" ]; then
+  # Exact version check can be tricky due to build dates in --version output
+  # If it doesn't look like a direct match, we do a re-baseline install
+  CURRENT_COMPOSER_VERSION=$(composer --version 2>/dev/null | cut -d' ' -f3)
+  if [ "${CURRENT_COMPOSER_VERSION}" != "${COMPOSER_VERSION}" ]; then
+    COMPOSER_BIN=$(which composer 2>/dev/null || echo "/usr/local/bin/composer")
+    
+    # Try pre-baked version first
+    LOCAL_BIN=""
+    case "${COMPOSER_VERSION}" in
+      1) [ -f "/usr/local/bin/composer1" ] && LOCAL_BIN="/usr/local/bin/composer1" ;;
+      2) [ -f "/usr/local/bin/composer2" ] && LOCAL_BIN="/usr/local/bin/composer2" ;;
+      2.2) [ -f "/usr/local/bin/composer2lts" ] && LOCAL_BIN="/usr/local/bin/composer2lts" ;;
+    esac
+
+    if [ -n "${LOCAL_BIN}" ]; then
+      echo "Using pre-baked Composer version ${COMPOSER_VERSION}..."
+      sudo ln -sf "${LOCAL_BIN}" "${COMPOSER_BIN}"
+      echo "Composer version $(composer --version | head -n1) is now active."
+    else
+      # Falling back to download for non-standard or specific point versions
+      echo "Ensuring Composer version ${COMPOSER_VERSION} (downloading)..."
+      DOWNLOAD_URL="https://getcomposer.org/composer-stable.phar"
+      case "${COMPOSER_VERSION}" in
+        1) DOWNLOAD_URL="https://getcomposer.org/composer-1.phar" ;;
+        2) DOWNLOAD_URL="https://getcomposer.org/composer-2.phar" ;;
+        2.2) DOWNLOAD_URL="https://getcomposer.org/download/latest-2.2.x/composer.phar" ;;
+        *.*) DOWNLOAD_URL="https://getcomposer.org/download/${COMPOSER_VERSION}/composer.phar" ;;
+      esac
+
+      if sudo curl -sSfL "${DOWNLOAD_URL}" -o "${COMPOSER_BIN}.tmp"; then
+        sudo chmod +x "${COMPOSER_BIN}.tmp"
+        sudo mv "${COMPOSER_BIN}.tmp" "${COMPOSER_BIN}"
+        echo "Composer version $(composer --version | head -n1) is now active."
+      else
+        echo "Warning: failed to download Composer version ${COMPOSER_VERSION}; falling back to default image version." >&2
+      fi
+    fi
+  fi
+fi
+
 exec "$@"

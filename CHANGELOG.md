@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.44.4] - 2026-04-06
+
+### 🚀 New Features
+
+- **Performance:** Optimized Composer version management by pre-baking common binaries (`1`, `2`, `2.2`) into the PHP image, significantly reducing environment startup time for standard projects.
+- **Composer:** Implemented an intelligent, verified fallback download mechanism for arbitrary point releases (e.g., `2.7.2`) specified in `stack.composer_version`.
+
+### 🛠 Improvements
+
+- **Blueprint Lifecycle:** Incremented internal `BlueprintVersion` to `1.28`, triggering automatic environment re-renders to ensure all projects receive the latest configuration optimizations and infrastructure fixes.
+- **CI/CD:** Hardened the integration test suite by enforcing non-interactive mode (`-y`) for all `govard init` calls, preventing pipeline hangs in non-TTY environments.
+
+### 🐛 Bug Fixes
+
+- **Environment:** Resolved a blueprint rendering issue where empty `volumes` mappings caused Docker Compose schema validation failures.
+
 ## [1.44.3] - 2026-04-06
 
 ### 🛠 Improvements

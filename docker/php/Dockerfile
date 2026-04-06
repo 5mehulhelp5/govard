@@ -118,12 +118,16 @@ RUN set -eux; \
     docker-php-ext-enable redis imagick amqp
 
 # Install Composer
+COPY --from=composer:1 /usr/bin/composer /usr/local/bin/composer1
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer2
+COPY --from=composer:2.2 /usr/bin/composer /usr/local/bin/composer2lts
+
 RUN set -eux; \
     PHP_VERSION_INT=$(echo $PHP_VERSION | cut -d. -f1,2 | tr -d .); \
-    if [ "$PHP_VERSION_INT" -lt 70 ]; then \
-    curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer --version=2.2.24; \
+    if [ "$PHP_VERSION_INT" -lt 70 ] || [ "$PHP_VERSION_INT" -eq 70 ]; then \
+        ln -sf /usr/local/bin/composer2lts /usr/local/bin/composer; \
     else \
-    curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer; \
+        ln -sf /usr/local/bin/composer2 /usr/local/bin/composer; \
     fi
 
 # Install Mailpit sendmail as a replacement for mhsendmail

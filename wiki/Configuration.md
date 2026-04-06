@@ -153,9 +153,15 @@ Object form instructs Govard to emit `MAGE_RUN_CODE` / `MAGE_RUN_TYPE` host mapp
 | `stack.db_type` | `mariadb`, `mysql` | Database engine |
 | `stack.db_version` | e.g. `11.4` | Database version |
 | `stack.web_root` | e.g. `/pub`, `/public` | Web root directory |
+| `stack.composer_version` | `1`, `2`, `2.2`, or any point version | Composer version |
 | `stack.xdebug_session` | e.g. `PHPSTORM` | Xdebug session name |
 
 Node-first frameworks auto-detect the package manager from `package.json`, `pnpm-workspace.yaml`, or lockfiles.
+
+#### Composer Versioning Optimization
+Govard provides first-class support for common Composer versions to ensure instant environment startup:
+- **Pre-baked (Instant)**: `1`, `2`, `2.2` (LTS). These versions are bundled in the PHP image and do not require downloading at runtime.
+- **Dynamic (Auto-Download)**: Any other valid point release (e.g., `2.7.2`) can be specified. Govard will automatically download and verify the binary upon the first `env up`.
 
 ---
 
