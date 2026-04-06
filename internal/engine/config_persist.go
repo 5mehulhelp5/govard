@@ -23,6 +23,18 @@ func PrepareConfigForWrite(config Config) Config {
 		writable.Stack.WebServer = ""
 	}
 
+	// Strip web server version for the server not in use.
+	// Hybrid mode uses both nginx and apache, so both versions are kept.
+	activeWebServer := strings.ToLower(strings.TrimSpace(writable.Stack.Services.WebServer))
+	if activeWebServer != "" && activeWebServer != "hybrid" {
+		if activeWebServer != "nginx" {
+			writable.Stack.NginxVersion = ""
+		}
+		if activeWebServer != "apache" {
+			writable.Stack.ApacheVersion = ""
+		}
+	}
+
 	if writable.Stack.Services.Cache == "none" {
 		writable.Stack.Services.Cache = ""
 	}
@@ -66,6 +78,17 @@ func PrepareConfigForWrite(config Config) Config {
 		if NormalizeRemoteAuthMethod(remote.Auth.Method) == defaultMethod {
 			remote.Auth.Method = ""
 		}
+		// Strip capabilities block if no capability is disabled (all-true = default behavior).
+		// Storing capabilities: {files: true, media: true, db: true} is redundant noise.
+		if remote.Capabilities != nil {
+			caps := remote.Capabilities
+			anyDisabled := (caps.Files != nil && !*caps.Files) ||
+				(caps.Media != nil && !*caps.Media) ||
+				(caps.DB != nil && !*caps.DB)
+			if !anyDisabled {
+				remote.Capabilities = nil
+			}
+		}
 		writable.Remotes[name] = remote
 	}
 
@@ -86,6 +109,57 @@ func PrepareConfigForWrite(config Config) Config {
 		}
 		if writable.Stack.ComposerVersion == derivedDefault {
 			writable.Stack.ComposerVersion = ""
+		}
+	}
+
+	// Strip PHPVersion when it matches the auto-derived default
+	if writable.Stack.PHPVersion != "" {
+		var derivedDefault string
+		if profileResult, err := ResolveRuntimeProfile(writable.Framework, writable.FrameworkVersion); err == nil {
+			derivedDefault = profileResult.Profile.PHPVersion
+		}
+		if writable.Stack.PHPVersion == derivedDefault {
+			writable.Stack.PHPVersion = ""
+		}
+	}
+
+	// Strip NodeVersion when it matches the auto-derived default
+	if writable.Stack.NodeVersion != "" {
+		derivedDefault := "24"
+		if profileResult, err := ResolveRuntimeProfile(writable.Framework, writable.FrameworkVersion); err == nil {
+			if profileResult.Profile.NodeVersion != "" {
+				derivedDefault = profileResult.Profile.NodeVersion
+			}
+		}
+		if writable.Stack.NodeVersion == derivedDefault {
+			writable.Stack.NodeVersion = ""
+		}
+	}
+
+	// Strip DBVersion when it matches the auto-derived default
+	if writable.Stack.DBVersion != "" {
+		var derivedDefault string
+		if profileResult, err := ResolveRuntimeProfile(writable.Framework, writable.FrameworkVersion); err == nil {
+			derivedDefault = profileResult.Profile.DBVersion
+		}
+		if writable.Stack.DBVersion == derivedDefault {
+			writable.Stack.DBVersion = ""
+		}
+	}
+
+	// Strip Cache, Search, and Queue versions if they match defaults
+	if profileResult, err := ResolveRuntimeProfile(writable.Framework, writable.FrameworkVersion); err == nil {
+		if writable.Stack.WebRoot == profileResult.Profile.WebRoot {
+			writable.Stack.WebRoot = ""
+		}
+		if writable.Stack.CacheVersion == profileResult.Profile.CacheVersion {
+			writable.Stack.CacheVersion = ""
+		}
+		if writable.Stack.SearchVersion == profileResult.Profile.SearchVersion {
+			writable.Stack.SearchVersion = ""
+		}
+		if writable.Stack.QueueVersion == profileResult.Profile.QueueVersion {
+			writable.Stack.QueueVersion = ""
 		}
 	}
 

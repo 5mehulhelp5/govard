@@ -54,15 +54,38 @@ Use --pack to export a diagnostics support bundle for sharing with support.
 
 		report := runDoctorDiagnostics()
 		if fixEnabled {
-			fixResults := applyDoctorSafeFixes(report)
-			if outputJSON {
-				for _, line := range summarizeDoctorFixResults(fixResults) {
-					fmt.Fprintln(cmd.ErrOrStderr(), line)
+			// Multi-pass fix: Some fixes (like profile sync) can trigger others (like missing images).
+			// We loop a few times if fixes were applied to try and get a clean report.
+			maxPasses := 3
+			for i := 0; i < maxPasses; i++ {
+				fixResults := applyDoctorSafeFixes(report)
+				if len(fixResults) == 0 {
+					break
 				}
-			} else {
-				renderDoctorFixResults(fixResults)
+
+				appliedAny := false
+				for _, res := range fixResults {
+					if res.Status == DoctorFixStatusApplied {
+						appliedAny = true
+						break
+					}
+				}
+
+				if outputJSON {
+					for _, line := range summarizeDoctorFixResults(fixResults) {
+						fmt.Fprintln(cmd.ErrOrStderr(), line)
+					}
+				} else {
+					renderDoctorFixResults(fixResults)
+				}
+
+				if !appliedAny {
+					break // No fixes were actually applied, don't loop
+				}
+
+				// Re-run diagnostics to see what's left
+				report = runDoctorDiagnostics()
 			}
-			report = runDoctorDiagnostics()
 		}
 
 		packPath := ""
@@ -82,7 +105,7 @@ Use --pack to export a diagnostics support bundle for sharing with support.
 			}
 			fmt.Fprintln(cmd.OutOrStdout(), string(payload))
 		} else {
-			renderDoctorReport(report)
+			renderDoctorReport(report, fixEnabled)
 		}
 		if packPath != "" {
 			if outputJSON {
@@ -111,7 +134,7 @@ var doctorTrustCmd = &cobra.Command{
 	},
 }
 
-func renderDoctorReport(report engine.DoctorReport) {
+func renderDoctorReport(report engine.DoctorReport, fixEnabled bool) {
 	for _, check := range report.Checks {
 		line := fmt.Sprintf("%s: %s", check.Title, check.Message)
 		switch check.Status {
@@ -129,6 +152,10 @@ func renderDoctorReport(report engine.DoctorReport) {
 			pterm.Info.Printf("Hint: %s\n", check.Hint)
 		}
 		if check.SuggestedCommand != "" {
+			// Suppress suggestion if we just ran with --fix and it's the exact same command
+			if fixEnabled && strings.Contains(check.SuggestedCommand, "doctor --fix") {
+				continue
+			}
 			pterm.Info.Printf("Suggested next command: %s\n", check.SuggestedCommand)
 		}
 	}

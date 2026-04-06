@@ -103,19 +103,25 @@ func TestInitOmitsRuntimeUserAndGroupFromConfigFile(t *testing.T) {
 		t.Fatalf("expected .govard.yml to omit group_id, got:\n%s", content)
 	}
 	for _, key := range []string{
+		"project_name:",
+		"framework:",
+		"domain:",
+		"services:",
+	} {
+		if !strings.Contains(content, key) {
+			t.Fatalf("expected .govard.yml to include %q, got:\n%s", key, content)
+		}
+	}
+
+	// Verify redundant versions are omitted in fresh init
+	for _, key := range []string{
 		"php_version:",
 		"node_version:",
 		"db_version:",
 		"queue_version:",
-		"web_server:",
-		"services:",
-		"search:",
-		"cache:",
-		"queue:",
-		"db:",
 	} {
-		if !strings.Contains(content, key) {
-			t.Fatalf("expected .govard.yml to include %q, got:\n%s", key, content)
+		if strings.Contains(content, key) {
+			t.Fatalf("expected .govard.yml to omit redundant %q, got:\n%s", key, content)
 		}
 	}
 

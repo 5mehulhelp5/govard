@@ -239,11 +239,23 @@ func tuneProjectProfile(check engine.DoctorCheck) DoctorFixResult {
 		return result
 	}
 
+	existingPHPVersion := strings.TrimSpace(config.Stack.PHPVersion)
 	existingDBType := strings.TrimSpace(config.Stack.DBType)
 	existingDBVersion := strings.TrimSpace(config.Stack.DBVersion)
 	existingWebServer := strings.TrimSpace(config.Stack.Services.WebServer)
 
 	engine.ApplyRuntimeProfileToConfig(&config, profileResult.Profile)
+
+	// Preserve PHP version if the user already set one explicitly and the resolved profile
+	// only uses framework-level defaults (i.e., no version-specific override was found).
+	// This prevents doctor --fix from blindly overwriting the user's PHP choice when it
+	// cannot determine a better version (e.g., magento1, or magento2 with no detected version).
+	// Projects with a detectable version (magento2 2.4.x) still get auto-tuned because
+	// their profileResult.Source will be "version-specific:...", not "framework-defaults".
+	if existingPHPVersion != "" && strings.HasPrefix(profileResult.Source, "framework-defaults") {
+		config.Stack.PHPVersion = existingPHPVersion
+		result.Actions = append(result.Actions, fmt.Sprintf("Preserved PHP version %s (no version-specific profile available)", existingPHPVersion))
+	}
 
 	// Keep DB version if the user explicitly set a logically newer one to prevent data loss via downgrade
 	if shouldPreserveConfiguredDB(existingDBType, existingDBVersion, config.Stack.DBType, config.Stack.DBVersion) {

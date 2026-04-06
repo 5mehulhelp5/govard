@@ -26,17 +26,17 @@ type Services struct {
 }
 
 type Stack struct {
-	WebRoot         string   `yaml:"web_root"`
+	WebRoot         string   `yaml:"web_root,omitempty"`
 	NginxVersion    string   `yaml:"nginx_version,omitempty"`
 	ApacheVersion   string   `yaml:"apache_version,omitempty"`
-	PHPVersion      string   `yaml:"php_version"`
-	NodeVersion     string   `yaml:"node_version"`
+	PHPVersion      string   `yaml:"php_version,omitempty"`
+	NodeVersion     string   `yaml:"node_version,omitempty"`
 	ComposerVersion string   `yaml:"composer_version,omitempty"`
 	DBType          string   `yaml:"-"`
 	VarnishVersion  string   `yaml:"varnish_version,omitempty"`
-	DBVersion       string   `yaml:"db_version"`
-	CacheVersion    string   `yaml:"cache_version"`
-	SearchVersion   string   `yaml:"search_version"`
+	DBVersion       string   `yaml:"db_version,omitempty"`
+	CacheVersion    string   `yaml:"cache_version,omitempty"`
+	SearchVersion   string   `yaml:"search_version,omitempty"`
 	QueueVersion    string   `yaml:"queue_version,omitempty"`
 	XdebugSession   string   `yaml:"xdebug_session,omitempty"`
 	WebServer       string   `yaml:"web_server,omitempty"`

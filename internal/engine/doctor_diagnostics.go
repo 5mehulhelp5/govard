@@ -600,7 +600,11 @@ func CheckProfileSync() error {
 	p := profileResult.Profile
 
 	if p.PHPVersion != "" && config.Stack.PHPVersion != p.PHPVersion {
-		mismatches = append(mismatches, fmt.Sprintf("PHP %s (expected %s)", config.Stack.PHPVersion, p.PHPVersion))
+		// Only warn if we have a version-specific profile, or if the user has NO version set.
+		// If it's just 'framework-defaults' and the user has a version, assume they know what they are doing.
+		if !strings.HasPrefix(profileResult.Source, "framework-defaults") || config.Stack.PHPVersion == "" {
+			mismatches = append(mismatches, fmt.Sprintf("PHP %s (expected %s)", config.Stack.PHPVersion, p.PHPVersion))
+		}
 	}
 	// For database, we just warn if it's completely different
 	if p.DBType != "" && config.Stack.DBType != "" && config.Stack.DBType != p.DBType {
