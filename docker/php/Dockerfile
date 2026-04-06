@@ -131,7 +131,14 @@ RUN set -eux; \
     fi
 
 # Install Mailpit sendmail as a replacement for mhsendmail
-RUN curl -sL https://raw.githubusercontent.com/axllent/mailpit/develop/install.sh | sh
+ARG TARGETARCH
+RUN set -eux; \
+    case "${TARGETARCH}" in \
+        amd64) ARCH='amd64' ;; \
+        arm64) ARCH='arm64' ;; \
+        *) ARCH='amd64' ;; \
+    esac; \
+    curl -sL https://github.com/axllent/mailpit/releases/download/v1.23.1/mailpit-linux-${ARCH}.tar.gz | tar zxf - -C /usr/local/bin mailpit
 
 # Copy custom PHP configuration
 COPY etc/php.ini /usr/local/etc/php/conf.d/govard.ini
