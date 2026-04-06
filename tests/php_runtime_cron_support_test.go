@@ -22,6 +22,16 @@ func TestPHPEntrypointStartsCrondForInstalledCrontabs(t *testing.T) {
 	}
 }
 
+func TestPHPEntrypointDoesNotAbortOnUIDGIDRemapFailure(t *testing.T) {
+	content := readProjectFileForTest(t, filepath.Join("docker", "php", "etc", "entrypoint.sh"))
+	if !strings.Contains(content, "Warning: could not update www-data UID") {
+		t.Fatalf("expected php entrypoint to warn instead of exiting on UID remap failure, got:\n%s", content)
+	}
+	if !strings.Contains(content, "Warning: could not update www-data GID") {
+		t.Fatalf("expected php entrypoint to warn instead of exiting on GID remap failure, got:\n%s", content)
+	}
+}
+
 func readProjectFileForTest(t *testing.T, relPath string) string {
 	t.Helper()
 

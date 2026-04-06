@@ -8,7 +8,9 @@ if [ -n "${PUID:-}" ]; then
   CURRENT_UID=$(id -u www-data)
   if [ "${CURRENT_UID}" != "${PUID}" ]; then
     echo "Updating www-data UID to ${PUID}..."
-    sudo usermod -u "${PUID}" www-data
+    if ! sudo usermod -u "${PUID}" www-data; then
+      echo "Warning: could not update www-data UID to ${PUID}; continuing with UID ${CURRENT_UID}." >&2
+    fi
   fi
 fi
 
@@ -16,7 +18,9 @@ if [ -n "${PGID:-}" ]; then
   CURRENT_GID=$(id -g www-data)
   if [ "${CURRENT_GID}" != "${PGID}" ]; then
     echo "Updating www-data GID to ${PGID}..."
-    sudo groupmod -g "${PGID}" www-data
+    if ! sudo groupmod -g "${PGID}" www-data; then
+      echo "Warning: could not update www-data GID to ${PGID}; continuing with GID ${CURRENT_GID}." >&2
+    fi
   fi
 fi
 

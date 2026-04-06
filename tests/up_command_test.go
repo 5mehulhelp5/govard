@@ -159,6 +159,11 @@ func TestWaitForUpRuntimeReadinessRetriesUntilSuccess(t *testing.T) {
 }
 
 func TestWaitForUpRuntimeReadinessReturnsErrorAfterTimeout(t *testing.T) {
+	restoreState := cmd.SetUpContainerStateRunnerForTest(func(containerName string) (string, error) {
+		return "running|0|false|", nil
+	})
+	defer restoreState()
+
 	restoreRunner := cmd.SetUpReadinessProbeRunnerForTest(func(containerName string, probeArgs []string) error {
 		return errors.New("still booting")
 	})
@@ -179,6 +184,36 @@ func TestWaitForUpRuntimeReadinessReturnsErrorAfterTimeout(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "php runtime did not become ready") {
 		t.Fatalf("expected php readiness error, got %v", err)
+	}
+}
+
+func TestWaitForUpRuntimeReadinessFailsFastWhenContainerExited(t *testing.T) {
+	restoreState := cmd.SetUpContainerStateRunnerForTest(func(containerName string) (string, error) {
+		if containerName != "demo-php-1" {
+			t.Fatalf("unexpected container %q", containerName)
+		}
+		return "exited|1|false|permission denied", nil
+	})
+	defer restoreState()
+
+	restoreRunner := cmd.SetUpReadinessProbeRunnerForTest(func(containerName string, probeArgs []string) error {
+		t.Fatal("readiness probe should not run after exited state is detected")
+		return nil
+	})
+	defer restoreRunner()
+
+	err := cmd.WaitForUpRuntimeReadinessForTest(engine.Config{
+		ProjectName: "demo",
+		Framework:   "laravel",
+	}, 30*time.Second)
+	if err == nil {
+		t.Fatal("expected readiness wait to fail fast")
+	}
+	if !strings.Contains(err.Error(), "container demo-php-1 is exited") {
+		t.Fatalf("expected exited container error, got %v", err)
+	}
+	if !strings.Contains(err.Error(), "permission denied") {
+		t.Fatalf("expected container error detail, got %v", err)
 	}
 }
 
