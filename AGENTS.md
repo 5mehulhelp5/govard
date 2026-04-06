@@ -43,7 +43,7 @@ docker --version
 - `cmd/govard/main.go`: CLI entrypoint
 - `cmd/govard-desktop/`: Desktop app entrypoint (built by Wails)
 - `desktop/`: Wails desktop app codebase (Go backend bridge + HTML/vanilla JS frontend in `desktop/frontend/`)
-- `docs/`: Flat, top-level project documentation (`docs/*.md`) and AI agent test reports
+- `wiki/`: Project documentation (GitHub Wiki source files, synced automatically on push)
 - `internal/cmd/`: Cobra command implementations
 - `internal/engine/`: orchestration, config, blueprint logic
 - `internal/engine/bootstrap/`: framework bootstrap workflows
@@ -197,7 +197,7 @@ Update `README.md` when changes affect:
 3. command names/flags
 4. release consumption
 
-Update the canonical top-level docs in `docs/*.md` when changes affect:
+Update the canonical wiki pages in `wiki/` when changes affect:
 
 1. command names, aliases, or flags
 2. configuration behavior or layering
@@ -205,7 +205,7 @@ Update the canonical top-level docs in `docs/*.md` when changes affect:
 4. framework support or runtime defaults
 5. desktop behavior or desktop testing workflow
 
-If behavior changed and docs are stale, treat as incomplete work.
+If behavior changed and wiki is stale, treat as incomplete work.
 
 When documenting commands that accept remote filesystem paths:
 
@@ -227,7 +227,7 @@ When documenting commands that accept remote filesystem paths:
 4. Add/adjust tests in `tests/`.
 5. Run formatting and targeted tests.
 6. Run broader suite as needed (`make test` or `go test ./...`).
-7. Update `README.md` and the relevant canonical `docs/*.md` files if user-facing behavior changed.
+7. Update `README.md` and the relevant canonical `wiki/*.md` files if user-facing behavior changed.
 8. Summarize file-level changes and verification evidence.
 
 ## 14. Pre-Completion Checklist
@@ -237,7 +237,7 @@ Before declaring done:
 1. `go test` on affected scope passes.
 2. No formatting drift (`gofmt -s -l .` should be empty for changed Go files).
 3. Command help/flags still coherent.
-4. `README.md` and relevant canonical `docs/*.md` files updated for user-visible changes.
+4. `README.md` and relevant canonical `wiki/*.md` files updated for user-visible changes.
 5. `git status` reviewed for unintended file changes.
 
 ## 15. Known Project-Specific Notes
@@ -290,4 +290,4 @@ This is the **mandatory approach for agents to test the real desktop UI**.
 
 ### Test Reports
 
-Desktop UI test plans and results should be stored in top-level docs files (for example `docs/desktop.md` or `docs/desktop-testing.md`).
+Desktop UI test plans and results should be stored in `wiki/Desktop-App.md` or a dedicated `wiki/desktop-testing.md` file.

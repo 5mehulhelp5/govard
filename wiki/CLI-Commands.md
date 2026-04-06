@@ -1,0 +1,535 @@
+# CLI Commands
+
+This is the canonical CLI reference for Govard.
+
+---
+
+## Aliases and Shortcuts
+
+### Root Lifecycle Shortcuts
+
+| Shortcut | Equivalent |
+| :--- | :--- |
+| `govard up` | `govard env up` |
+| `govard down` | `govard env down` |
+| `govard restart` | `govard env restart` |
+| `govard ps` | `govard env ps` |
+| `govard logs` | `govard env logs` |
+
+### Command Aliases
+
+| Alias | Full Command |
+| :--- | :--- |
+| `govard boot` | `govard bootstrap` |
+| `govard cfg` | `govard config` |
+| `govard dbg` | `govard debug` |
+| `govard gui` | `govard desktop` |
+| `govard diag` | `govard doctor` |
+| `govard ext` | `govard extensions` |
+| `govard prj` | `govard project` |
+| `govard rmt` | `govard remote` |
+| `govard sh` | `govard shell` |
+| `govard snap` | `govard snapshot` |
+
+### `govard sync` Aliases
+
+- `--from` is an alias for `--source`
+- `--to` is an alias for `--destination`
+- `-e, --environment` remains a supported source-environment option
+
+---
+
+## 🌿 Environment Commands
+
+### `govard init`
+
+Detect the project framework and generate `.govard.yml`.
+
+```bash
+govard init
+govard init --framework magento2
+govard init --framework custom
+```
+
+### `govard bootstrap`
+
+Run bootstrap flows for clone or fresh-install setups.
+
+```bash
+govard bootstrap
+govard bootstrap --clone --environment staging --yes
+govard bootstrap --framework magento2 --fresh --framework-version 2.4.9
+govard bootstrap -e staging --no-pii --no-noise
+```
+
+**Mode selection:**
+- `--fresh` + `--framework` + `--framework-version` — fresh install via scaffolder
+- `--clone` + `--environment` — rsync the whole source from a remote server
+
+**Source selection:**
+- `-e, --environment` — source remote name (e.g. `staging`, `production`, `dev`)
+- `--remote` — alias for `--environment`
+- `--db-dump` — import database from a local SQL file path
+
+**Privacy & performance filters:**
+
+| Flag | Effect |
+| :--- | :--- |
+| `-N, --no-noise` | Exclude ephemeral data (logs, sessions, cache tags, cron history) |
+| `-S, --no-pii` | Exclude sensitive data (customers, orders, admin users, passwords) |
+| `--delete` | Delete destination files not present on source |
+| `--no-compress` | Disable rsync compression |
+| `--exclude` | Custom rsync exclude patterns |
+| `--no-db` | Skip database import |
+| `--no-media` | Skip media sync |
+| `--no-composer` | Skip `composer install` |
+| `--no-admin` | Skip admin user creation (Magento 2 only) |
+| `--no-stream-db` | Use local temp file for DB transfer |
+
+**Magento special flags:**
+
+| Flag | Effect |
+| :--- | :--- |
+| `--include-sample` | Install sample data (fresh install) |
+| `--hyva-install` | Auto-install Hyva theme |
+| `--include-product` | Include catalog product images during media sync |
+
+**Plan & confirmation:**
+- `--plan` — print plan and exit without executing
+- `-y, --yes` — skip interactive confirmation (CI/non-interactive)
+
+### `govard env`
+
+Project lifecycle and Docker Compose wrapper.
+
+```bash
+govard env up
+govard env start
+govard env stop
+govard env restart
+govard env down
+govard env ps
+govard env logs php -f
+govard env pull
+govard env build
+govard env cleanup
+```
+
+**`govard env up` flags:**
+
+| Flag | Effect |
+| :--- | :--- |
+| `--pull` | Pull images before starting |
+| `--fallback-local-build` | Build missing images locally |
+| `--remove-orphans` | Remove orphaned containers |
+| `--quickstart` | Fastest startup path |
+| `--update-lock` | Auto-update `govard.lock` on mismatches |
+
+**Files re-rendered on `env up`:**
+- `~/.govard/compose/<project-hash>.yml`
+- `~/.govard/nginx/<project>/default.conf`
+- `~/.govard/apache/<project>/httpd.conf`
+- `~/.govard/nginx/<project>/mage-run-map.conf`
+
+**`govard env down` flags:**
+- `-v, --volumes` — remove volumes
+- `--rmi local` — remove local images
+
+### `govard svc`
+
+Manage global services (proxy, Mailpit, PHPMyAdmin, Portainer).
+
+```bash
+govard svc up
+govard svc restart --no-trust
+govard svc logs --tail 50
+govard svc sleep
+govard svc wake
+```
+
+> **Portainer** is accessible at `https://portainer.govard.test`  
+> Default login: `admin` / `AdminGovard123$`
+
+### `govard domain`
+
+Manage extra local domains for the current project.
+
+```bash
+govard domain add brand-b.test
+govard domain remove brand-b.test
+govard domain list
+```
+
+### `govard status`
+
+List running Govard environments across the workspace.
+
+```bash
+govard status
+```
+
+### `govard desktop`
+
+Launch the Wails desktop app.
+
+```bash
+govard desktop
+govard desktop --dev
+govard desktop --background
+```
+
+See [Desktop App](Desktop-App) for details.
+
+---
+
+## 🛠️ Development Commands
+
+### `govard shell`
+
+Open a shell in the application container.
+
+```bash
+govard shell
+govard shell --no-tty
+```
+
+- PHP frameworks → `php` container at `/var/www/html`
+- Node-first frameworks (Next.js, Emdash) → `web` container at `/app`
+
+### `govard debug`
+
+Manage Xdebug status and sessions.
+
+```bash
+govard debug status
+govard debug on
+govard debug off
+govard debug shell
+```
+
+Requests route to `php-debug` only when the `XDEBUG_SESSION` cookie matches `stack.xdebug_session`.
+
+### `govard test`
+
+Run project test tools inside the application container.
+
+```bash
+govard test phpunit
+govard test phpstan
+govard test mftf
+govard test integration
+```
+
+### `govard custom`
+
+Run custom commands from `.govard/commands` or `~/.govard/commands`.
+
+```bash
+govard custom list
+govard custom hello
+govard custom deploy -- --dry-run
+```
+
+### `govard project`
+
+Browse and manage known projects.
+
+```bash
+govard project list
+govard project list --orphans
+govard project open billing
+govard project delete demo
+govard project delete --yes demo
+```
+
+> [!CAUTION]
+> `govard project delete` removes persistent database volumes by default. Project source code is **never** deleted.
+
+**Deletion process:**
+1. Runs `pre-delete` lifecycle hooks
+2. Executes `docker compose down -v` (removes containers + volumes)
+3. Unregisters proxy domains
+4. Removes project from registry (`projects.json`)
+5. Runs `post-delete` hooks
+
+---
+
+## 🔗 Remote, Sync, and Data Commands
+
+### `govard remote`
+
+Manage named remotes for sync, deploy, shell, and database workflows.
+
+```bash
+govard remote add staging --host staging.example.com --user deploy --path /var/www/app
+govard remote copy-id staging
+govard remote test staging
+govard remote exec staging -- ls -la
+govard remote audit tail --status failure --lines 50
+```
+
+For home-relative remote paths, quote the value:
+
+```bash
+govard remote add staging --host staging.example.com --user deploy --path '~/public_html'
+```
+
+Key features:
+- Capabilities: `files`, `media`, `db`, `deploy`
+- Auth methods: `keychain`, `ssh-agent`, `keyfile`
+- Production write protection by default
+- Audit logs: `~/.govard/remote.log`
+
+→ Full guide: [Remotes and Sync](Remotes-and-Sync)
+
+### `govard sync`
+
+Synchronize files, media, or databases between local and named remotes.
+
+```bash
+govard sync --source staging --destination local --full --plan
+govard sync --from staging --to local --media
+govard sync -s prod --file --path app/etc/config.php
+govard sync --db --no-noise --no-pii
+```
+
+Auto-selects `staging` remote if no `--source` is provided, falling back to `dev`.
+
+**Key flags:**
+
+| Flag | Effect |
+| :--- | :--- |
+| `-s, --source` / `--from` | Source environment |
+| `-d, --destination` / `--to` | Destination environment |
+| `--file`, `--media`, `--db`, `--full` | Scope selection |
+| `--plan` | Print plan and exit |
+| `--resume` / `--no-resume` | Resumable transfers (default: enabled) |
+| `--include`, `--exclude` | Rsync filter patterns |
+| `-N, --no-noise` | Exclude ephemeral data |
+| `-P, --no-pii` | Exclude sensitive data |
+
+### `govard db`
+
+Database utilities for local and remote-backed workflows.
+
+```bash
+govard db connect
+govard db dump
+govard db dump -e staging --local
+govard db query "SELECT COUNT(*) FROM sales_order"
+govard db info
+govard db top
+govard db import --file backup.sql --drop
+govard db import --stream-db -e staging --drop
+```
+
+### `govard deploy`
+
+Run deploy lifecycle hooks for the current project.
+
+```bash
+govard deploy
+```
+
+### `govard snapshot`
+
+Manage local and remote snapshots for DB and media.
+
+```bash
+govard snapshot create
+govard snapshot create -e staging
+govard snapshot list
+govard snapshot list -e staging
+govard snapshot restore latest
+govard snapshot pull latest -e staging
+govard snapshot push before-deploy -e prod
+```
+
+### `govard open`
+
+Open common browser targets.
+
+```bash
+govard open app
+govard open admin
+govard open mail
+govard open db
+govard open db --pma
+govard open db --client
+govard open db -e staging
+```
+
+### `govard tunnel`
+
+Manage public tunnels (requires `cloudflared`).
+
+```bash
+govard tunnel start
+govard tunnel status
+govard tunnel stop
+```
+
+> [!IMPORTANT]
+> The `cloudflared` binary must be installed separately.  
+> Install via the [official Cloudflare repository](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/install-run/install-threads/) or [GitHub releases](https://github.com/cloudflare/cloudflared/releases).
+
+---
+
+## 🔧 Tool Commands
+
+Run framework CLIs inside project containers:
+
+```bash
+govard tool magento [command]    # Magento 2
+govard tool magerun [command]    # Magento 1 / OpenMage
+govard tool artisan [command]    # Laravel
+govard tool drush [command]      # Drupal
+govard tool symfony [command]    # Symfony
+govard tool shopware [command]   # Shopware
+govard tool cake [command]       # CakePHP
+govard tool wp [command]         # WordPress
+
+# General tools
+govard tool composer [command]
+govard tool npm [command]
+govard tool yarn [command]
+govard tool npx [command]
+govard tool pnpm [command]
+govard tool grunt [command]
+```
+
+For node-first frameworks, package-manager commands run in the `web` container at `/app`.
+
+---
+
+## ⚙️ Configuration Commands
+
+```bash
+govard config get stack.php_version
+govard config set stack.php_version 8.4
+govard config profile
+govard config profile --json
+govard config profile apply --framework laravel --framework-version 11
+govard config auto   # Magento 2: inject settings into env.php
+```
+
+### `govard extensions`
+
+Initialize `.govard/*` extension scaffolding.
+
+```bash
+govard extensions init
+govard extensions init --force
+```
+
+### `govard blueprint cache`
+
+Manage the remote blueprint registry cache.
+
+```bash
+govard blueprint cache list
+govard blueprint cache clear
+```
+
+---
+
+## 🩺 Diagnostics
+
+### `govard doctor`
+
+Run startup diagnostics with actionable remediation.
+
+```bash
+govard doctor
+govard doctor --fix
+govard doctor --json
+govard doctor --pack
+govard doctor trust
+```
+
+Checks include: Docker, Compose, ports, disk sanity, Govard home, compose directory health, SSH agent, and outbound connectivity.
+
+- **`--fix`** — Automatically detect and repair common issues
+- **`trust`** — Install Root CA into system trust store + browser NSS
+
+---
+
+## 🔁 Utility Commands
+
+### `govard lock`
+
+Generate or validate `govard.lock` snapshots for environment drift detection.
+
+```bash
+govard lock generate
+govard lock check
+govard lock diff
+govard lock generate --file .govard/govard.lock
+```
+
+### `govard self-update`
+
+Download release artifacts, verify checksums, and replace binaries atomically.
+
+```bash
+govard self-update
+```
+
+### `govard upgrade`
+
+Native framework upgrade pipeline.
+
+```bash
+govard upgrade --version 2.4.8-p4     # Magento 2
+govard upgrade --version 11            # Laravel
+govard upgrade --version 7             # Symfony
+govard upgrade --version 6.7           # WordPress
+govard upgrade --version 11 --dry-run  # Preview steps
+```
+
+**Flags:**
+
+| Flag | Effect |
+| :--- | :--- |
+| `--version` | Target version (required) |
+| `--dry-run` | Show steps without executing |
+| `--no-db-upgrade` | Skip DB migrations |
+| `--no-env-update` | Skip profile update and container restart |
+| `-y, --yes` | Auto-confirm all prompts |
+
+### `govard version`
+
+```bash
+govard version
+```
+
+### `govard redis`
+
+Smart shortcut for Redis/Valkey management.
+
+```bash
+govard redis cli
+govard redis flush
+govard redis info
+```
+
+### `govard varnish`
+
+Smart shortcut for Varnish management.
+
+```bash
+govard varnish purge
+govard varnish status
+```
+
+---
+
+## 🌐 Global Flags
+
+All commands support:
+
+- `-h, --help` — Show help
+
+---
+
+**[← Getting Started](Getting-Started)** | **[Configuration →](Configuration)**

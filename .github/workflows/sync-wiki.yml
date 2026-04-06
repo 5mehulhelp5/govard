@@ -1,0 +1,41 @@
+name: Sync Wiki
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'wiki/**'
+
+jobs:
+  sync-wiki:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Push wiki files to GitHub Wiki
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Clone wiki repo
+          git clone "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git" /tmp/wiki
+
+          # Sync: copy all wiki/*.md into wiki repo root
+          cp wiki/*.md /tmp/wiki/
+
+          cd /tmp/wiki
+
+          # Only commit if there are changes
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "No wiki changes to push."
+            exit 0
+          fi
+
+          git add -A
+          git commit -m "docs: sync wiki from main repo [skip ci]"
+          git push

@@ -262,7 +262,7 @@ Remote defaults and protections:
 - `prod` remotes are write-protected by default.
 - Capability scopes (`files,media,db,deploy`) are enforced per operation.
 - File/media sync uses resumable rsync mode by default.
-- Full docs: `docs/remotes-and-sync.md`.
+- Full docs: [Remotes and Sync](https://github.com/ddtcorex/govard/wiki/Remotes-and-Sync).
 
 ### 6. Common Operational Workflows
 
@@ -467,18 +467,18 @@ Common command aliases:
 
 ## 📚 Documentation
 
-Documentation is organized as a flat set of canonical topic files:
+Full documentation is available on the [**GitHub Wiki**](https://github.com/ddtcorex/govard/wiki):
 
-- [Docs Index](./docs/README.md) - Topic map and reading order
-- [Getting Started](./docs/getting-started.md) - Installation and first project workflow
-- [Commands](./docs/commands.md) - CLI reference, shortcuts, tools, diagnostics, and utilities
-- [Configuration](./docs/configuration.md) - `.govard.yml`, profiles, remotes, and blueprint registry
-- [Remotes and Sync](./docs/remotes-and-sync.md) - Remote setup, sync flows, audit logs, and remote DB work
-- [Frameworks](./docs/frameworks.md) - Support matrix and framework-specific notes
-- [SSL and Domains](./docs/ssl-and-domains.md) - Local HTTPS, CA trust, and domain routing
-- [Desktop](./docs/desktop.md) - Desktop surface and dev-mode workflow
-- [Architecture](./docs/architecture.md) - System design and module layout
-- [Contributing](./docs/contributing.md) - Build, test, and contribution workflow
+- [Getting Started](https://github.com/ddtcorex/govard/wiki/Getting-Started) - Installation and first project workflow
+- [CLI Commands](https://github.com/ddtcorex/govard/wiki/CLI-Commands) - CLI reference, shortcuts, tools, diagnostics, and utilities
+- [Configuration](https://github.com/ddtcorex/govard/wiki/Configuration) - `.govard.yml`, profiles, remotes, and blueprint registry
+- [Remotes and Sync](https://github.com/ddtcorex/govard/wiki/Remotes-and-Sync) - Remote setup, sync flows, audit logs, and remote DB work
+- [Frameworks](https://github.com/ddtcorex/govard/wiki/Frameworks) - Support matrix and framework-specific notes
+- [SSL and Domains](https://github.com/ddtcorex/govard/wiki/SSL-and-Domains) - Local HTTPS, CA trust, and domain routing
+- [Desktop App](https://github.com/ddtcorex/govard/wiki/Desktop-App) - Desktop surface and dev-mode workflow
+- [Architecture](https://github.com/ddtcorex/govard/wiki/Architecture) - System design and module layout
+- [Contributing](https://github.com/ddtcorex/govard/wiki/Contributing) - Build, test, and contribution workflow
+- [FAQ & Troubleshooting](https://github.com/ddtcorex/govard/wiki/FAQ) - Common issues and solutions
 
 ---
 
