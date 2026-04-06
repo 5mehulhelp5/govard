@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.44.1] - 2026-04-06
+
+### 🐛 Bug Fixes
+
+- **Environment:** Fail fast when PHP container exits during startup verification to avoid redundant checks.
+- **PHP Runtime:** Avoid self-remap failures for users with UID 1001 by adjusting the permission handler.
+
 ## [1.44.0] - 2026-04-06
 
 ### ✨ New Features
