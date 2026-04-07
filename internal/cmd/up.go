@@ -391,6 +391,14 @@ func buildUpReadinessChecks(config engine.Config) []upReadinessCheck {
 		})
 	}
 
+	if config.Stack.Features.Varnish {
+		checks = append(checks, upReadinessCheck{
+			Service:       "varnish",
+			ContainerName: fmt.Sprintf("%s-varnish-1", config.ProjectName),
+			ProbeArgs:     []string{"true"},
+		})
+	}
+
 	return checks
 }
 
@@ -423,17 +431,34 @@ func waitForUpRuntimeReadiness(config engine.Config, timeout time.Duration) erro
 		pterm.Info.Printf("Waiting for %s runtime readiness...\n", check.Service)
 
 		var lastErr error
+		abortConsecutiveCount := 0
+		maxAbortTolerations := 3 // Tolerate transient exit states right after container creation/recreation
+
 		for attempt := 1; attempt <= maxAttempts; attempt++ {
 			state, stateErr := inspectUpContainerState(check.ContainerName)
 			if stateErr == nil && shouldAbortReadinessForContainerState(state) {
-				return fmt.Errorf("%s container %s is %s (exit code %s, oom=%s): %s", check.Service, check.ContainerName, state.Status, state.ExitCode, state.OOMKilled, firstNonEmpty(state.Error, "container stopped during startup"))
+				abortConsecutiveCount++
+
+				// If it crashed, try to kickstart it once (handles entrypoint identity change crashes)
+				if abortConsecutiveCount == 1 {
+					_ = exec.Command("docker", "start", check.ContainerName).Run()
+				}
+
+				if abortConsecutiveCount >= maxAbortTolerations {
+					return fmt.Errorf("%s container %s is %s (exit code %s, oom=%s): %s", check.Service, check.ContainerName, state.Status, state.ExitCode, state.OOMKilled, firstNonEmpty(state.Error, "container stopped during startup"))
+				}
+
+				lastErr = fmt.Errorf("container is in state %s", state.Status)
+			} else {
+				abortConsecutiveCount = 0 // Reset if it's not in an abort state
+
+				lastErr = upReadinessProbeRunner(check.ContainerName, check.ProbeArgs)
+				if lastErr == nil {
+					pterm.Success.Printf("%s runtime is ready\n", check.Service)
+					break
+				}
 			}
 
-			lastErr = upReadinessProbeRunner(check.ContainerName, check.ProbeArgs)
-			if lastErr == nil {
-				pterm.Success.Printf("%s runtime is ready\n", check.Service)
-				break
-			}
 			if attempt < maxAttempts {
 				upReadinessSleep(upReadinessProbeInterval)
 			}

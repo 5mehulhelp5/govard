@@ -20,8 +20,8 @@ backend default {
 acl purge {
     "localhost";
     "127.0.0.1";
-    "web";
-    "php";
+    "{{ .Config.ProjectName }}-web-1";
+    "{{ .Config.ProjectName }}-php-1";
 }
 
 sub vcl_recv {
