@@ -78,7 +78,7 @@ Magento 2 is the deepest supported workflow in Govard.
 - `govard tool magerun [command]` (Shortcut: `mr`) runs `n98-magerun2` inside the PHP container
 - `govard tool magento cron:install` installs crontabs inside the container
 - Optional Selenium/MFTF support (`mftf: true` in features)
-- Optional frontend watcher for Grunt/Vite workflows (`livereload: true`)
+- Optional LiveReload for Grunt/Vite workflows (`livereload: true` in features)
 - Dedicated `php-debug` routing when Xdebug is enabled
 
 ### Typical Flow
@@ -89,6 +89,35 @@ govard config auto
 govard tool magento cache:clean
 govard test phpunit
 ```
+
+### 🏎️ LiveReload & Frontend Development
+
+Govard supports the standard Magento 2 Grunt-based LiveReload workflow.
+
+1.  **Enable the feature** in `.govard.yml`:
+    ```yaml
+    stack:
+      features:
+        livereload: true
+    ```
+2.  **Apply changes**: Run `govard env up`. This exposes port `35729` to your host machine.
+3.  **Start the watcher**:
+    ```bash
+    govard shell
+    # Inside the shell:
+    grunt watch
+    ```
+4.  **Verify Configuration**: This is set up **automatically** if you run `govard config auto`. It injects the following snippet into your `app/etc/env.php`:
+    ```html
+    <script src="http://localhost:35729/livereload.js?snipver=1"></script>
+    ```
+5.  **Browser Setup**: Simply install the [LiveReload Browser Extension](http://livereload.com/extensions/) or rely on the automated script injection above.
+
+> [!TIP]
+> Manual injection via `default.xml` is no longer needed. Everything is handled by Govard's auto-configuration engine via `env.php`.
+
+> [!NOTE]
+> Since port `35729` is mapped directly to your host, you can only run `livereload: true` for one project at a time. If you have multiple projects, ensure only the active one has this feature enabled.
 
 ### Native Upgrade Pipeline
 

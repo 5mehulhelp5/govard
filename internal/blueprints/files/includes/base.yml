@@ -105,6 +105,10 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
       - "mail:host-gateway"
+    {{ if and (eq .Config.Framework "magento2") .Config.Stack.Features.LiveReload }}
+    ports:
+      - "35729:35729"
+    {{ end }}
 
   {{ if .Config.Stack.Features.Xdebug }}
   php-debug:

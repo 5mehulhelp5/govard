@@ -155,6 +155,11 @@ Object form instructs Govard to emit `MAGE_RUN_CODE` / `MAGE_RUN_TYPE` host mapp
 | `stack.web_root` | e.g. `/pub`, `/public` | Web root directory |
 | `stack.composer_version` | `1`, `2`, `2.2`, or any point version | Composer version |
 | `stack.xdebug_session` | e.g. `PHPSTORM` | Xdebug session name |
+| `stack.features.livereload` | `true`, `false` | Enable LiveReload port mapping (35729) |
+| `stack.features.varnish` | `true`, `false` | Enable Varnish cache service |
+| `stack.features.xdebug` | `true`, `false` | Enable Xdebug and php-debug service |
+| `stack.features.isolated` | `true`, `false` | Isolate network from external access |
+| `stack.features.mftf` | `true`, `false` | Enable Magento Functional Testing Framework |
 
 Node-first frameworks auto-detect the package manager from `package.json`, `pnpm-workspace.yaml`, or lockfiles.
 
