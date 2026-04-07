@@ -31,6 +31,12 @@ This is the canonical CLI reference for Govard.
 | `govard sh` | `govard shell` |
 | `govard snap` | `govard snapshot` |
 
+### `govard tool` Aliases
+
+| Alias | Full Command |
+| :--- | :--- |
+| `govard tool mr` | `govard tool magerun` |
+
 ### `govard sync` Aliases
 
 - `--from` is an alias for `--source`
@@ -381,7 +387,7 @@ Run framework CLIs inside project containers:
 
 ```bash
 govard tool magento [command]    # Magento 2
-govard tool magerun [command]    # Magento 1 / OpenMage
+govard tool magerun [command]    # Magento 1 / Magento 2 (Shortcut: mr)
 govard tool artisan [command]    # Laravel
 govard tool drush [command]      # Drupal
 govard tool symfony [command]    # Symfony

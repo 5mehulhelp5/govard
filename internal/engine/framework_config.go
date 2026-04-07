@@ -258,7 +258,7 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 		DefaultSearch:      "none",
 		DefaultCache:       "none",
 		DefaultQueue:       "none",
-		DefaultComposerVer: "2.2",
+		DefaultComposerVer: "latest",
 		Includes: []string{
 			"includes/base.yml",
 			"includes/redis.yml",

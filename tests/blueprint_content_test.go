@@ -269,7 +269,7 @@ func TestRenderEmdashBlueprintSkipsManagedWebServerAssets(t *testing.T) {
 func TestRenderMagento1Blueprint(t *testing.T) {
 	testBlueprintRender(t, "magento1", []string{
 		"image: ddtcorex/govard-nginx:1.28",
-		"image: ddtcorex/govard-php:",
+		"image: ddtcorex/govard-php-magento1:",
 		"image: ddtcorex/govard-mariadb:",
 		"MYSQL_DATABASE: magento",
 	})

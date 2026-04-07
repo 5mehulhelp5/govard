@@ -25,6 +25,7 @@ func TestCommandAliasesResolveToExpectedCommands(t *testing.T) {
 		{path: []string{"rmt"}, name: "remote"},
 		{path: []string{"sh"}, name: "shell"},
 		{path: []string{"snap"}, name: "snapshot"},
+		{path: []string{"tool", "mr"}, name: "magerun"},
 	} {
 		command, _, err := root.Find(tt.path)
 		if err != nil {

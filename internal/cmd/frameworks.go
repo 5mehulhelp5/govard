@@ -13,8 +13,9 @@ import (
 
 type FrameworkCommand struct {
 	Name        string
+	Aliases     []string
 	Short       string
-	Framework   string // empty means all
+	Frameworks  []string // empty means all
 	Binary      string
 	PrependArgs []string
 	DefaultUser string
@@ -52,7 +53,7 @@ var frameworkCommands = []FrameworkCommand{
 	{
 		Name:        "magento",
 		Short:       "Run Magento CLI commands",
-		Framework:   "magento2",
+		Frameworks:  []string{"magento2"},
 		Binary:      "php",
 		PrependArgs: []string{"bin/magento"},
 		DefaultUser: "",
@@ -60,29 +61,30 @@ var frameworkCommands = []FrameworkCommand{
 	{
 		Name:        "artisan",
 		Short:       "Run Laravel Artisan commands",
-		Framework:   "laravel",
+		Frameworks:  []string{"laravel"},
 		Binary:      "php",
 		PrependArgs: []string{"artisan"},
 		DefaultUser: "",
 	},
 	{
 		Name:        "magerun",
+		Aliases:     []string{"mr"},
 		Short:       "Run n98-magerun commands",
-		Framework:   "magento1",
-		Binary:      "n98-magerun.phar",
+		Frameworks:  []string{"magento1", "magento2", "openmage"},
+		Binary:      "n98-magerun",
 		DefaultUser: "",
 	},
 	{
 		Name:        "drush",
 		Short:       "Run Drupal Drush commands",
-		Framework:   "drupal",
+		Frameworks:  []string{"drupal"},
 		Binary:      "drush",
 		DefaultUser: "",
 	},
 	{
 		Name:        "symfony",
 		Short:       "Run Symfony CLI commands",
-		Framework:   "symfony",
+		Frameworks:  []string{"symfony"},
 		Binary:      "php",
 		PrependArgs: []string{"bin/console"},
 		DefaultUser: "",
@@ -90,14 +92,14 @@ var frameworkCommands = []FrameworkCommand{
 	{
 		Name:        "shopware",
 		Short:       "Run Shopware CLI commands",
-		Framework:   "shopware",
+		Frameworks:  []string{"shopware"},
 		Binary:      "bin/console",
 		DefaultUser: "",
 	},
 	{
 		Name:        "cake",
 		Short:       "Run CakePHP CLI commands",
-		Framework:   "cakephp",
+		Frameworks:  []string{"cakephp"},
 		Binary:      "bin/cake",
 		DefaultUser: "",
 	},
@@ -110,7 +112,7 @@ var frameworkCommands = []FrameworkCommand{
 	{
 		Name:        "wp",
 		Short:       "Run WordPress CLI commands",
-		Framework:   "wordpress",
+		Frameworks:  []string{"wordpress"},
 		Binary:      "wp",
 		DefaultUser: "",
 	},
@@ -150,11 +152,12 @@ func initFrameworkCommands() {
 	for _, fc := range frameworkCommands {
 		usage := fmt.Sprintf("%s [args]", fc.Name)
 		longDesc := fc.Short
-		if fc.Framework != "" {
-			longDesc = fmt.Sprintf("%s (Requires %s project)", fc.Short, fc.Framework)
+		if len(fc.Frameworks) > 0 {
+			longDesc = fmt.Sprintf("%s (Requires %s project)", fc.Short, strings.Join(fc.Frameworks, "/"))
 		}
 		cmd := &cobra.Command{
 			Use:                usage,
+			Aliases:            fc.Aliases,
 			Short:              fc.Short,
 			Long:               longDesc,
 			DisableFlagParsing: true,
@@ -162,9 +165,21 @@ func initFrameworkCommands() {
 				// Find which command we are running
 				name := c.Name()
 				var target FrameworkCommand
+				foundTarget := false
 				for _, tc := range frameworkCommands {
 					if tc.Name == name {
 						target = tc
+						foundTarget = true
+					} else {
+						for _, alias := range tc.Aliases {
+							if alias == name {
+								target = tc
+								foundTarget = true
+								break
+							}
+						}
+					}
+					if foundTarget {
 						break
 					}
 				}
@@ -172,8 +187,17 @@ func initFrameworkCommands() {
 				config := loadConfig()
 
 				// Validate framework if required
-				if target.Framework != "" && config.Framework != target.Framework {
-					return fmt.Errorf("the '%s' command is only available for %s projects (current: %s)", name, target.Framework, config.Framework)
+				if len(target.Frameworks) > 0 {
+					frameworkFound := false
+					for _, f := range target.Frameworks {
+						if f == config.Framework {
+							frameworkFound = true
+							break
+						}
+					}
+					if !frameworkFound {
+						return fmt.Errorf("the '%s' command is only available for %s projects (current: %s)", name, strings.Join(target.Frameworks, "/"), config.Framework)
+					}
 				}
 
 				targetExec := resolveToolExecution(config, target.Binary, target.DefaultUser)
@@ -245,4 +269,42 @@ func resolveToolExecution(config engine.Config, binary string, defaultUser strin
 func ResolveToolExecutionForTest(config engine.Config, binary string) (string, string, string) {
 	target := resolveToolExecution(config, binary, "")
 	return target.ContainerName, target.Workdir, target.User
+}
+
+func ValidateFrameworkForCommandForTest(commandName string, config engine.Config) error {
+	var target FrameworkCommand
+	found := false
+	for _, tc := range frameworkCommands {
+		if tc.Name == commandName {
+			target = tc
+			found = true
+			break
+		}
+		for _, alias := range tc.Aliases {
+			if alias == commandName {
+				target = tc
+				found = true
+				break
+			}
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("command not found")
+	}
+
+	if len(target.Frameworks) > 0 {
+		frameworkFound := false
+		for _, f := range target.Frameworks {
+			if f == config.Framework {
+				frameworkFound = true
+				break
+			}
+		}
+		if !frameworkFound {
+			return fmt.Errorf("the '%s' command is only available for %s projects (current: %s)", commandName, strings.Join(target.Frameworks, "/"), config.Framework)
+		}
+	}
+
+	return nil
 }

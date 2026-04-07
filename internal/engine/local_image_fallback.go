@@ -256,6 +256,26 @@ func localBuildSpecForGovardService(service string, tag string, repoPrefix strin
 				{Name: "PHP_VERSION", Value: tag},
 			},
 		}, nil
+	case "php-magento1":
+		if isDebug {
+			return localImageBuildSpec{
+				ContextRel:    "php",
+				DockerfileRel: filepath.Join("php", "debug", "Dockerfile"),
+				BuildArgs: []localImageBuildArg{
+					{Name: "BASE_IMAGE", Value: repoPrefix + "php-magento1:" + baseTag},
+				},
+				Dependencies: []string{repoPrefix + "php-magento1:" + baseTag},
+			}, nil
+		}
+		return localImageBuildSpec{
+			ContextRel:    "php",
+			DockerfileRel: filepath.Join("php", "magento1", "Dockerfile"),
+			BuildArgs: []localImageBuildArg{
+				{Name: "PHP_VERSION", Value: tag},
+				{Name: "GOVARD_IMAGE_REPOSITORY", Value: repoPrefix},
+			},
+			Dependencies: []string{repoPrefix + "php:" + tag},
+		}, nil
 	case "php-magento2":
 		if isDebug {
 			return localImageBuildSpec{

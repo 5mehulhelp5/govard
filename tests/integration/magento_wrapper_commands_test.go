@@ -21,7 +21,6 @@ func TestFrameworkWrapperFrameworkGuardsForMagentoProject(t *testing.T) {
 		{command: "artisan", frameworkExpected: "laravel"},
 		{command: "cake", frameworkExpected: "cakephp"},
 		{command: "drush", frameworkExpected: "drupal"},
-		{command: "magerun", frameworkExpected: "magento1"},
 		{command: "shopware", frameworkExpected: "shopware"},
 		{command: "symfony", frameworkExpected: "symfony"},
 		{command: "wp", frameworkExpected: "wordpress"},
