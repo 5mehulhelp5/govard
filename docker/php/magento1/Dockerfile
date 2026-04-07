@@ -14,9 +14,10 @@ RUN apk add --no-cache nodejs npm curl openssh-client
 RUN npm install -g grunt-cli gulp yarn
 
 RUN set -eux \
-    && mkdir -p /usr/local/bin \
-    && curl -sL --insecure https://files.magerun.net/n98-magerun.phar > /usr/local/bin/n98-magerun \
-    && chmod +x /usr/local/bin/n98-magerun \
-    && ln -s /usr/local/bin/n98-magerun /usr/local/bin/mr
+    && mkdir -p /usr/local/share/n98-magerun \
+    && composer create-project n98/magerun /usr/local/share/n98-magerun --no-dev \
+    && ln -s /usr/local/share/n98-magerun/bin/n98-magerun /usr/local/bin/n98-magerun \
+    && ln -s /usr/local/share/n98-magerun/bin/n98-magerun /usr/local/bin/magerun \
+    && ln -s /usr/local/share/n98-magerun/bin/n98-magerun /usr/local/bin/mr
 
 USER www-data
