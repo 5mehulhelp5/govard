@@ -89,6 +89,54 @@ func TestRenderNextjsNodeVersionOverride(t *testing.T) {
 	}
 }
 
+func TestRenderMinimalMagento2(t *testing.T) {
+	content := renderComposeWithConfig(t, engine.Config{
+		ProjectName: "minimal-mg2",
+		Framework:   "magento2",
+		Domain:      "minimal.test",
+	})
+
+	// Core services should be present
+	mandatory := []string{"web:", "php:"}
+	for _, s := range mandatory {
+		if !strings.Contains(content, s) {
+			t.Errorf("Expected mandatory service %s to be present", s)
+		}
+	}
+
+	// Optional services should NOT be present
+	optional := []string{"db:", "redis:", "elasticsearch:", "varnish:", "rabbitmq:", "selenium:"}
+	for _, s := range optional {
+		if strings.Contains(content, s) {
+			t.Errorf("Unexpected optional service %s found in minimal Magento 2 output", s)
+		}
+	}
+}
+
+func TestRenderMinimalLaravel(t *testing.T) {
+	content := renderComposeWithConfig(t, engine.Config{
+		ProjectName: "minimal-laravel",
+		Framework:   "laravel",
+		Domain:      "minimal.test",
+	})
+
+	// Core services should be present
+	mandatory := []string{"web:", "php:"}
+	for _, s := range mandatory {
+		if !strings.Contains(content, s) {
+			t.Errorf("Expected mandatory service %s to be present", s)
+		}
+	}
+
+	// Optional services (including the previously unconditional queue) should NOT be present
+	optional := []string{"db:", "redis:", "elasticsearch:", "queue:"}
+	for _, s := range optional {
+		if strings.Contains(content, s) {
+			t.Errorf("Unexpected optional service %s found in minimal Laravel output", s)
+		}
+	}
+}
+
 func renderComposeWithConfig(t *testing.T, config engine.Config) string {
 	t.Helper()
 

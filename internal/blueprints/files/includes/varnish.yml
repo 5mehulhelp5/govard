@@ -1,7 +1,7 @@
 # Varnish service for full-page caching
 
+{{ if .Config.Stack.Features.Varnish }}
 services:
-  {{ if .Config.Stack.Features.Varnish }}
   varnish:
     hostname: {{ .Config.ProjectName }}-varnish
     image: {{ $.ImageRepository }}varnish:{{ .Config.Stack.VarnishVersion }}
@@ -13,4 +13,4 @@ services:
       - govard-proxy
     depends_on:
       - web
-  {{ end }}
+{{ end }}

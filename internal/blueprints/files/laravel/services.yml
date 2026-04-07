@@ -1,3 +1,4 @@
+{{ if .Config.Stack.Features.Queue }}
 services:
   queue:
     image: {{ $.ImageRepository }}php:{{ .Config.Stack.PHPVersion }}
@@ -8,3 +9,4 @@ services:
       - govard-net
     depends_on:
       - db
+{{ end }}
