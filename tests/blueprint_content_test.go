@@ -86,9 +86,32 @@ func TestRenderLaravelBlueprint(t *testing.T) {
 		"image: ddtcorex/govard-php:",
 		"image: ddtcorex/govard-mariadb:",
 		"MYSQL_DATABASE: laravel",
+	})
+}
+
+func TestRenderLaravelBlueprintWithQueue(t *testing.T) {
+	content := renderComposeWithConfig(t, engine.Config{
+		ProjectName: "laravel-queue-test",
+		Framework:   "laravel",
+		Domain:      "laravel-queue.test",
+		Stack: engine.Stack{
+			Features: engine.Features{
+				Queue: true,
+			},
+			Services: engine.Services{
+				Queue: "redis", // any non-empty value works for laravel's check
+			},
+		},
+	})
+
+	for _, expected := range []string{
 		"queue:",
 		"php artisan queue:work",
-	})
+	} {
+		if !strings.Contains(content, expected) {
+			t.Fatalf("Expected %q to be in generated compose file for laravel with queue enabled", expected)
+		}
+	}
 }
 
 func TestRenderNextjsBlueprint(t *testing.T) {
