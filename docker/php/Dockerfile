@@ -18,8 +18,7 @@ ENV PHP_MAX_EXECUTION_TIME=${PHP_MAX_EXECUTION_TIME}
 # Install system dependencies
 RUN set -eux; \
     PHP_VERSION_INT=$(echo $PHP_VERSION | cut -d. -f1,2 | tr -d .); \
-    ICU_DATA_FULL=""; \
-    if [ "$PHP_VERSION_INT" -ge 81 ]; then ICU_DATA_FULL="icu-data-full"; fi; \
+    apk update && ICU_DATA_FULL=$(apk search -q icu-data-full); \
     ONIGURUMA=""; \
     if [ "$PHP_VERSION_INT" -ge 74 ]; then ONIGURUMA="oniguruma-dev"; fi; \
     SSL_LIB="openssl-dev"; \
