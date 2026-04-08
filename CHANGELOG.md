@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.45.0] - 2026-04-08
+
+### ✨ New Features
+
+- **Magento 2:** Implemented automated **LiveReload** support for Magento 2 via port mapping and `env.php` injection, enabling real-time frontend updates during development.
+- **Magento 1 / OpenMage:** Added `magerun` alias support and enabled dedicated runtime images for legacy Magento 1 and OpenMage projects.
+- **Apache:** Increased `LimitRequestLine` and `LimitRequestFieldSize` to **16384** in standard Apache blueprints to support large session headers common in complex ecommerce environments.
+- **Varnish:** Added a service readiness check with transient crash tolerance and updated ACL configuration for improved startup reliability.
+
+### 🛠 Improvements
+
+- **Environment Lifecycle:** Incremented internal `BlueprintVersion` to **1.35**, triggering automatic environment re-renders to apply the latest Apache and Varnish infrastructure optimizations.
+- **Composer:** Updated the default Composer version to the latest stable release for all new project initializations.
+
+### 🐛 Bug Fixes
+
+- **Varnish:** Enhanced service startup behavior to prevent false-negative readiness failures when using custom ACL configurations.
+
 ## [1.44.5] - 2026-04-07
 
 ### ✨ New Features
@@ -17,7 +35,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Diagnostics:** Safely ignore the return value of `os.Setenv` during initialization to prevent unnecessary execution failures in environments with restricted environment variable access.
 
 ## [1.44.4] - 2026-04-06
-
 
 ### 🚀 New Features
 
