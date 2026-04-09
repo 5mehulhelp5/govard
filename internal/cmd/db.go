@@ -231,6 +231,13 @@ func runDBSubcommand(cmd *cobra.Command, subcommand string, extraArgs []string) 
 		}
 	}
 	operationSource = options.Environment
+
+	// Pre-flight check: offer to copy SSH key if auth fails on remote endpoint
+	if options.Environment != "local" {
+		if remoteCfg, ok := config.Remotes[options.Environment]; ok {
+			_ = offerSSHKeyCopyOnAuthFailure(options.Environment, remoteCfg)
+		}
+	}
 	switch subcommand {
 	case "connect":
 		err = runDBConnect(cmd, config, options)

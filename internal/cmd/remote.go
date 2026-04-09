@@ -235,61 +235,13 @@ var remoteCopyIdCmd = &cobra.Command{
 			return err
 		}
 
-		// Resolve actual key to copy
-		pubKeyPath := ""
-		if keyPathRaw != "" {
-			pubKeyPath = strings.TrimSuffix(keyPathRaw, ".pub") + ".pub"
-		} else {
-			privateKeyPath, _ := remote.ResolveSSHKeyPath(name, remoteCfg)
-			if privateKeyPath != "" {
-				pubKeyPath = strings.TrimSuffix(privateKeyPath, ".pub") + ".pub"
-			}
-		}
-
-		// Default fallback if still unknown
-		if pubKeyPath == "" || !fileExists(pubKeyPath) {
-			candidates := []string{"~/.ssh/id_ed25519.pub", "~/.ssh/id_ecdsa.pub", "~/.ssh/id_rsa.pub"}
-			for _, c := range candidates {
-				resolved := remote.NormalizePath(c)
-				if fileExists(resolved) {
-					pubKeyPath = resolved
-					break
-				}
-			}
-		}
-
-		if pubKeyPath == "" || !fileExists(pubKeyPath) {
+		pubKeyPath := resolvePublicKeyForRemote(name, remoteCfg, keyPathRaw)
+		if pubKeyPath == "" {
 			return fmt.Errorf("could not find a public key to copy. Please specify one with --identity/-i")
 		}
 
 		pterm.Info.Printf("Copying public key '%s' to remote '%s' (%s)...\n", pubKeyPath, name, remote.RemoteTarget(remoteCfg))
-
-		// Check if ssh-copy-id exists
-		if _, err := exec.LookPath("ssh-copy-id"); err == nil {
-			sshCopyIdArgs := []string{"-i", pubKeyPath}
-			if remoteCfg.Port > 0 {
-				sshCopyIdArgs = append(sshCopyIdArgs, "-p", fmt.Sprintf("%d", remoteCfg.Port))
-			}
-			sshCopyIdArgs = append(sshCopyIdArgs, remote.RemoteTarget(remoteCfg))
-			sshCopyIdCmd := exec.Command("ssh-copy-id", sshCopyIdArgs...)
-			sshCopyIdCmd.Stdin = os.Stdin
-			sshCopyIdCmd.Stdout = os.Stdout
-			sshCopyIdCmd.Stderr = os.Stderr
-			return sshCopyIdCmd.Run()
-		}
-
-		// Fallback for systems without ssh-copy-id
-		pubKeyContent, err := os.ReadFile(pubKeyPath)
-		if err != nil {
-			return fmt.Errorf("failed to read public key: %w", err)
-		}
-
-		setupCmd := fmt.Sprintf("mkdir -p ~/.ssh && chmod 700 ~/.ssh && echo '%s' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys", strings.TrimSpace(string(pubKeyContent)))
-		sshCmd := remote.BuildSSHExecCommand(name, remoteCfg, false, setupCmd)
-		sshCmd.Stdin = os.Stdin
-		sshCmd.Stdout = os.Stdout
-		sshCmd.Stderr = os.Stderr
-		return sshCmd.Run()
+		return copySSHKeyToRemote(name, remoteCfg, pubKeyPath)
 	},
 }
 
@@ -362,6 +314,9 @@ var remoteExecCmd = &cobra.Command{
 		if remoteCfg.Path != "" {
 			commandLine = fmt.Sprintf("cd %s && %s", remoteCfg.Path, commandLine)
 		}
+
+		// Pre-flight check: offer to copy SSH key if auth fails
+		_ = offerSSHKeyCopyOnAuthFailure(remoteName, remoteCfg)
 
 		sshCmd := remote.BuildSSHExecCommand(remoteName, remoteCfg, true, commandLine)
 		sshCmd.Stdin = os.Stdin
@@ -454,6 +409,10 @@ var remoteTestCmd = &cobra.Command{
 		testArgs := remote.BuildSSHArgs(remoteName, remoteCfg, false, false)
 		testArgs = append(testArgs, "-o", "ConnectTimeout=5", remote.RemoteTarget(remoteCfg), "echo govard-remote-ok")
 		testCmd := exec.Command("ssh", testArgs...)
+
+		// Pre-flight check: offer to copy SSH key if auth fails
+		_ = offerSSHKeyCopyOnAuthFailure(remoteName, remoteCfg)
+
 		sshStartedAt := time.Now()
 		output, err := testCmd.CombinedOutput()
 		sshDuration := time.Since(sshStartedAt)
