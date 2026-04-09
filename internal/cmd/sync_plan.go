@@ -31,7 +31,6 @@ const (
 	MediaSyncNone      = "none"
 	MediaSyncMinimal   = "minimal"
 	MediaSyncOptimized = "optimized"
-	MediaSyncCatalog   = "catalog"
 	MediaSyncAll       = "all"
 )
 
@@ -412,6 +411,10 @@ func getCommonMediaExcludes() []string {
 
 func getMagentoMediaExcludes(mode string) []string {
 	mode = strings.ToLower(strings.TrimSpace(mode))
+	if mode == MediaSyncAll {
+		return []string{}
+	}
+
 	excludes := getCommonMediaExcludes()
 	excludes = append(excludes,
 		"itm",
@@ -423,8 +426,6 @@ func getMagentoMediaExcludes(mode string) []string {
 		"custom_options",
 		"customer_address",
 		"sitemap",
-		"catalog/product.rm",
-		"catalog/product/product",
 		"catalog_webp",
 		"opti_image",
 		"webp_image",
@@ -433,13 +434,12 @@ func getMagentoMediaExcludes(mode string) []string {
 		"ftp",
 		"lengow",
 	)
-	switch mode {
-	case MediaSyncAll, MediaSyncCatalog:
-		// Truly all & Catalog modes: Base excludes already cover caches, no further excludes needed for catalog images.
-	default:
-		// Optimized or Minimal mode: exclude catalog images entirely
+
+	if mode == MediaSyncOptimized || mode == MediaSyncMinimal {
+		// Optimized or Minimal mode: exclude catalog images entirely to save time/space
 		excludes = append(excludes, "catalog/product")
 	}
+
 	return excludes
 }
 

@@ -36,14 +36,13 @@ Framework Notes:
 Media Sync Modes (--media):
 - optimized: Default for remote. Skips heavy assets like products (Magento) or caches (WordPress).
 - minimal: Syncs only non-binary assets (CSS, JS, Fonts). Ideal for frontend tasks.
-- catalog: Focuses on product images (Magento only).
-- all: Truly all files, including caches if not ignored by global noise filters.
+- all: Truly all files (excluding common junk like .tmp or .bak).
 - none: Explicitly skip media.
 
 Case Studies:
 - Daily Data Refresh: Fetch the latest DB and media from staging to work on a fresh dataset.
 - Single File Fix: Push a hotfix file to a dev remote for quick verification.
-- Media Sync Only: Sync product images from production without affecting your local code or DB.
+- Media Sync Only: Sync media from production without affecting your local code or DB.
 - Full Onboarding: Use --full to get code, media, and DB in one command.
 - Frontend Refresh: Sync only CSS/JS static assets using --media minimal.`,
 	Example: `  # Sync everything from staging to local (default behavior)
