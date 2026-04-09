@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -188,14 +187,6 @@ func buildOpenDBTunnelCommand(remoteName string, remoteCfg engine.RemoteConfig, 
 	args := engineremote.BuildSSHArgs(remoteName, remoteCfg, false, false)
 	args = append(args, "-L", fmt.Sprintf("%d:%s:%d", localPort, remoteHost, remotePort), "-N", engineremote.RemoteTarget(remoteCfg))
 	return exec.Command("ssh", args...)
-}
-
-func isInterruptExit(err error) bool {
-	var exitErr *exec.ExitError
-	if !errors.As(err, &exitErr) {
-		return false
-	}
-	return exitErr.ExitCode() == 130
 }
 
 func waitForOpenDBTunnel(localPort int, timeout time.Duration) error {

@@ -1,11 +1,15 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"govard/internal/engine"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strings"
+
+	"syscall"
 
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
@@ -186,6 +190,51 @@ func suppressedComposeFlags(cmd *cobra.Command, govardCmdName, detectedSubcomman
 	}
 
 	return flags
+}
+
+func runGovardSubcommandSkippable(cmd *cobra.Command, args ...string) (bool, error) {
+	// Trap interrupt signal in the parent so we can decide to skip instead of exiting the whole bootstrap process.
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt)
+	defer signal.Stop(sigCh)
+
+	err := runGovardSubcommand(cmd, args...)
+	if err == nil {
+		return false, nil
+	}
+
+	// Check if the child process was interrupted (Exit Code 130)
+	if isInterruptExit(err) {
+		return true, nil
+	}
+
+	return false, err
+}
+
+func isInterruptExit(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	// Check for string "signal: interrupt" pattern
+	if strings.Contains(err.Error(), "signal: interrupt") {
+		return true
+	}
+
+	var exitErr *exec.ExitError
+	if !errors.As(err, &exitErr) {
+		return false
+	}
+
+	// WaitStatus might be able to tell us
+	if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
+		if status.Signaled() && status.Signal() == os.Interrupt {
+			return true
+		}
+	}
+
+	// Fallback to exit code 130 convention from shell wrappers
+	return exitErr.ExitCode() == 130
 }
 
 func filterComposeHelpText(helpText string, suppressedFlags map[string]struct{}) string {

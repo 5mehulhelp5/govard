@@ -52,7 +52,11 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts Bootstrap
 
 	if opts.Clone {
 		syncArgs := append(bootstrapFileSyncArgs(opts), "--yes")
-		if err := runGovardSubcommand(cmd, syncArgs...); err != nil {
+		skipped, err := runGovardSubcommandSkippable(cmd, syncArgs...)
+		if skipped {
+			fmt.Println()
+			pterm.Warning.Println("File sync (clone) skipped by user (SIGINT).")
+		} else if err != nil {
 			return fmt.Errorf("file sync failed: %w", err)
 		}
 	}
@@ -78,8 +82,11 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts Bootstrap
 				}
 			}
 
-			installErr := runGovardSubcommand(cmd, govardComposerSubcommandArgs("install", "-n")...)
-			if installErr != nil {
+			skipped, installErr := runGovardSubcommandSkippable(cmd, govardComposerSubcommandArgs("install", "-n")...)
+			if skipped {
+				fmt.Println()
+				pterm.Warning.Println("Composer install skipped by user (SIGINT).")
+			} else if installErr != nil {
 				autoloadPath := filepath.Join(cwd, "vendor", "autoload.php")
 
 				// If the error specifically mentions that the container is not running, we must stop.
@@ -89,8 +96,10 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts Bootstrap
 				}
 
 				if fileExists(autoloadPath) {
+					fmt.Println()
 					pterm.Warning.Printf("composer install failed, but %s exists. Continuing bootstrap (%v).\n", autoloadPath, installErr)
 				} else {
+					fmt.Println()
 					pterm.Warning.Printf("composer install failed (%v). Attempting to sync vendor from remote '%s'...\n", installErr, opts.Source)
 					if err := runGovardSubcommand(cmd, "sync", "--source", opts.Source, "--file", "--path", "vendor/", "--yes"); err != nil {
 						return fmt.Errorf("composer install failed (%v) and vendor sync failed (%v)", installErr, err)
@@ -204,7 +213,12 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts Bootstrap
 			for _, pattern := range opts.ExcludePatterns {
 				args = append(args, "--exclude", pattern)
 			}
-			if err := runGovardSubcommand(cmd, append(args, "--yes")...); err != nil {
+			skipped, err := runGovardSubcommandSkippable(cmd, append(args, "--yes")...)
+			if skipped {
+				fmt.Println()
+				pterm.Warning.Println("Media sync skipped by user (SIGINT).")
+			} else if err != nil {
+				fmt.Println()
 				pterm.Warning.Printf("Media synchronization was not fully completed, but bootstrap will continue: %v\n", err)
 			}
 		}
@@ -230,7 +244,12 @@ func runBootstrapDatabaseSync(cmd *cobra.Command, opts BootstrapRuntimeOptions) 
 		if opts.NoPII {
 			importArgs = append(importArgs, "--no-pii")
 		}
-		if err := runGovardSubcommand(cmd, importArgs...); err != nil {
+		skipped, err := runGovardSubcommandSkippable(cmd, importArgs...)
+		if skipped {
+			fmt.Println()
+			pterm.Warning.Println("Stream-DB import skipped by user (SIGINT).")
+			return nil
+		} else if err != nil {
 			return fmt.Errorf("stream-db import failed: %w", err)
 		}
 		return nil
@@ -243,7 +262,12 @@ func runBootstrapDatabaseSync(cmd *cobra.Command, opts BootstrapRuntimeOptions) 
 	if opts.NoPII {
 		args = append(args, "--no-pii")
 	}
-	if err := runGovardSubcommand(cmd, append(args, "--yes")...); err != nil {
+	skipped, err := runGovardSubcommandSkippable(cmd, append(args, "--yes")...)
+	if skipped {
+		fmt.Println()
+		pterm.Warning.Println("Database sync skipped by user (SIGINT).")
+		return nil
+	} else if err != nil {
 		return fmt.Errorf("database sync failed: %w", err)
 	}
 	return nil
