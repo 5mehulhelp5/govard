@@ -11,8 +11,10 @@ group "default" {
     "nginx",
     "opensearch",
     "php",
-    "php-magento2",
     "php-debug",
+    "php-magento1",
+    "php-magento1-debug",
+    "php-magento2",
     "php-magento2-debug",
     "rabbitmq",
     "redis",
@@ -155,6 +157,24 @@ target "php-magento2" {
   tags = ["${DOCKER_ORG}php-magento2:${version}"]
 }
 
+# ─── PHP (Magento 1) ───────────────────────────────────────────────────────
+target "php-magento1" {
+  name       = "php-magento1-${replace(version, ".", "-")}"
+  context    = "docker/php"
+  dockerfile = "magento1/Dockerfile"
+  matrix = {
+    version = ["7.4", "7.3", "7.2", "7.1", "7.0", "5.6"]
+  }
+  contexts = {
+    "${DOCKER_ORG}php:${version}" = "target:php-${replace(version, ".", "-")}"
+  }
+  args = {
+    PHP_VERSION             = version
+    GOVARD_IMAGE_REPOSITORY = DOCKER_ORG
+  }
+  tags = ["${DOCKER_ORG}php-magento1:${version}"]
+}
+
 # ─── PHP (Debug) ───────────────────────────────────────────────────────────
 target "php-debug" {
   name       = "php-debug-${replace(version, ".", "-")}"
@@ -187,6 +207,23 @@ target "php-magento2-debug" {
     "${DOCKER_ORG}php-magento2:${version}" = "target:php-magento2-${replace(version, ".", "-")}"
   }
   tags = ["${DOCKER_ORG}php-magento2:${version}-debug"]
+}
+
+# ─── PHP (Magento 1 - Debug) ───────────────────────────────────────────────
+target "php-magento1-debug" {
+  name       = "php-magento1-debug-${replace(version, ".", "-")}"
+  context    = "docker/php"
+  dockerfile = "debug/Dockerfile"
+  matrix = {
+    version = ["7.4", "7.3", "7.2", "7.1", "7.0", "5.6"]
+  }
+  args = {
+    BASE_IMAGE = "${DOCKER_ORG}php-magento1:${version}"
+  }
+  contexts = {
+    "${DOCKER_ORG}php-magento1:${version}" = "target:php-magento1-${replace(version, ".", "-")}"
+  }
+  tags = ["${DOCKER_ORG}php-magento1:${version}-debug"]
 }
 
 # ─── RabbitMQ ──────────────────────────────────────────────────────────────

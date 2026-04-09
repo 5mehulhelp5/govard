@@ -11,11 +11,11 @@ USER root
 
 RUN apk add --no-cache nodejs npm curl openssh-client
 
-RUN npm install -g grunt-cli gulp yarn
+RUN npm install -g --unsafe-perm grunt-cli gulp yarn
 
 RUN set -eux \
     && mkdir -p /usr/local/share/n98-magerun2 \
-    && composer create-project n98/magerun2 /usr/local/share/n98-magerun2 --no-dev \
+    && USE_ZEND_ALLOC=0 composer create-project n98/magerun2 /usr/local/share/n98-magerun2 --no-dev \
     && ln -s /usr/local/share/n98-magerun2/bin/n98-magerun2 /usr/local/bin/n98-magerun \
     && ln -s /usr/local/share/n98-magerun2/bin/n98-magerun2 /usr/local/bin/magerun \
     && ln -s /usr/local/share/n98-magerun2/bin/n98-magerun2 /usr/local/bin/magerun2 \
