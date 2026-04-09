@@ -286,7 +286,7 @@ Case Studies:
 
 		for i, rsyncCmd := range executionPlan.RsyncCommands {
 			description := executionPlan.Descriptions[i]
-			spinner, _ := pterm.DefaultSpinner.Start(description)
+			pterm.Info.Println(description)
 
 			area, _ := pterm.DefaultArea.Start()
 			writer := newTailWriter(area, 10)
@@ -295,7 +295,8 @@ Case Studies:
 
 			if err := rsyncCmd.Run(); err != nil {
 				_ = area.Stop()
-				cont, err := handleRsyncError(err, executionPlan.RsyncScopes[i], spinner)
+				fmt.Println()
+				cont, err := handleRsyncError(err, executionPlan.RsyncScopes[i])
 				if !cont {
 					return err
 				}
@@ -303,7 +304,8 @@ Case Studies:
 			}
 
 			_ = area.Stop()
-			spinner.Success()
+			fmt.Println()
+			pterm.Success.Printf("%s completed.\n", description)
 		}
 
 		for _, dbAction := range executionPlan.DatabaseActions {
@@ -365,7 +367,7 @@ func init() {
 	rootCmd.AddCommand(syncCmd)
 }
 
-func handleRsyncError(err error, scope string, spinner *pterm.SpinnerPrinter) (bool, error) {
+func handleRsyncError(err error, scope string) (bool, error) {
 	if err == nil {
 		return true, nil
 	}
@@ -376,27 +378,21 @@ func handleRsyncError(err error, scope string, spinner *pterm.SpinnerPrinter) (b
 	}
 
 	if (exitCode == 23 || exitCode == 24) && scope == SyncScopeMedia {
-		if spinner != nil {
-			spinner.Warning(fmt.Sprintf("Media sync completed with partial errors (exit code %d). Some files may have been skipped due to system limits or vanished sources.", exitCode))
-		}
+		pterm.Warning.Printf("Media sync completed with partial errors (exit code %d). Some files may have been skipped due to system limits or vanished sources.\n", exitCode)
 		return true, nil
 	}
 
 	if (exitCode == 23 || exitCode == 24) && scope == SyncScopeFiles {
-		if spinner != nil {
-			spinner.Fail(fmt.Sprintf("File synchronization failed with partial errors (exit code %d). Please check for permission issues, broken symlinks, or directory loops.", exitCode))
-		}
+		pterm.Error.Printf("File synchronization failed with partial errors (exit code %d). Please check for permission issues, broken symlinks, or directory loops.\n", exitCode)
 	} else {
-		if spinner != nil {
-			spinner.Fail(fmt.Sprintf("Failed to sync: %v", err))
-		}
+		pterm.Error.Printf("Failed to sync: %v\n", err)
 	}
 	return false, fmt.Errorf("sync command failed: %w", err)
 }
 
 // HandleRsyncErrorForTest is a wrapper for testing internal error handling logic.
 func HandleRsyncErrorForTest(err error, scope string) (bool, error) {
-	return handleRsyncError(err, scope, nil)
+	return handleRsyncError(err, scope)
 }
 
 // SyncCommand exposes the sync command for testing.
