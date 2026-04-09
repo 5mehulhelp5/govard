@@ -7,6 +7,7 @@
 ### 🚀 Getting Started
 - [Installation](Installation)
 - [Getting Started](Getting-Started)
+- [Migration Guide](Migration)
 
 ---
 

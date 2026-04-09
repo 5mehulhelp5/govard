@@ -35,8 +35,16 @@ Govard inspects `composer.json` or `package.json`, detects the framework, and wr
 
 ```bash
 govard init --framework magento2
-govard init --framework laravel
 govard init --framework custom
+```
+
+### Migrate from other tools
+
+If you are transitioning from Warden or DDEV, Govard can automatically detect your setup and seamlessly copy your local database volume so you don't lose any data:
+
+```bash
+govard init --migrate-from warden
+govard init --migrate-from ddev
 ```
 
 ---

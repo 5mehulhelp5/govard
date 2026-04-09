@@ -26,7 +26,7 @@ import (
 )
 
 var dbCmd = &cobra.Command{
-	Use:   "db [connect|import|dump|query|info|top]",
+	Use:   "db [connect|import|dump|query|info|top|clone-volume]",
 	Short: "Interact with the database container",
 	Long: `Manage your project's database. Supports connecting to the container shell,
 importing SQL dumps, and creating backups. Works for both local and remote environments.
@@ -72,6 +72,9 @@ Dumps are comprehensive (including routines and triggers) by default to ensure f
 		subcommand := strings.ToLower(strings.TrimSpace(args[0]))
 		if subcommand == "query" && len(args) < 2 {
 			return errors.New("query subcommand requires a SQL query argument")
+		}
+		if subcommand == "clone-volume" && len(args) < 2 {
+			return errors.New("clone-volume subcommand requires a source volume name")
 		}
 		return nil
 	},
@@ -298,6 +301,13 @@ func runDBSubcommand(cmd *cobra.Command, subcommand string, extraArgs []string) 
 			operationMessage = "db info completed"
 		}
 		return err
+	case "clone-volume":
+		err = runDBCloneVolume(cmd, config, options, extraArgs)
+		if err == nil {
+			operationStatus = engine.OperationStatusSuccess
+			operationMessage = "db clone-volume completed"
+		}
+		return err
 	default:
 		return fmt.Errorf("unknown db subcommand: %s", subcommand)
 	}
@@ -366,9 +376,9 @@ func validateDBCommandOptions(subcommand string, options dbCommandOptions) error
 		if options.StreamDB && options.Environment == "local" {
 			return errors.New("--stream-db requires a remote --environment source")
 		}
-	case "query", "info":
+	case "query", "info", "clone-volume":
 		if options.File != "" || options.StreamDB || options.NoNoise || options.NoPII || options.Drop || options.Local {
-			return errors.New("query and info do not support --file, --stream-db, --no-noise, --no-pii, --drop, or --local")
+			return errors.New("query, info, and clone-volume do not support --file, --stream-db, --no-noise, --no-pii, --drop, or --local")
 		}
 	default:
 		return fmt.Errorf("unknown db subcommand: %s", subcommand)

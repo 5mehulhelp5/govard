@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"govard/internal/engine"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -386,6 +387,39 @@ Case Studies:
 		pterm.Success.Printf("✅ Rendered compose file at %s\n", composePath)
 
 		if migrateFrom != "" {
+			fmt.Println()
+			var assumedSourceVolume string
+			switch strings.ToLower(migrateFrom) {
+			case "warden":
+				assumedSourceVolume = migrated.ProjectName + "_dbdata"
+			case "ddev":
+				assumedSourceVolume = "ddev-" + migrated.ProjectName + "-db"
+			}
+
+			if assumedSourceVolume != "" && config.Stack.DBType != "none" && config.Stack.DBType != "" {
+				if !initAssumeYes {
+					proceed, err := pterm.DefaultInteractiveConfirm.
+						WithDefaultValue(false).
+						Show(fmt.Sprintf("Do you want to clone the existing database volume from %s ('%s') into Govard?", cases.Title(language.Und).String(migrateFrom), assumedSourceVolume))
+
+					if err == nil && proceed {
+						// Double-check if source volume exists
+						checkCmd := exec.Command("docker", "volume", "inspect", assumedSourceVolume)
+						if err := checkCmd.Run(); err == nil {
+							cloneOpts := dbCommandOptions{
+								Environment: "local",
+								AssumeYes:   true, // Automatically accept sub-prompts since user opted-in
+							}
+							if errClone := runDBCloneVolume(cmd, config, cloneOpts, []string{assumedSourceVolume}); errClone != nil {
+								pterm.Warning.Printf("Database clone failed: %v\n", errClone)
+							}
+						} else {
+							pterm.Warning.Printf("Source volume '%s' not found. Skipping clone.\n", assumedSourceVolume)
+						}
+					}
+				}
+			}
+
 			fmt.Println()
 			pterm.Info.Printf("Running environment diagnostics to finalize migration from %s...\n", migrateFrom)
 

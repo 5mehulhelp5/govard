@@ -55,6 +55,7 @@ Detect the project framework and generate `.govard.yml`.
 govard init
 govard init --framework magento2
 govard init --framework custom
+govard init --migrate-from warden
 ```
 
 ### `govard bootstrap`
@@ -326,6 +327,7 @@ govard db info
 govard db top
 govard db import --file backup.sql --drop
 govard db import --stream-db -e staging --drop
+govard db clone-volume warden_magento2_dbdata
 ```
 
 ### `govard deploy`

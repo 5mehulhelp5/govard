@@ -490,11 +490,26 @@ func pullRuntimeImages(check engine.DoctorCheck) DoctorFixResult {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {
-			result.Status = DoctorFixStatusFailed
-			result.Message = fmt.Sprintf("failed to pull image %s: %v", image, err)
-			return result
+			pterm.Warning.Printf("Failed to pull %s. Attempting local build fallback...\n", image)
+			composePath := engine.ComposeFilePath(wd, config.ProjectName)
+			built, fallbackErr := engine.FallbackBuildMissingGovardImagesFromCompose(composePath, os.Stdout, os.Stderr)
+			if fallbackErr != nil {
+				result.Status = DoctorFixStatusFailed
+				result.Message = fmt.Sprintf("failed to pull image %s and local fallback failed: %v", image, fallbackErr)
+				return result
+			}
+
+			// Verify if the build resolved it
+			if errCheck := exec.Command("docker", "image", "inspect", image).Run(); errCheck != nil {
+				result.Status = DoctorFixStatusFailed
+				result.Message = fmt.Sprintf("failed to pull image %s and it was not resolved by local fallback", image)
+				return result
+			}
+
+			result.Actions = append(result.Actions, fmt.Sprintf("Built %s locally (fallback %d images)", image, len(built)))
+		} else {
+			result.Actions = append(result.Actions, fmt.Sprintf("Pulled %s", image))
 		}
-		result.Actions = append(result.Actions, fmt.Sprintf("Pulled %s", image))
 	}
 
 	return result
