@@ -51,11 +51,16 @@ func ConfigureMagento(projectName string, config Config) error {
 	}
 
 	containerName := fmt.Sprintf("%s-php-1", projectName)
+	lockedKeys, _ := CheckMagentoEnvPHPLockedKeys(containerName, config)
+	if len(lockedKeys) > 0 {
+		pterm.Info.Printf("Detected %d locked core config keys in env.php. Govard will perform forced overrides to match local environment.\n", len(lockedKeys))
+	}
+
 	if err := ensureMagentoLocalWritableDirs(containerName, config); err != nil {
 		pterm.Warning.Printf("Could not prepare Magento writable dirs (continuing): %v\n", err)
 	}
 
-	commands := buildMagento2Commands(projectName, config)
+	commands := buildMagento2Commands(projectName, config, lockedKeys)
 
 	for _, cmd := range commands {
 		pterm.Info.Printf("→ %s...\n", cmd.Desc)
@@ -275,11 +280,11 @@ func buildFrameworkAutoConfigurationCommands(projectName string, config Config) 
 	case "magento1", "openmage":
 		return buildMagento1Commands(projectName, config)
 	default:
-		return buildMagento2Commands(projectName, config)
+		return buildMagento2Commands(projectName, config, nil)
 	}
 }
 
-func buildMagento2Commands(projectName string, config Config) []magentoCommand {
+func buildMagento2Commands(projectName string, config Config, lockedKeys map[string]bool) []magentoCommand {
 	containerName := fmt.Sprintf("%s-php-1", projectName)
 	searchEngine := ResolveMagentoSearchEngine(config)
 
@@ -357,11 +362,43 @@ func buildMagento2Commands(projectName string, config Config) []magentoCommand {
 
 	if config.Domain != "" {
 		baseUrl := fmt.Sprintf("https://%s/", config.Domain)
-		commands = append(commands, magentoCommand{
-			Desc: "Setting Base URLs",
-			Args: magentoDockerExecArgs(containerName, config, "bin/magento", "setup:store-config:set",
-				"--base-url="+baseUrl, "--base-url-secure="+baseUrl, "--no-interaction"),
-		})
+		if lockedKeys["web/unsecure/base_url"] || lockedKeys["web/secure/base_url"] {
+			commands = append(commands, magentoCommand{
+				Desc: "Setting Base URLs (Locked in env.php)",
+				Args: magentoDockerExecArgs(containerName, config, "bin/magento", "config:set",
+					"--lock-env", "web/unsecure/base_url", baseUrl, "--no-interaction"),
+			}, magentoCommand{
+				Desc: "Setting Secure Base URLs (Locked in env.php)",
+				Args: magentoDockerExecArgs(containerName, config, "bin/magento", "config:set",
+					"--lock-env", "web/secure/base_url", baseUrl, "--no-interaction"),
+			})
+		} else {
+			commands = append(commands, magentoCommand{
+				Desc: "Setting Base URLs",
+				Args: magentoDockerExecArgs(containerName, config, "bin/magento", "setup:store-config:set",
+					"--base-url="+baseUrl, "--base-url-secure="+baseUrl, "--no-interaction"),
+			})
+		}
+
+		if lockedKeys["web/cookie/cookie_domain"] {
+			// Extract domain for cookie (strip subdomains if needed, or use full)
+			// For local dev, using the full domain is usually safest.
+			commands = append(commands, magentoCommand{
+				Desc: "Setting Cookie Domain (Locked in env.php)",
+				Args: magentoDockerExecArgs(containerName, config, "bin/magento", "config:set",
+					"--lock-env", "web/cookie/cookie_domain", config.Domain, "--no-interaction"),
+				Optional: true,
+			})
+		}
+
+		if lockedKeys["web/secure/offloader_header"] {
+			commands = append(commands, magentoCommand{
+				Desc: "Setting Offloader Header (Locked in env.php)",
+				Args: magentoDockerExecArgs(containerName, config, "bin/magento", "config:set",
+					"--lock-env", "web/secure/offloader_header", "X-Forwarded-Proto", "--no-interaction"),
+				Optional: true,
+			})
+		}
 	}
 
 	// Per-store base URLs
@@ -734,4 +771,45 @@ func IsMagentoElasticsuiteProjectForTest() bool {
 // IsMagentoConfigPathUnavailableForTest exposes isMagentoConfigPathUnavailable for testing in /tests.
 func IsMagentoConfigPathUnavailableForTest(output string) bool {
 	return isMagentoConfigPathUnavailable(output)
+}
+
+// CheckMagentoEnvPHPLockedKeys inspects app/etc/env.php for keys that are hardcoded (locked).
+func CheckMagentoEnvPHPLockedKeys(containerName string, config Config) (map[string]bool, error) {
+	// PHP snippet to check for locked keys in env.php
+	script := `
+$env = @include 'app/etc/env.php';
+$keys = [
+    'web/unsecure/base_url' => ['system', 'default', 'web', 'unsecure', 'base_url'],
+    'web/secure/base_url' => ['system', 'default', 'web', 'secure', 'base_url'],
+    'web/cookie/cookie_domain' => ['system', 'default', 'web', 'cookie', 'cookie_domain'],
+    'web/secure/offloader_header' => ['system', 'default', 'web', 'secure', 'offloader_header'],
+];
+$found = [];
+if (is_array($env)) {
+    foreach ($keys as $name => $path) {
+        $val = $env;
+        foreach ($path as $p) {
+            $val = $val[$p] ?? null;
+        }
+        if ($val !== null) {
+            $found[] = $name;
+        }
+    }
+}
+echo implode(',', $found);
+`
+	args := magentoDockerExecArgs(containerName, config, "php", "-r", script)
+	output, err := exec.Command("docker", args...).CombinedOutput()
+	if err != nil {
+		return nil, nil // Silently fail if php/env.php unavailable
+	}
+
+	results := make(map[string]bool)
+	parts := strings.Split(strings.TrimSpace(string(output)), ",")
+	for _, p := range parts {
+		if p != "" {
+			results[p] = true
+		}
+	}
+	return results, nil
 }
