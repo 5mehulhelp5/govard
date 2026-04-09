@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.47.0] - 2026-04-09
+
+### ✨ New Features
+
+- **Migration Orchestration:** Added automated database volume migration support for Warden and DDEV during `govard init` via new `db clone-volume` command.
+- **Smart Magento Config:** Detect and force-override "locked" Magento core config keys (`base_url`, `cookie_domain`, `offloader_header`) in `app/etc/env.php` to match local environment.
+- **Interactive SSH Auth:** Proactive SSH public key detection and automated deployment when authentication fails during remote operations.
+
+### 🛠 Improvements
+
+- **Volume Hygiene:** Pre-create Docker volumes with official Compose labels to prevent warnings and improve environment stability.
+- **Doctor Fix Fallback:** `govard doctor --fix` now supports local image building if pulling a runtime image fails.
+
 ## [1.46.1] - 2026-04-09
 
 ### 🐛 Bug Fixes
