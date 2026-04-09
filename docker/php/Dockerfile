@@ -123,7 +123,7 @@ COPY --from=composer:2.2 /usr/bin/composer /usr/local/bin/composer2lts
 
 RUN set -eux; \
     PHP_VERSION_INT=$(echo $PHP_VERSION | cut -d. -f1,2 | tr -d .); \
-    if [ "$PHP_VERSION_INT" -lt 70 ] || [ "$PHP_VERSION_INT" -eq 70 ]; then \
+    if [ "$PHP_VERSION_INT" -lt 73 ]; then \
         ln -sf /usr/local/bin/composer2lts /usr/local/bin/composer; \
     else \
         ln -sf /usr/local/bin/composer2 /usr/local/bin/composer; \

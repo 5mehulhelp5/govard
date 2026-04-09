@@ -9,15 +9,14 @@ LABEL dev.govard.php.version="${PHP_VERSION}"
 
 USER root
 
-RUN apk add --no-cache nodejs npm curl openssh-client
+RUN apk add --no-cache nodejs curl openssh-client \
+    && if ! command -v npm >/dev/null 2>&1; then apk add --no-cache npm; fi
 
 RUN npm install -g --unsafe-perm grunt-cli gulp yarn
 
-RUN set -eux \
-    && mkdir -p /usr/local/share/n98-magerun \
-    && USE_ZEND_ALLOC=0 composer create-project n98/magerun /usr/local/share/n98-magerun --no-dev \
-    && ln -s /usr/local/share/n98-magerun/bin/n98-magerun /usr/local/bin/n98-magerun \
-    && ln -s /usr/local/share/n98-magerun/bin/n98-magerun /usr/local/bin/magerun \
-    && ln -s /usr/local/share/n98-magerun/bin/n98-magerun /usr/local/bin/mr
+RUN curl -sS -L https://github.com/netz98/n98-magerun/releases/download/1.101.1/n98-magerun.phar -o /usr/local/bin/n98-magerun \
+    && chmod +x /usr/local/bin/n98-magerun \
+    && ln -s /usr/local/bin/n98-magerun /usr/local/bin/magerun \
+    && ln -s /usr/local/bin/n98-magerun /usr/local/bin/mr
 
 USER www-data
