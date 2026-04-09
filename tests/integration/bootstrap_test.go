@@ -155,7 +155,7 @@ func TestBootstrapCloneMediaSyncAllMode(t *testing.T) {
 	if strings.Contains(logs, "--exclude catalog/product ") {
 		t.Fatalf("did not expect catalog/product exclusion when --media all is set, got:\n%s", logs)
 	}
-	assertBootstrapContains(t, logs, "--exclude catalog/product/cache")
+	assertBootstrapContains(t, logs, "--exclude *cache*/")
 }
 
 func assertBootstrapContains(t *testing.T, haystack string, needle string) {

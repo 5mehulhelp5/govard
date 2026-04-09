@@ -127,7 +127,7 @@ func TestSyncPlanAdvancedMediaModes(t *testing.T) {
 		plan, _ := cmd.BuildSyncExecutionPlanForTest(config, endpoints, opts)
 
 		cmdStr := plan.Commands[0]
-		if strings.Contains(cmdStr, "--exclude \"cache/\"") {
+		if strings.Contains(cmdStr, "--exclude *cache*/") {
 			t.Errorf("expected Laravel 'all' mode to NOT exclude cache, but it did: %s", cmdStr)
 		}
 	})
@@ -159,7 +159,7 @@ func TestSyncPlanAdvancedMediaModes(t *testing.T) {
 		plan, _ := cmd.BuildSyncExecutionPlanForTest(config, endpoints, opts)
 
 		cmdStr := plan.Commands[0]
-		if !strings.Contains(cmdStr, "--exclude */cache/*") {
+		if !strings.Contains(cmdStr, "--exclude *cache*/") {
 			t.Errorf("expected WordPress to exclude cache patterns, but it didn't: %s", cmdStr)
 		}
 	})

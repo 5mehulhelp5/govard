@@ -396,38 +396,46 @@ func getSyncNoiseExcludes(framework string) []string {
 	}
 	return excludes
 }
+
+func getCommonMediaExcludes() []string {
+	return []string{
+		"*.gz", "*.zip", "*.tar", "*.7z", "*.sql", "*.tmp", "*.temp", "*.bak", "*.old", "*.log",
+		"*tmp*/",
+		"*temp*/",
+		"*cache*/",
+		"*bak*/",
+		"*old*/",
+		"*log*/",
+		"*session*/",
+	}
+}
+
 func getMagentoMediaExcludes(mode string) []string {
 	mode = strings.ToLower(strings.TrimSpace(mode))
-	excludes := []string{
-		"*.gz",
-		"*.zip",
-		"*.tar",
-		"*.7z",
-		"*.sql",
-		"tmp",
+	excludes := getCommonMediaExcludes()
+	excludes = append(excludes,
 		"itm",
 		"import",
 		"export",
 		"importexport",
 		"captcha",
 		"analytics",
+		"custom_options",
+		"customer_address",
+		"sitemap",
 		"catalog/product.rm",
 		"catalog/product/product",
+		"catalog_webp",
 		"opti_image",
 		"webp_image",
-		"webp_cache",
 		"shoppingfeed",
-		"amasty/blog/cache",
-	}
+		"feeds",
+		"ftp",
+		"lengow",
+	)
 	switch mode {
-	case MediaSyncAll:
-		// Truly all: include catalog images and their caches (if requested via mode logic)
-		// Actually, we usually want to skip catalog/product/cache even in 'all' for Magento
-		// because they are generated on the fly.
-		excludes = append(excludes, "catalog/product/cache")
-	case MediaSyncCatalog:
-		// Do not exclude catalog/product, but still exclude cache
-		excludes = append(excludes, "catalog/product/cache")
+	case MediaSyncAll, MediaSyncCatalog:
+		// Truly all & Catalog modes: Base excludes already cover caches, no further excludes needed for catalog images.
 	default:
 		// Optimized or Minimal mode: exclude catalog images entirely
 		excludes = append(excludes, "catalog/product")
@@ -437,28 +445,20 @@ func getMagentoMediaExcludes(mode string) []string {
 
 func getWordPressMediaExcludes(mode string) []string {
 	mode = strings.ToLower(strings.TrimSpace(mode))
+	excludes := getCommonMediaExcludes()
 	if mode == MediaSyncAll {
 		return []string{}
 	}
-	return []string{
-		"cache/",
-		"*/cache/*",
-		"*.tmp",
-		"*.bak",
-		"*.old",
-	}
+	return excludes
 }
 
 func getLaravelMediaExcludes(mode string) []string {
 	mode = strings.ToLower(strings.TrimSpace(mode))
+	excludes := getCommonMediaExcludes()
 	if mode == MediaSyncAll {
 		return []string{}
 	}
-	return []string{
-		"cache/",
-		"temp/",
-		"testing/",
-	}
+	return append(excludes, "testing/")
 }
 
 func getMinimalExcludes() []string {
