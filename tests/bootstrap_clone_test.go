@@ -109,7 +109,7 @@ func TestShouldSkipBootstrapMediaSync(t *testing.T) {
 		},
 	}
 
-	skip, reason := cmd.ShouldSkipBootstrapMediaSyncForTest(config, "dev", true, false, false)
+	skip, reason := cmd.ShouldSkipBootstrapMediaSyncForTest(config, "dev", cmd.MediaSyncOptimized, false, false)
 	if !skip {
 		t.Fatal("expected media sync to be skipped when remote media path is missing")
 	}
@@ -122,7 +122,7 @@ func TestShouldSkipBootstrapMediaSync(t *testing.T) {
 	})
 	defer restore()
 
-	skip, reason = cmd.ShouldSkipBootstrapMediaSyncForTest(config, "dev", true, false, false)
+	skip, reason = cmd.ShouldSkipBootstrapMediaSyncForTest(config, "dev", cmd.MediaSyncOptimized, false, false)
 	if skip {
 		t.Fatalf("expected media sync to run when remote media path exists, reason=%s", reason)
 	}

@@ -91,7 +91,6 @@ Case Studies:
 			destination = to
 		}
 		files, _ := cmd.Flags().GetBool("file")
-		media, _ := cmd.Flags().GetBool("media")
 		database, _ := cmd.Flags().GetBool("db")
 		full, _ := cmd.Flags().GetBool("full")
 		deleteFiles, _ := cmd.Flags().GetBool("delete")
@@ -103,6 +102,7 @@ Case Studies:
 		noCompress, _ := cmd.Flags().GetBool("no-compress")
 		noNoise, _ := cmd.Flags().GetBool("no-noise")
 		noPII, _ := cmd.Flags().GetBool("no-pii")
+		mediaMode, _ := cmd.Flags().GetString("media")
 		includePatternsRaw, _ := cmd.Flags().GetStringArray("include")
 		excludePatternsRaw, _ := cmd.Flags().GetStringArray("exclude")
 		includePatterns := normalizeSyncPatterns(includePatternsRaw)
@@ -177,10 +177,10 @@ Case Studies:
 
 		if full {
 			files = true
-			media = true
+			mediaMode = MediaSyncAll
 			database = true
 		}
-		if !files && !media && !database {
+		if !files && mediaMode == "" && !database {
 			files = true
 		}
 
@@ -188,7 +188,7 @@ Case Studies:
 			Source:      source,
 			Destination: destination,
 			Files:       files,
-			Media:       media,
+			Media:       mediaMode,
 			DB:          database,
 			Delete:      deleteFiles,
 			Resume:      resumeTransfers,
@@ -201,7 +201,7 @@ Case Studies:
 		})
 		execOpts := SyncExecutionOptions{
 			Files:      files,
-			Media:      media,
+			Media:      mediaMode,
 			DB:         database,
 			Delete:     deleteFiles,
 			Resume:     resumeTransfers,
@@ -308,7 +308,7 @@ Case Studies:
 			return fmt.Errorf("post-synchronization hooks failed to execute: %w", err)
 		}
 
-		if config.Framework == "magento2" && (files || media) {
+		if config.Framework == "magento2" && (files || mediaMode != "") {
 			_ = engine.FixProjectPermissions(config.ProjectName, config)
 		}
 
@@ -334,7 +334,7 @@ func init() {
 	// 2. Resource Scopes
 	syncCmd.Flags().BoolP("full", "A", false, "Sync files, media, and database")
 	syncCmd.Flags().BoolP("file", "f", false, "Sync source code/files")
-	syncCmd.Flags().BoolP("media", "m", false, "Sync media files")
+	syncCmd.Flags().StringP("media", "m", "", "Sync media files (modes: optimized, all, catalog)")
 	syncCmd.Flags().BoolP("db", "b", false, "Sync database")
 
 	// 3. Filters & Paths

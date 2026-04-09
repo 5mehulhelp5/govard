@@ -42,7 +42,7 @@ var (
 	bootstrapMageUsername     string
 	bootstrapMagePassword     string
 	bootstrapAssumeYes        bool
-	bootstrapIncludeProduct   bool
+	bootstrapMediaModeFlag    string
 	bootstrapPlan             bool
 	bootstrapNoNoise          bool
 	bootstrapNoPII            bool
@@ -375,7 +375,7 @@ func needsRemoteEnvironment(opts BootstrapRuntimeOptions) bool {
 	}
 	// Remote is needed if we're cloning files, syncing media, or importing DB from remote.
 	// We skip the requirement if --db-dump is provided and other remote-dependent flags are off.
-	return opts.Clone || (opts.DBImport && opts.DBDump == "") || opts.MediaSync
+	return opts.Clone || (opts.DBImport && opts.DBDump == "") || opts.MediaSync != ""
 }
 
 func shouldRunFrameworkPostClone(config engine.Config, opts BootstrapRuntimeOptions) bool {
@@ -403,7 +403,7 @@ func shouldIgnoreFrameworkPostCloneError(config engine.Config, err error, cwd st
 }
 
 func shouldSkipBootstrapMediaSync(config engine.Config, opts BootstrapRuntimeOptions) (bool, string) {
-	if !opts.MediaSync {
+	if opts.MediaSync == "" {
 		return true, "media sync is disabled"
 	}
 	if opts.Clone && opts.CodeOnly {
@@ -435,11 +435,10 @@ func ShouldRunFrameworkPostCloneForTest(framework string, composerInstall bool) 
 func ShouldIgnoreFrameworkPostCloneErrorForTest(framework string, err error, cwd string) bool {
 	return shouldIgnoreFrameworkPostCloneError(engine.Config{Framework: framework}, err, cwd)
 }
-
-func ShouldSkipBootstrapMediaSyncForTest(config engine.Config, source string, mediaSync bool, clone bool, codeOnly bool) (bool, string) {
+func ShouldSkipBootstrapMediaSyncForTest(config engine.Config, source string, mediaMode string, clone bool, codeOnly bool) (bool, string) {
 	return shouldSkipBootstrapMediaSync(config, BootstrapRuntimeOptions{
 		Source:    source,
-		MediaSync: mediaSync,
+		MediaSync: mediaMode,
 		Clone:     clone,
 		CodeOnly:  codeOnly,
 	})
@@ -495,6 +494,7 @@ func init() {
 	bootstrapCmd.Flags().BoolVar(&bootstrapSkipDB, "no-db", false, "Skip database import")
 	bootstrapCmd.Flags().BoolVar(&bootstrapNoStreamDB, "no-stream-db", false, "Disable stream-db import mode")
 	bootstrapCmd.Flags().BoolVar(&bootstrapSkipMedia, "no-media", false, "Skip media sync")
+	bootstrapCmd.Flags().StringVar(&bootstrapMediaModeFlag, "media", "", "Media sync mode: optimized (default for remote), all, or catalog (Magento only)")
 	bootstrapCmd.Flags().BoolVar(&bootstrapSkipAdmin, "no-admin", false, "Skip admin user creation (Magento only)")
 
 	// 5. Privacy & Data Filtering
@@ -503,15 +503,14 @@ func init() {
 
 	// 6. Transfer & Sync Options
 	bootstrapCmd.Flags().BoolVar(&bootstrapDelete, "delete", false, "Delete files on destination that are missing on source (media/files sync)")
+	bootstrapCmd.Flags().BoolVarP(&bootstrapAssumeYes, "yes", "y", false, "Skip confirmation and proceed with bootstrap")
 	bootstrapCmd.Flags().BoolVar(&bootstrapNoCompress, "no-compress", false, "Disable rsync compression during transfer")
-	bootstrapCmd.Flags().BoolVar(&bootstrapIncludeProduct, "include-product", false, "Include catalog product images during media sync (Magento only)")
-	bootstrapCmd.Flags().StringSliceVar(&bootstrapExclude, "exclude", []string{}, "Exclude patterns for file/media sync")
+	bootstrapCmd.Flags().StringArrayVarP(&bootstrapExclude, "exclude", "X", nil, "Exclude patterns for file/media sync")
 
 	// 7. UX & Execution Control
 	bootstrapCmd.Flags().BoolVar(&bootstrapFixDeps, "fix-deps", false, "Run project custom fix-deps command before bootstrap")
 	bootstrapCmd.Flags().BoolVar(&bootstrapSkipUp, "skip-up", false, "Skip starting local containers before bootstrap steps")
 	bootstrapCmd.Flags().BoolVar(&bootstrapPlan, "plan", false, "Print the bootstrap plan and exit")
-	bootstrapCmd.Flags().BoolVarP(&bootstrapAssumeYes, "yes", "y", false, "Assume yes for non-critical bootstrap prompts")
 }
 
 func NeedsRemoteEnvironmentForTest(opts BootstrapRuntimeOptions) bool {

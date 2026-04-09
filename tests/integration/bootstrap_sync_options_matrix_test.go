@@ -242,7 +242,7 @@ func TestSyncOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 		result.AssertSuccess(t)
 
 		out := result.Stdout
-		assertMatrixContains(t, out, "Scopes:      files, media, db")
+		assertMatrixContains(t, out, "Scopes:      files, media (all), db")
 		assertMatrixContains(t, out, "Path Filter: app/code")
 		assertMatrixContains(t, out, "Includes:    app/*")
 		assertMatrixContains(t, out, "Excludes:    vendor/")
@@ -320,7 +320,7 @@ func TestSyncOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 			"sync",
 			"--source", "staging",
 			"--destination", "local",
-			"--media",
+			"--media", "optimized",
 			"--include", "catalog/*",
 			"--exclude", "catalog/cache",
 			"--no-resume",

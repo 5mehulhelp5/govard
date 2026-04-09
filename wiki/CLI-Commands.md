@@ -85,20 +85,18 @@ govard bootstrap -e staging --no-pii --no-noise
 | `-S, --no-pii` | Exclude sensitive data (customers, orders, admin users, passwords) |
 | `--delete` | Delete destination files not present on source |
 | `--no-compress` | Disable rsync compression |
-| `--exclude` | Custom rsync exclude patterns |
+| `-X, --exclude` | Custom rsync exclude patterns (repeatable) |
 | `--no-db` | Skip database import |
 | `--no-media` | Skip media sync |
+| `--media [mode]` | Media sync mode (`none`, `minimal`, `optimized`, `catalog`, `all`) |
 | `--no-composer` | Skip `composer install` |
 | `--no-admin` | Skip admin user creation (Magento 2 only) |
 | `--no-stream-db` | Use local temp file for DB transfer |
 
 **Magento special flags:**
 
-| Flag | Effect |
-| :--- | :--- |
 | `--include-sample` | Install sample data (fresh install) |
 | `--hyva-install` | Auto-install Hyva theme |
-| `--include-product` | Include catalog product images during media sync |
 
 **Plan & confirmation:**
 - `--plan` — print plan and exit without executing
@@ -309,8 +307,9 @@ Auto-selects `staging` remote if no `--source` is provided, falling back to `dev
 | `-d, --destination` / `--to` | Destination environment |
 | `--file`, `--media`, `--db`, `--full` | Scope selection |
 | `--plan` | Print plan and exit |
-| `--resume` / `--no-resume` | Resumable transfers (default: enabled) |
-| `--include`, `--exclude` | Rsync filter patterns |
+| `-I, --include` | Rsync include pattern (repeatable) |
+| `-X, --exclude` | Rsync exclude pattern (repeatable) |
+| `-m, --media [mode]` | Media sync scope (`none`, `minimal`, `optimized`, `catalog`, `all`) |
 | `-N, --no-noise` | Exclude ephemeral data |
 | `-P, --no-pii` | Exclude sensitive data |
 

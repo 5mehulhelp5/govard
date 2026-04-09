@@ -137,7 +137,7 @@ func TestDesktopPkgBuildRemoteSyncPlanArgsForTest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	expected := []string{"sync", "--source", "staging", "--destination", "local", "--media", "--plan"}
+	expected := []string{"sync", "--source", "staging", "--destination", "local", "--media", "optimized", "--plan"}
 	if !reflect.DeepEqual(args, expected) {
 		t.Fatalf("unexpected sync args: %#v", args)
 	}
@@ -230,15 +230,14 @@ func TestBuildPresetSyncOptionDefs_Full(t *testing.T) {
 func TestBuildBootstrapArgsWithOptions(t *testing.T) {
 	t.Run("Execution Mode", func(t *testing.T) {
 		args, err := desktop.BuildBootstrapArgsWithOptionsForTest("staging", map[string]bool{
-			"noDb":           true,
-			"assumeYes":      true,
-			"includeProduct": true,
+			"noDb":      true,
+			"assumeYes": true,
 		}, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		expected := []string{"bootstrap", "--environment", "staging", "--no-db", "--include-product", "--yes"}
+		expected := []string{"bootstrap", "--environment", "staging", "--no-db", "--yes"}
 		if !reflect.DeepEqual(args, expected) {
 			t.Fatalf("expected args %v, got %v", expected, args)
 		}

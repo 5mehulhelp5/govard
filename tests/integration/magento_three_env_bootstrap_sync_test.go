@@ -166,7 +166,7 @@ func TestMagentoThreeEnvironmentInitBootstrapAndSyncOptions(t *testing.T) {
 	syncPlan.AssertSuccess(t)
 	planOut := syncPlan.Stdout
 	assertContains(t, planOut, "Synchronization Plan Review")
-	assertContains(t, planOut, "Scopes:      files, media, db")
+	assertContains(t, planOut, "Scopes:      files, media (all), db")
 	assertContains(t, planOut, "Path Filter: app/code")
 	assertContains(t, planOut, "Includes:    app/*")
 	assertContains(t, planOut, "Excludes:    vendor/")

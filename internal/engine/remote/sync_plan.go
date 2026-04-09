@@ -9,7 +9,7 @@ type SyncOptions struct {
 	Source      string
 	Destination string
 	Files       bool
-	Media       bool
+	Media       string
 	DB          bool
 	Delete      bool
 	Resume      bool

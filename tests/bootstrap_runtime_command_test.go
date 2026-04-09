@@ -92,7 +92,7 @@ remotes:
 		{"tool", "composer", "dump-autoload", "-n"},
 		{"db", "import", "--yes", "--stream-db", "--environment", "staging"},
 		{"tool", "composer", "dump-autoload", "-n"},
-		{"sync", "--source", "staging", "--media", "--yes"},
+		{"sync", "--source", "staging", "--media", "optimized", "--yes"},
 	}
 	if !reflect.DeepEqual(calls, want) {
 		t.Fatalf("subcommand calls = %#v, want %#v", calls, want)

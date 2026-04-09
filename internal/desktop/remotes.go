@@ -1185,7 +1185,7 @@ func buildRemoteSyncArgsWithOptions(
 	case "files":
 		args = append(args, "--file")
 	case "media":
-		args = append(args, "--media")
+		args = append(args, "--media", "optimized")
 	case "db":
 		args = append(args, "--db")
 	case "full":
@@ -1279,7 +1279,6 @@ func buildPresetSyncOptionDefs(project, preset string) presetSyncOptions {
 		if isMagento {
 			opts = append(opts,
 				presetOptionDef{Key: "noAdmin", Label: "Skip Admin Creation", Description: "Do not create an admin user", DefaultValue: false},
-				presetOptionDef{Key: "includeProduct", Label: "Include Product Images", Description: "Include catalog product images in media sync", DefaultValue: false},
 			)
 		}
 
@@ -1340,9 +1339,6 @@ func buildBootstrapArgsWithOptions(remoteName string, options map[string]bool, p
 	}
 	if options["noStreamDb"] {
 		args = append(args, "--no-stream-db")
-	}
-	if options["includeProduct"] {
-		args = append(args, "--include-product")
 	}
 	if options["noNoise"] {
 		args = append(args, "--no-noise")

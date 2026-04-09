@@ -126,9 +126,9 @@ func TestBootstrapCloneMediaSyncExcludesProductByDefault(t *testing.T) {
 	assertBootstrapContains(t, logs, "--exclude catalog/product")
 }
 
-func TestBootstrapCloneMediaSyncIncludeProductFlag(t *testing.T) {
+func TestBootstrapCloneMediaSyncAllMode(t *testing.T) {
 	env := NewTestEnvironment(t)
-	projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "bootstrap-media-include-product")
+	projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "bootstrap-media-all")
 	shim := env.SetupRuntimeShims(t, map[string]int{
 		"docker": 0,
 		"ssh":    0,
@@ -143,17 +143,17 @@ func TestBootstrapCloneMediaSyncIncludeProductFlag(t *testing.T) {
 		"--clone", "--yes",
 
 		"--environment", "dev",
+		"--media", "all",
 		"--skip-up",
 		"--no-composer",
 		"--no-db",
 		"--no-admin",
-		"--include-product",
 	)
 	result.AssertSuccess(t)
 
 	logs := shim.ReadLog(t)
 	if strings.Contains(logs, "--exclude catalog/product ") {
-		t.Fatalf("did not expect catalog/product exclusion when --include-product is set, got:\n%s", logs)
+		t.Fatalf("did not expect catalog/product exclusion when --media all is set, got:\n%s", logs)
 	}
 	assertBootstrapContains(t, logs, "--exclude catalog/product/cache")
 }

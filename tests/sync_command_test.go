@@ -296,7 +296,7 @@ remotes:
 	root := cmd.RootCommandForTest()
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
-	root.SetArgs([]string{"sync", "--source", "staging", "--destination", "local", "--media"})
+	root.SetArgs([]string{"sync", "--source", "staging", "--destination", "local", "--media", "optimized"})
 
 	err := root.Execute()
 	if err == nil {

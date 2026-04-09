@@ -66,12 +66,9 @@ func buildBootstrapRemotePlan(config engine.Config, opts BootstrapRuntimeOptions
 	}
 
 	// 5. Media Sync
-	if opts.MediaSync {
+	if opts.MediaSync != "" {
 		plan.Descriptions = append(plan.Descriptions, fmt.Sprintf("Synchronizing media files from remote '%s'...", opts.Source))
-		cmdLine := fmt.Sprintf("govard sync --source %s --media", opts.Source)
-		if config.Framework == "magento2" && opts.IncludeProduct {
-			cmdLine += " --include-product"
-		}
+		cmdLine := fmt.Sprintf("govard sync --source %s --media %s", opts.Source, opts.MediaSync)
 		plan.Commands = append(plan.Commands, cmdLine)
 	}
 

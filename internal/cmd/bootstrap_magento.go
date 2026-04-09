@@ -112,44 +112,6 @@ return [
 	return nil
 }
 
-func bootstrapMagentoMediaSyncArgs(opts BootstrapRuntimeOptions) []string {
-	excludes := []string{
-		"*.gz",
-		"*.zip",
-		"*.tar",
-		"*.7z",
-		"*.sql",
-		"tmp",
-		"itm",
-		"import",
-		"export",
-		"importexport",
-		"captcha",
-		"analytics",
-		"catalog/product.rm",
-		"catalog/product/product",
-		"opti_image",
-		"webp_image",
-		"webp_cache",
-		"shoppingfeed",
-		"amasty/blog/cache",
-	}
-
-	// Keep product images excluded by default to make media sync faster.
-	// When explicitly requested, still exclude the cache folder.
-	if opts.IncludeProduct {
-		excludes = append(excludes, "catalog/product/cache")
-	} else {
-		excludes = append(excludes, "catalog/product")
-	}
-
-	args := make([]string, 0, len(excludes)*2)
-	for _, pattern := range excludes {
-		args = append(args, "--exclude", pattern)
-	}
-	return args
-}
-
 func runMagentoSearchHostFixViaCLI(cmd *cobra.Command, config engine.Config) error {
 	host := "elasticsearch"
 	if s := strings.ToLower(strings.TrimSpace(config.Stack.Services.Search)); s != "" && s != "none" {

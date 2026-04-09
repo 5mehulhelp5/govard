@@ -15,7 +15,7 @@ import (
 
 type SyncExecutionOptions struct {
 	Files      bool
-	Media      bool
+	Media      string
 	DB         bool
 	Delete     bool
 	Resume     bool
@@ -26,6 +26,14 @@ type SyncExecutionOptions struct {
 	Include    []string
 	Exclude    []string
 }
+
+const (
+	MediaSyncNone      = "none"
+	MediaSyncMinimal   = "minimal"
+	MediaSyncOptimized = "optimized"
+	MediaSyncCatalog   = "catalog"
+	MediaSyncAll       = "all"
+)
 
 const (
 	SyncScopeFiles = "Files"
@@ -60,7 +68,7 @@ func buildSyncExecutionPlan(config engine.Config, endpoints ResolvedSyncEndpoint
 		}
 		excludes := opts.Exclude
 		if opts.NoNoise {
-			excludes = append(excludes, getSyncNoiseExcludes(config.Framework, false)...)
+			excludes = append(excludes, getSyncNoiseExcludes(config.Framework)...)
 		}
 
 		rsyncCmd, _, err := buildRsyncForEndpoints(
@@ -84,10 +92,31 @@ func buildSyncExecutionPlan(config engine.Config, endpoints ResolvedSyncEndpoint
 		plan.Commands = append(plan.Commands, rsyncCmd.String())
 	}
 
-	if opts.Media {
+	if opts.Media != "" {
+		if opts.Media == MediaSyncNone {
+			// Skip media sync entirely if mode is "none"
+			return plan, nil
+		}
+
+		framework := strings.ToLower(config.Framework)
 		excludes := opts.Exclude
-		if opts.NoNoise {
-			excludes = append(excludes, getSyncNoiseExcludes(config.Framework, true)...)
+
+		switch framework {
+		case "magento2", "magento1", "openmage":
+			excludes = append(excludes, getMagentoMediaExcludes(opts.Media)...)
+		case "wordpress":
+			excludes = append(excludes, getWordPressMediaExcludes(opts.Media)...)
+		case "laravel":
+			excludes = append(excludes, getLaravelMediaExcludes(opts.Media)...)
+		default:
+			// Standard "Smart" behavior for other frameworks
+			if opts.Media != MediaSyncAll {
+				excludes = append(excludes, "cache/", "tmp/", "logs/")
+			}
+		}
+
+		if opts.Media == MediaSyncMinimal {
+			excludes = append(excludes, getMinimalExcludes()...)
 		}
 
 		rsyncCmd, _, err := buildRsyncForEndpoints(
@@ -142,7 +171,7 @@ func evaluateSyncPolicy(endpoints ResolvedSyncEndpoints, opts SyncExecutionOptio
 			return nil, err
 		}
 	}
-	if opts.Media {
+	if opts.Media != "" {
 		if err := ensureSyncCapability(endpoints, engine.RemoteCapabilityMedia); err != nil {
 			return nil, err
 		}
@@ -154,19 +183,19 @@ func evaluateSyncPolicy(endpoints ResolvedSyncEndpoints, opts SyncExecutionOptio
 	}
 
 	warnings := []string{}
-	if opts.Path != "" && (opts.Media || opts.DB) {
+	if opts.Path != "" && (opts.Media != "" || opts.DB) {
 		warnings = append(warnings, "Path filter only applies to file synchronization; media and database will use full configured paths.")
 	}
-	if len(opts.Include) > 0 && !opts.Files && !opts.Media {
+	if len(opts.Include) > 0 && !opts.Files && opts.Media == "" {
 		warnings = append(warnings, "Include patterns are only applicable to file or media rsync operations.")
 	}
-	if len(opts.Exclude) > 0 && !opts.Files && !opts.Media {
+	if len(opts.Exclude) > 0 && !opts.Files && opts.Media == "" {
 		warnings = append(warnings, "Exclude patterns are only applicable to file or media rsync operations.")
 	}
-	if opts.Resume && !opts.Files && !opts.Media {
+	if opts.Resume && !opts.Files && opts.Media == "" {
 		warnings = append(warnings, "Resume mode is only applicable to file or media rsync operations.")
 	}
-	if opts.NoCompress && !opts.Files && !opts.Media {
+	if opts.NoCompress && !opts.Files && opts.Media == "" {
 		warnings = append(warnings, "Compression settings are only applicable to file or media rsync operations.")
 	}
 	if !endpoints.Destination.IsLocal {
@@ -251,8 +280,8 @@ func syncScopes(opts SyncExecutionOptions) []string {
 	if opts.Files {
 		scopes = append(scopes, "files")
 	}
-	if opts.Media {
-		scopes = append(scopes, "media")
+	if opts.Media != "" {
+		scopes = append(scopes, fmt.Sprintf("media (%s)", opts.Media))
 	}
 	if opts.DB {
 		scopes = append(scopes, "db")
@@ -332,7 +361,7 @@ func resolveSyncResumeMode(resume bool, noResume bool) bool {
 	return resume
 }
 
-func getSyncNoiseExcludes(framework string, isMedia bool) []string {
+func getSyncNoiseExcludes(framework string) []string {
 	// 1. Global Metadata & Noise (IDE, OS, Version Control)
 	globalIgnores := []string{
 		".git/", ".idea/", ".vscode/", ".DS_Store", "thumbs.db", "node_modules/",
@@ -341,15 +370,6 @@ func getSyncNoiseExcludes(framework string, isMedia bool) []string {
 	// 2. Sensitive Security/Config Patterns (The "Sanitize" logic)
 	sensitivePatterns := []string{
 		".env", "*.pem", "*.key", "auth.json",
-	}
-
-	if isMedia {
-		mediaIgnores := []string{"cache/", "tmp/"}
-		switch strings.ToLower(framework) {
-		case "magento2", "magento1", "openmage":
-			mediaIgnores = append(mediaIgnores, "catalog/product/cache/")
-		}
-		return mediaIgnores
 	}
 
 	excludes := append(globalIgnores, sensitivePatterns...)
@@ -376,6 +396,78 @@ func getSyncNoiseExcludes(framework string, isMedia bool) []string {
 	}
 	return excludes
 }
+func getMagentoMediaExcludes(mode string) []string {
+	mode = strings.ToLower(strings.TrimSpace(mode))
+	excludes := []string{
+		"*.gz",
+		"*.zip",
+		"*.tar",
+		"*.7z",
+		"*.sql",
+		"tmp",
+		"itm",
+		"import",
+		"export",
+		"importexport",
+		"captcha",
+		"analytics",
+		"catalog/product.rm",
+		"catalog/product/product",
+		"opti_image",
+		"webp_image",
+		"webp_cache",
+		"shoppingfeed",
+		"amasty/blog/cache",
+	}
+	switch mode {
+	case MediaSyncAll:
+		// Truly all: include catalog images and their caches (if requested via mode logic)
+		// Actually, we usually want to skip catalog/product/cache even in 'all' for Magento
+		// because they are generated on the fly.
+		excludes = append(excludes, "catalog/product/cache")
+	case MediaSyncCatalog:
+		// Do not exclude catalog/product, but still exclude cache
+		excludes = append(excludes, "catalog/product/cache")
+	default:
+		// Optimized or Minimal mode: exclude catalog images entirely
+		excludes = append(excludes, "catalog/product")
+	}
+	return excludes
+}
+
+func getWordPressMediaExcludes(mode string) []string {
+	mode = strings.ToLower(strings.TrimSpace(mode))
+	if mode == MediaSyncAll {
+		return []string{}
+	}
+	return []string{
+		"cache/",
+		"*/cache/*",
+		"*.tmp",
+		"*.bak",
+		"*.old",
+	}
+}
+
+func getLaravelMediaExcludes(mode string) []string {
+	mode = strings.ToLower(strings.TrimSpace(mode))
+	if mode == MediaSyncAll {
+		return []string{}
+	}
+	return []string{
+		"cache/",
+		"temp/",
+		"testing/",
+	}
+}
+
+func getMinimalExcludes() []string {
+	return []string{
+		"*.jpg", "*.jpeg", "*.png", "*.gif", "*.webp", "*.svg", "*.ico",
+		"*.mp4", "*.mov", "*.webm", "*.ogv", "*.mp3", "*.pdf",
+	}
+}
+
 func isSyncingDirectory(path, sourcePath, destinationPath string) bool {
 	if path == "" || strings.HasSuffix(path, "/") || strings.HasSuffix(path, "\\") {
 		return true
@@ -406,10 +498,10 @@ func BuildSyncExecutionPlanForTest(config engine.Config, endpoints ResolvedSyncE
 }
 
 // SyncExecutionOptionsForTest creates a SyncExecutionOptions for testing.
-func SyncExecutionOptionsForTest(files, media, db bool) SyncExecutionOptions {
+func SyncExecutionOptionsForTest(files bool, mediaMode string, db bool) SyncExecutionOptions {
 	return SyncExecutionOptions{
 		Files: files,
-		Media: media,
+		Media: mediaMode,
 		DB:    db,
 	}
 }

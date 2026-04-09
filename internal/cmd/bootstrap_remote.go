@@ -20,7 +20,7 @@ var bootstrapRemoteDirExists = func(remoteName string, remoteCfg engine.RemoteCo
 }
 
 func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions) error {
-	requiresRemote := opts.Clone || (opts.DBImport && opts.DBDump == "") || opts.MediaSync
+	requiresRemote := opts.Clone || (opts.DBImport && opts.DBDump == "") || opts.MediaSync != ""
 
 	if requiresRemote {
 		if _, ok := config.Remotes[opts.Source]; !ok {
@@ -193,16 +193,16 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts Bootstrap
 		}
 	}
 
-	if opts.MediaSync {
+	if opts.MediaSync != "" {
 		if skip, reason := shouldSkipBootstrapMediaSync(config, opts); skip {
 			pterm.Warning.Printf("Skipping media sync: %s\n", reason)
 		} else {
-			args := []string{"sync", "--source", opts.Source, "--media"}
-			if config.Framework == "magento2" {
-				args = append(args, bootstrapMagentoMediaSyncArgs(opts)...)
-			}
+			args := []string{"sync", "--source", opts.Source, "--media", opts.MediaSync}
 			if opts.NoNoise {
 				args = append(args, "--no-noise")
+			}
+			for _, pattern := range opts.ExcludePatterns {
+				args = append(args, "--exclude", pattern)
 			}
 			if err := runGovardSubcommand(cmd, append(args, "--yes")...); err != nil {
 				pterm.Warning.Printf("Media synchronization was not fully completed, but bootstrap will continue: %v\n", err)

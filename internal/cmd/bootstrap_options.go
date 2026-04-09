@@ -15,7 +15,7 @@ type BootstrapRuntimeOptions struct {
 	Fresh           bool
 	IncludeSample   bool
 	DBImport        bool
-	MediaSync       bool
+	MediaSync       string
 	ComposerInstall bool
 	AdminCreate     bool
 	StreamDB        bool
@@ -28,7 +28,6 @@ type BootstrapRuntimeOptions struct {
 	MageUsername    string
 	MagePassword    string
 	AssumeYes       bool
-	IncludeProduct  bool
 	Plan            bool
 	NoNoise         bool
 	NoPII           bool
@@ -45,7 +44,7 @@ func resolveBootstrapOptions(cmd *cobra.Command) (BootstrapRuntimeOptions, error
 		Fresh:           bootstrapFresh,
 		IncludeSample:   bootstrapIncludeSample,
 		DBImport:        !bootstrapSkipDB,
-		MediaSync:       !bootstrapSkipMedia,
+		MediaSync:       resolveBootstrapMediaMode(),
 		ComposerInstall: !bootstrapSkipComposer,
 		AdminCreate:     !bootstrapSkipAdmin,
 		StreamDB:        !bootstrapNoStreamDB,
@@ -58,7 +57,6 @@ func resolveBootstrapOptions(cmd *cobra.Command) (BootstrapRuntimeOptions, error
 		MageUsername:    strings.TrimSpace(bootstrapMageUsername),
 		MagePassword:    strings.TrimSpace(bootstrapMagePassword),
 		AssumeYes:       bootstrapAssumeYes,
-		IncludeProduct:  bootstrapIncludeProduct,
 		Plan:            bootstrapPlan,
 		NoNoise:         bootstrapNoNoise,
 		NoPII:           bootstrapNoPII,
@@ -96,11 +94,11 @@ func resolveBootstrapOptions(cmd *cobra.Command) (BootstrapRuntimeOptions, error
 	if opts.Fresh {
 		opts.ComposerInstall = false
 		opts.DBImport = false
-		opts.MediaSync = false
+		opts.MediaSync = ""
 	}
 	if opts.Clone && opts.CodeOnly {
 		opts.DBImport = false
-		opts.MediaSync = false
+		opts.MediaSync = ""
 	}
 
 	return opts, nil
@@ -114,7 +112,7 @@ func DefaultBootstrapRuntimeOptionsForTest() BootstrapRuntimeOptions {
 	return BootstrapRuntimeOptions{
 		Source:          "",
 		DBImport:        true,
-		MediaSync:       true,
+		MediaSync:       MediaSyncOptimized,
 		ComposerInstall: true,
 		AdminCreate:     true,
 		StreamDB:        true,
@@ -146,7 +144,6 @@ func ResetBootstrapFlags() {
 	bootstrapMageUsername = ""
 	bootstrapMagePassword = ""
 	bootstrapAssumeYes = false
-	bootstrapIncludeProduct = false
 	bootstrapPlan = false
 	bootstrapNoNoise = false
 	bootstrapNoPII = false
@@ -155,7 +152,24 @@ func ResetBootstrapFlags() {
 	bootstrapExclude = []string{}
 
 	bootstrapCmd.Flags().VisitAll(func(flag *pflag.Flag) {
-		_ = flag.Value.Set(flag.DefValue)
+		// Avoid resetting slice/array flags via Set(DefValue) if the DefValue is "[]",
+		// as it can cause the literal string "[]" to be appended to the variable.
+		if sliceValue, ok := flag.Value.(pflag.SliceValue); ok && (flag.DefValue == "" || flag.DefValue == "[]") {
+			_ = sliceValue.Replace([]string{})
+		} else {
+			_ = flag.Value.Set(flag.DefValue)
+		}
 		flag.Changed = false
 	})
+	bootstrapMediaModeFlag = ""
+}
+
+func resolveBootstrapMediaMode() string {
+	if bootstrapSkipMedia {
+		return ""
+	}
+	if bootstrapMediaModeFlag != "" {
+		return bootstrapMediaModeFlag
+	}
+	return MediaSyncOptimized
 }

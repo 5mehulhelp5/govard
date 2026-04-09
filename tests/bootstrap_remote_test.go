@@ -38,7 +38,7 @@ func TestNeedsRemoteEnvironmentImproved(t *testing.T) {
 		},
 		{
 			name:     "Media sync should need remote",
-			opts:     cmd.BootstrapRuntimeOptions{MediaSync: true},
+			opts:     cmd.BootstrapRuntimeOptions{MediaSync: cmd.MediaSyncOptimized},
 			expected: true,
 		},
 	}

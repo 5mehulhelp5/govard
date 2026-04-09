@@ -137,7 +137,26 @@ govard sync -s staging --file --no-resume  # disable resumable
 
 ### Include and Exclude Filters
 
-`--include` and `--exclude` apply only to `-f, --file` and `-m, --media` scopes — they are ignored for DB-only sync.
+`--include` and `--exclude` (or `-I` and `-X`) apply only to `-f, --file` and `-m, --media` scopes — they are ignored for DB-only sync. 
+
+In `govard bootstrap`, `--exclude` acts as a global ignore list for both the source code clone and the subsequent media sync.
+
+### Smart Media Exclusions (Magento Only)
+
+Govard implements automated filtering for Magento media sync to optimize bandwidth and disk usage.
+
+| Category | Behavior | Excluded Paths |
+| :--- | :--- | :--- |
+| **None** | `--media none` | Skips media sync entirely |
+| **Minimal** | `--media minimal` | `*.jpg`, `*.png`, `*.webp`, `*.mp4`, `*.pdf` (assets only) |
+| **Optimized** | Default mode | `catalog/product/` (Magento), `*/cache/*` (WordPress) |
+| **Catalog** | `--media catalog` | `catalog/product/cache/` (Magento only) |
+| **All** | `--media all` | Truly all (includes caches if requested) |
+
+> [!NOTE]
+> All modes except **All** automatically exclude framework noise like `tmp/`, `cache/`, and `logs/`.
+
+To download everything, use `--media all`. To sync only CSS/JS/Fonts, use `--media minimal`.
 
 ### Protected Destinations
 
@@ -266,6 +285,59 @@ govard db dump -e staging --local --no-noise --no-pii
 
 ```bash
 govard bootstrap --clone -e staging --no-pii --no-noise --yes
+```
+
+**Case Study: Efficient Magento Bootstrap**
+
+Imagine you are bootstrapping a large Magento 2 project but only want the code and a subset of media:
+
+```bash
+# Clone code, sync DB without PII, and sync media WITHOUT heavy product images (default: optimized)
+govard bootstrap --clone -e staging --no-pii --no-noise --yes
+```
+
+**Case Study: Targeted Media Sync with Excludes**
+
+If you need to sync media but want to skip a specific large folder that isn't covered by default smart exclusions:
+
+```bash
+# Sync media from staging but skip a custom 'large-assets' directory
+govard sync -s staging --media -X "large-assets/*"
+```
+
+**Case Study: Including Products during Bootstrap**
+
+If you actually need the product images for a front-end task:
+
+```bash
+govard bootstrap --clone -e staging --media all --yes
+```
+
+**Case Study: Specific Catalog Sync**
+
+If you have already bootstrapped but now need to update specifically the product catalog images:
+
+```bash
+# Sync only catalog/product images, skipping the huge cache
+govard sync -s staging --media catalog
+```
+
+**Case Study: The "Broom" vs the "Tweezers"**
+
+Combine predefined smart modes (the Broom) with custom excludes (the Tweezers) for ultimate control:
+
+```bash
+# Get all media, but skip a specific legacy backup folder left on the server
+govard bootstrap --clone -e staging --media all -X "pub/media/backup_2022/*" --yes
+```
+
+**Case Study: Ultra-Fast Sync (Minimal)**
+
+If you are working on frontend CSS/JS and don't care about images at all:
+
+```bash
+# Sync only static assets (css, js, fonts, json)
+govard sync -s staging --media minimal
 ```
 
 ---

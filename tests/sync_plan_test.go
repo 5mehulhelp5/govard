@@ -42,7 +42,7 @@ func TestSyncPlanDirectoryDetection(t *testing.T) {
 	)
 
 	// Test Case 1: --path vendor (no slash) but it exists as a directory
-	opts := cmd.SyncExecutionOptionsForTest(true, false, false)
+	opts := cmd.SyncExecutionOptionsForTest(true, "", false)
 	opts.Path = "vendor"
 
 	plan, err := cmd.BuildSyncExecutionPlanForTest(config, endpoints, opts)
@@ -88,7 +88,7 @@ func TestSyncPlanScopes(t *testing.T) {
 	)
 
 	// Test Case: --full (Files + Media + DB)
-	opts := cmd.SyncExecutionOptionsForTest(true, true, true)
+	opts := cmd.SyncExecutionOptionsForTest(true, cmd.MediaSyncOptimized, true)
 
 	plan, err := cmd.BuildSyncExecutionPlanForTest(config, endpoints, opts)
 	if err != nil {
@@ -113,4 +113,54 @@ func TestSyncPlanScopes(t *testing.T) {
 	if plan.RsyncScopes[1] != cmd.SyncScopeMedia {
 		t.Errorf("expected second rsync scope to be %s, got %s", cmd.SyncScopeMedia, plan.RsyncScopes[1])
 	}
+}
+
+func TestSyncPlanAdvancedMediaModes(t *testing.T) {
+	endpoints := cmd.ResolveSyncEndpointsForTest(
+		cmd.SyncEndpoint{Name: "staging", IsLocal: false, RootPath: "/remote", MediaPath: "/remote/media"},
+		cmd.SyncEndpoint{Name: "local", IsLocal: true, RootPath: "/local", MediaPath: "/local/media"},
+	)
+
+	t.Run("Laravel All Mode Includes Cache", func(t *testing.T) {
+		config := engine.Config{Framework: "laravel"}
+		opts := cmd.SyncExecutionOptionsForTest(false, cmd.MediaSyncAll, false)
+		plan, _ := cmd.BuildSyncExecutionPlanForTest(config, endpoints, opts)
+
+		cmdStr := plan.Commands[0]
+		if strings.Contains(cmdStr, "--exclude \"cache/\"") {
+			t.Errorf("expected Laravel 'all' mode to NOT exclude cache, but it did: %s", cmdStr)
+		}
+	})
+
+	t.Run("Universal Minimal Mode Excludes Images", func(t *testing.T) {
+		config := engine.Config{Framework: "wordpress"}
+		opts := cmd.SyncExecutionOptionsForTest(false, cmd.MediaSyncMinimal, false)
+		plan, _ := cmd.BuildSyncExecutionPlanForTest(config, endpoints, opts)
+
+		cmdStr := plan.Commands[0]
+		if !strings.Contains(cmdStr, "--exclude *.jpg") || !strings.Contains(cmdStr, "--exclude *.png") {
+			t.Errorf("expected 'minimal' mode to exclude images, but it didn't: %s", cmdStr)
+		}
+	})
+
+	t.Run("Media None Mode Skips Sync", func(t *testing.T) {
+		config := engine.Config{Framework: "laravel"}
+		opts := cmd.SyncExecutionOptionsForTest(false, cmd.MediaSyncNone, false)
+		plan, _ := cmd.BuildSyncExecutionPlanForTest(config, endpoints, opts)
+
+		if len(plan.RsyncCommands) != 0 {
+			t.Errorf("expected 0 rsync commands for 'none' mode, got %d", len(plan.RsyncCommands))
+		}
+	})
+
+	t.Run("WordPress Specific Excludes", func(t *testing.T) {
+		config := engine.Config{Framework: "wordpress"}
+		opts := cmd.SyncExecutionOptionsForTest(false, cmd.MediaSyncOptimized, false)
+		plan, _ := cmd.BuildSyncExecutionPlanForTest(config, endpoints, opts)
+
+		cmdStr := plan.Commands[0]
+		if !strings.Contains(cmdStr, "--exclude */cache/*") {
+			t.Errorf("expected WordPress to exclude cache patterns, but it didn't: %s", cmdStr)
+		}
+	})
 }
