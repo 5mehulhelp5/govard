@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.46.1] - 2026-04-09
+
+### 🐛 Bug Fixes
+
+- **Magento Docker Images:** Resolved persistent build failures and runtime errors in Magento 1 and 2 environments. Implemented a robust, version-aware dependency installation strategy that uses a pinned stable legacy version (**v1.101.1**) for Magento 1 to ensure full compatibility with PHP 5.6/7.0.
+- **PHP Dockerfiles:** Fixed global `npm` installation permission issues by enforcing the `--unsafe-perm` flag across all PHP-based Docker images.
+- **Build Stability:** Optimized memory management during container image builds by disabling Zend allocation and using specific PHP configuration flags to prevent segmentation faults during heavy dependency resolution.
+
 ## [1.46.0] - 2026-04-09
 
 ### ✨ New Features
