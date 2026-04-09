@@ -150,8 +150,7 @@ Govard implements automated filtering for Magento media sync to optimize bandwid
 | **None** | `--media none` | Skips media sync entirely |
 | **Minimal** | `--media minimal` | `*.jpg`, `*.png`, `*.webp`, `*.mp4`, `*.pdf` (assets only) |
 | **Optimized** | Default mode | `catalog/product/` (Magento), `*/cache/*` (WordPress) |
-| **Catalog** | `--media catalog` | `catalog/product/cache/` (Magento only) |
-| **All** | `--media all` | Truly all (includes caches if requested) |
+| **All** | `--media all` | Truly all (includes everything, use with caution) |
 
 > [!NOTE]
 > All modes except **All** automatically exclude framework noise like `tmp/`, `cache/`, and `logs/`.
@@ -311,15 +310,6 @@ If you actually need the product images for a front-end task:
 
 ```bash
 govard bootstrap --clone -e staging --media all --yes
-```
-
-**Case Study: Specific Catalog Sync**
-
-If you have already bootstrapped but now need to update specifically the product catalog images:
-
-```bash
-# Sync only catalog/product images, skipping the huge cache
-govard sync -s staging --media catalog
 ```
 
 **Case Study: The "Broom" vs the "Tweezers"**

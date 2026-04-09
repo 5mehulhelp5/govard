@@ -88,7 +88,7 @@ govard bootstrap -e staging --no-pii --no-noise
 | `-X, --exclude` | Custom rsync exclude patterns (repeatable) |
 | `--no-db` | Skip database import |
 | `--no-media` | Skip media sync |
-| `--media [mode]` | Media sync mode (`none`, `minimal`, `optimized`, `catalog`, `all`) |
+| `--media [mode]` | Media sync mode (`none`, `minimal`, `optimized`, `all`) |
 | `--no-composer` | Skip `composer install` |
 | `--no-admin` | Skip admin user creation (Magento 2 only) |
 | `--no-stream-db` | Use local temp file for DB transfer |
@@ -309,7 +309,7 @@ Auto-selects `staging` remote if no `--source` is provided, falling back to `dev
 | `--plan` | Print plan and exit |
 | `-I, --include` | Rsync include pattern (repeatable) |
 | `-X, --exclude` | Rsync exclude pattern (repeatable) |
-| `-m, --media [mode]` | Media sync scope (`none`, `minimal`, `optimized`, `catalog`, `all`) |
+| `-m, --media [mode]` | Media sync scope (`none`, `minimal`, `optimized`, `all`) |
 | `-N, --no-noise` | Exclude ephemeral data |
 | `-P, --no-pii` | Exclude sensitive data |
 

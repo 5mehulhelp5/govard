@@ -152,10 +152,12 @@ func TestBootstrapCloneMediaSyncAllMode(t *testing.T) {
 	result.AssertSuccess(t)
 
 	logs := shim.ReadLog(t)
-	if strings.Contains(logs, "--exclude catalog/product ") {
+	if strings.Contains(logs, "--exclude catalog/product") {
 		t.Fatalf("did not expect catalog/product exclusion when --media all is set, got:\n%s", logs)
 	}
-	assertBootstrapContains(t, logs, "--exclude *cache*/")
+	if strings.Contains(logs, "--exclude *cache*/") {
+		t.Fatalf("expected all sync patterns to be included (no cache exclude) when --media all is set, but got exclude:\n%s", logs)
+	}
 }
 
 func assertBootstrapContains(t *testing.T, haystack string, needle string) {
