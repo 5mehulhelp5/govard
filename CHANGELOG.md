@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.46.0] - 2026-04-09
+
+### ✨ New Features
+
+- **Bootstrap Interruption:** Added skippable subcommand execution during the `bootstrap` process. Users can now skip non-critical tasks (like large database imports or initial file syncs) by pressing **Ctrl+C** without terminating the entire command.
+- **Granular Media Sync:** Introduced granular media synchronization modes (`minimal`, `none`, `all`). This allows for more precise control over asset transfers during bootstrap and sync operations, significantly reducing onboarding time for media-heavy projects.
+
+### 🛠 Improvements
+
+- **Sync Optimization:** Consolidated and standardized synchronization exclusion logic across Magento, WordPress, and Laravel. Implemented a robust set of wildcard patterns for cache, temporary, and junk files to improve sync performance and reduce network overhead.
+- **Sync UX:** Replaced tactical `pterm` spinners with high-visibility standard info and success logs in the `sync` command to prevent terminal output collisions and provide a more stable progress overview.
+- **Installer Robustness:** Enhanced the unified installer with improved binary conflict detection and more descriptive feedback during dependency verification.
+
+### 🔄 Refactors
+
+- **Media Sync Strategy:** Transitioned the media synchronization logic from a simple boolean flag to a granular, string-based mode system across all core command families and the Desktop backend bridge.
+- **Magento Sync Logic:** Removed the legacy "catalog media" sync mode in favor of the new granular `minimal` mode, simplifying the synchronization workflow for Magento developers.
+
+### 🐛 Bug Fixes
+
+- **PHP Dockerfiles:** Added the `--unsafe-perm` flag to global `npm install` commands in PHP Dockerfiles to resolve permission issues when building images as non-root users.
+- **Composer Performance:** Disabled Zend memory allocation for Composer operations in PHP Dockerfiles to prevent memory-related crashes during heavy dependency resolution.
+- **Docker Bake:** Formally registered `php-magento1` and `php-magento1-debug` targets in `docker-bake.hcl` for improved build observability and lifecycle management.
+
 ## [1.45.1] - 2026-04-08
 
 ### 🐛 Bug Fixes
