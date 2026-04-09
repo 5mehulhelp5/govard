@@ -260,27 +260,32 @@ install_binary_file() {
 }
 
 warn_if_mixed_install_channels() {
-    if [[ "${INSTALL_DIR%/}" != "/usr/local/bin" ]]; then
+    local detected_paths=()
+    local binaries=("$CLI_BINARY_NAME" "$DESKTOP_BINARY_NAME")
+    
+    for binary_name in "${binaries[@]}"; do
+        for path in "/usr/local/bin/${binary_name}" "/usr/bin/${binary_name}" "${HOME}/.local/bin/${binary_name}"; do
+            if [[ -f "$path" ]]; then
+                detected_paths+=("$path")
+            fi
+        done
+    done
+
+    # Unique detected paths
+    local unique_paths=($(echo "${detected_paths[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+    
+    if [[ ${#unique_paths[@]} -le ${#binaries[@]} ]]; then
         return 0
     fi
 
-    local mixed=false
-    for binary_name in "$CLI_BINARY_NAME" "$DESKTOP_BINARY_NAME"; do
-        local local_path="/usr/local/bin/${binary_name}"
-        local system_path="/usr/bin/${binary_name}"
-        if [[ -f "$local_path" && -f "$system_path" ]] && ! cmp -s "$local_path" "$system_path"; then
-            warn "Detected conflicting ${binary_name} binaries:"
-            echo "  - ${local_path}"
-            echo "  - ${system_path}"
-            mixed=true
-        fi
+    warn "Detected conflicting Govard binaries in multiple locations:"
+    for path in "${unique_paths[@]}"; do
+        echo "  - ${path}"
     done
-
-    if [[ "$mixed" == true ]]; then
-        warn "Mixed install channels detected (.deb + local install). Use one channel only."
-        info "If you want to keep /usr/local/bin as source of truth, remove the package-managed copy:"
-        echo "  sudo apt remove govard    # or: sudo dpkg -r govard"
-    fi
+    
+    warn "This may cause 'unknown flag' errors or inconsistent behavior if your PATH prefers an outdated version."
+    info "Recommendation: Keep only one installation. Use '/usr/local/bin' for system-wide or '~/.local/bin' for local-only."
+    info "To clean up, you might want to remove: sudo rm /usr/local/bin/govard OR rm ~/.local/bin/govard"
 }
 
 extract_binary_from_deb() {

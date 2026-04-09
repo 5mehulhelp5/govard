@@ -33,11 +33,19 @@ Framework Notes:
 - Preferred naming: use --source/--from and --destination/--to.
 - -e / --environment remains a supported source-environment selector.
 
+Media Sync Modes (--media):
+- optimized: Default for remote. Skips heavy assets like products (Magento) or caches (WordPress).
+- minimal: Syncs only non-binary assets (CSS, JS, Fonts). Ideal for frontend tasks.
+- catalog: Focuses on product images (Magento only).
+- all: Truly all files, including caches if not ignored by global noise filters.
+- none: Explicitly skip media.
+
 Case Studies:
 - Daily Data Refresh: Fetch the latest DB and media from staging to work on a fresh dataset.
 - Single File Fix: Push a hotfix file to a dev remote for quick verification.
 - Media Sync Only: Sync product images from production without affecting your local code or DB.
-- Full Onboarding: Use --full to get code, media, and DB in one command.`,
+- Full Onboarding: Use --full to get code, media, and DB in one command.
+- Frontend Refresh: Sync only CSS/JS static assets using --media minimal.`,
 	Example: `  # Sync everything from staging to local (default behavior)
   govard sync -s staging --full
 
@@ -334,7 +342,7 @@ func init() {
 	// 2. Resource Scopes
 	syncCmd.Flags().BoolP("full", "A", false, "Sync files, media, and database")
 	syncCmd.Flags().BoolP("file", "f", false, "Sync source code/files")
-	syncCmd.Flags().StringP("media", "m", "", "Sync media files (modes: optimized, all, catalog)")
+	syncCmd.Flags().StringP("media", "m", "", "Sync media files (modes: optimized, all, catalog, minimal, or none)")
 	syncCmd.Flags().BoolP("db", "b", false, "Sync database")
 
 	// 3. Filters & Paths

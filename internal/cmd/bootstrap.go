@@ -65,6 +65,13 @@ Two primary modes:
   --clone: Performs a full file rsync FROM the remote before the steps above. Use this only
     when you need an exact copy of the remote source (e.g. first-time onboarding without Git).
 
+Media Sync Modes (--media):
+- optimized: Default. Skips large generated/cache and heavy assets like products (Magento).
+- catalog: Includes product images but skips product caches (Magento only).
+- all: Syncs everything without exclusions.
+- minimal: Syncs only non-binary assets (CSS, JS, Fonts). Skips images/videos.
+- none: Skips media sync entirely (same as --no-media).
+
 Framework Specifics:
 - Magento 2: Automates auth.json, env.php, database import, media sync, and admin user creation.
 - Symfony/Laravel: Handles .env generation and composer install.
@@ -77,6 +84,7 @@ Case Studies:
 - Fresh Start: 'govard bootstrap --framework magento2 --fresh --framework-version 2.4.8' — clean Magento install from Composer.
 - Code only: 'govard bootstrap --clone --code-only -e dev' — files only, skip DB and media.
 - Specify Framework: 'govard bootstrap --framework magento2' — Ensures Magento 2 environment if initialization is required.
+- Minimal Frontend Sync: 'govard bootstrap -e staging --media minimal' — Syncs DB and only light assets (CSS/JS).
 
 Note: -e/--environment accepts remote name aliases (e.g. 'dev' matches a remote named 'development').`,
 	Example: `  # Refresh DB + media from dev (default — does NOT overwrite source files)
@@ -494,7 +502,7 @@ func init() {
 	bootstrapCmd.Flags().BoolVar(&bootstrapSkipDB, "no-db", false, "Skip database import")
 	bootstrapCmd.Flags().BoolVar(&bootstrapNoStreamDB, "no-stream-db", false, "Disable stream-db import mode")
 	bootstrapCmd.Flags().BoolVar(&bootstrapSkipMedia, "no-media", false, "Skip media sync")
-	bootstrapCmd.Flags().StringVar(&bootstrapMediaModeFlag, "media", "", "Media sync mode: optimized (default for remote), all, or catalog (Magento only)")
+	bootstrapCmd.Flags().StringVar(&bootstrapMediaModeFlag, "media", "", "Media sync mode: optimized (default for remote), all, catalog (Magento only), minimal, or none")
 	bootstrapCmd.Flags().BoolVar(&bootstrapSkipAdmin, "no-admin", false, "Skip admin user creation (Magento only)")
 
 	// 5. Privacy & Data Filtering
