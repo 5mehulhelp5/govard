@@ -537,11 +537,6 @@ func init() {
 	rootCmd.AddCommand(remoteCmd)
 }
 
-// RemoteCommand exposes the remote command for testing.
-func RemoteCommand() *cobra.Command {
-	return remoteCmd
-}
-
 // RootCommandForTest exposes the root command for tests.
 func RootCommandForTest() *cobra.Command {
 	return rootCmd

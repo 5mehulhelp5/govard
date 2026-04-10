@@ -1,11 +1,5 @@
 import { clearChildren, escapeHTML, setText } from "../utils/dom.js";
 
-export const createDashboardController = ({ bridge, refs, onStatus }) => {
-  const updateRefs = (newRefs) => {
-    refs = newRefs;
-  };
-};
-
 export const normalizeDashboardPayload = (data = {}) => ({
   active: data.ActiveEnvironments ?? data.active ?? 0,
   services: data.RunningServices ?? data.services ?? 0,

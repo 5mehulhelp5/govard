@@ -1409,11 +1409,6 @@ func ResolveProjectRootForRemotesForTest(project string) (string, error) {
 	return root, err
 }
 
-// FindExactProjectMatchForTest finds a project by its exact name or domain.
-func FindExactProjectMatchForTest(query string) (engine.ProjectRegistryEntry, error) {
-	return findExactProjectMatch(query)
-}
-
 func (s *RemoteService) TestRemote(project string, remoteName string) (string, error) {
 	message, err := testRemote(project, remoteName)
 	if err != nil {

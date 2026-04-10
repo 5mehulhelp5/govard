@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"os/exec"
 	"time"
 
 	"govard/internal/engine"
@@ -43,11 +42,6 @@ func SetDesktopLookPathForTest(fn func(file string) (string, error)) func() {
 	return func() {
 		desktopBinaryLookPath = previous
 	}
-}
-
-// ExecLookPathForTest delegates to exec.LookPath for test stubs.
-func ExecLookPathForTest(file string) (string, error) {
-	return exec.LookPath(file)
 }
 
 // DesktopProductionBuildTagsForTest exposes desktop production build tags.

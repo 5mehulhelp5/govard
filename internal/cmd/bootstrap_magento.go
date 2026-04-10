@@ -126,7 +126,3 @@ func runMagentoSearchHostFixViaCLI(cmd *cobra.Command, config engine.Config) err
 	}
 	return err
 }
-
-func EnsureBootstrapMagentoEnvPHPForTest(config engine.Config, source string) error {
-	return ensureBootstrapMagentoEnvPHP(config, BootstrapRuntimeOptions{Source: source})
-}

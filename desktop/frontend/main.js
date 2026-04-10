@@ -1714,10 +1714,6 @@ document.addEventListener("click", async (event) => {
     await logsController.clearLogs();
     return;
   }
-  if (action === "restart-terminal-session") {
-    // Embedded terminal is removed, so this action is a no-op or could be removed from UI
-    return;
-  }
   if (action === "download-logs") {
     await logsController.downloadLogs();
     return;
@@ -1734,22 +1730,6 @@ document.addEventListener("click", async (event) => {
     }
     return;
   }
-  // (filter-service and filter-severity are handled above)
-  if (action === "reset-settings") {
-    const confirmed = await showConfirm({
-      title: "Reset Settings",
-      message:
-        "Are you sure you want to reset all settings to defaults?<br><small class='text-text-tertiary opacity-70'>This will overwrite your proxy, IDE, and UI preferences.</small>",
-      icon: "restart_alt",
-      confirmText: "Reset Defaults",
-      cancelText: "Cancel",
-    });
-
-    if (confirmed) {
-      await settingsController.reset();
-    }
-    return;
-  }
 
   if (action === "quit-app") {
     if (window.go?.desktop?.App?.Quit) {
@@ -1758,11 +1738,6 @@ document.addEventListener("click", async (event) => {
     return;
   }
 
-  if (action === "switch-tab") {
-    const tabId = targetElement.dataset.tab;
-    if (tabId) switchTab(tabId);
-    return;
-  }
   if (action === "confirm-sync") {
     const { currentSyncRemote, currentSyncPreset } = getState();
     if (!currentSyncRemote || !currentSyncPreset) return;

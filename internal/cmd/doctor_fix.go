@@ -202,11 +202,6 @@ func fixGovardRegistry(check engine.DoctorCheck) DoctorFixResult {
 	return result
 }
 
-// TuneProjectProfileForTest is a non-interactive wrapper for unit tests.
-func TuneProjectProfileForTest(check engine.DoctorCheck, forceOverride bool) DoctorFixResult {
-	return tuneProjectProfileCore(check, true, forceOverride)
-}
-
 func tuneProjectProfile(check engine.DoctorCheck) DoctorFixResult {
 	return tuneProjectProfileCore(check, false, false)
 }

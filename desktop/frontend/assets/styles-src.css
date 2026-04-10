@@ -400,21 +400,8 @@ body {
   background-size: 2px 10px;
   background-repeat: repeat-y;
 }
-.dashed-line-h {
-  background-image: linear-gradient(
-    to right,
-    var(--dashed-line) 50%,
-    rgba(255, 255, 255, 0) 0%
-  );
-  background-position: top;
-  background-size: 10px 2px;
-  background-repeat: repeat-x;
-}
 .terminal-text {
   font-family: "Fira Code", monospace;
-}
-.blink-cursor {
-  animation: blink 1s step-end infinite;
 }
 /* Form overrides to fix double arrows */
 select.appearance-none {
