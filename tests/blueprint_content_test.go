@@ -120,8 +120,19 @@ func TestRenderBlueprintAddsKnownProjectDomainsToPHPRuntimeHosts(t *testing.T) {
 }
 
 func TestRenderBlueprintMountsGovardRootCAIntoPHPRuntimes(t *testing.T) {
-	homeDir := t.TempDir()
-	certDir := filepath.Join(homeDir, ".govard", "ssl")
+	tempDir := t.TempDir()
+	govardHome := setTestGovardHome(t, tempDir)
+
+	// We need to set up blueprints in the tempDir because we are calling RenderBlueprint directly on it
+	_, filename, _, _ := runtime.Caller(0)
+	projectRoot := filepath.Join(filepath.Dir(filename), "..")
+	blueprintsDir := filepath.Join(projectRoot, "internal", "blueprints", "files")
+	destBlueprintsDir := filepath.Join(tempDir, "blueprints")
+	if err := copyDir(blueprintsDir, destBlueprintsDir); err != nil {
+		t.Fatalf("Failed to copy blueprints: %v", err)
+	}
+
+	certDir := filepath.Join(govardHome, "ssl")
 	if err := os.MkdirAll(certDir, 0o755); err != nil {
 		t.Fatalf("create cert dir: %v", err)
 	}
@@ -131,9 +142,7 @@ func TestRenderBlueprintMountsGovardRootCAIntoPHPRuntimes(t *testing.T) {
 		t.Fatalf("write root ca: %v", err)
 	}
 
-	t.Setenv("HOME", homeDir)
-
-	content := renderComposeWithConfig(t, engine.Config{
+	config := engine.Config{
 		ProjectName: "project-a",
 		Framework:   "laravel",
 		Domain:      "project-a.test",
@@ -142,7 +151,18 @@ func TestRenderBlueprintMountsGovardRootCAIntoPHPRuntimes(t *testing.T) {
 				Xdebug: true,
 			},
 		},
-	})
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("render failed: %v", err)
+	}
+
+	composePath := engine.ComposeFilePath(tempDir, config.ProjectName)
+	contentBytes, err := os.ReadFile(composePath)
+	if err != nil {
+		t.Fatalf("read compose: %v", err)
+	}
+	content := string(contentBytes)
 
 	mount := certPath + ":/usr/local/share/ca-certificates/govard.crt:ro"
 	if count := strings.Count(content, mount); count != 2 {
@@ -223,13 +243,7 @@ func TestRenderBlueprintReRendersWhenKnownProjectDomainsChange(t *testing.T) {
 
 func TestRenderBlueprintReRendersWhenGovardRootCAAppears(t *testing.T) {
 	tempDir := t.TempDir()
-	setTestGovardHome(t, tempDir)
-
-	homeDir := filepath.Join(tempDir, "home")
-	if err := os.MkdirAll(homeDir, 0o755); err != nil {
-		t.Fatalf("create home dir: %v", err)
-	}
-	t.Setenv("HOME", homeDir)
+	govardHome := setTestGovardHome(t, tempDir)
 
 	_, filename, _, _ := runtime.Caller(0)
 	projectRoot := filepath.Join(filepath.Dir(filename), "..")
@@ -264,7 +278,7 @@ func TestRenderBlueprintReRendersWhenGovardRootCAAppears(t *testing.T) {
 		t.Fatalf("did not expect Govard Root CA mount before certificate export:\n%s", string(before))
 	}
 
-	certDir := filepath.Join(homeDir, ".govard", "ssl")
+	certDir := filepath.Join(govardHome, "ssl")
 	if err := os.MkdirAll(certDir, 0o755); err != nil {
 		t.Fatalf("create cert dir: %v", err)
 	}
