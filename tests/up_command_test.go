@@ -238,9 +238,10 @@ func TestRefreshCrossProjectRuntimeHostsRefreshesOtherPHPRuntimes(t *testing.T) 
 			switch path {
 			case "/workspace/project-b":
 				return engine.Config{
-					ProjectName: "project-b",
-					Framework:   "laravel",
-					Domain:      "project-b.test",
+					ProjectName:    "project-b",
+					Framework:      "laravel",
+					Domain:         "project-b.test",
+					LinkedProjects: []string{"project-a"},
 					Stack: engine.Stack{
 						Features: engine.Features{
 							Xdebug: true,

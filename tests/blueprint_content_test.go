@@ -104,9 +104,10 @@ func TestRenderBlueprintAddsKnownProjectDomainsToPHPRuntimeHosts(t *testing.T) {
 	}
 
 	content := renderComposeWithConfig(t, engine.Config{
-		ProjectName: "project-a",
-		Framework:   "laravel",
-		Domain:      "project-a.test",
+		ProjectName:    "project-a",
+		Framework:      "laravel",
+		Domain:         "project-a.test",
+		LinkedProjects: []string{"project-b"},
 		Stack: engine.Stack{
 			Features: engine.Features{
 				Xdebug: true,
@@ -196,9 +197,10 @@ func TestRenderBlueprintReRendersWhenKnownProjectDomainsChange(t *testing.T) {
 	}
 
 	config := engine.Config{
-		ProjectName: "project-a",
-		Framework:   "laravel",
-		Domain:      "project-a.test",
+		ProjectName:    "project-a",
+		Framework:      "laravel",
+		Domain:         "project-a.test",
+		LinkedProjects: []string{"project-b", "project-c"},
 		Stack: engine.Stack{
 			Features: engine.Features{
 				Xdebug: true,
