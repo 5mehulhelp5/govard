@@ -10,7 +10,7 @@ GOLANGCI_LINT_VERSION ?= v2.11.3
 GOLANGCI_LINT_BIN ?= $(shell go env GOPATH)/bin/golangci-lint
 LDFLAGS ?= -s -w -X govard/internal/cmd.Version=$(VERSION) -X govard/internal/desktop.Version=$(VERSION)
 
-.PHONY: help install install-release build-test-binary build clean test test-unit test-coverage test-integration test-integration-ci test-frontend lint lint-install fmt fmt-check vet push test-realenv-setup test-realenv test-realenv-clean
+.PHONY: help install install-release build-test-binary build clean test test-unit test-coverage test-integration test-integration-ci test-frontend lint lint-install fmt fmt-check vet push
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
@@ -86,27 +86,6 @@ fmt:
 vet:
 	@echo "Running go vet..."
 	go vet ./...
-
-# Real environment tests (3 Magento 2 instances)
-REALENV_DIR := tests/integration/realenv
-
-.PHONY: test-realenv-setup test-realenv test-realenv-clean test-realenv-full
-
-test-realenv-setup: build-test-binary
-	@echo "Setting up three-environment test infrastructure..."
-	@cd $(REALENV_DIR) && chmod +x setup-three-env.sh && ./setup-three-env.sh
-
-test-realenv:
-	@echo "Running real environment tests..."
-	@go test -mod=mod -tags realenv ./tests/integration/realenv/... -v -timeout 30m
-
-test-realenv-clean: ## Cleanup real environment test infrastructure
-	@echo "Cleaning up real environment..."
-	@cd $(REALENV_DIR) && ./setup-three-env.sh cleanup 2>/dev/null || true
-	@docker compose -f $(REALENV_DIR)/docker-compose.three-env.yml down -v 2>/dev/null || true
-
-# Full realenv test cycle
-test-realenv-full: test-realenv-clean test-realenv-setup test-realenv test-realenv-clean
 
 clean: ## Remove build artifacts and clean test cache
 	@echo "Cleaning build artifacts..."

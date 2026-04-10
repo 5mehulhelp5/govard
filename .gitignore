@@ -45,10 +45,6 @@
 /tests/init-projects/
 /tests/framework-projects/
 
-# Real environment test infrastructure (3 Magento 2 instances)
-/tests/integration/realenv/.ssh/
-/tests/integration/realenv/*.log
-
 # Desktop (Wails)
 /desktop/frontend/node_modules/
 /desktop/frontend/dist/
