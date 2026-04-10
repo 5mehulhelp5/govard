@@ -109,7 +109,7 @@ services:
       - "host.docker.internal:host-gateway"
       - "mail:host-gateway"
       {{ range .RuntimeDomainHosts }}
-      - "{{ . }}:host-gateway"
+      - "{{ . }}"
       {{ end }}
     {{ if and (eq .Config.Framework "magento2") .Config.Stack.Features.LiveReload }}
     ports:
@@ -166,7 +166,7 @@ services:
       - "host.docker.internal:host-gateway"
       - "mail:host-gateway"
       {{ range .RuntimeDomainHosts }}
-      - "{{ . }}:host-gateway"
+      - "{{ . }}"
       {{ end }}
   {{ end }}
 

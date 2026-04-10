@@ -113,15 +113,26 @@ Govard routes these domains through the same proxy and CA flow as the primary pr
 
 ### Inter-Project Access From PHP Runtimes
 
-Govard injects known Govard project domains into `php` and `php-debug` containers via `host-gateway`, allowing one local PHP project to call another through the shared Caddy proxy:
+By default, Govard projects are isolated. To allow one local PHP project to call another through the shared Caddy proxy, you must explicitly declare the dependency in your `.govard.yml` using the `linked_projects` field:
 
-```bash
-curl https://project-b.test
+```yaml
+linked_projects:
+  - project-b
 ```
+
+When a project is linked:
+1.  **Isolation by Default**: Only projects explicitly linked will have their domains injected into the container's `/etc/hosts`.
+2.  **Targeted Restarts**: When `project-b` starts, Govard will refresh only the projects that depend on it (like `project-a`), ensuring minimal downtime.
+3.  **Automatic Resolution**: Listing a project name automatically maps its primary domain and all extra domains.
 
 When `~/.govard/ssl/root.crt` is present, Govard also mounts that Root CA into `php` and `php-debug` and refreshes the container trust store during `govard env up` / `govard env restart`, so TLS verification works from inside the runtime.
 
-This host alias list is refreshed on `govard env up`. When a new Govard project comes online, Govard also refreshes the other running PHP runtimes so they learn the new `.test` hostname without requiring a full stack restart.
+This host alias list is refreshed on `govard env up`. If connectivity issues persist after linking, run:
+
+```bash
+govard doctor trust
+govard env restart
+```
 
 ### Multi-Store Magento
 

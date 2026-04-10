@@ -38,7 +38,7 @@ At a glance, these are the areas where Govard delivers stronger day-to-day value
 - **Framework Discovery**: Automatically detects Magento 1/OpenMage, Magento 2, Laravel, Next.js, Emdash, Drupal, Symfony, Shopware, CakePHP, and WordPress to generate tailored configurations.
 - **Custom Framework**: Interactive prompt to pick web server, database, cache, search, queue, and varnish for bespoke stacks.
 - **Xdebug Routing**: Dedicated `php-debug` container, activated only when `XDEBUG_SESSION` cookie is present.
-- **Inter-Project HTTP Reachability**: Govard-managed PHP runtimes (`php` and `php-debug`) can call other Govard project domains such as `https://project-b.test` through the shared proxy, without attaching those runtimes directly to the shared network.
+- **Inter-Project Connectivity**: Projects can securely communicate with each other (e.g., `curl https://other-project.test`) by explicitly declaring dependencies via `linked_projects`. This ensures network isolation by default and enables targeted container refreshes.
 - **Queue Support**: Optional RabbitMQ service for async workloads.
 - **High Performance**: Built with Go and uses the native Docker SDK for direct container orchestration.
 - **Local Image Fallback**: Automatically builds missing Govard-managed images locally from embedded blueprints if they cannot be pulled from Docker Hub. Disable this retry with `--no-fallback`.
@@ -342,15 +342,19 @@ dig +short laravel.test
 
 ### 1.1 Inter-Project Requests From PHP Containers
 
-Govard also injects known Govard project domains into `php` and `php-debug` containers via `host-gateway`, so containerized PHP code can call another local project through the shared Caddy proxy:
+Govard allows PHP runtimes (`php` and `php-debug`) to call other Govard project domains through the shared proxy. To enable this, you must explicitly declare the dependency in your `.govard.yml` using the `linked_projects` field:
 
-```bash
-curl https://project-b.test
+```yaml
+linked_projects:
+  - project-b
 ```
 
-When `~/.govard/ssl/root.crt` is present, Govard also mounts that Root CA into `php` and `php-debug` and refreshes each container trust store on `govard env up` / `govard env restart`, so TLS verification works from inside the runtime as well.
+When a project is linked:
+1.  **Isolation by Default**: Only projects explicitly linked will have their domains injected into the container's `/etc/hosts`.
+2.  **Targeted Restarts**: When `project-b` starts, Govard will refresh only the projects that depend on it (like `project-a`), ensuring minimal downtime for your environment.
+3.  **Automatic Resolution**: Linking a project automatically maps its primary domain and all extra domains.
 
-This mapping is refreshed when you run `govard env up`. If project `A` was already running before project `B` was added, starting `B` causes Govard to refresh the other running PHP runtimes so they pick up the new `.test` host alias. If containerized `curl https://project-b.test` still reports `unable to get local issuer certificate`, run:
+If project `A` is running and you start project `B` which `A` depends on, Govard will automatically refresh project `A`'s PHP runtimes. If connectivity issues persist, run:
 
 ```bash
 govard doctor trust

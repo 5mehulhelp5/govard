@@ -586,6 +586,12 @@ func refreshCrossProjectRuntimeHosts(ctx context.Context, currentProjectRoot str
 			continue
 		}
 
+		// Targeted refresh: Only restart if the running project has explicitly
+		// declared that it needs to see the current project.
+		if !projectDependsOn(projectConfig, currentProjectName) {
+			continue
+		}
+
 		frameworkConfig, ok := engine.GetFrameworkConfig(projectConfig.Framework)
 		if !ok || frameworkConfig.Runtime != "php" {
 			continue
@@ -596,11 +602,12 @@ func refreshCrossProjectRuntimeHosts(ctx context.Context, currentProjectRoot str
 			continue
 		}
 
+		pterm.Info.Printf("Refreshing cross-project dependencies for %s...\n", projectName)
+
 		args := []string{"up", "-d", "--no-deps", "php"}
 		if projectConfig.Stack.Features.Xdebug {
 			args = append(args, "php-debug")
 		}
-
 		composePath := engine.ComposeFilePathWithProfile(projectRoot, projectConfig.ProjectName, projectConfig.Profile)
 		if composeErr := upRefreshRunCompose(ctx, engine.ComposeOptions{
 			ProjectDir:  projectRoot,
@@ -615,10 +622,19 @@ func refreshCrossProjectRuntimeHosts(ctx context.Context, currentProjectRoot str
 	}
 
 	if len(refreshErrors) > 0 {
-		return fmt.Errorf("%s", strings.Join(refreshErrors, "; "))
+		return fmt.Errorf("failed updates: %s", strings.Join(refreshErrors, "; "))
 	}
 
 	return nil
+}
+
+func projectDependsOn(config engine.Config, projectName string) bool {
+	for _, host := range config.LinkedProjects {
+		if strings.TrimSpace(host) == projectName {
+			return true
+		}
+	}
+	return false
 }
 
 // ResolveUpProxyTarget resolves the upstream container for proxy registration.

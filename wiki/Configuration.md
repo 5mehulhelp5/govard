@@ -96,6 +96,9 @@ stack:
     isolated: false
     mftf: false
     livereload: false
+linked_projects:
+    - "other-project"
+    - "external-host.com:127.0.0.1"
 ```
 
 ---
@@ -112,6 +115,7 @@ stack:
 | `domain` | Primary project domain (e.g. `myproject.test`) |
 | `extra_domains` | Additional hostnames routed through the local proxy |
 | `store_domains` | Magento multi-store hostname → scope code map |
+| `linked_projects` | List of dependencies (project names or IP:domain) for cross-project connectivity |
 
 > [!IMPORTANT]
 > `project_name` and `domain` must be **unique** across all tracked Govard projects. Govard blocks `init` and `env up` when another project uses the same identity.
@@ -263,6 +267,25 @@ If `blueprint_registry` is enabled:
 - Remote payloads are cached under `~/.govard/blueprint-registry/`
 
 Govard fails fast if the checksum does not match.
+
+---
+
+## Inter-Project Connectivity
+
+By default, Govard projects are isolated. To allow a project to communicate with another Govard project via its `.test` domain, use the `linked_projects` field.
+
+### Key Behaviors
+
+- **Opt-in Visibility**: Hostnames for other projects are only injected into `/etc/hosts` if the project is explicitly listed in `linked_projects`.
+- **Automatic Domain Resolution**: Listing a project name (e.g., `bebe9`) will automatically map its primary domain and all extra domains to the shared proxy IP.
+- **Targeted Container Refresh**: When you start a project, Govard identifies which other running projects depend on it and restarts **only** those specific projects to update their host mappings.
+- **Manual Mappings**: You can also provide raw mappings in the format `hostname:ip`.
+
+```yaml
+linked_projects:
+  - "my-api-project"             # Project name
+  - "custom.site:192.168.1.10"   # Manual mapping
+```
 
 ---
 

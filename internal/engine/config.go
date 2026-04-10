@@ -55,6 +55,7 @@ type Config struct {
 	Domain           string              `yaml:"domain"`
 	ExtraDomains     []string            `yaml:"extra_domains,omitempty"`
 	StoreDomains     StoreDomainMappings `yaml:"store_domains,omitempty"`
+	LinkedProjects   []string            `yaml:"linked_projects,omitempty"`
 
 	Lock              LockConfig              `yaml:"lock,omitempty"`
 	BlueprintRegistry BlueprintRegistryConfig `yaml:"blueprint_registry,omitempty"`

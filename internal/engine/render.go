@@ -189,56 +189,83 @@ func renderEnvironmentFingerprint() string {
 
 func knownProjectRuntimeHostDomains(projectRoot string, currentConfig Config) []string {
 	seen := make(map[string]bool)
-	domains := make([]string, 0)
+	hostMappings := make([]string, 0)
 
-	addDomain := func(domain string) {
-		trimmed := strings.TrimSpace(strings.ToLower(domain))
+	addMapping := func(mapping string) {
+		trimmed := strings.TrimSpace(mapping)
 		if trimmed == "" || seen[trimmed] {
 			return
 		}
 		seen[trimmed] = true
-		domains = append(domains, trimmed)
+		hostMappings = append(hostMappings, trimmed)
 	}
 
-	for _, domain := range currentConfig.AllDomains() {
-		addDomain(domain)
+	if len(currentConfig.LinkedProjects) == 0 {
+		return nil
 	}
 
 	entries, err := ReadProjectRegistryEntries()
 	if err != nil {
-		sort.Strings(domains)
-		return domains
+		// Fallback: only include raw domain:ip mappings since we can't resolve project names
+		for _, h := range currentConfig.LinkedProjects {
+			if strings.Contains(h, ":") {
+				addMapping(h)
+			}
+		}
+		return hostMappings
+	}
+
+	entryByProjectName := make(map[string]ProjectRegistryEntry, len(entries))
+	for _, entry := range entries {
+		projectName := strings.TrimSpace(entry.ProjectName)
+		if projectName != "" {
+			entryByProjectName[projectName] = entry
+		}
 	}
 
 	cleanRoot := filepath.Clean(strings.TrimSpace(projectRoot))
-	for _, entry := range entries {
-		entryPath := filepath.Clean(strings.TrimSpace(entry.Path))
-		if cleanRoot != "" && entryPath == cleanRoot {
+
+	for _, host := range currentConfig.LinkedProjects {
+		host = strings.TrimSpace(host)
+		if host == "" {
 			continue
 		}
 
-		loadedDomains := false
-		if entryPath != "" {
-			if cfg, _, loadErr := LoadConfigFromDir(entryPath, false); loadErr == nil {
-				for _, domain := range cfg.AllDomains() {
-					addDomain(domain)
-				}
-				loadedDomains = true
+		// Raw mapping
+		if strings.Contains(host, ":") {
+			addMapping(host)
+			continue
+		}
+
+		// It's a project name
+		if entry, ok := entryByProjectName[host]; ok {
+			entryPath := filepath.Clean(strings.TrimSpace(entry.Path))
+			if cleanRoot != "" && entryPath == cleanRoot {
+				continue
 			}
-		}
 
-		if loadedDomains {
-			continue
-		}
+			var projectDomains []string
+			if entryPath != "" {
+				if cfg, _, loadErr := LoadConfigFromDir(entryPath, false); loadErr == nil {
+					projectDomains = cfg.AllDomains()
+				}
+			}
 
-		addDomain(entry.Domain)
-		for _, domain := range entry.ExtraDomains {
-			addDomain(domain)
+			if len(projectDomains) == 0 {
+				if entry.Domain != "" {
+					projectDomains = append(projectDomains, entry.Domain)
+				}
+				projectDomains = append(projectDomains, entry.ExtraDomains...)
+			}
+
+			for _, d := range projectDomains {
+				addMapping(fmt.Sprintf("%s:host-gateway", d))
+			}
 		}
 	}
 
-	sort.Strings(domains)
-	return domains
+	sort.Strings(hostMappings)
+	return hostMappings
 }
 
 func knownProjectRuntimeHostDomainsFingerprint(projectRoot string, currentConfig Config) string {
