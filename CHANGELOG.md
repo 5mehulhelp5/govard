@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.48.0] - 2026-04-10
+
+### ✨ New Features
+
+- **Inter-Project Connectivity:** Implemented opt-in cross-project networking via a new `linked_projects` field in `.govard.yml`. Projects that declare dependencies are selectively restarted to join the network of a newly started service, replacing the disruptive global container restart approach.
+
+### 🛠 Improvements
+
+- **Volume Naming:** Standardized all Docker volume names to use hyphens (`-`) instead of underscores (`_`), aligning with the existing `-data` pattern used across core blueprints.
+- **phpMyAdmin:** Pinned the phpMyAdmin service image to `5.2.2` for improved build reproducibility and stability.
+
+### 🔄 Refactors
+
+- **Testing Infrastructure:** Removed the real-environment integration test suite and all associated Makefile targets to reduce coupling to live Docker environments and streamline CI.
+
 ## [1.47.2] - 2026-04-10
 
 ### ✨ New Features
