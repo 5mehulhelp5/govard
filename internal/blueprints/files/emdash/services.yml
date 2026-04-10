@@ -9,7 +9,7 @@ services:
     user: root
     volumes:
       - .:/app
-      - node_modules:/app/node_modules
+      - node-modules:/app/node_modules
     command: >
       sh -lc '{{ emdashRuntimeCommand .PackageManager .Config.Domain }}'
     environment:
@@ -21,7 +21,7 @@ services:
       - govard-proxy
 
 volumes:
-  node_modules:
+  node-modules:
 
 networks:
   govard-net:

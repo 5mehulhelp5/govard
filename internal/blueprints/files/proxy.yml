@@ -9,8 +9,8 @@ services:
       - "443:443"
       - "2019:2019"
     volumes:
-      - caddy_data:/data
-      - caddy_config:/config
+      - caddy-data:/data
+      - caddy-config:/config
     networks:
       - govard-proxy
 
@@ -25,7 +25,7 @@ services:
     ports:
       - "1025:1025"
     volumes:
-      - mail_data:/data
+      - mail-data:/data
     networks:
       govard-proxy:
         aliases:
@@ -63,7 +63,7 @@ services:
     command: --admin-password '$$2y$$05$$kPildpVdhSHibCqqR8HFWO2XpZl2mWCo4eJ84LCZJrInbIQIiJu5u'
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - portainer_data:/data
+      - portainer-data:/data
     networks:
       - govard-proxy
 
@@ -72,7 +72,7 @@ networks:
     external: true
 
 volumes:
-  caddy_data:
-  caddy_config:
-  portainer_data:
-  mail_data:
+  caddy-data:
+  caddy-config:
+  portainer-data:
+  mail-data:

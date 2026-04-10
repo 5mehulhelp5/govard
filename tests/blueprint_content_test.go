@@ -348,7 +348,7 @@ func TestRenderEmdashBlueprint(t *testing.T) {
 		"working_dir: /app",
 		"exec npm run dev -- --host 0.0.0.0 --port 80 --allowed-hosts emdash.test",
 		"GOVARD_TRUSTED_DOMAIN=emdash.test",
-		"node_modules:/app/node_modules",
+		"node-modules:/app/node_modules",
 	} {
 		if !strings.Contains(content, expected) {
 			t.Fatalf("Expected %q to be in generated compose file for emdash:\n%s", expected, content)
