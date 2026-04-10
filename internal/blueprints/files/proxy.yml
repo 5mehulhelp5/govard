@@ -32,7 +32,7 @@ services:
           - mail
 
   pma:
-    image: phpmyadmin/phpmyadmin:latest
+    image: phpmyadmin/phpmyadmin:5.2.2
     container_name: govard-proxy-pma
     restart: always
     environment:
