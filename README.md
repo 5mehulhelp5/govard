@@ -38,6 +38,7 @@ At a glance, these are the areas where Govard delivers stronger day-to-day value
 - **Framework Discovery**: Automatically detects Magento 1/OpenMage, Magento 2, Laravel, Next.js, Emdash, Drupal, Symfony, Shopware, CakePHP, and WordPress to generate tailored configurations.
 - **Custom Framework**: Interactive prompt to pick web server, database, cache, search, queue, and varnish for bespoke stacks.
 - **Xdebug Routing**: Dedicated `php-debug` container, activated only when `XDEBUG_SESSION` cookie is present.
+- **Inter-Project HTTP Reachability**: Govard-managed PHP runtimes (`php` and `php-debug`) can call other Govard project domains such as `https://project-b.test` through the shared proxy, without attaching those runtimes directly to the shared network.
 - **Queue Support**: Optional RabbitMQ service for async workloads.
 - **High Performance**: Built with Go and uses the native Docker SDK for direct container orchestration.
 - **Local Image Fallback**: Automatically builds missing Govard-managed images locally from embedded blueprints if they cannot be pulled from Docker Hub. Disable this retry with `--no-fallback`.
@@ -339,6 +340,23 @@ resolvectl query laravel.test
 dig +short laravel.test
 ```
 
+### 1.1 Inter-Project Requests From PHP Containers
+
+Govard also injects known Govard project domains into `php` and `php-debug` containers via `host-gateway`, so containerized PHP code can call another local project through the shared Caddy proxy:
+
+```bash
+curl https://project-b.test
+```
+
+When `~/.govard/ssl/root.crt` is present, Govard also mounts that Root CA into `php` and `php-debug` and refreshes each container trust store on `govard env up` / `govard env restart`, so TLS verification works from inside the runtime as well.
+
+This mapping is refreshed when you run `govard env up`. If project `A` was already running before project `B` was added, starting `B` causes Govard to refresh the other running PHP runtimes so they pick up the new `.test` host alias. If containerized `curl https://project-b.test` still reports `unable to get local issuer certificate`, run:
+
+```bash
+govard doctor trust
+govard env restart
+```
+
 macOS (Create a resolver file):
 
 ```bash
@@ -365,6 +383,7 @@ What happens automatically:
 - Exports Root CA from Caddy to `~/.govard/ssl/root.crt`
 - Installs it into system trust store (Linux/macOS)
 - Best-effort import into browser NSS stores (Chromium/Firefox) when `certutil` is available
+- Makes the exported CA available to Govard PHP runtimes on the next `govard env up` / `govard env restart`
 
 Optional flags on `svc up`/`svc restart`:
 

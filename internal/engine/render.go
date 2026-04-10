@@ -12,6 +12,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"text/template"
 
@@ -47,6 +48,8 @@ type RenderData struct {
 	VarnishVclPath        string
 	PackageManager        string
 	ComposerVersion       string
+	RuntimeDomainHosts    []string
+	HostGovardRootCAPath  string
 }
 
 func findBlueprintsDir(startDir string) (string, error) {
@@ -184,6 +187,84 @@ func renderEnvironmentFingerprint() string {
 	return sb.String()
 }
 
+func knownProjectRuntimeHostDomains(projectRoot string, currentConfig Config) []string {
+	seen := make(map[string]bool)
+	domains := make([]string, 0)
+
+	addDomain := func(domain string) {
+		trimmed := strings.TrimSpace(strings.ToLower(domain))
+		if trimmed == "" || seen[trimmed] {
+			return
+		}
+		seen[trimmed] = true
+		domains = append(domains, trimmed)
+	}
+
+	for _, domain := range currentConfig.AllDomains() {
+		addDomain(domain)
+	}
+
+	entries, err := ReadProjectRegistryEntries()
+	if err != nil {
+		sort.Strings(domains)
+		return domains
+	}
+
+	cleanRoot := filepath.Clean(strings.TrimSpace(projectRoot))
+	for _, entry := range entries {
+		entryPath := filepath.Clean(strings.TrimSpace(entry.Path))
+		if cleanRoot != "" && entryPath == cleanRoot {
+			continue
+		}
+
+		loadedDomains := false
+		if entryPath != "" {
+			if cfg, _, loadErr := LoadConfigFromDir(entryPath, false); loadErr == nil {
+				for _, domain := range cfg.AllDomains() {
+					addDomain(domain)
+				}
+				loadedDomains = true
+			}
+		}
+
+		if loadedDomains {
+			continue
+		}
+
+		addDomain(entry.Domain)
+		for _, domain := range entry.ExtraDomains {
+			addDomain(domain)
+		}
+	}
+
+	sort.Strings(domains)
+	return domains
+}
+
+func knownProjectRuntimeHostDomainsFingerprint(projectRoot string, currentConfig Config) string {
+	domains := knownProjectRuntimeHostDomains(projectRoot, currentConfig)
+	if len(domains) == 0 {
+		return ""
+	}
+
+	hasher := sha256.New()
+	for _, domain := range domains {
+		_, _ = hasher.Write([]byte(domain))
+		_, _ = hasher.Write([]byte{0})
+	}
+	return hex.EncodeToString(hasher.Sum(nil))
+}
+
+func hostGovardRootCAPath() string {
+	candidate := filepath.Join(GovardHomeDir(), "ssl", "root.crt")
+	info, err := os.Stat(candidate)
+	if err != nil || info.IsDir() {
+		return ""
+	}
+
+	return candidate
+}
+
 // RenderBlueprint renders layered blueprints into a single docker-compose file
 func RenderBlueprint(root string, config Config) error {
 	return RenderBlueprintWithProfile(root, config, config.Profile)
@@ -191,7 +272,7 @@ func RenderBlueprint(root string, config Config) error {
 
 // BlueprintVersion should be incremented whenever architectural changes are made to the embedded blueprints
 // to ensure that 'govard env up' re-renders existing environments.
-const BlueprintVersion = "1.35"
+const BlueprintVersion = "1.37"
 
 func RenderBlueprintWithProfile(root string, config Config, profile string) error {
 	blueprintsFS, err := resolveBlueprintsDirForConfig(root, config)
@@ -212,12 +293,15 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 	}
 	envFingerprint := renderEnvironmentFingerprint()
 	packageManager := ResolveNodePackageManager(root)
+	runtimeDomainHosts := knownProjectRuntimeHostDomains(root, config)
+	runtimeDomainHostsFingerprint := knownProjectRuntimeHostDomainsFingerprint(root, config)
+	govardRootCAPath := hostGovardRootCAPath()
 
 	outputPath := ComposeFilePathWithProfile(root, config.ProjectName, profile)
 	hashPath := outputPath + ".hash"
 
 	hashData, _ := json.Marshal(config)
-	hashSum := sha256.Sum256(append(hashData, []byte(profile+BlueprintVersion+blueprintFingerprint+overrideFingerprint+envFingerprint+packageManager)...))
+	hashSum := sha256.Sum256(append(hashData, []byte(profile+BlueprintVersion+blueprintFingerprint+overrideFingerprint+envFingerprint+packageManager+runtimeDomainHostsFingerprint+govardRootCAPath)...))
 	currentHash := hex.EncodeToString(hashSum[:])
 
 	if existingHash, err := os.ReadFile(hashPath); err == nil && string(existingHash) == currentHash {
@@ -252,6 +336,8 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 		VarnishVclPath:       filepath.Join(GovardHomeDir(), "varnish", config.ProjectName, "default.vcl"),
 		PackageManager:       packageManager,
 		ComposerVersion:      config.Stack.ComposerVersion,
+		RuntimeDomainHosts:   runtimeDomainHosts,
+		HostGovardRootCAPath: govardRootCAPath,
 	}
 	if config.Stack.WebRoot != "" {
 		renderData.NGINXPublic = config.Stack.WebRoot

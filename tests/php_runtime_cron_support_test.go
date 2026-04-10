@@ -15,10 +15,27 @@ func TestPHPDockerfileInstallsCronieForMagentoCronInstall(t *testing.T) {
 	}
 }
 
+func TestPHPDockerfileInstallsCACertificatesForGovardRootCA(t *testing.T) {
+	content := readProjectFileForTest(t, filepath.Join("docker", "php", "Dockerfile"))
+	if !strings.Contains(content, "ca-certificates") {
+		t.Fatalf("expected docker/php/Dockerfile to install ca-certificates so local Govard TLS trust can be refreshed, got:\n%s", content)
+	}
+}
+
 func TestPHPEntrypointStartsCrondForInstalledCrontabs(t *testing.T) {
 	content := readProjectFileForTest(t, filepath.Join("docker", "php", "etc", "entrypoint.sh"))
 	if !strings.Contains(content, "crond") {
 		t.Fatalf("expected docker/php/etc/entrypoint.sh to start crond for installed crontabs, got:\n%s", content)
+	}
+}
+
+func TestPHPEntrypointRefreshesTrustStoreWhenGovardRootCAMounted(t *testing.T) {
+	content := readProjectFileForTest(t, filepath.Join("docker", "php", "etc", "entrypoint.sh"))
+	if !strings.Contains(content, "/usr/local/share/ca-certificates/govard.crt") {
+		t.Fatalf("expected php entrypoint to look for mounted Govard Root CA, got:\n%s", content)
+	}
+	if !strings.Contains(content, "update-ca-certificates") {
+		t.Fatalf("expected php entrypoint to refresh the trust store when Govard Root CA is mounted, got:\n%s", content)
 	}
 }
 

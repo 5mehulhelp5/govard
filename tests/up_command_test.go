@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"context"
 	"errors"
 	"os"
 	"reflect"
@@ -215,6 +216,84 @@ func TestWaitForUpRuntimeReadinessFailsFastWhenContainerExited(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "permission denied") {
 		t.Fatalf("expected container error detail, got %v", err)
+	}
+}
+
+func TestRefreshCrossProjectRuntimeHostsRefreshesOtherPHPRuntimes(t *testing.T) {
+	var renderedRoots []string
+	var composeCalls []engine.ComposeOptions
+
+	restore := cmd.SetUpCrossProjectRefreshDependenciesForTest(cmd.UpCrossProjectRefreshDependenciesForTest{
+		GetRunningProjectNames: func(_ context.Context) ([]string, error) {
+			return []string{"project-a", "project-b", "next-app"}, nil
+		},
+		ReadProjectRegistryEntries: func() ([]engine.ProjectRegistryEntry, error) {
+			return []engine.ProjectRegistryEntry{
+				{Path: "/workspace/project-a", ProjectName: "project-a", Domain: "project-a.test"},
+				{Path: "/workspace/project-b", ProjectName: "project-b", Domain: "project-b.test"},
+				{Path: "/workspace/next-app", ProjectName: "next-app", Domain: "next-app.test"},
+			}, nil
+		},
+		LoadConfigFromDir: func(path string, _ bool) (engine.Config, []string, error) {
+			switch path {
+			case "/workspace/project-b":
+				return engine.Config{
+					ProjectName: "project-b",
+					Framework:   "laravel",
+					Domain:      "project-b.test",
+					Stack: engine.Stack{
+						Features: engine.Features{
+							Xdebug: true,
+						},
+					},
+				}, nil, nil
+			case "/workspace/next-app":
+				return engine.Config{
+					ProjectName: "next-app",
+					Framework:   "nextjs",
+					Domain:      "next-app.test",
+				}, nil, nil
+			default:
+				return engine.Config{}, nil, errors.New("unexpected project path")
+			}
+		},
+		RenderBlueprint: func(root string, _ engine.Config) error {
+			renderedRoots = append(renderedRoots, root)
+			return nil
+		},
+		RunCompose: func(_ context.Context, opts engine.ComposeOptions) error {
+			composeCalls = append(composeCalls, opts)
+			return nil
+		},
+	})
+	defer restore()
+
+	err := cmd.RefreshCrossProjectRuntimeHostsForTest(context.Background(), "/workspace/project-a", engine.Config{
+		ProjectName: "project-a",
+		Framework:   "laravel",
+		Domain:      "project-a.test",
+	})
+	if err != nil {
+		t.Fatalf("refresh cross-project runtime hosts: %v", err)
+	}
+
+	if !reflect.DeepEqual(renderedRoots, []string{"/workspace/project-b"}) {
+		t.Fatalf("rendered roots = %#v, want %#v", renderedRoots, []string{"/workspace/project-b"})
+	}
+
+	if len(composeCalls) != 1 {
+		t.Fatalf("expected 1 compose refresh call, got %d", len(composeCalls))
+	}
+
+	got := composeCalls[0]
+	if got.ProjectDir != "/workspace/project-b" {
+		t.Fatalf("compose project dir = %q, want %q", got.ProjectDir, "/workspace/project-b")
+	}
+	if got.ProjectName != "project-b" {
+		t.Fatalf("compose project name = %q, want %q", got.ProjectName, "project-b")
+	}
+	if !reflect.DeepEqual(got.Args, []string{"up", "-d", "--no-deps", "php", "php-debug"}) {
+		t.Fatalf("compose args = %#v, want %#v", got.Args, []string{"up", "-d", "--no-deps", "php", "php-debug"})
 	}
 }
 

@@ -62,6 +62,7 @@ internal/updater/            Update-check notification logic
 | **Docker networks** | Per-project PHP/DB networks + shared `govard-proxy` network |
 
 The proxy terminates HTTPS and forwards requests into the current project stack.
+For PHP runtimes, Govard also injects known Govard `.test` host aliases via `host-gateway`, so one project can call another through Caddy without attaching `php` or `php-debug` directly to the shared proxy network.
 
 ---
 

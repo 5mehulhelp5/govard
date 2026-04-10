@@ -46,6 +46,13 @@ fi
 # Ensure specific PHP directories are correct
 sudo chown -R www-data:www-data /var/log/php /var/lib/php 2>/dev/null || true
 
+# Refresh the container trust store when Govard mounts its local Root CA.
+if [ -f "/usr/local/share/ca-certificates/govard.crt" ] && command -v update-ca-certificates >/dev/null 2>&1; then
+  if ! sudo update-ca-certificates >/dev/null 2>&1; then
+    echo "Warning: could not refresh container CA trust for Govard Root CA." >&2
+  fi
+fi
+
 # Start cron so Magento cron:install entries can execute inside the container.
 if command -v crond >/dev/null 2>&1; then
   sudo crond 2>/dev/null || true

@@ -51,6 +51,7 @@ RUN set -eux; \
     git \
     unzip \
     bash \
+    ca-certificates \
     sudo \
     $CRON_PKG \
     linux-headers \

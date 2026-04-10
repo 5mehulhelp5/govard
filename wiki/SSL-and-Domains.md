@@ -11,6 +11,7 @@ Govard provides local HTTPS for `.test` domains through the shared Caddy proxy a
 - Root CA export to `~/.govard/ssl/root.crt`
 - System trust-store installation (best-effort)
 - Browser NSS import when `certutil` is available
+- PHP runtime trust refresh on `govard env up` / `govard env restart` when the exported Root CA exists
 
 ---
 
@@ -110,6 +111,18 @@ govard domain list
 
 Govard routes these domains through the same proxy and CA flow as the primary project domain.
 
+### Inter-Project Access From PHP Runtimes
+
+Govard injects known Govard project domains into `php` and `php-debug` containers via `host-gateway`, allowing one local PHP project to call another through the shared Caddy proxy:
+
+```bash
+curl https://project-b.test
+```
+
+When `~/.govard/ssl/root.crt` is present, Govard also mounts that Root CA into `php` and `php-debug` and refreshes the container trust store during `govard env up` / `govard env restart`, so TLS verification works from inside the runtime.
+
+This host alias list is refreshed on `govard env up`. When a new Govard project comes online, Govard also refreshes the other running PHP runtimes so they learn the new `.test` hostname without requiring a full stack restart.
+
 ### Multi-Store Magento
 
 For Magento multi-site setups:
@@ -132,9 +145,10 @@ You do **not** need manual `SetEnvIf` rules in `.htaccess` for the standard type
 
 1. `govard env up` renders the project stack and registers all routes
 2. `govard env start` and `govard env restart` re-apply routes + local host entries after lifecycle changes
-3. Caddy terminates HTTPS
-4. Caddy forwards traffic to the project web container
-5. Govard manages the local CA and exported root certificate
+3. Govard injects known Govard project domains into PHP runtimes for container-to-container HTTP calls
+4. Caddy terminates HTTPS
+5. Caddy forwards traffic to the project web container
+6. Govard manages the local CA and exported root certificate
 
 ---
 
@@ -179,6 +193,15 @@ docker ps | grep caddy
 ```bash
 govard env restart    # Re-applies proxy routes + local domain entries
 ```
+
+### `curl` inside `php` or `php-debug` says `unable to get local issuer certificate`
+
+```bash
+govard doctor trust
+govard env restart
+```
+
+This re-exports the Govard Root CA, then recreates the PHP runtime with the CA mounted so `curl`, Composer, and other TLS clients trust `*.test` endpoints.
 
 ---
 

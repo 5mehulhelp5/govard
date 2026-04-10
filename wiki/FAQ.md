@@ -102,6 +102,17 @@ govard doctor trust
 govard env restart   # Re-applies proxy routes and host entries
 ```
 
+### Q: `curl` inside `php` or `php-debug` fails with `unable to get local issuer certificate`
+
+Run in this order:
+
+```bash
+govard doctor trust
+govard env restart
+```
+
+This exports the Govard Root CA to `~/.govard/ssl/root.crt`, then recreates the PHP runtime with that CA mounted and trusted inside the container.
+
 ---
 
 ## 🌐 DNS Issues

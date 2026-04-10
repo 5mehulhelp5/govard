@@ -89,6 +89,203 @@ func TestRenderLaravelBlueprint(t *testing.T) {
 	})
 }
 
+func TestRenderBlueprintAddsKnownProjectDomainsToPHPRuntimeHosts(t *testing.T) {
+	registryPath := filepath.Join(t.TempDir(), "projects.json")
+	t.Setenv(engine.ProjectRegistryPathEnvVar, registryPath)
+
+	if err := engine.UpsertProjectRegistryEntry(engine.ProjectRegistryEntry{
+		Path:         "/workspace/project-b",
+		ProjectName:  "project-b",
+		Domain:       "project-b.test",
+		ExtraDomains: []string{"brand-b.test"},
+		Framework:    "laravel",
+	}); err != nil {
+		t.Fatalf("seed registry: %v", err)
+	}
+
+	content := renderComposeWithConfig(t, engine.Config{
+		ProjectName: "project-a",
+		Framework:   "laravel",
+		Domain:      "project-a.test",
+		Stack: engine.Stack{
+			Features: engine.Features{
+				Xdebug: true,
+			},
+		},
+	})
+
+	if count := strings.Count(content, "project-b.test:host-gateway"); count != 2 {
+		t.Fatalf("expected project-b.test host mapping twice (php + php-debug), got %d\n%s", count, content)
+	}
+}
+
+func TestRenderBlueprintMountsGovardRootCAIntoPHPRuntimes(t *testing.T) {
+	homeDir := t.TempDir()
+	certDir := filepath.Join(homeDir, ".govard", "ssl")
+	if err := os.MkdirAll(certDir, 0o755); err != nil {
+		t.Fatalf("create cert dir: %v", err)
+	}
+
+	certPath := filepath.Join(certDir, "root.crt")
+	if err := os.WriteFile(certPath, []byte("test-root-ca"), 0o644); err != nil {
+		t.Fatalf("write root ca: %v", err)
+	}
+
+	t.Setenv("HOME", homeDir)
+
+	content := renderComposeWithConfig(t, engine.Config{
+		ProjectName: "project-a",
+		Framework:   "laravel",
+		Domain:      "project-a.test",
+		Stack: engine.Stack{
+			Features: engine.Features{
+				Xdebug: true,
+			},
+		},
+	})
+
+	mount := certPath + ":/usr/local/share/ca-certificates/govard.crt:ro"
+	if count := strings.Count(content, mount); count != 2 {
+		t.Fatalf("expected Govard Root CA mount twice (php + php-debug), got %d\n%s", count, content)
+	}
+}
+
+func TestRenderBlueprintReRendersWhenKnownProjectDomainsChange(t *testing.T) {
+	tempDir := t.TempDir()
+	setTestGovardHome(t, tempDir)
+
+	registryPath := filepath.Join(t.TempDir(), "projects.json")
+	t.Setenv(engine.ProjectRegistryPathEnvVar, registryPath)
+
+	_, filename, _, _ := runtime.Caller(0)
+	projectRoot := filepath.Join(filepath.Dir(filename), "..")
+	blueprintsDir := filepath.Join(projectRoot, "internal", "blueprints", "files")
+
+	destBlueprintsDir := filepath.Join(tempDir, "blueprints")
+	if err := copyDir(blueprintsDir, destBlueprintsDir); err != nil {
+		t.Fatalf("Failed to copy blueprints: %v", err)
+	}
+
+	if err := engine.UpsertProjectRegistryEntry(engine.ProjectRegistryEntry{
+		Path:        "/workspace/project-b",
+		ProjectName: "project-b",
+		Domain:      "project-b.test",
+		Framework:   "laravel",
+	}); err != nil {
+		t.Fatalf("seed initial registry entry: %v", err)
+	}
+
+	config := engine.Config{
+		ProjectName: "project-a",
+		Framework:   "laravel",
+		Domain:      "project-a.test",
+		Stack: engine.Stack{
+			Features: engine.Features{
+				Xdebug: true,
+			},
+		},
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("first render failed: %v", err)
+	}
+
+	composePath := engine.ComposeFilePath(tempDir, config.ProjectName)
+	before, err := os.ReadFile(composePath)
+	if err != nil {
+		t.Fatalf("read initial compose: %v", err)
+	}
+	if strings.Contains(string(before), "project-c.test:host-gateway") {
+		t.Fatalf("did not expect project-c.test before registry update:\n%s", string(before))
+	}
+
+	if err := engine.UpsertProjectRegistryEntry(engine.ProjectRegistryEntry{
+		Path:        "/workspace/project-c",
+		ProjectName: "project-c",
+		Domain:      "project-c.test",
+		Framework:   "wordpress",
+	}); err != nil {
+		t.Fatalf("seed updated registry entry: %v", err)
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("second render failed: %v", err)
+	}
+
+	after, err := os.ReadFile(composePath)
+	if err != nil {
+		t.Fatalf("read updated compose: %v", err)
+	}
+	if !strings.Contains(string(after), "project-c.test:host-gateway") {
+		t.Fatalf("expected project-c.test host mapping after registry update:\n%s", string(after))
+	}
+}
+
+func TestRenderBlueprintReRendersWhenGovardRootCAAppears(t *testing.T) {
+	tempDir := t.TempDir()
+	setTestGovardHome(t, tempDir)
+
+	homeDir := filepath.Join(tempDir, "home")
+	if err := os.MkdirAll(homeDir, 0o755); err != nil {
+		t.Fatalf("create home dir: %v", err)
+	}
+	t.Setenv("HOME", homeDir)
+
+	_, filename, _, _ := runtime.Caller(0)
+	projectRoot := filepath.Join(filepath.Dir(filename), "..")
+	blueprintsDir := filepath.Join(projectRoot, "internal", "blueprints", "files")
+
+	destBlueprintsDir := filepath.Join(tempDir, "blueprints")
+	if err := copyDir(blueprintsDir, destBlueprintsDir); err != nil {
+		t.Fatalf("Failed to copy blueprints: %v", err)
+	}
+
+	config := engine.Config{
+		ProjectName: "project-a",
+		Framework:   "laravel",
+		Domain:      "project-a.test",
+		Stack: engine.Stack{
+			Features: engine.Features{
+				Xdebug: true,
+			},
+		},
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("first render failed: %v", err)
+	}
+
+	composePath := engine.ComposeFilePath(tempDir, config.ProjectName)
+	before, err := os.ReadFile(composePath)
+	if err != nil {
+		t.Fatalf("read initial compose: %v", err)
+	}
+	if strings.Contains(string(before), "/usr/local/share/ca-certificates/govard.crt:ro") {
+		t.Fatalf("did not expect Govard Root CA mount before certificate export:\n%s", string(before))
+	}
+
+	certDir := filepath.Join(homeDir, ".govard", "ssl")
+	if err := os.MkdirAll(certDir, 0o755); err != nil {
+		t.Fatalf("create cert dir: %v", err)
+	}
+	certPath := filepath.Join(certDir, "root.crt")
+	if err := os.WriteFile(certPath, []byte("test-root-ca"), 0o644); err != nil {
+		t.Fatalf("write root ca: %v", err)
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("second render failed: %v", err)
+	}
+
+	after, err := os.ReadFile(composePath)
+	if err != nil {
+		t.Fatalf("read updated compose: %v", err)
+	}
+	if !strings.Contains(string(after), certPath+":/usr/local/share/ca-certificates/govard.crt:ro") {
+		t.Fatalf("expected Govard Root CA mount after certificate export:\n%s", string(after))
+	}
+}
+
 func TestRenderLaravelBlueprintWithQueue(t *testing.T) {
 	content := renderComposeWithConfig(t, engine.Config{
 		ProjectName: "laravel-queue-test",

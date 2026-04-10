@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"context"
+	"io"
 	"time"
 
 	"govard/internal/engine"
@@ -9,6 +11,14 @@ import (
 type UpReadinessCheckForTest struct {
 	Service       string
 	ContainerName string
+}
+
+type UpCrossProjectRefreshDependenciesForTest struct {
+	GetRunningProjectNames     func(context.Context) ([]string, error)
+	ReadProjectRegistryEntries func() ([]engine.ProjectRegistryEntry, error)
+	LoadConfigFromDir          func(string, bool) (engine.Config, []string, error)
+	RenderBlueprint            func(string, engine.Config) error
+	RunCompose                 func(context.Context, engine.ComposeOptions) error
 }
 
 // FindWailsCLIForTest exposes Wails binary discovery for external tests.
@@ -118,5 +128,43 @@ func SetUpReadinessSleepForTest(fn func(time.Duration)) func() {
 	upReadinessSleep = fn
 	return func() {
 		upReadinessSleep = previous
+	}
+}
+
+// RefreshCrossProjectRuntimeHostsForTest exposes cross-project PHP runtime host refreshes for tests.
+func RefreshCrossProjectRuntimeHostsForTest(ctx context.Context, currentProjectRoot string, currentConfig engine.Config) error {
+	return refreshCrossProjectRuntimeHosts(ctx, currentProjectRoot, currentConfig, io.Discard, io.Discard)
+}
+
+// SetUpCrossProjectRefreshDependenciesForTest overrides cross-project runtime refresh dependencies.
+func SetUpCrossProjectRefreshDependenciesForTest(deps UpCrossProjectRefreshDependenciesForTest) func() {
+	previousGetRunningProjectNames := upRefreshRunningProjectNames
+	previousReadProjectRegistryEntries := upRefreshReadProjectRegistryEntries
+	previousLoadConfigFromDir := upRefreshLoadConfigFromDir
+	previousRenderBlueprint := upRefreshRenderBlueprint
+	previousRunCompose := upRefreshRunCompose
+
+	if deps.GetRunningProjectNames != nil {
+		upRefreshRunningProjectNames = deps.GetRunningProjectNames
+	}
+	if deps.ReadProjectRegistryEntries != nil {
+		upRefreshReadProjectRegistryEntries = deps.ReadProjectRegistryEntries
+	}
+	if deps.LoadConfigFromDir != nil {
+		upRefreshLoadConfigFromDir = deps.LoadConfigFromDir
+	}
+	if deps.RenderBlueprint != nil {
+		upRefreshRenderBlueprint = deps.RenderBlueprint
+	}
+	if deps.RunCompose != nil {
+		upRefreshRunCompose = deps.RunCompose
+	}
+
+	return func() {
+		upRefreshRunningProjectNames = previousGetRunningProjectNames
+		upRefreshReadProjectRegistryEntries = previousReadProjectRegistryEntries
+		upRefreshLoadConfigFromDir = previousLoadConfigFromDir
+		upRefreshRenderBlueprint = previousRenderBlueprint
+		upRefreshRunCompose = previousRunCompose
 	}
 }

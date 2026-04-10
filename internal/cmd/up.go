@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"govard/internal/engine"
 	"govard/internal/proxy"
@@ -8,6 +9,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -79,6 +81,12 @@ var upContainerStateRunner = func(containerName string) (string, error) {
 	}
 	return strings.TrimSpace(string(output)), nil
 }
+
+var upRefreshRunningProjectNames = engine.GetRunningProjectNames
+var upRefreshReadProjectRegistryEntries = engine.ReadProjectRegistryEntries
+var upRefreshLoadConfigFromDir = engine.LoadConfigFromDir
+var upRefreshRenderBlueprint = engine.RenderBlueprint
+var upRefreshRunCompose = engine.RunCompose
 
 type upPipelineStage struct {
 	Name         string
@@ -528,6 +536,91 @@ func runUpPipeline(stages []upPipelineStage) error {
 	return nil
 }
 
+func refreshCrossProjectRuntimeHosts(ctx context.Context, currentProjectRoot string, currentConfig engine.Config, stdout, stderr io.Writer) error {
+	currentProjectName := strings.TrimSpace(currentConfig.ProjectName)
+	if currentProjectName == "" {
+		return nil
+	}
+
+	runningProjects, err := upRefreshRunningProjectNames(ctx)
+	if err != nil || len(runningProjects) == 0 {
+		return err
+	}
+
+	entries, err := upRefreshReadProjectRegistryEntries()
+	if err != nil {
+		return err
+	}
+
+	entryByProjectName := make(map[string]engine.ProjectRegistryEntry, len(entries))
+	for _, entry := range entries {
+		projectName := strings.TrimSpace(entry.ProjectName)
+		if projectName == "" {
+			continue
+		}
+		entryByProjectName[projectName] = entry
+	}
+
+	cleanCurrentRoot := filepath.Clean(strings.TrimSpace(currentProjectRoot))
+	var refreshErrors []string
+
+	for _, runningProjectName := range runningProjects {
+		projectName := strings.TrimSpace(runningProjectName)
+		if projectName == "" || projectName == currentProjectName {
+			continue
+		}
+
+		entry, ok := entryByProjectName[projectName]
+		if !ok {
+			continue
+		}
+
+		projectRoot := filepath.Clean(strings.TrimSpace(entry.Path))
+		if projectRoot == "" || projectRoot == cleanCurrentRoot {
+			continue
+		}
+
+		projectConfig, _, loadErr := upRefreshLoadConfigFromDir(projectRoot, false)
+		if loadErr != nil {
+			refreshErrors = append(refreshErrors, fmt.Sprintf("%s load config: %v", projectName, loadErr))
+			continue
+		}
+
+		frameworkConfig, ok := engine.GetFrameworkConfig(projectConfig.Framework)
+		if !ok || frameworkConfig.Runtime != "php" {
+			continue
+		}
+
+		if renderErr := upRefreshRenderBlueprint(projectRoot, projectConfig); renderErr != nil {
+			refreshErrors = append(refreshErrors, fmt.Sprintf("%s render blueprint: %v", projectName, renderErr))
+			continue
+		}
+
+		args := []string{"up", "-d", "--no-deps", "php"}
+		if projectConfig.Stack.Features.Xdebug {
+			args = append(args, "php-debug")
+		}
+
+		composePath := engine.ComposeFilePathWithProfile(projectRoot, projectConfig.ProjectName, projectConfig.Profile)
+		if composeErr := upRefreshRunCompose(ctx, engine.ComposeOptions{
+			ProjectDir:  projectRoot,
+			ProjectName: projectConfig.ProjectName,
+			ComposeFile: composePath,
+			Args:        args,
+			Stdout:      stdout,
+			Stderr:      stderr,
+		}); composeErr != nil {
+			refreshErrors = append(refreshErrors, fmt.Sprintf("%s refresh runtime hosts: %v", projectName, composeErr))
+		}
+	}
+
+	if len(refreshErrors) > 0 {
+		return fmt.Errorf("%s", strings.Join(refreshErrors, "; "))
+	}
+
+	return nil
+}
+
 // ResolveUpProxyTarget resolves the upstream container for proxy registration.
 func ResolveUpProxyTarget(config engine.Config) string {
 	target := config.ProjectName + "-web-1"
@@ -631,13 +724,14 @@ func runUpCommand(cmd *cobra.Command, args []string) (err error) {
 			"",
 			time.Since(startedAt),
 		)
-		if err == nil {
-			trackProjectRegistryBestEffort(context.Config, cwd, "up")
-		}
 	}()
 	stages := buildUpPipelineStages(cmd, &context)
 	if err = runUpPipeline(stages); err != nil {
 		return err
+	}
+	trackProjectRegistryBestEffort(context.Config, cwd, "up")
+	if refreshErr := refreshCrossProjectRuntimeHosts(cmd.Context(), cwd, context.Config, context.Out, context.Err); refreshErr != nil {
+		pterm.Warning.Printf("Could not refresh cross-project runtime hosts: %v\n", refreshErr)
 	}
 	pterm.Success.Printf("Environment is up and running at https://%s\n", context.Config.Domain)
 	return nil
