@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.48.1] - 2026-04-11
+
+### ✨ New Features
+
+- **Profile Registry:** Implemented a new JSON-based profile registry (`profiles.json`) for dynamic framework and Magento version resolution, replacing hardcoded logic with a flexible, externalized configuration for improved technical accuracy.
+
+### 🛠 Improvements
+
+- **Framework Compatibility:** Unified and refined technical profiles for Laravel, Symfony, WordPress, and Drupal to ensure consistent local development environments across all supported stacks.
+- **Legacy Support:** Optimized metadata mapping for legacy framework versions to maintain backward compatibility while transitioning to the new registry system.
+
 ## [1.48.0] - 2026-04-10
 
 ### ✨ New Features
