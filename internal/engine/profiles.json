@@ -408,23 +408,23 @@
         "major": 11,
         "php_version": "8.3",
         "db_type": "mariadb",
-        "db_version": "10.6"
+        "db_version": "10.11"
       },
       {
         "major": 10,
-        "php_version": "8.2",
+        "php_version": "8.1",
         "db_type": "mariadb",
-        "db_version": "10.6"
+        "db_version": "10.11"
       },
       {
         "major": 9,
-        "php_version": "8.1",
+        "php_version": "8.0",
         "db_type": "mariadb",
         "db_version": "10.6"
       },
       {
         "major": 8,
-        "php_version": "8.0",
+        "php_version": "7.4",
         "db_type": "mariadb",
         "db_version": "10.4"
       },
@@ -442,17 +442,23 @@
       },
       {
         "major": 5,
-        "php_version": "7.0",
+        "minor_min": 5,
+        "php_version": "7.1",
         "db_type": "mariadb",
-        "db_version": "10.2",
-        "composer_version": "2.2"
+        "db_version": "10.2"
+      },
+      {
+        "major": 5,
+        "minor_min": 0,
+        "php_version": "5.6",
+        "db_type": "mariadb",
+        "db_version": "10.1"
       },
       {
         "major": 4,
-        "php_version": "7.0",
+        "php_version": "5.6",
         "db_type": "mariadb",
-        "db_version": "10.1",
-        "composer_version": "2.2"
+        "db_version": "10.1"
       }
     ],
     "symfony": [
@@ -461,26 +467,19 @@
         "minor_min": 2,
         "php_version": "8.3",
         "db_type": "mariadb",
-        "db_version": "10.6"
+        "db_version": "10.11"
       },
       {
         "major": 7,
         "minor_min": 0,
         "php_version": "8.2",
         "db_type": "mariadb",
-        "db_version": "10.6"
+        "db_version": "10.11"
       },
       {
         "major": 6,
         "minor_min": 4,
         "php_version": "8.2",
-        "db_type": "mariadb",
-        "db_version": "10.6"
-      },
-      {
-        "major": 6,
-        "minor_min": 2,
-        "php_version": "8.1",
         "db_type": "mariadb",
         "db_version": "10.6"
       },
@@ -489,37 +488,50 @@
         "minor_min": 0,
         "php_version": "8.1",
         "db_type": "mariadb",
-        "db_version": "10.4"
+        "db_version": "10.6"
       },
       {
         "major": 5,
         "minor_min": 4,
-        "php_version": "8.0",
+        "php_version": "7.4",
         "db_type": "mariadb",
         "db_version": "10.4"
       },
       {
         "major": 5,
-        "minor_min": 2,
+        "minor_min": 0,
         "php_version": "7.4",
         "db_type": "mariadb",
         "db_version": "10.4"
+      },
+      {
+        "major": 4,
+        "minor_min": 4,
+        "php_version": "7.2",
+        "db_type": "mariadb",
+        "db_version": "10.3"
       }
     ],
     "wordpress": [
       {
+        "major": 7,
+        "php_version": "8.4",
+        "db_type": "mariadb",
+        "db_version": "11.4"
+      },
+      {
         "major": 6,
         "minor_min": 6,
-        "php_version": "8.2",
+        "php_version": "8.3",
         "db_type": "mariadb",
-        "db_version": "10.6"
+        "db_version": "10.11"
       },
       {
         "major": 6,
         "minor_min": 4,
-        "php_version": "8.1",
+        "php_version": "8.2",
         "db_type": "mariadb",
-        "db_version": "10.6"
+        "db_version": "10.11"
       },
       {
         "major": 6,
@@ -530,38 +542,17 @@
       },
       {
         "major": 6,
-        "minor_min": 2,
-        "php_version": "8.0",
-        "db_type": "mariadb",
-        "db_version": "10.4"
-      },
-      {
-        "major": 6,
         "minor_min": 0,
         "php_version": "8.0",
         "db_type": "mariadb",
-        "db_version": "10.4"
+        "db_version": "10.6"
       },
       {
         "major": 5,
-        "minor_min": 9,
+        "minor_min": 0,
         "php_version": "7.4",
         "db_type": "mariadb",
         "db_version": "10.4"
-      },
-      {
-        "major": 5,
-        "minor_min": 8,
-        "php_version": "7.4",
-        "db_type": "mariadb",
-        "db_version": "10.4"
-      },
-      {
-        "major": 5,
-        "minor_min": 7,
-        "php_version": "7.4",
-        "db_type": "mariadb",
-        "db_version": "10.3"
       }
     ],
     "drupal": [
@@ -576,6 +567,26 @@
         "php_version": "8.3",
         "db_type": "mariadb",
         "db_version": "10.11"
+      },
+      {
+        "major": 9,
+        "php_version": "8.0",
+        "db_type": "mariadb",
+        "db_version": "10.6"
+      },
+      {
+        "major": 7,
+        "minor_min": 94,
+        "php_version": "7.4",
+        "db_type": "mariadb",
+        "db_version": "10.4"
+      },
+      {
+        "major": 7,
+        "minor_min": 0,
+        "php_version": "5.6",
+        "db_type": "mariadb",
+        "db_version": "10.1"
       }
     ]
   },
@@ -686,17 +697,6 @@
       }
     },
     {
-      "name": "Laravel 4 legacy mapping",
-      "framework": "laravel",
-      "version": "4.2",
-      "source_prefix": "version-specific:laravel@4",
-      "expected": {
-        "php_version": "7.0",
-        "db_version": "10.1",
-        "cache": "none"
-      }
-    },
-    {
       "name": "Laravel unknown major falls back",
       "framework": "laravel",
       "version": "99.0",
@@ -747,7 +747,7 @@
       "name": "Symfony 5.2 uses legacy mapping",
       "framework": "symfony",
       "version": "5.2",
-      "source_prefix": "version-specific:symfony@5.2",
+      "source_prefix": "version-specific:symfony@5",
       "expected": {
         "php_version": "7.4",
         "db_version": "10.4",
@@ -776,10 +776,10 @@
       "name": "WordPress 5.7 legacy mapping",
       "framework": "wordpress",
       "version": "5.7",
-      "source_prefix": "version-specific:wordpress@5.7",
+      "source_prefix": "version-specific:wordpress@5.0",
       "expected": {
         "php_version": "7.4",
-        "db_version": "10.3"
+        "db_version": "10.4"
       }
     },
     {
@@ -788,8 +788,28 @@
       "version": "6.7",
       "source_prefix": "version-specific:wordpress@6.6",
       "expected": {
-        "php_version": "8.2",
-        "db_version": "10.6"
+        "php_version": "8.3",
+        "db_version": "10.11"
+      }
+    },
+    {
+      "name": "Drupal 7 modern uses PHP 7.4",
+      "framework": "drupal",
+      "version": "7.94",
+      "source_prefix": "version-specific:drupal@7.94",
+      "expected": {
+        "php_version": "7.4",
+        "db_version": "10.4"
+      }
+    },
+    {
+      "name": "Laravel 4 uses PHP 5.6",
+      "framework": "laravel",
+      "version": "4.2",
+      "source_prefix": "version-specific:laravel@4",
+      "expected": {
+        "php_version": "5.6",
+        "db_version": "10.1"
       }
     }
   ]
