@@ -59,25 +59,6 @@ var majorVersionPattern = regexp.MustCompile(`\d+`)
 var majorMinorPattern = regexp.MustCompile(`\d+\.\d+`)
 var magentoVersionPattern = regexp.MustCompile(`\d+\.\d+\.\d+(?:-p\d+)?`)
 
-var frameworkMajorOverrides = map[string]map[int]runtimeProfileOverride{
-	"laravel": {
-		10: {PHPVersion: "8.2"},
-		11: {PHPVersion: "8.3"},
-		12: {PHPVersion: "8.4"},
-	},
-	"symfony": {
-		6: {PHPVersion: "8.2"},
-		7: {PHPVersion: "8.3"},
-	},
-	"drupal": {
-		10: {PHPVersion: "8.3"},
-		11: {PHPVersion: "8.4"},
-	},
-	"wordpress": {
-		6: {PHPVersion: "8.3"},
-	},
-}
-
 func ResolveRuntimeProfile(framework string, version string) (RuntimeProfileResult, error) {
 	framework = strings.TrimSpace(strings.ToLower(framework))
 	if framework == "magento" {
@@ -152,22 +133,7 @@ func ResolveRuntimeProfile(framework string, version string) (RuntimeProfileResu
 		result.Source = source
 		return result, nil
 	}
-
-	overrideSet, hasFrameworkOverrides := frameworkMajorOverrides[framework]
-	if !hasFrameworkOverrides {
-		result.Notes = append(result.Notes, fmt.Sprintf("No version-specific profiles defined for framework %s.", framework))
-		return result, nil
-	}
-
-	override, ok := overrideSet[major]
-	if !ok {
-		result.Warnings = append(result.Warnings, fmt.Sprintf("No version-specific profile for %s major %d. Using framework defaults.", framework, major))
-		return result, nil
-	}
-
-	applyRuntimeProfileOverride(&result.Profile, override)
-	normalizeProfile(&result.Profile)
-	result.Source = fmt.Sprintf("version-specific:%s@%d", framework, major)
+	result.Warnings = append(result.Warnings, fmt.Sprintf("No version-specific profile for %s major %d. Using framework defaults.", framework, major))
 	return result, nil
 }
 

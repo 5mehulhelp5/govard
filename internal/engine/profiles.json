@@ -399,6 +399,12 @@
   "frameworks": {
     "laravel": [
       {
+        "major": 12,
+        "php_version": "8.4",
+        "db_type": "mariadb",
+        "db_version": "11.4"
+      },
+      {
         "major": 11,
         "php_version": "8.3",
         "db_type": "mariadb",
@@ -556,6 +562,20 @@
         "php_version": "7.4",
         "db_type": "mariadb",
         "db_version": "10.3"
+      }
+    ],
+    "drupal": [
+      {
+        "major": 11,
+        "php_version": "8.4",
+        "db_type": "mariadb",
+        "db_version": "11.4"
+      },
+      {
+        "major": 10,
+        "php_version": "8.3",
+        "db_type": "mariadb",
+        "db_version": "10.11"
       }
     ]
   },
