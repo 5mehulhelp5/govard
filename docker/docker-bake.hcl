@@ -43,13 +43,14 @@ target "elasticsearch" {
   context    = "docker/elasticsearch"
   dockerfile = "Dockerfile"
   matrix = {
-    version = ["8.15", "7.17", "7.16", "7.10", "7.9", "7.7", "7.6", "6.8", "5.6", "2.4"]
+    version = ["8.15", "8.11", "7.17", "7.16", "7.10", "7.9", "7.7", "7.6", "6.8", "5.6", "2.4"]
   }
   args = {
     ELASTICSEARCH_VERSION = (
       version == "8.15" ? "8.15.0" :
+      version == "8.11" ? "8.11.3" :
       version == "7.17" ? "7.17.10" :
-      version == "7.16" ? "7.16.3" :
+    version == "7.16" ? "7.16.3" :
       version == "7.10" ? "7.10.2" :
       version == "7.9"  ? "7.9.3" :
       version == "7.7"  ? "7.7.1" :
@@ -96,10 +97,10 @@ target "nginx" {
   name    = "nginx-${replace(version, ".", "-")}"
   context = "docker/nginx"
   matrix = {
-    version = ["1.28", "latest"]
+    version = ["1.28", "1.26", "1.24", "1.22", "1.20", "1.18", "latest"]
   }
   args = {
-    NGINX_VERSION = "1.28.0"
+    NGINX_VERSION = version == "latest" ? "1.28.0" : version
   }
   tags = ["${DOCKER_ORG}nginx:${version}"]
 }
@@ -232,7 +233,7 @@ target "rabbitmq" {
   context    = "docker/rabbitmq"
   dockerfile = "Dockerfile"
   matrix = {
-    version = ["4.1", "3.13", "3.12", "3.11", "3.9", "3.8", "3.7"]
+    version = ["4.1", "4.0", "3.13", "3.12", "3.11", "3.9", "3.8", "3.7"]
   }
   args = {
     RABBITMQ_VERSION = version
@@ -274,7 +275,7 @@ target "varnish" {
   context    = "docker/varnish"
   dockerfile = "Dockerfile"
   matrix = {
-    version = ["7.6", "7.4", "7.0", "6.0", "latest"]
+    version = ["7.7", "7.6", "7.5", "7.4", "7.1", "7.0", "6.0", "latest"]
   }
   args = {
     VARNISH_VERSION   = version == "latest" ? "7.6" : version

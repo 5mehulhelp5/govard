@@ -1,28 +1,15 @@
 package tests
 
 import (
-	"encoding/json"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
 	"govard/internal/engine"
 )
 
-type runtimeProfileFixture struct {
-	Name            string            `json:"name"`
-	Framework       string            `json:"framework"`
-	Version         string            `json:"version"`
-	Source          string            `json:"source"`
-	SourcePrefix    string            `json:"source_prefix"`
-	WarningContains string            `json:"warning_contains"`
-	Expected        map[string]string `json:"expected"`
-	ExpectError     bool              `json:"expect_error"`
-}
-
 func TestRuntimeProfileFixtures(t *testing.T) {
-	fixtures := loadRuntimeProfileFixtures(t)
+	fixtures := engine.GetFrameworkTestFixtures()
+
 	for _, fixture := range fixtures {
 		fixture := fixture
 		name := strings.TrimSpace(fixture.Name)
@@ -72,25 +59,6 @@ func TestRuntimeProfileFixtures(t *testing.T) {
 			}
 		})
 	}
-}
-
-func loadRuntimeProfileFixtures(t *testing.T) []runtimeProfileFixture {
-	t.Helper()
-
-	path := filepath.Join("fixtures", "runtime_profiles.json")
-	data, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("read fixtures: %v", err)
-	}
-
-	var fixtures []runtimeProfileFixture
-	if err := json.Unmarshal(data, &fixtures); err != nil {
-		t.Fatalf("parse fixtures: %v", err)
-	}
-	if len(fixtures) == 0 {
-		t.Fatal("runtime profile fixtures are empty")
-	}
-	return fixtures
 }
 
 func profileFieldValue(profile engine.RuntimeProfile, key string) (string, bool) {
