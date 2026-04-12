@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"govard/internal/engine/bootstrap"
 	"io"
 	"log/slog"
 	"os"
@@ -45,7 +46,7 @@ Documentation: https://github.com/ddtcorex/govard`,
 		} else {
 			// Write background logs to temp file for audits/diagnostics
 			logFile := filepath.Join(os.TempDir(), "govard.log")
-			if file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666); err == nil {
+			if file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, bootstrap.PublicFilePerm); err == nil {
 				slog.SetDefault(slog.New(slog.NewJSONHandler(file, &slog.HandlerOptions{Level: slog.LevelInfo})))
 			} else {
 				slog.SetDefault(slog.New(slog.NewTextHandler(io.Discard, nil)))

@@ -2,6 +2,7 @@ package engine
 
 import (
 	"crypto/sha1"
+	"govard/internal/engine/bootstrap"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -65,7 +66,7 @@ func ComposeFilePathWithProfile(projectRoot string, projectName string, profile 
 
 // EnsureComposePathReady creates the compose directory when missing.
 func EnsureComposePathReady(path string) error {
-	return os.MkdirAll(filepath.Dir(path), 0o700)
+	return os.MkdirAll(filepath.Dir(path), bootstrap.SecretDirPerm)
 }
 
 func sanitizeComposeProjectName(name string) string {

@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+	"govard/internal/engine/bootstrap"
 	"io"
 	"io/fs"
 	"os"
@@ -567,17 +568,17 @@ func materializeDockerAssetsFS(source fs.FS, destination string) error {
 
 		targetPath := filepath.Join(destination, path)
 		if entry.IsDir() {
-			return os.MkdirAll(targetPath, 0o755)
+			return os.MkdirAll(targetPath, bootstrap.DefaultDirPerm)
 		}
 
 		content, err := fs.ReadFile(source, path)
 		if err != nil {
 			return err
 		}
-		if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(targetPath), bootstrap.DefaultDirPerm); err != nil {
 			return err
 		}
-		return os.WriteFile(targetPath, content, 0o644)
+		return os.WriteFile(targetPath, content, bootstrap.DefaultFilePerm)
 	})
 }
 

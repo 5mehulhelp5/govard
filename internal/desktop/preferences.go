@@ -2,6 +2,7 @@ package desktop
 
 import (
 	"encoding/json"
+	"govard/internal/engine/bootstrap"
 	"os"
 	"path/filepath"
 	"strings"
@@ -117,7 +118,7 @@ func savePreferences(prefs *preferences) error {
 		return err
 	}
 
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, bootstrap.DefaultFilePerm); err != nil {
 		return err
 	}
 	cachedPrefs = prefs
@@ -130,7 +131,7 @@ func preferencesPath() (string, error) {
 		return "", err
 	}
 	dir := filepath.Join(home, ".govard")
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, bootstrap.DefaultDirPerm); err != nil {
 		return "", err
 	}
 	return filepath.Join(dir, "desktop-preferences.json"), nil

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"govard/internal/engine/bootstrap"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -104,13 +105,13 @@ func fixGovardHomeDirectory(check engine.DoctorCheck) DoctorFixResult {
 
 	for _, dir := range dirs {
 		result.Actions = append(result.Actions, fmt.Sprintf("mkdir -p %s", dir))
-		if err := os.MkdirAll(dir, 0o700); err != nil {
+		if err := os.MkdirAll(dir, bootstrap.SecretDirPerm); err != nil {
 			result.Status = DoctorFixStatusSkipped
 			result.Message = err.Error()
 			return result
 		}
 		result.Actions = append(result.Actions, fmt.Sprintf("chmod 700 %s", dir))
-		if err := os.Chmod(dir, 0o700); err != nil {
+		if err := os.Chmod(dir, bootstrap.SecretDirPerm); err != nil {
 			result.Status = DoctorFixStatusSkipped
 			result.Message = err.Error()
 			return result
@@ -424,7 +425,7 @@ func tuneProjectProfileCore(check engine.DoctorCheck, forceTune bool, forceOverr
 		return result
 	}
 
-	if err := os.WriteFile(engine.BaseConfigFile, updated, 0o644); err != nil {
+	if err := os.WriteFile(engine.BaseConfigFile, updated, bootstrap.SecretFilePerm); err != nil {
 		result.Status = DoctorFixStatusFailed
 		result.Message = fmt.Sprintf("failed to write updated config: %v", err)
 		return result
@@ -608,7 +609,7 @@ func fixLegacyConfig(check engine.DoctorCheck) DoctorFixResult {
 		return result
 	}
 
-	if err := os.WriteFile(engine.BaseConfigFile, updated, 0o644); err != nil {
+	if err := os.WriteFile(engine.BaseConfigFile, updated, bootstrap.SecretFilePerm); err != nil {
 		result.Status = DoctorFixStatusFailed
 		result.Message = fmt.Sprintf("failed to write updated config: %v", err)
 		return result

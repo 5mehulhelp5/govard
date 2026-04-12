@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+	"govard/internal/engine/bootstrap"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -37,7 +38,7 @@ func EnsureExtensionContract(root string, force bool) ([]string, error) {
 		filepath.Join(cleanRoot, ProjectHooksDir),
 	}
 	for _, dir := range dirs {
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, bootstrap.DefaultDirPerm); err != nil {
 			return nil, fmt.Errorf("create directory %s: %w", dir, err)
 		}
 	}
@@ -45,7 +46,7 @@ func EnsureExtensionContract(root string, force bool) ([]string, error) {
 	files := []scaffoldFile{
 		{
 			Path: filepath.Join(cleanRoot, ProjectLocalConfigPath),
-			Mode: 0644,
+			Mode: bootstrap.DefaultFilePerm,
 			Content: `# Project-local Govard overrides (recommended to keep uncommitted).
 # This file is loaded after .govard.yml.
 #
@@ -61,7 +62,7 @@ func EnsureExtensionContract(root string, force bool) ([]string, error) {
 		},
 		{
 			Path: filepath.Join(cleanRoot, ProjectComposeOverridePath),
-			Mode: 0644,
+			Mode: bootstrap.DefaultFilePerm,
 			Content: `# Project-specific compose overrides merged after framework blueprints.
 #
 # Example:
@@ -73,7 +74,7 @@ func EnsureExtensionContract(root string, force bool) ([]string, error) {
 		},
 		{
 			Path: filepath.Join(cleanRoot, ProjectHooksDir, "pre_up.sh"),
-			Mode: 0755,
+			Mode: bootstrap.DefaultDirPerm,
 			Content: `#!/usr/bin/env bash
 set -euo pipefail
 
@@ -82,7 +83,7 @@ echo "[govard hook] pre_up: project-specific setup"
 		},
 		{
 			Path: filepath.Join(cleanRoot, ProjectCommandsDir, "hello"),
-			Mode: 0755,
+			Mode: bootstrap.DefaultDirPerm,
 			Content: `#!/usr/bin/env bash
 set -euo pipefail
 

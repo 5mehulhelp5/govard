@@ -136,7 +136,7 @@ func copyProjectFile(srcPath, dstPath string, mode os.FileMode) error {
 	}
 	defer srcFile.Close()
 
-	if err := os.MkdirAll(filepath.Dir(dstPath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(dstPath), DefaultDirPerm); err != nil {
 		return fmt.Errorf("create project parent directory %s: %w", filepath.Dir(dstPath), err)
 	}
 

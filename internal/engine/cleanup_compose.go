@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+	"govard/internal/engine/bootstrap"
 	"io"
 	"os"
 	"path/filepath"
@@ -78,7 +79,7 @@ func AutoCleanupComposeFiles() {
 	}
 
 	// Create/touch the file
-	_ = os.WriteFile(lastCleanupFile, []byte(time.Now().String()), 0600)
+	_ = os.WriteFile(lastCleanupFile, []byte(time.Now().String()), bootstrap.SecretFilePerm)
 
 	// Run in background
 	go func() {

@@ -662,7 +662,7 @@ func patchMagentoElasticsearchSchemaForLibxml() (bool, error) {
 		return false, nil
 	}
 
-	if err := os.WriteFile(schemaPath, []byte(updated), 0644); err != nil {
+	if err := os.WriteFile(schemaPath, []byte(updated), bootstrap.DefaultFilePerm); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -823,17 +823,17 @@ func prepareMagentoRunMappingAssets(config Config) (string, string, error) {
 	nginxPath := filepath.Join(GovardHomeDir(), "nginx", config.ProjectName, "mage-run-map.conf")
 	apachePath := filepath.Join(GovardHomeDir(), "apache", config.ProjectName, "mage-run-map.conf")
 
-	if err := os.MkdirAll(filepath.Dir(nginxPath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(nginxPath), bootstrap.DefaultDirPerm); err != nil {
 		return "", "", err
 	}
-	if err := os.MkdirAll(filepath.Dir(apachePath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(apachePath), bootstrap.DefaultDirPerm); err != nil {
 		return "", "", err
 	}
 
-	if err := os.WriteFile(nginxPath, []byte(buildMagentoNginxRunMap(config.StoreDomains)), 0o644); err != nil {
+	if err := os.WriteFile(nginxPath, []byte(buildMagentoNginxRunMap(config.StoreDomains)), bootstrap.DefaultFilePerm); err != nil {
 		return "", "", err
 	}
-	if err := os.WriteFile(apachePath, []byte(buildMagentoApacheRunMap(config.StoreDomains)), 0o644); err != nil {
+	if err := os.WriteFile(apachePath, []byte(buildMagentoApacheRunMap(config.StoreDomains)), bootstrap.DefaultFilePerm); err != nil {
 		return "", "", err
 	}
 

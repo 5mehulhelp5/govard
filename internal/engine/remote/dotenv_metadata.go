@@ -82,13 +82,13 @@ func resolveDotenvDBInfo(payload dotenvDBProbePayload) (DotenvDBInfo, error) {
 		return parseDotenvDatabaseURL(databaseURL)
 	}
 
-	host := firstNonEmpty(payload.DatabaseHost, payload.DBHost, payload.MysqlHost)
+	host := engine.FirstNonEmpty(payload.DatabaseHost, payload.DBHost, payload.MysqlHost)
 	if host == "" {
 		host = "127.0.0.1"
 	}
 
 	port := 3306
-	portRaw := strings.TrimSpace(firstNonEmpty(payload.DatabasePort, payload.DBPort, payload.MysqlPort))
+	portRaw := strings.TrimSpace(engine.FirstNonEmpty(payload.DatabasePort, payload.DBPort, payload.MysqlPort))
 	if portRaw != "" {
 		parsed, err := strconv.Atoi(portRaw)
 		if err != nil || parsed <= 0 {
@@ -97,8 +97,8 @@ func resolveDotenvDBInfo(payload dotenvDBProbePayload) (DotenvDBInfo, error) {
 		port = parsed
 	}
 
-	username := strings.TrimSpace(firstNonEmpty(payload.DatabaseUser, payload.DBUsername, payload.DBUser, payload.MysqlUser))
-	database := strings.TrimSpace(firstNonEmpty(payload.DatabaseName, payload.DBDatabase, payload.DBName, payload.MysqlDatabase))
+	username := strings.TrimSpace(engine.FirstNonEmpty(payload.DatabaseUser, payload.DBUsername, payload.DBUser, payload.MysqlUser))
+	database := strings.TrimSpace(engine.FirstNonEmpty(payload.DatabaseName, payload.DBDatabase, payload.DBName, payload.MysqlDatabase))
 	if username == "" || database == "" {
 		return DotenvDBInfo{}, fmt.Errorf("remote dotenv is missing database username or database name")
 	}
@@ -107,7 +107,7 @@ func resolveDotenvDBInfo(payload dotenvDBProbePayload) (DotenvDBInfo, error) {
 		Host:     host,
 		Port:     port,
 		Username: username,
-		Password: firstNonEmpty(payload.DatabasePassword, payload.DBPassword, payload.MysqlPassword),
+		Password: engine.FirstNonEmpty(payload.DatabasePassword, payload.DBPassword, payload.MysqlPassword),
 		Database: database,
 	}, nil
 }
@@ -163,16 +163,6 @@ func parseDotenvDatabaseURL(raw string) (DotenvDBInfo, error) {
 		Password: password,
 		Database: database,
 	}, nil
-}
-
-func firstNonEmpty(values ...string) string {
-	for _, value := range values {
-		trimmed := strings.TrimSpace(value)
-		if trimmed != "" {
-			return trimmed
-		}
-	}
-	return ""
 }
 
 func ParseDotenvDatabaseURLForTest(raw string) (DotenvDBInfo, error) {

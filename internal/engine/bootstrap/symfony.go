@@ -97,7 +97,7 @@ APP_SECRET=your-secret-key-here
 DATABASE_URL="mysql://%s:%s@%s:3306/%s?serverVersion=11.4.0-MariaDB&charset=utf8mb4"
 MAILER_DSN=smtp://mailpit:1025
 `, dbUser, dbPass, dbHost, dbName)
-		if err := os.WriteFile(envLocalPath, []byte(content), 0600); err != nil {
+		if err := os.WriteFile(envLocalPath, []byte(content), SecretFilePerm); err != nil {
 			return fmt.Errorf("failed to create .env.local: %w", err)
 		}
 		pterm.Success.Println("Created .env.local")
@@ -151,7 +151,7 @@ func (s *SymfonyBootstrap) Configure(projectDir string) error {
 					"DATABASE_URL=",
 					fmt.Sprintf("DATABASE_URL=\"mysql://%s:%s@%s:3306/%s?serverVersion=11.4.0-MariaDB&charset=utf8mb4\"",
 						dbUser, dbPass, dbHost, dbName))
-				_ = os.WriteFile(envLocalPath, []byte(updated), 0600)
+				_ = os.WriteFile(envLocalPath, []byte(updated), SecretFilePerm)
 			}
 		}
 	}
@@ -176,7 +176,7 @@ func (s *SymfonyBootstrap) PostClone(projectDir string) error {
 			localContent := string(data)
 			localContent = strings.ReplaceAll(localContent, "APP_ENV=prod", "APP_ENV=dev")
 			localContent = strings.ReplaceAll(localContent, "APP_DEBUG=0", "APP_DEBUG=1")
-			_ = os.WriteFile(envLocalPath, []byte(localContent), 0600)
+			_ = os.WriteFile(envLocalPath, []byte(localContent), SecretFilePerm)
 		}
 	}
 

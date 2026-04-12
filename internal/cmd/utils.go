@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"govard/internal/engine"
+	"govard/internal/engine/bootstrap"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -61,7 +62,7 @@ func saveConfig(config engine.Config) {
 		pterm.Error.Printf("Failed to marshal config: %v\n", err)
 		return
 	}
-	err = os.WriteFile(engine.BaseConfigFile, data, 0644)
+	err = os.WriteFile(engine.BaseConfigFile, data, bootstrap.DefaultFilePerm)
 	if err != nil {
 		pterm.Error.Printf("Failed to write %s: %v\n", engine.BaseConfigFile, err)
 	}

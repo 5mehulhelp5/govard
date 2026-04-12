@@ -159,7 +159,7 @@ func (m *LaravelManager) updateEnv(projectRoot string, key string, value string)
 	if write == nil {
 		write = os.WriteFile
 	}
-	return write(envPath, []byte(strings.Join(lines, "\n")), 0644)
+	return write(envPath, []byte(strings.Join(lines, "\n")), bootstrap.DefaultFilePerm)
 }
 
 // Similar structs for other frameworks...

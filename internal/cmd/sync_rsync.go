@@ -37,7 +37,7 @@ func buildRsyncForEndpoints(
 		cmd := remote.BuildRsyncCommand(
 			destination.Name,
 			sourcePath,
-			remote.RemoteTarget(destination.RemoteCfg)+":"+destinationPath,
+			remote.RemoteTarget(destination.RemoteCfg)+":"+remote.QuoteRemotePath(destinationPath),
 			destination.RemoteCfg,
 			deleteFiles,
 			resume,
@@ -50,7 +50,7 @@ func buildRsyncForEndpoints(
 
 	cmd := remote.BuildRsyncCommand(
 		source.Name,
-		remote.RemoteTarget(source.RemoteCfg)+":"+sourcePath,
+		remote.RemoteTarget(source.RemoteCfg)+":"+remote.QuoteRemotePath(sourcePath),
 		destinationPath,
 		source.RemoteCfg,
 		deleteFiles,

@@ -3,6 +3,7 @@ package engine
 import (
 	"compress/gzip"
 	"fmt"
+	"govard/internal/engine/bootstrap"
 	"io"
 	"os"
 	"os/exec"
@@ -47,8 +48,8 @@ func CreateSnapshot(projectRoot string, config Config, name string) (string, err
 		return "", fmt.Errorf("snapshot %s already exists", name)
 	}
 
-	if err := os.MkdirAll(snapshotDir, 0755); err != nil {
-		return "", fmt.Errorf("create snapshot directory %s: %w", snapshotDir, err)
+	if err := os.MkdirAll(snapshotDir, bootstrap.DefaultDirPerm); err != nil {
+		return "", fmt.Errorf("create snapshot directory: %w", err)
 	}
 
 	meta := SnapshotMetadata{
@@ -90,7 +91,7 @@ func CreateSnapshot(projectRoot string, config Config, name string) (string, err
 
 	payload, err := yaml.Marshal(meta)
 	if err == nil {
-		_ = os.WriteFile(filepath.Join(snapshotDir, "metadata.yml"), payload, 0644)
+		_ = os.WriteFile(filepath.Join(snapshotDir, "metadata.yml"), payload, bootstrap.DefaultFilePerm)
 	}
 
 	return snapshotDir, nil
@@ -223,8 +224,8 @@ func copyDir(src string, dst string) error {
 	if err != nil {
 		return fmt.Errorf("read source directory %s: %w", src, err)
 	}
-	if err := os.MkdirAll(dst, 0755); err != nil {
-		return fmt.Errorf("create destination directory %s: %w", dst, err)
+	if err := os.MkdirAll(dst, bootstrap.DefaultDirPerm); err != nil {
+		return fmt.Errorf("create snapshot restore dir: %w", err)
 	}
 
 	for _, entry := range entries {
@@ -257,8 +258,8 @@ func copyFileWithMode(src string, dst string, mode os.FileMode) error {
 	}
 	defer in.Close()
 
-	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
-		return fmt.Errorf("create destination directory for %s: %w", dst, err)
+	if err := os.MkdirAll(filepath.Dir(dst), bootstrap.DefaultDirPerm); err != nil {
+		return fmt.Errorf("create snapshot parent: %w", err)
 	}
 
 	out, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, mode)

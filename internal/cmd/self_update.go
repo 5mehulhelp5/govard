@@ -9,17 +9,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"govard/internal/engine/bootstrap"
 	"io"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
 
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
+
+	"govard/internal/engine"
 )
 
 const (
@@ -215,6 +219,12 @@ func normalizeReleaseTag(tag string) string {
 	return "v" + trimmed
 }
 
+func isValidReleaseTag(tag string) bool {
+	// Simple regex to ensure tag follows vX.Y.Z format, avoiding path traversal or command injection
+	matched, _ := regexp.MatchString(`^v\d+\.\d+\.\d+$`, tag)
+	return matched
+}
+
 func selfUpdateRepo() string {
 	repo := strings.TrimSpace(os.Getenv(selfUpdateRepoEnvVar))
 	if repo == "" {
@@ -238,14 +248,16 @@ func selfUpdateReleaseBaseURL(repo, releaseTag string) string {
 }
 
 func fetchLatestReleaseTag(client *http.Client, repo string) (string, error) {
-	cacheFile := filepath.Join(os.TempDir(), "govard-latest-release.json")
+	cacheFile := filepath.Join(engine.GovardHomeDir(), "cache", "latest-release.json")
 	var cacheData struct {
 		Tag       string    `json:"tag"`
 		FetchedAt time.Time `json:"fetched_at"`
 	}
 	if b, err := os.ReadFile(cacheFile); err == nil {
 		if json.Unmarshal(b, &cacheData) == nil && time.Since(cacheData.FetchedAt) < time.Hour {
-			return cacheData.Tag, nil
+			if isValidReleaseTag(cacheData.Tag) {
+				return cacheData.Tag, nil
+			}
 		}
 	}
 
@@ -263,14 +275,15 @@ func fetchLatestReleaseTag(client *http.Client, repo string) (string, error) {
 	}
 
 	tag := normalizeReleaseTag(release.TagName)
-	if tag == "" {
-		return "", errors.New("latest release response did not include tag_name")
+	if !isValidReleaseTag(tag) {
+		return "", fmt.Errorf("invalid release tag received from upstream: %q", tag)
 	}
 
 	cacheData.Tag = tag
 	cacheData.FetchedAt = time.Now()
 	if b, err := json.Marshal(cacheData); err == nil {
-		_ = os.WriteFile(cacheFile, b, 0644)
+		_ = os.MkdirAll(filepath.Dir(cacheFile), bootstrap.DefaultDirPerm)
+		_ = os.WriteFile(cacheFile, b, bootstrap.DefaultFilePerm)
 	}
 
 	return tag, nil
@@ -449,7 +462,7 @@ func extractBinaryFromTarGz(archivePath, workDir, binaryName string) (string, er
 			return "", fmt.Errorf("close extracted binary: %w", closeErr)
 		}
 
-		if err := os.Chmod(outPath, 0o755); err != nil {
+		if err := os.Chmod(outPath, bootstrap.DefaultDirPerm); err != nil {
 			return "", fmt.Errorf("set executable bit: %w", err)
 		}
 		return outPath, nil
@@ -498,7 +511,7 @@ func extractBinaryFromZip(archivePath, workDir, binaryName string) (string, erro
 			return "", fmt.Errorf("close extracted binary: %w", closeOutErr)
 		}
 
-		if err := os.Chmod(outPath, 0o755); err != nil {
+		if err := os.Chmod(outPath, bootstrap.DefaultDirPerm); err != nil {
 			return "", fmt.Errorf("set executable bit: %w", err)
 		}
 		return outPath, nil
@@ -515,7 +528,7 @@ func replaceBinary(sourcePath, targetPath string) error {
 	defer in.Close()
 
 	targetDir := filepath.Dir(targetPath)
-	if err := os.MkdirAll(targetDir, 0o755); err != nil {
+	if err := os.MkdirAll(targetDir, bootstrap.DefaultDirPerm); err != nil {
 		return fmt.Errorf("ensure target directory: %w", err)
 	}
 
@@ -535,7 +548,7 @@ func replaceBinary(sourcePath, targetPath string) error {
 		return fmt.Errorf("close temp file: %w", err)
 	}
 
-	if err := os.Chmod(tempPath, 0o755); err != nil {
+	if err := os.Chmod(tempPath, bootstrap.DefaultDirPerm); err != nil {
 		_ = os.Remove(tempPath)
 		return fmt.Errorf("set executable bit on temp file: %w", err)
 	}
@@ -593,7 +606,7 @@ func extractBinaryFromDebPackage(debPath, workDir, binaryName string) (string, e
 	if err := os.RemoveAll(extractDir); err != nil {
 		return "", fmt.Errorf("reset deb extract directory: %w", err)
 	}
-	if err := os.MkdirAll(extractDir, 0o755); err != nil {
+	if err := os.MkdirAll(extractDir, bootstrap.DefaultDirPerm); err != nil {
 		return "", fmt.Errorf("create deb extract directory: %w", err)
 	}
 

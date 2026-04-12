@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"govard/internal/engine"
+	"govard/internal/engine/bootstrap"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -373,7 +374,7 @@ Case Studies:
 		if err != nil {
 			return fmt.Errorf("marshal %s: %w", engine.BaseConfigFile, err)
 		}
-		if err := os.WriteFile(engine.BaseConfigFile, data, 0644); err != nil {
+		if err := os.WriteFile(engine.BaseConfigFile, data, bootstrap.DefaultFilePerm); err != nil {
 			return fmt.Errorf("write %s: %w", engine.BaseConfigFile, err)
 		}
 		pterm.Success.Println("✅ Generated .govard.yml")

@@ -104,7 +104,7 @@ func TestSyncRuntimeRsyncInvocationWithShims(t *testing.T) {
 
 	logs := shim.ReadLog(t)
 	assertContains(t, logs, "rsync|")
-	assertContains(t, logs, "deploy@dev.example.com:/var/www/html/")
+	assertContains(t, logs, "deploy@dev.example.com:'/var/www/html/'")
 	assertContains(t, logs, "--partial --append-verify")
 }
 

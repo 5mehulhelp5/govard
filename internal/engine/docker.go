@@ -34,81 +34,70 @@ func CheckPort(port string) error {
 	return nil
 }
 
-// CheckPortForGovardProxy returns true when the port is available OR already
-// bound by the Govard proxy container (proxy-caddy), which is an expected state.
-// It includes a retry logic to handle race conditions during container restarts
-// and properly handles permission errors for privileged ports.
 func CheckPortForGovardProxy(ctx context.Context, port string) bool {
 	maxRetries := 10
+	// Optimization: List containers once to check both our proxy and others
+	containers, _ := getRunningContainers(ctx)
+
 	for i := 0; i < maxRetries; i++ {
 		err := CheckPort(port)
 		if err == nil {
 			return true
 		}
 
-		// If it's a permission denied error, we can't listen on this port,
-		// but it doesn't necessarily mean it's in use. We rely on Docker check.
 		if strings.Contains(err.Error(), "permission denied") {
-			if isPortBoundByGovardProxy(ctx, port) {
+			if isPortBoundByGovardProxyFromList(containers, port) {
 				return true
 			}
-			// If not bound by our proxy, but we can't check further,
-			// we check if ANY other container is binding it.
-			if isPortBoundByOtherContainer(ctx, port) {
+			if isPortBoundByOtherContainerFromList(containers, port) {
 				return false
 			}
-			// If no other container is binding it, we assume we might be good
-			// but we still wait a bit in case of transition.
 			if i == maxRetries-1 {
-				return true // Best effort: assume it's free if Docker says so
+				return true
 			}
 			select {
 			case <-ctx.Done():
 				return false
 			case <-time.After(200 * time.Millisecond):
 			}
+			// Refresh list for next attempt
+			containers, _ = getRunningContainers(ctx)
 			continue
 		}
 
-		// If the error is "address already in use", check if it's our proxy
-		if isPortBoundByGovardProxy(ctx, port) {
+		if isPortBoundByGovardProxyFromList(containers, port) {
 			return true
 		}
 
-		// If we are here, port is in use but not by Govard proxy (yet).
-		// Give it a moment to settle (e.g., during restart) before failing.
 		if i < maxRetries-1 {
 			select {
 			case <-ctx.Done():
 				return false
 			case <-time.After(500 * time.Millisecond):
 			}
+			// Refresh list for next attempt
+			containers, _ = getRunningContainers(ctx)
 		}
 	}
 	return false
 }
 
-func isPortBoundByOtherContainer(ctx context.Context, port string) bool {
+func getRunningContainers(ctx context.Context) ([]container.Summary, error) {
+	cli, err := GetDockerClient()
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	return cli.ContainerList(ctx, container.ListOptions{})
+}
+
+func isPortBoundByOtherContainerFromList(containers []container.Summary, port string) bool {
 	targetPort, err := strconv.Atoi(strings.TrimSpace(port))
 	if err != nil {
 		return false
 	}
-
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
-
-	cli, err := GetDockerClient()
-	if err != nil {
-		return false
-	}
-
-	containers, err := cli.ContainerList(ctx, container.ListOptions{})
-	if err != nil {
-		return false
-	}
-
 	for _, c := range containers {
-		// Skip our own proxy
 		if isGovardProxyContainer(c.Names) {
 			continue
 		}
@@ -118,29 +107,14 @@ func isPortBoundByOtherContainer(ctx context.Context, port string) bool {
 			}
 		}
 	}
-
 	return false
 }
 
-func isPortBoundByGovardProxy(ctx context.Context, port string) bool {
+func isPortBoundByGovardProxyFromList(containers []container.Summary, port string) bool {
 	targetPort, err := strconv.Atoi(strings.TrimSpace(port))
 	if err != nil {
 		return false
 	}
-
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
-
-	cli, err := GetDockerClient()
-	if err != nil {
-		return false
-	}
-
-	containers, err := cli.ContainerList(ctx, container.ListOptions{})
-	if err != nil {
-		return false
-	}
-
 	for _, c := range containers {
 		if !isGovardProxyContainer(c.Names) {
 			continue
@@ -151,7 +125,6 @@ func isPortBoundByGovardProxy(ctx context.Context, port string) bool {
 			}
 		}
 	}
-
 	return false
 }
 
@@ -219,13 +192,18 @@ func GetRunningProjectNames(ctx context.Context) ([]string, error) {
 
 	projectMap := make(map[string]bool)
 	for _, c := range containers {
+		// Prefer Docker Compose project label for high fidelity detection
+		if projectName, ok := c.Labels["com.docker.compose.project"]; ok && projectName != "" {
+			projectMap[projectName] = true
+			continue
+		}
+
+		// Fallback to name parsing if labels are missing
 		for _, name := range c.Names {
 			cleanName := strings.TrimPrefix(name, "/")
-			// Standard Govard naming pattern: projectname-service-1
 			parts := strings.Split(cleanName, "-")
 			if len(parts) >= 3 {
 				projectName := strings.Join(parts[:len(parts)-2], "-")
-				// Basic filtering - only consider it a govard project if it has standard services
 				serviceName := parts[len(parts)-2]
 				if serviceName == "web" || serviceName == "php" || serviceName == "db" {
 					projectMap[projectName] = true

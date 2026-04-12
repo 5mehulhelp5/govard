@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"govard/internal/engine/bootstrap"
 	"io"
 	"io/fs"
 	"net/http"
@@ -67,7 +68,7 @@ func resolveBlueprintRegistryBlueprintsDir(cfg BlueprintRegistryConfig) (string,
 	if err != nil {
 		return "", err
 	}
-	if err := os.MkdirAll(cacheRoot, 0o755); err != nil {
+	if err := os.MkdirAll(cacheRoot, bootstrap.SecretDirPerm); err != nil {
 		return "", fmt.Errorf("create blueprint registry cache dir %s: %w", cacheRoot, err)
 	}
 
@@ -101,7 +102,7 @@ func resolveBlueprintRegistryBlueprintsDir(cfg BlueprintRegistryConfig) (string,
 	}
 
 	stagedCacheDir := filepath.Join(stagingDir, "cache")
-	if err := os.MkdirAll(stagedCacheDir, 0o755); err != nil {
+	if err := os.MkdirAll(stagedCacheDir, bootstrap.DefaultDirPerm); err != nil {
 		return "", fmt.Errorf("create staged blueprint cache dir: %w", err)
 	}
 
@@ -222,7 +223,7 @@ func runGitCommand(ctx context.Context, args ...string) error {
 
 func extractBlueprintArchive(payload []byte, workspace string) (string, error) {
 	tarRoot := filepath.Join(workspace, "tar")
-	if err := os.MkdirAll(tarRoot, 0o755); err != nil {
+	if err := os.MkdirAll(tarRoot, bootstrap.SecretDirPerm); err != nil {
 		return "", fmt.Errorf("create tar extraction dir: %w", err)
 	}
 	if err := extractTarGzArchive(payload, tarRoot); err == nil {
@@ -230,7 +231,7 @@ func extractBlueprintArchive(payload []byte, workspace string) (string, error) {
 	}
 
 	zipRoot := filepath.Join(workspace, "zip")
-	if err := os.MkdirAll(zipRoot, 0o755); err != nil {
+	if err := os.MkdirAll(zipRoot, bootstrap.SecretDirPerm); err != nil {
 		return "", fmt.Errorf("create zip extraction dir: %w", err)
 	}
 	if err := extractZipArchive(payload, zipRoot); err == nil {
@@ -264,14 +265,14 @@ func extractTarGzArchive(payload []byte, dest string) error {
 
 		switch header.Typeflag {
 		case tar.TypeDir:
-			if err := os.MkdirAll(targetPath, 0o755); err != nil {
+			if err := os.MkdirAll(targetPath, bootstrap.DefaultDirPerm); err != nil {
 				return err
 			}
 		case tar.TypeReg:
-			if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
+			if err := os.MkdirAll(filepath.Dir(targetPath), bootstrap.DefaultDirPerm); err != nil {
 				return err
 			}
-			file, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+			file, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, bootstrap.DefaultFilePerm)
 			if err != nil {
 				return err
 			}
@@ -301,13 +302,13 @@ func extractZipArchive(payload []byte, dest string) error {
 		}
 
 		if zipped.FileInfo().IsDir() {
-			if err := os.MkdirAll(targetPath, 0o755); err != nil {
+			if err := os.MkdirAll(targetPath, bootstrap.DefaultDirPerm); err != nil {
 				return err
 			}
 			continue
 		}
 
-		if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(targetPath), bootstrap.DefaultDirPerm); err != nil {
 			return err
 		}
 
@@ -316,7 +317,7 @@ func extractZipArchive(payload []byte, dest string) error {
 			return err
 		}
 
-		target, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+		target, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, bootstrap.DefaultFilePerm)
 		if err != nil {
 			_ = source.Close()
 			return err
@@ -523,17 +524,17 @@ func copyDirectory(src, dst string) error {
 		target := filepath.Join(dst, rel)
 
 		if entry.IsDir() {
-			return os.MkdirAll(target, 0o755)
+			return os.MkdirAll(target, bootstrap.DefaultDirPerm)
 		}
 
 		data, err := os.ReadFile(path)
 		if err != nil {
 			return err
 		}
-		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(target), bootstrap.DefaultDirPerm); err != nil {
 			return err
 		}
-		return os.WriteFile(target, data, 0o644)
+		return os.WriteFile(target, data, bootstrap.DefaultFilePerm)
 	})
 }
 

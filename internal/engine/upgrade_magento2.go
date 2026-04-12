@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"govard/internal/engine/bootstrap"
 	"io"
 	"os"
 	"os/exec"
@@ -71,7 +72,7 @@ func upgradeMagento2(ctx context.Context, config Config, opts UpgradeOptions) er
 			if err != nil {
 				return fmt.Errorf("failed to marshal config: %w", err)
 			}
-			if err := os.WriteFile(filepath.Join(opts.ProjectDir, ".govard.yml"), yamlOut, 0644); err != nil {
+			if err := os.WriteFile(filepath.Join(opts.ProjectDir, ".govard.yml"), yamlOut, bootstrap.DefaultFilePerm); err != nil {
 				return fmt.Errorf("failed to write .govard.yml: %w", err)
 			}
 		}
@@ -175,7 +176,7 @@ func updateMagentoComposerJson(opts UpgradeOptions, containerName string) error 
 	// Backup
 	b, err := os.ReadFile(composerPath)
 	if err == nil {
-		if err := os.WriteFile(backupPath, b, 0644); err != nil {
+		if err := os.WriteFile(backupPath, b, bootstrap.DefaultFilePerm); err != nil {
 			pterm.Warning.Printf("Failed to create backup: %v\n", err)
 		}
 	}
@@ -216,7 +217,7 @@ func updateMagentoComposerJson(opts UpgradeOptions, containerName string) error 
 		return err
 	}
 
-	return os.WriteFile(composerPath, mergedBytes, 0644)
+	return os.WriteFile(composerPath, mergedBytes, bootstrap.DefaultFilePerm)
 }
 
 func mergeComposerMapKeys(current map[string]interface{}, target map[string]interface{}, key string) {

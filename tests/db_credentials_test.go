@@ -160,3 +160,30 @@ func TestBuildIgnoredTableArgsWithPrefix(t *testing.T) {
 		t.Fatalf("expected prefixed table name, got: %s", joined)
 	}
 }
+func TestBuildLocalMySQLQueryCommandScriptInjection(t *testing.T) {
+	cases := []struct {
+		name  string
+		query string
+	}{
+		{"Single quote injection", "'; DROP TABLE users; --"},
+		{"Subshell injection", "$(whoami)"},
+		{"Backtick injection", "`id`"},
+		{"Command separator", "SELECT 1; cat /etc/passwd"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			script := cmd.BuildLocalMySQLQueryCommandScriptForTest("user", "db", tc.query)
+
+			// We should verify that the query is present but properly quoted/escaped.
+			// Using engine.ShellQuote(tc.query) is the expected secure way.
+			// We need to access ShellQuote, but it's in package engine.
+			// However, we can just check if it matches the known safe pattern.
+
+			expectedQuoted := "'" + strings.ReplaceAll(tc.query, "'", `'"'"'`) + "'"
+			if !strings.Contains(script, " -e "+expectedQuoted) {
+				t.Fatalf("vulnerability or bug: script does not contain properly quoted query. Expected to find %q in %s", expectedQuoted, script)
+			}
+		})
+	}
+}

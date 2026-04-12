@@ -3,6 +3,7 @@ package engine
 import (
 	"encoding/json"
 	"fmt"
+	"govard/internal/engine/bootstrap"
 	"os"
 	"path/filepath"
 	"sort"
@@ -233,7 +234,7 @@ func writeProjectRegistryEntries(path string, entries []ProjectRegistryEntry) er
 	data = append(data, '\n')
 
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, bootstrap.DefaultDirPerm); err != nil {
 		return fmt.Errorf("create project registry dir %s: %w", dir, err)
 	}
 
@@ -266,7 +267,7 @@ func writeProjectRegistryEntries(path string, entries []ProjectRegistryEntry) er
 	if err := tmpFile.Close(); err != nil {
 		return fmt.Errorf("close project registry temp file: %w", err)
 	}
-	if err := os.Chmod(tmpPath, 0644); err != nil {
+	if err := os.Chmod(tmpPath, bootstrap.DefaultFilePerm); err != nil {
 		return fmt.Errorf("chmod project registry temp file: %w", err)
 	}
 	if err := os.Rename(tmpPath, path); err != nil {

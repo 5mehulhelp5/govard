@@ -453,7 +453,7 @@ func waitForUpRuntimeReadiness(config engine.Config, timeout time.Duration) erro
 				}
 
 				if abortConsecutiveCount >= maxAbortTolerations {
-					return fmt.Errorf("%s container %s is %s (exit code %s, oom=%s): %s", check.Service, check.ContainerName, state.Status, state.ExitCode, state.OOMKilled, firstNonEmpty(state.Error, "container stopped during startup"))
+					return fmt.Errorf("%s container %s is %s (exit code %s, oom=%s): %s", check.Service, check.ContainerName, state.Status, state.ExitCode, state.OOMKilled, engine.FirstNonEmpty(state.Error, "container stopped during startup"))
 				}
 
 				lastErr = fmt.Errorf("container is in state %s", state.Status)
@@ -506,15 +506,6 @@ func shouldAbortReadinessForContainerState(state upContainerState) bool {
 	default:
 		return false
 	}
-}
-
-func firstNonEmpty(values ...string) string {
-	for _, value := range values {
-		if trimmed := strings.TrimSpace(value); trimmed != "" {
-			return trimmed
-		}
-	}
-	return ""
 }
 
 func runUpPipeline(stages []upPipelineStage) error {

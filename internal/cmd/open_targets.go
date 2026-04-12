@@ -200,7 +200,7 @@ func buildRemoteShellCommand(projectPath string) string {
 	if trimmedPath == "" {
 		return cmd
 	}
-	return "cd " + quoteRemotePath(trimmedPath) + " && " + cmd
+	return "cd " + engineremote.QuoteRemotePath(trimmedPath) + " && " + cmd
 }
 
 func resolveOpenEnvironment(config engine.Config, requestedEnvironment string) (string, bool, error) {
@@ -376,7 +376,7 @@ func detectRemoteMagentoAdminPath(config engine.Config, remoteName string, remot
 	phpScript := `$c=@include "app/etc/env.php"; if(!is_array($c)){fwrite(STDERR,"env.php not found"); exit(2);} echo (string)($c["backend"]["frontName"] ?? "admin");`
 	remoteCommand := "php -r " + engine.ShellQuote(phpScript)
 	if path := strings.TrimSpace(remoteCfg.Path); path != "" {
-		remoteCommand = "cd " + engine.ShellQuote(path) + " && " + remoteCommand
+		remoteCommand = "cd " + engineremote.QuoteRemotePath(path) + " && " + remoteCommand
 	}
 
 	probeCmd := engineremote.BuildSSHExecCommand(remoteName, remoteCfg, true, remoteCommand)

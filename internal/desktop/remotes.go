@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"govard/internal/engine/bootstrap"
 	"io"
 	"net"
 	"net/url"
@@ -444,7 +445,7 @@ func detectRemoteMagentoAdminPathForDesktop(
 ) (string, error) {
 	remoteCommand := "php -r " + engine.ShellQuote(remoteMagentoAdminProbeScript)
 	if path := strings.TrimSpace(remoteCfg.Path); path != "" {
-		remoteCommand = "cd " + engine.ShellQuote(path) + " && " + remoteCommand
+		remoteCommand = "cd " + engineremote.QuoteRemotePath(path) + " && " + remoteCommand
 	}
 
 	probeCmd := engineremote.BuildSSHExecCommand(remoteName, remoteCfg, true, remoteCommand)
@@ -637,7 +638,7 @@ func buildRemoteShellCommandForDesktop(projectPath string) string {
 	if trimmedPath == "" {
 		return "(bash -l || sh)"
 	}
-	return "cd " + engine.ShellQuote(trimmedPath) + " && (bash -l || sh)"
+	return "cd " + engineremote.QuoteRemotePath(trimmedPath) + " && (bash -l || sh)"
 }
 
 func resolveSSHAgentSocketForDesktop(remoteCfg engine.RemoteConfig) (string, error) {
@@ -1374,7 +1375,7 @@ func writeBaseConfig(root string, config engine.Config) error {
 	if err != nil {
 		return fmt.Errorf("marshal config: %w", err)
 	}
-	if err := os.WriteFile(filepath.Join(root, engine.BaseConfigFile), data, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, engine.BaseConfigFile), data, bootstrap.SecretFilePerm); err != nil {
 		return fmt.Errorf("write %s: %w", engine.BaseConfigFile, err)
 	}
 	return nil

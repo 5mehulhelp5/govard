@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"govard/internal/engine/bootstrap"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -140,10 +141,10 @@ func ensureBootstrapAuthJSON(config engine.Config, opts BootstrapRuntimeOptions)
 
 func createAuthJSONFromCredentials(path, username, password, cwd string) error {
 	payload := fmt.Sprintf("{\n    \"http-basic\": {\n        \"repo.magento.com\": {\n            \"username\": %q,\n            \"password\": %q\n        }\n    }\n}\n", username, password)
-	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), bootstrap.SecretDirPerm); err != nil {
 		return fmt.Errorf("failed to ensure directory for auth.json: %w", err)
 	}
-	if err := os.WriteFile(path, []byte(payload), 0600); err != nil {
+	if err := os.WriteFile(path, []byte(payload), bootstrap.SecretFilePerm); err != nil {
 		return fmt.Errorf("failed writing auth.json to %s: %w", path, err)
 	}
 	pterm.Success.Printf("✅ Created auth.json in %s with provided credentials.\n", path)

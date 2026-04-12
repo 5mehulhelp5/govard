@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"govard/internal/engine/bootstrap"
 	"io"
 	"io/fs"
 	"os"
@@ -40,14 +41,14 @@ func CreateDoctorDiagnosticsPack(outputDir string, cwd string, report engine.Doc
 	if strings.TrimSpace(outputDir) == "" {
 		outputDir = defaultDoctorPackDir()
 	}
-	if err := os.MkdirAll(outputDir, 0o700); err != nil {
+	if err := os.MkdirAll(outputDir, bootstrap.SecretDirPerm); err != nil {
 		return "", fmt.Errorf("create doctor output dir: %w", err)
 	}
 
 	now := time.Now().UTC()
 	packName := "doctor-pack-" + now.Format("20060102-150405")
 	packDir := filepath.Join(outputDir, packName)
-	if err := os.MkdirAll(packDir, 0o700); err != nil {
+	if err := os.MkdirAll(packDir, bootstrap.SecretDirPerm); err != nil {
 		return "", fmt.Errorf("create doctor pack dir: %w", err)
 	}
 
@@ -56,7 +57,7 @@ func CreateDoctorDiagnosticsPack(outputDir string, cwd string, report engine.Doc
 	if err != nil {
 		return "", fmt.Errorf("marshal doctor report: %w", err)
 	}
-	if err := os.WriteFile(reportPath, reportPayload, 0o600); err != nil {
+	if err := os.WriteFile(reportPath, reportPayload, bootstrap.SecretFilePerm); err != nil {
 		return "", fmt.Errorf("write doctor report: %w", err)
 	}
 
@@ -72,7 +73,7 @@ func CreateDoctorDiagnosticsPack(outputDir string, cwd string, report engine.Doc
 	if err != nil {
 		return "", fmt.Errorf("marshal doctor environment: %w", err)
 	}
-	if err := os.WriteFile(envPath, envPayload, 0o600); err != nil {
+	if err := os.WriteFile(envPath, envPayload, bootstrap.SecretFilePerm); err != nil {
 		return "", fmt.Errorf("write doctor environment: %w", err)
 	}
 
@@ -100,7 +101,7 @@ func CreateDoctorDiagnosticsPack(outputDir string, cwd string, report engine.Doc
 			"- .govard.yml / .govard-compose.yml: optional project snapshots\n" +
 			"- remote-audit.log: optional remote audit history snapshot\n",
 	)
-	if err := os.WriteFile(filepath.Join(packDir, "README.txt"), readme, 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(packDir, "README.txt"), readme, bootstrap.SecretFilePerm); err != nil {
 		return "", fmt.Errorf("write doctor readme: %w", err)
 	}
 
@@ -131,7 +132,7 @@ func writeConfigLayersSnapshot(path string, cwd string) error {
 			content.WriteString("\n")
 		}
 	}
-	if writeErr := os.WriteFile(path, []byte(content.String()), 0o600); writeErr != nil {
+	if writeErr := os.WriteFile(path, []byte(content.String()), bootstrap.SecretFilePerm); writeErr != nil {
 		return fmt.Errorf("write config layers snapshot: %w", writeErr)
 	}
 	return nil
@@ -144,7 +145,7 @@ func writeRuntimeCommandSnapshots(path string) error {
 
 	if _, err := exec.LookPath("docker"); err != nil {
 		builder.WriteString("docker CLI not found in PATH\n")
-		return os.WriteFile(path, []byte(builder.String()), 0o600)
+		return os.WriteFile(path, []byte(builder.String()), bootstrap.SecretFilePerm)
 	}
 
 	commands := []struct {
@@ -173,7 +174,7 @@ func writeRuntimeCommandSnapshots(path string) error {
 		builder.WriteString("\n")
 	}
 
-	if err := os.WriteFile(path, []byte(builder.String()), 0o600); err != nil {
+	if err := os.WriteFile(path, []byte(builder.String()), bootstrap.SecretFilePerm); err != nil {
 		return fmt.Errorf("write runtime command snapshots: %w", err)
 	}
 	return nil

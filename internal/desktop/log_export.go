@@ -3,6 +3,7 @@ package desktop
 import (
 	"context"
 	"fmt"
+	"govard/internal/engine/bootstrap"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -56,7 +57,7 @@ func saveLogsToFile(ctx context.Context, content string, suggestedName string) (
 	if !strings.HasSuffix(output, "\n") {
 		output += "\n"
 	}
-	if err := writeLogFileForDesktop(cleanPath, []byte(output), 0o644); err != nil {
+	if err := writeLogFileForDesktop(cleanPath, []byte(output), bootstrap.DefaultFilePerm); err != nil {
 		return "", fmt.Errorf("write logs file: %w", err)
 	}
 
