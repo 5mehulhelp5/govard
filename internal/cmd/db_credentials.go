@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"govard/internal/conventions"
 	"govard/internal/engine"
 	"govard/internal/engine/remote"
 )
@@ -23,31 +24,31 @@ func defaultDBCredentialsForFramework(framework string) dbCredentials {
 	switch strings.TrimSpace(framework) {
 	case "symfony":
 		return dbCredentials{
-			Port:     3306,
+			Port:     conventions.MySQLPort,
 			Username: "symfony",
 			Password: "symfony",
 			Database: "symfony",
 		}
 	case "laravel":
 		return dbCredentials{
-			Port:     3306,
+			Port:     conventions.MySQLPort,
 			Username: "laravel",
 			Password: "laravel",
 			Database: "laravel",
 		}
 	case "wordpress":
 		return dbCredentials{
-			Port:     3306,
+			Port:     conventions.MySQLPort,
 			Username: "wordpress",
 			Password: "wordpress",
 			Database: "wordpress",
 		}
 	default:
 		return dbCredentials{
-			Port:     3306,
-			Username: "magento",
-			Password: "magento",
-			Database: "magento",
+			Port:     conventions.MySQLPort,
+			Username: conventions.DefaultMagentoDBUser,
+			Password: conventions.DefaultMagentoDBPass,
+			Database: conventions.DefaultMagentoDBName,
 		}
 	}
 }
@@ -55,13 +56,13 @@ func defaultDBCredentialsForFramework(framework string) dbCredentials {
 func (credentials dbCredentials) withDefaults() dbCredentials {
 	result := credentials
 	if strings.TrimSpace(result.Username) == "" {
-		result.Username = "magento"
+		result.Username = conventions.DefaultMagentoDBUser
 	}
 	if strings.TrimSpace(result.Database) == "" {
-		result.Database = "magento"
+		result.Database = conventions.DefaultMagentoDBName
 	}
 	if strings.TrimSpace(result.Host) != "" && result.Port <= 0 {
-		result.Port = 3306
+		result.Port = conventions.MySQLPort
 	}
 	if result.Port < 0 {
 		result.Port = 0
@@ -72,7 +73,7 @@ func (credentials dbCredentials) withDefaults() dbCredentials {
 func resolveRemoteDBCredentials(config engine.Config, remoteName string, remoteCfg engine.RemoteConfig) (dbCredentials, error) {
 	fallback := defaultDBCredentialsForFramework(config.Framework)
 	switch strings.TrimSpace(config.Framework) {
-	case "magento2":
+	case conventions.FrameworkMagento2:
 		metadata, err := remote.ProbeMagento2Environment(remoteName, remoteCfg)
 		if err != nil {
 			return fallback, err
@@ -85,7 +86,7 @@ func resolveRemoteDBCredentials(config engine.Config, remoteName string, remoteC
 			Password: metadata.DB.Password,
 			Database: metadata.DB.Database,
 		}.withDefaults(), nil
-	case "magento1", "openmage":
+	case conventions.FrameworkMagento1, conventions.FrameworkOpenMage:
 		metadata, err := remote.ProbeMagento1Environment(remoteName, remoteCfg)
 		if err != nil {
 			return fallback, err
@@ -178,10 +179,10 @@ func parseEnvMap(raw string) map[string]string {
 func buildRemoteMySQLDumpCommandString(credentials dbCredentials, noNoise bool, noPII bool, framework string, compress bool) string {
 	credentials = credentials.withDefaults()
 
-	dbCliDetect := `if command -v mariadb-dump >/dev/null 2>&1; then DUMP_BIN=mariadb-dump; else DUMP_BIN=mysqldump; fi`
+	dbCliDetect := conventions.MySQLDumpBinDetect
 
 	// Common options
-	commonArgs := []string{"\"$DUMP_BIN\"", "--max-allowed-packet=512M", "--force", "--single-transaction", "--no-tablespaces"}
+	commonArgs := []string{"\"$DUMP_BIN\"", "--max-allowed-packet=" + conventions.MySQLMaxAllowedPacket, "--force", "--single-transaction", "--no-tablespaces"}
 	if host := strings.TrimSpace(credentials.Host); host != "" {
 		commonArgs = append(commonArgs, "-h"+engine.ShellQuote(host))
 	}
@@ -229,7 +230,7 @@ func buildRemoteMySQLConnectCommandString(credentials dbCredentials) string {
 func buildRemoteMySQLImportCommandString(credentials dbCredentials) string {
 	credentials = credentials.withDefaults()
 
-	args := []string{"mysql", "--max-allowed-packet=512M"}
+	args := []string{"mysql", "--max-allowed-packet=" + conventions.MySQLMaxAllowedPacket}
 	if host := strings.TrimSpace(credentials.Host); host != "" {
 		args = append(args, "-h"+engine.ShellQuote(host))
 	}
@@ -274,10 +275,10 @@ func buildLocalDBDumpCommand(containerName string, credentials dbCredentials, no
 func buildLocalMySQLDumpCommandScript(credentials dbCredentials, noNoise bool, noPII bool, framework string) string {
 	credentials = credentials.withDefaults()
 
-	dbCliDetect := `if command -v mariadb-dump >/dev/null 2>&1; then DUMP_BIN=mariadb-dump; else DUMP_BIN=mysqldump; fi`
+	dbCliDetect := conventions.MySQLDumpBinDetect
 
 	// Common options
-	commonArgs := []string{"\"$DUMP_BIN\"", "--max-allowed-packet=512M", "--force", "--single-transaction", "--no-tablespaces", "-hdb", "-u" + engine.ShellQuote(credentials.Username)}
+	commonArgs := []string{"\"$DUMP_BIN\"", "--max-allowed-packet=" + conventions.MySQLMaxAllowedPacket, "--force", "--single-transaction", "--no-tablespaces", "-hdb", "-u" + engine.ShellQuote(credentials.Username)}
 
 	// Pass 1: Metadata
 	metadataArgs := append([]string{}, commonArgs...)
@@ -329,7 +330,7 @@ func buildLocalMySQLClientCommandScript(credentials dbCredentials, force bool) s
 	}
 
 	return strings.Join([]string{
-		`if command -v mysql >/dev/null 2>&1; then DB_CLI=mysql; elif command -v mariadb >/dev/null 2>&1; then DB_CLI=mariadb; else echo "mysql client not found (mysql/mariadb)" >&2; exit 127; fi`,
+		conventions.MySQLClientBinDetect,
 		query,
 	}, " && ")
 }
@@ -385,7 +386,7 @@ func buildLocalMySQLQueryCommandScript(credentials dbCredentials, query string) 
 	queryCmd := "exec \"$DB_CLI\" -u " + engine.ShellQuote(credentials.Username) + " -e " + engine.ShellQuote(query) + " " + engine.ShellQuote(credentials.Database)
 
 	return strings.Join([]string{
-		`if command -v mysql >/dev/null 2>&1; then DB_CLI=mysql; elif command -v mariadb >/dev/null 2>&1; then DB_CLI=mariadb; else echo "mysql client not found (mysql/mariadb)" >&2; exit 127; fi`,
+		conventions.MySQLClientBinDetect,
 		queryCmd,
 	}, " && ")
 }
@@ -428,14 +429,14 @@ func GetDatabaseSize(config engine.Config, remoteName string, remoteCfg engine.R
 	}
 	mysqlArgs = append(mysqlArgs, "-u"+engine.ShellQuote(credentials.Username), "-e", engine.ShellQuote(query))
 
-	dbCliDetect := `if command -v mysql >/dev/null 2>&1; then DB_CLI=mysql; elif command -v mariadb >/dev/null 2>&1; then DB_CLI=mariadb; else echo "mysql client not found" >&2; exit 127; fi`
+	dbCliDetect := conventions.MySQLClientBinDetect
 	mysqlCmd := mysqlPasswordExportPrefix(credentials.Password) + strings.Join(mysqlArgs, " ")
 	cmdStr := fmt.Sprintf("%s && %s", dbCliDetect, mysqlCmd)
 
 	var output []byte
 	var err error
 	if remoteName == "local" {
-		containerName := fmt.Sprintf("%s-db-1", config.ProjectName)
+		containerName := fmt.Sprintf("%s%s", config.ProjectName, conventions.DBSuffix)
 		output, err = exec.Command("docker", "exec", containerName, "sh", "-c", cmdStr).CombinedOutput()
 	} else {
 		sshCmd := remote.BuildSSHExecCommand(remoteName, remoteCfg, true, cmdStr)

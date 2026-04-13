@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	LockFilePathEnvVar = conventions.LockFilePathEnvVar
+	LockFilePathEnvVar = conventions.EnvGovardLock
 	LockFileName       = conventions.LockFileName
 )
 

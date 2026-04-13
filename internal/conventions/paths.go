@@ -22,14 +22,27 @@ const (
 	ProjectLocalConfigPath = ".govard/.govard.local.yml"
 
 	// Environment Variables
-	LockFilePathEnvVar = "GOVARD_LOCK_PATH"
-	GovardHomeEnvVar   = "GOVARD_HOME_DIR"
+	// Moved to env.go: EnvGovardLock, EnvGovardHome
+)
+
+const (
+	Magento1LocalXml = "app/etc/local.xml"
+	Magento2EnvPhp   = "app/etc/env.php"
+	DotEnvFile       = ".env"
+	WordPressConfig  = "wp-config.php"
+
+	// Lifecycle directories
+	MagentoGeneratedDir = "generated"
+	MagentoVarDir       = "var"
+	MagentoPubStaticDir = "pub/static"
+	MagentoVendorDir    = "vendor"
+	VarnishConfigDir    = "varnish"
 )
 
 // GetGovardHome returns the absolute path to the Govard home directory (~/.govard by default).
 // It respects the GOVARD_HOME_DIR environment variable if set.
 func GetGovardHome() string {
-	if override := os.Getenv(GovardHomeEnvVar); override != "" {
+	if override := os.Getenv(EnvGovardHome); override != "" {
 		return filepath.Clean(override)
 	}
 	home, _ := os.UserHomeDir()

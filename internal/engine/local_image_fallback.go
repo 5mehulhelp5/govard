@@ -254,7 +254,7 @@ func localBuildSpecForGovardService(service string, tag string, repoPrefix strin
 		return localImageBuildSpec{
 			ContextRel: "php",
 			BuildArgs: []localImageBuildArg{
-				{Name: "PHP_VERSION", Value: tag},
+				{Name: conventions.EnvPHPVersion, Value: tag},
 			},
 		}, nil
 	case "php-magento1":
@@ -272,7 +272,7 @@ func localBuildSpecForGovardService(service string, tag string, repoPrefix strin
 			ContextRel:    "php",
 			DockerfileRel: filepath.Join("php", "magento1", "Dockerfile"),
 			BuildArgs: []localImageBuildArg{
-				{Name: "PHP_VERSION", Value: tag},
+				{Name: conventions.EnvPHPVersion, Value: tag},
 				{Name: "GOVARD_IMAGE_REPOSITORY", Value: repoPrefix},
 			},
 			Dependencies: []string{repoPrefix + "php:" + tag},
@@ -292,7 +292,7 @@ func localBuildSpecForGovardService(service string, tag string, repoPrefix strin
 			ContextRel:    "php",
 			DockerfileRel: filepath.Join("php", "magento2", "Dockerfile"),
 			BuildArgs: []localImageBuildArg{
-				{Name: "PHP_VERSION", Value: tag},
+				{Name: conventions.EnvPHPVersion, Value: tag},
 				{Name: "GOVARD_IMAGE_REPOSITORY", Value: repoPrefix},
 			},
 			Dependencies: []string{repoPrefix + "php:" + tag},
@@ -301,35 +301,35 @@ func localBuildSpecForGovardService(service string, tag string, repoPrefix strin
 		return localImageBuildSpec{
 			ContextRel: "mariadb",
 			BuildArgs: []localImageBuildArg{
-				{Name: "MARIADB_VERSION", Value: tag},
+				{Name: conventions.EnvMariaDBVersion, Value: tag},
 			},
 		}, nil
 	case "mysql":
 		return localImageBuildSpec{
 			ContextRel: "mysql",
 			BuildArgs: []localImageBuildArg{
-				{Name: "MYSQL_VERSION", Value: tag},
+				{Name: conventions.EnvMySQLVersion, Value: tag},
 			},
 		}, nil
 	case "redis":
 		return localImageBuildSpec{
 			ContextRel: "redis",
 			BuildArgs: []localImageBuildArg{
-				{Name: "REDIS_VERSION", Value: tag},
+				{Name: conventions.EnvRedisVersion, Value: tag},
 			},
 		}, nil
 	case "valkey":
 		return localImageBuildSpec{
 			ContextRel: "valkey",
 			BuildArgs: []localImageBuildArg{
-				{Name: "VALKEY_VERSION", Value: tag},
+				{Name: conventions.EnvValkeyVersion, Value: tag},
 			},
 		}, nil
 	case "rabbitmq":
 		return localImageBuildSpec{
 			ContextRel: "rabbitmq",
 			BuildArgs: []localImageBuildArg{
-				{Name: "RABBITMQ_VERSION", Value: tag},
+				{Name: conventions.EnvRabbitMQVersion, Value: tag},
 			},
 		}, nil
 	case "opensearch":
@@ -337,7 +337,7 @@ func localBuildSpecForGovardService(service string, tag string, repoPrefix strin
 		return localImageBuildSpec{
 			ContextRel: "opensearch",
 			BuildArgs: []localImageBuildArg{
-				{Name: "OPENSEARCH_VERSION", Value: actualVersion},
+				{Name: conventions.EnvOpenSearchVersion, Value: actualVersion},
 			},
 		}, nil
 	case "elasticsearch":
@@ -349,7 +349,7 @@ func localBuildSpecForGovardService(service string, tag string, repoPrefix strin
 		return localImageBuildSpec{
 			ContextRel: "elasticsearch",
 			BuildArgs: []localImageBuildArg{
-				{Name: "ELASTICSEARCH_VERSION", Value: actualVersion},
+				{Name: conventions.EnvElasticsearchVersion, Value: actualVersion},
 				{Name: "ELASTICSEARCH_IMAGE", Value: elasticsearchImage},
 			},
 		}, nil
@@ -358,7 +358,7 @@ func localBuildSpecForGovardService(service string, tag string, repoPrefix strin
 		return localImageBuildSpec{
 			ContextRel: "varnish",
 			BuildArgs: []localImageBuildArg{
-				{Name: "VARNISH_VERSION", Value: varnishVersion},
+				{Name: conventions.EnvVarnishVersion, Value: varnishVersion},
 				{Name: "VARNISH_IMAGE_TAG", Value: varnishImageTag},
 			},
 		}, nil
