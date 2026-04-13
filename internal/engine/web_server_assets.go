@@ -2,7 +2,7 @@ package engine
 
 import (
 	"fmt"
-	"govard/internal/engine/bootstrap"
+	"govard/internal/conventions"
 	"io/fs"
 	"os"
 	"path"
@@ -69,10 +69,10 @@ func prepareNginxConfigAsset(blueprintsFS fs.FS, data RenderData, hybrid bool) (
 	).Replace(string(content))
 
 	destPath := filepath.Join(GovardHomeDir(), "nginx", data.Config.ProjectName, "default.conf")
-	if err := os.MkdirAll(filepath.Dir(destPath), bootstrap.DefaultDirPerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(destPath), conventions.DefaultDirPerm); err != nil {
 		return "", err
 	}
-	if err := os.WriteFile(destPath, []byte(rendered), bootstrap.DefaultFilePerm); err != nil {
+	if err := os.WriteFile(destPath, []byte(rendered), conventions.DefaultFilePerm); err != nil {
 		return "", err
 	}
 	return destPath, nil
@@ -95,10 +95,10 @@ func prepareApacheHTTPDConfigAsset(blueprintsFS fs.FS, data RenderData) (string,
 	).Replace(string(content))
 
 	destPath := filepath.Join(GovardHomeDir(), "apache", data.Config.ProjectName, "httpd.conf")
-	if err := os.MkdirAll(filepath.Dir(destPath), bootstrap.DefaultDirPerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(destPath), conventions.DefaultDirPerm); err != nil {
 		return "", err
 	}
-	if err := os.WriteFile(destPath, []byte(rendered), bootstrap.DefaultFilePerm); err != nil {
+	if err := os.WriteFile(destPath, []byte(rendered), conventions.DefaultFilePerm); err != nil {
 		return "", err
 	}
 	if err := copyApacheSupportFile(blueprintsFS, "mime.types", filepath.Join(filepath.Dir(destPath), "mime.types")); err != nil {
@@ -149,10 +149,10 @@ func mirrorApacheRunMapIntoConfDir(httpdConfigPath string, apacheRunMapPath stri
 	}
 
 	destPath := filepath.Join(filepath.Dir(httpdConfigPath), "extra", "mage-run-map.conf")
-	if err := os.MkdirAll(filepath.Dir(destPath), bootstrap.DefaultDirPerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(destPath), conventions.DefaultDirPerm); err != nil {
 		return err
 	}
-	if err := os.WriteFile(destPath, content, bootstrap.DefaultFilePerm); err != nil {
+	if err := os.WriteFile(destPath, content, conventions.DefaultFilePerm); err != nil {
 		return err
 	}
 
@@ -164,10 +164,10 @@ func copyApacheSupportFile(blueprintsFS fs.FS, filename string, destPath string)
 	if err != nil {
 		return fmt.Errorf("read apache support file %s: %w", filename, err)
 	}
-	if err := os.MkdirAll(filepath.Dir(destPath), bootstrap.DefaultDirPerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(destPath), conventions.DefaultDirPerm); err != nil {
 		return err
 	}
-	if err := os.WriteFile(destPath, content, bootstrap.DefaultFilePerm); err != nil {
+	if err := os.WriteFile(destPath, content, conventions.DefaultFilePerm); err != nil {
 		return err
 	}
 	return nil

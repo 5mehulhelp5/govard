@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"fmt"
+	"govard/internal/conventions"
 	"os"
 	"path/filepath"
 	"strings"
@@ -64,7 +65,7 @@ DATABASE_URL=` + databaseURL + `
 MAILER_DSN=smtp://mailpit:1025
 PROXY_URL=` + siteURL + `
 `
-		if err := os.WriteFile(envPath, []byte(content), SecretFilePerm); err != nil {
+		if err := os.WriteFile(envPath, []byte(content), conventions.SecretFilePerm); err != nil {
 			return fmt.Errorf("failed to create .env: %w", err)
 		}
 		pterm.Success.Println("Created .env")
@@ -72,7 +73,7 @@ PROXY_URL=` + siteURL + `
 		content := replaceOrAppendEnvAssignment(string(data), "DATABASE_URL", databaseURL)
 		content = replaceOrAppendEnvAssignment(content, "APP_URL", siteURL)
 		content = replaceOrAppendEnvAssignment(content, "PROXY_URL", siteURL)
-		_ = os.WriteFile(envPath, []byte(content), SecretFilePerm)
+		_ = os.WriteFile(envPath, []byte(content), conventions.SecretFilePerm)
 	}
 
 	if err := s.runComposerCommand(projectDir, "install", "--no-interaction"); err != nil {
@@ -104,7 +105,7 @@ func (s *ShopwareBootstrap) Configure(projectDir string) error {
 			updated := replaceOrAppendEnvAssignment(string(content), "DATABASE_URL", databaseURL)
 			updated = replaceOrAppendEnvAssignment(updated, "APP_URL", siteURL)
 			updated = replaceOrAppendEnvAssignment(updated, "PROXY_URL", siteURL)
-			_ = os.WriteFile(envPath, []byte(updated), SecretFilePerm)
+			_ = os.WriteFile(envPath, []byte(updated), conventions.SecretFilePerm)
 		}
 	}
 
@@ -132,12 +133,12 @@ func (s *ShopwareBootstrap) PostClone(projectDir string) error {
 			content := replaceOrAppendEnvAssignment(string(data), "DATABASE_URL", fmt.Sprintf("mysql://%s:%s@%s:3306/%s", dbUser, dbPass, dbHost, dbName))
 			content = replaceOrAppendEnvAssignment(content, "APP_URL", siteURL)
 			content = replaceOrAppendEnvAssignment(content, "PROXY_URL", siteURL)
-			_ = os.WriteFile(envPath, []byte(content), SecretFilePerm)
+			_ = os.WriteFile(envPath, []byte(content), conventions.SecretFilePerm)
 		}
 	} else if data, err := os.ReadFile(envPath); err == nil {
 		content := replaceOrAppendEnvAssignment(string(data), "APP_URL", siteURL)
 		content = replaceOrAppendEnvAssignment(content, "PROXY_URL", siteURL)
-		_ = os.WriteFile(envPath, []byte(content), SecretFilePerm)
+		_ = os.WriteFile(envPath, []byte(content), conventions.SecretFilePerm)
 	}
 
 	_ = s.runBinConsole(projectDir, "cache:clear")

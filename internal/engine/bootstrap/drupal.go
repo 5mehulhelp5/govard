@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"fmt"
+	"govard/internal/conventions"
 	"os"
 	"path/filepath"
 	"strings"
@@ -78,17 +79,17 @@ func (d *DrupalBootstrap) Install(projectDir string) error {
 	}
 
 	sitePath := filepath.Join(projectDir, "web", "sites", "default")
-	_ = os.MkdirAll(sitePath, DefaultDirPerm)
+	_ = os.MkdirAll(sitePath, conventions.DefaultDirPerm)
 
 	filesPath := filepath.Join(sitePath, "files")
-	_ = os.MkdirAll(filesPath, PublicDirPerm)
+	_ = os.MkdirAll(filesPath, conventions.PublicDirPerm)
 
 	settingsPath := filepath.Join(sitePath, "settings.php")
 	if _, err := os.Stat(settingsPath); os.IsNotExist(err) {
 		defaultSettings := filepath.Join(sitePath, "default.settings.php")
 		if _, err := os.Stat(defaultSettings); err == nil {
 			data, _ := os.ReadFile(defaultSettings)
-			_ = os.WriteFile(settingsPath, data, SecretFilePerm)
+			_ = os.WriteFile(settingsPath, data, conventions.SecretFilePerm)
 		}
 	}
 
@@ -129,7 +130,7 @@ func (d *DrupalBootstrap) Configure(projectDir string) error {
 			if !strings.Contains(updated, "'host' => 'db'") {
 				updated = strings.ReplaceAll(updated, "'host' => 'localhost'", "'host' => 'db'")
 				updated = strings.ReplaceAll(updated, "'host' => '127.0.0.1'", "'host' => 'db'")
-				_ = os.WriteFile(settingsPath, []byte(updated), SecretFilePerm)
+				_ = os.WriteFile(settingsPath, []byte(updated), conventions.SecretFilePerm)
 			}
 		}
 	}
@@ -149,14 +150,14 @@ func (d *DrupalBootstrap) PostClone(projectDir string) error {
 
 	sitePath := filepath.Join(projectDir, "web", "sites", "default")
 	filesPath := filepath.Join(sitePath, "files")
-	_ = os.MkdirAll(filesPath, PublicDirPerm)
+	_ = os.MkdirAll(filesPath, conventions.PublicDirPerm)
 
 	settingsPath := filepath.Join(sitePath, "settings.php")
 	if _, err := os.Stat(settingsPath); os.IsNotExist(err) {
 		defaultSettings := filepath.Join(sitePath, "default.settings.php")
 		if _, err := os.Stat(defaultSettings); err == nil {
 			data, _ := os.ReadFile(defaultSettings)
-			_ = os.WriteFile(settingsPath, data, SecretFilePerm)
+			_ = os.WriteFile(settingsPath, data, conventions.SecretFilePerm)
 		}
 	}
 
@@ -165,7 +166,7 @@ func (d *DrupalBootstrap) PostClone(projectDir string) error {
 			content := string(data)
 			content = strings.ReplaceAll(content, "'host' => 'localhost'", "'host' => 'db'")
 			content = strings.ReplaceAll(content, "'host' => '127.0.0.1'", "'host' => 'db'")
-			_ = os.WriteFile(settingsPath, []byte(content), SecretFilePerm)
+			_ = os.WriteFile(settingsPath, []byte(content), conventions.SecretFilePerm)
 		}
 	}
 

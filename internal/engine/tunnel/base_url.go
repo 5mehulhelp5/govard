@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"govard/internal/conventions"
 	"govard/internal/engine"
-	"govard/internal/engine/bootstrap"
 )
 
 type BaseURLManager interface {
@@ -159,7 +159,7 @@ func (m *LaravelManager) updateEnv(projectRoot string, key string, value string)
 	if write == nil {
 		write = os.WriteFile
 	}
-	return write(envPath, []byte(strings.Join(lines, "\n")), bootstrap.DefaultFilePerm)
+	return write(envPath, []byte(strings.Join(lines, "\n")), conventions.DefaultFilePerm)
 }
 
 // Similar structs for other frameworks...
@@ -230,7 +230,7 @@ func (m *Magento1Manager) executeDockerMysql(container string, sql string) ([]by
 	// Use smart detection for mysql vs mariadb binary
 	script := fmt.Sprintf(
 		`if command -v mysql >/dev/null 2>&1; then DB_CLI=mysql; elif command -v mariadb >/dev/null 2>&1; then DB_CLI=mariadb; else exit 1; fi && "$DB_CLI" -umagento -pmagento magento -e %s`,
-		bootstrap.ShellEscape(sql),
+		conventions.ShellQuote(sql),
 	)
 
 	return executor("docker", "exec", container, "sh", "-lc", script)

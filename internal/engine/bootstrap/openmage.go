@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"fmt"
+	"govard/internal/conventions"
 	"os"
 	"path/filepath"
 
@@ -71,13 +72,13 @@ func (o *OpenMageBootstrap) Install(projectDir string) error {
 	}
 
 	varPath := filepath.Join(projectDir, "var")
-	_ = os.MkdirAll(varPath, PublicDirPerm)
-	_ = os.MkdirAll(filepath.Join(varPath, "cache"), PublicDirPerm)
-	_ = os.MkdirAll(filepath.Join(varPath, "session"), PublicDirPerm)
-	_ = os.MkdirAll(filepath.Join(varPath, "log"), PublicDirPerm)
+	_ = os.MkdirAll(varPath, conventions.PublicDirPerm)
+	_ = os.MkdirAll(filepath.Join(varPath, "cache"), conventions.PublicDirPerm)
+	_ = os.MkdirAll(filepath.Join(varPath, "session"), conventions.PublicDirPerm)
+	_ = os.MkdirAll(filepath.Join(varPath, "log"), conventions.PublicDirPerm)
 
 	mediaPath := filepath.Join(projectDir, "media")
-	_ = os.MkdirAll(mediaPath, PublicDirPerm)
+	_ = os.MkdirAll(mediaPath, conventions.PublicDirPerm)
 
 	pterm.Success.Println("OpenMage installation completed")
 	return nil
@@ -108,9 +109,9 @@ func (o *OpenMageBootstrap) PostClone(projectDir string) error {
 	}
 
 	varPath := filepath.Join(projectDir, "var")
-	_ = os.MkdirAll(varPath, PublicDirPerm)
-	_ = os.MkdirAll(filepath.Join(varPath, "cache"), PublicDirPerm)
-	_ = os.MkdirAll(filepath.Join(varPath, "session"), PublicDirPerm)
+	_ = os.MkdirAll(varPath, conventions.PublicDirPerm)
+	_ = os.MkdirAll(filepath.Join(varPath, "cache"), conventions.PublicDirPerm)
+	_ = os.MkdirAll(filepath.Join(varPath, "session"), conventions.PublicDirPerm)
 
 	pterm.Success.Println("Post-clone setup completed")
 	return nil
@@ -165,12 +166,12 @@ func (o *OpenMageBootstrap) createLocalXml(projectDir string) error {
 `, cryptKey)
 
 	etcPath := filepath.Join(projectDir, "app", "etc")
-	if err := os.MkdirAll(etcPath, DefaultDirPerm); err != nil {
+	if err := os.MkdirAll(etcPath, conventions.DefaultDirPerm); err != nil {
 		return fmt.Errorf("failed to create app/etc directory: %w", err)
 	}
 
 	localXmlPath := filepath.Join(etcPath, "local.xml")
-	if err := os.WriteFile(localXmlPath, []byte(localXmlContent), SecretFilePerm); err != nil {
+	if err := os.WriteFile(localXmlPath, []byte(localXmlContent), conventions.SecretFilePerm); err != nil {
 		return fmt.Errorf("failed to write local.xml: %w", err)
 	}
 

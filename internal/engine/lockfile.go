@@ -2,7 +2,7 @@ package engine
 
 import (
 	"fmt"
-	"govard/internal/engine/bootstrap"
+	"govard/internal/conventions"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	LockFilePathEnvVar = "GOVARD_LOCK_PATH"
-	LockFileName       = "govard.lock"
+	LockFilePathEnvVar = conventions.LockFilePathEnvVar
+	LockFileName       = conventions.LockFileName
 )
 
 type LockDependencies struct {
@@ -162,10 +162,10 @@ func WriteLockFile(path string, lock LockFile) error {
 	}
 	payload = append(payload, '\n')
 
-	if err := os.MkdirAll(filepath.Dir(cleanPath), bootstrap.DefaultDirPerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(cleanPath), conventions.DefaultDirPerm); err != nil {
 		return fmt.Errorf("create lock file directory: %w", err)
 	}
-	if err := os.WriteFile(cleanPath, payload, bootstrap.DefaultFilePerm); err != nil {
+	if err := os.WriteFile(cleanPath, payload, conventions.DefaultFilePerm); err != nil {
 		return fmt.Errorf("write lock file: %w", err)
 	}
 	return nil

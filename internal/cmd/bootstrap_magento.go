@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"govard/internal/engine/bootstrap"
+	"govard/internal/conventions"
 	"os"
 	"path/filepath"
 	"strings"
@@ -36,7 +36,7 @@ func ensureBootstrapMagentoEnvPHP(config engine.Config, opts BootstrapRuntimeOpt
 		return nil
 	}
 
-	if err := os.MkdirAll(filepath.Dir(envPath), bootstrap.DefaultDirPerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(envPath), conventions.DefaultDirPerm); err != nil {
 		return fmt.Errorf("failed to create app/etc: %w", err)
 	}
 
@@ -105,7 +105,7 @@ return [
 		localDB.Database, localDB.Username, localDB.Password,
 	)
 
-	if err := os.WriteFile(envPath, []byte(template), bootstrap.DefaultFilePerm); err != nil {
+	if err := os.WriteFile(envPath, []byte(template), conventions.DefaultFilePerm); err != nil {
 		return fmt.Errorf("failed to write app/etc/env.php: %w", err)
 	}
 

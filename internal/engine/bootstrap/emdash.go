@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"govard/internal/conventions"
 	"io"
 	"net/http"
 	"os"
@@ -128,11 +129,11 @@ func downloadAndExtractStarterTemplate(projectDir string) error {
 		targetPath := filepath.Join(projectDir, filepath.FromSlash(relativePath))
 		switch header.Typeflag {
 		case tar.TypeDir:
-			if err := os.MkdirAll(targetPath, DefaultDirPerm); err != nil {
+			if err := os.MkdirAll(targetPath, conventions.DefaultDirPerm); err != nil {
 				return fmt.Errorf("create template directory %s: %w", targetPath, err)
 			}
 		case tar.TypeReg:
-			if err := os.MkdirAll(filepath.Dir(targetPath), DefaultDirPerm); err != nil {
+			if err := os.MkdirAll(filepath.Dir(targetPath), conventions.DefaultDirPerm); err != nil {
 				return fmt.Errorf("create template parent directory %s: %w", targetPath, err)
 			}
 			file, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(header.Mode))
@@ -179,7 +180,7 @@ func rewriteEmdashPackageName(projectDir string) error {
 		return fmt.Errorf("marshal emdash package.json: %w", err)
 	}
 	updated = append(updated, '\n')
-	if err := os.WriteFile(packagePath, updated, DefaultFilePerm); err != nil {
+	if err := os.WriteFile(packagePath, updated, conventions.DefaultFilePerm); err != nil {
 		return fmt.Errorf("write emdash package.json: %w", err)
 	}
 
@@ -227,7 +228,7 @@ func patchEmdashAstroConfig(projectDir string) error {
 		return fmt.Errorf("patch emdash astro config: expected config anchor not found")
 	}
 
-	if err := os.WriteFile(configPath, []byte(content), DefaultFilePerm); err != nil {
+	if err := os.WriteFile(configPath, []byte(content), conventions.DefaultFilePerm); err != nil {
 		return fmt.Errorf("write emdash astro config: %w", err)
 	}
 
@@ -240,7 +241,7 @@ func PatchEmdashAstroConfigForTest(projectDir string) error {
 
 func writeEmdashPasskeyShim(projectDir string) error {
 	shimPath := filepath.Join(projectDir, "src", "govard", "passkey-config.ts")
-	if err := os.MkdirAll(filepath.Dir(shimPath), DefaultDirPerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(shimPath), conventions.DefaultDirPerm); err != nil {
 		return fmt.Errorf("create emdash passkey shim dir: %w", err)
 	}
 
@@ -262,7 +263,7 @@ export function getPasskeyConfig(url: URL, siteName?: string): PasskeyConfig {
 	};
 }
 `
-	if err := os.WriteFile(shimPath, []byte(content), DefaultFilePerm); err != nil {
+	if err := os.WriteFile(shimPath, []byte(content), conventions.DefaultFilePerm); err != nil {
 		return fmt.Errorf("write emdash passkey shim: %w", err)
 	}
 

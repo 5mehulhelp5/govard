@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"govard/internal/conventions"
 	"govard/internal/engine"
 
 	"github.com/pterm/pterm"
@@ -275,14 +276,14 @@ Note: -e/--environment accepts remote name aliases (e.g. 'dev' matches a remote 
 }
 
 func ensureBootstrapInit(cmd *cobra.Command, cwd string) error {
-	configPath := filepath.Join(cwd, engine.BaseConfigFile)
+	configPath := filepath.Join(cwd, conventions.BaseConfigFile)
 	if _, err := os.Stat(configPath); err == nil {
 		return nil
 	} else if !errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("failed to check %s: %w", engine.BaseConfigFile, err)
+		return fmt.Errorf("failed to check %s: %w", conventions.BaseConfigFile, err)
 	}
 
-	pterm.Info.Printf("%s not found. Running `govard init` first.\n", engine.BaseConfigFile)
+	pterm.Info.Printf("%s not found. Running `govard init` first.\n", conventions.BaseConfigFile)
 	initArgs := []string{"init"}
 	if bootstrapFramework != "" {
 		initArgs = append(initArgs, "--framework", bootstrapFramework)

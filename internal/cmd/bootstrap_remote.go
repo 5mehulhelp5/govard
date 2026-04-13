@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"govard/internal/conventions"
 	"govard/internal/engine"
 	"govard/internal/engine/bootstrap"
 	"govard/internal/engine/remote"
@@ -41,7 +42,7 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts Bootstrap
 					return fmt.Errorf("remote '%s' is not configured", opts.Source)
 				}
 			} else {
-				return fmt.Errorf("remote '%s' is not configured. Add it to remotes in %s", opts.Source, engine.BaseConfigFile)
+				return fmt.Errorf("remote '%s' is not configured. Add it to remotes in %s", opts.Source, conventions.BaseConfigFile)
 			}
 		}
 

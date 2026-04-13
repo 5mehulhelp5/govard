@@ -1,4 +1,4 @@
-package bootstrap
+package conventions
 
 import "os"
 

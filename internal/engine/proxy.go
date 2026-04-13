@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"govard/internal/engine/bootstrap"
+	"govard/internal/conventions"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -58,7 +58,7 @@ func EnsureGlobalProxy() error {
 	}
 
 	tempDir := filepath.Join(os.Getenv("HOME"), ".govard", "proxy")
-	_ = os.MkdirAll(tempDir, bootstrap.DefaultDirPerm)
+	_ = os.MkdirAll(tempDir, conventions.DefaultDirPerm)
 
 	blueprintsFS, err := findBlueprintsFS(".")
 	if err != nil {
@@ -71,7 +71,7 @@ func EnsureGlobalProxy() error {
 
 	proxyFile := filepath.Join(tempDir, "docker-compose.yml")
 	// Always write the file to ensure we're using the latest proxy configuration
-	if err := os.WriteFile(proxyFile, content, bootstrap.DefaultFilePerm); err != nil {
+	if err := os.WriteFile(proxyFile, content, conventions.DefaultFilePerm); err != nil {
 		return err
 	}
 
@@ -80,7 +80,7 @@ func EnsureGlobalProxy() error {
 	}
 
 	pmaConfigContent := buildPMAConfigContent()
-	if err := os.WriteFile(filepath.Join(tempDir, "config.user.inc.php"), []byte(pmaConfigContent), bootstrap.DefaultFilePerm); err != nil {
+	if err := os.WriteFile(filepath.Join(tempDir, "config.user.inc.php"), []byte(pmaConfigContent), conventions.DefaultFilePerm); err != nil {
 		return err
 	}
 
@@ -172,7 +172,7 @@ func writePMAActiveProjectsFile(path string, projects []string) error {
 		return fmt.Errorf("marshal PMA active projects: %w", err)
 	}
 	data = append(data, '\n')
-	if err := os.WriteFile(path, data, bootstrap.DefaultFilePerm); err != nil {
+	if err := os.WriteFile(path, data, conventions.DefaultFilePerm); err != nil {
 		return fmt.Errorf("write PMA active projects file: %w", err)
 	}
 	return nil

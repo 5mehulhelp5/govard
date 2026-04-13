@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"govard/internal/conventions"
 	"govard/internal/engine"
 )
 
@@ -243,7 +244,7 @@ func loadProjectConfigForOnboarding(root string) (engine.Config, bool, error) {
 
 	cfg, err := engine.LoadBaseConfigFromDir(root, true)
 	if err != nil {
-		return engine.Config{}, true, fmt.Errorf("load %s: %w", engine.BaseConfigFile, err)
+		return engine.Config{}, true, fmt.Errorf("load %s: %w", conventions.BaseConfigFile, err)
 	}
 	return cfg, true, nil
 }

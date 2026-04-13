@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"govard/internal/engine/bootstrap"
+	"govard/internal/conventions"
 	"io"
 	"os"
 	"path/filepath"
@@ -72,11 +72,11 @@ func WriteOperationEvent(event OperationEvent) error {
 	}
 
 	path := OperationsLogPath()
-	if err := os.MkdirAll(filepath.Dir(path), bootstrap.SecretDirPerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), conventions.SecretDirPerm); err != nil {
 		return fmt.Errorf("create operations log dir: %w", err)
 	}
 
-	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, bootstrap.SecretFilePerm)
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, conventions.SecretFilePerm)
 	if err != nil {
 		return fmt.Errorf("open operations log: %w", err)
 	}

@@ -2,7 +2,7 @@ package engine
 
 import (
 	"crypto/sha1"
-	"govard/internal/engine/bootstrap"
+	"govard/internal/conventions"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -14,16 +14,7 @@ var projectNameSanitizer = regexp.MustCompile(`[^a-zA-Z0-9_-]+`)
 
 // GovardHomeDir resolves the Govard home directory.
 func GovardHomeDir() string {
-	if override := strings.TrimSpace(os.Getenv("GOVARD_HOME_DIR")); override != "" {
-		return override
-	}
-
-	home, err := os.UserHomeDir()
-	if err != nil || strings.TrimSpace(home) == "" {
-		return filepath.Join(".", ".govard")
-	}
-
-	return filepath.Join(home, ".govard")
+	return conventions.GetGovardHome()
 }
 
 // ComposeFilePath resolves the compose file location for a project.
@@ -66,7 +57,7 @@ func ComposeFilePathWithProfile(projectRoot string, projectName string, profile 
 
 // EnsureComposePathReady creates the compose directory when missing.
 func EnsureComposePathReady(path string) error {
-	return os.MkdirAll(filepath.Dir(path), bootstrap.SecretDirPerm)
+	return os.MkdirAll(filepath.Dir(path), conventions.SecretDirPerm)
 }
 
 func sanitizeComposeProjectName(name string) string {

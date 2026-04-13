@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"govard/internal/engine/bootstrap"
+	"govard/internal/conventions"
 	"io"
 	"net"
 	"net/url"
@@ -994,7 +994,7 @@ func findExactProjectMatch(query string) (engine.ProjectRegistryEntry, error) {
 }
 
 func pathHasBaseConfig(root string) bool {
-	configPath := filepath.Join(filepath.Clean(strings.TrimSpace(root)), engine.BaseConfigFile)
+	configPath := filepath.Join(filepath.Clean(strings.TrimSpace(root)), conventions.BaseConfigFile)
 	info, err := os.Stat(configPath)
 	if err != nil {
 		return false
@@ -1375,8 +1375,8 @@ func writeBaseConfig(root string, config engine.Config) error {
 	if err != nil {
 		return fmt.Errorf("marshal config: %w", err)
 	}
-	if err := os.WriteFile(filepath.Join(root, engine.BaseConfigFile), data, bootstrap.SecretFilePerm); err != nil {
-		return fmt.Errorf("write %s: %w", engine.BaseConfigFile, err)
+	if err := os.WriteFile(filepath.Join(root, conventions.BaseConfigFile), data, conventions.SecretFilePerm); err != nil {
+		return fmt.Errorf("write %s: %w", conventions.BaseConfigFile, err)
 	}
 	return nil
 }

@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"govard/internal/blueprints"
-	"govard/internal/engine/bootstrap"
+	"govard/internal/conventions"
 	"io/fs"
 	"os"
 	"path"
@@ -425,10 +425,10 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 		if err != nil {
 			return fmt.Errorf("failed to render varnish vcl: %w", err)
 		}
-		if err := os.MkdirAll(vclDestDir, bootstrap.DefaultDirPerm); err != nil {
+		if err := os.MkdirAll(vclDestDir, conventions.DefaultDirPerm); err != nil {
 			return fmt.Errorf("failed to create varnish dir: %w", err)
 		}
-		if err := os.WriteFile(vclDest, []byte(rendered), bootstrap.DefaultFilePerm); err != nil {
+		if err := os.WriteFile(vclDest, []byte(rendered), conventions.DefaultFilePerm); err != nil {
 			return fmt.Errorf("failed to write varnish vcl: %w", err)
 		}
 	}
@@ -472,7 +472,7 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 	if err := EnsureComposePathReady(outputPath); err != nil {
 		return fmt.Errorf("failed to prepare compose output path: %w", err)
 	}
-	f, err := os.OpenFile(outputPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, bootstrap.DefaultFilePerm)
+	f, err := os.OpenFile(outputPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, conventions.DefaultFilePerm)
 	if err != nil {
 		return fmt.Errorf("create compose output %s: %w", outputPath, err)
 	}
@@ -495,7 +495,7 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 		return fmt.Errorf("write compose output %s: %w", outputPath, err)
 	}
 
-	_ = os.WriteFile(hashPath, []byte(currentHash), bootstrap.DefaultFilePerm)
+	_ = os.WriteFile(hashPath, []byte(currentHash), conventions.DefaultFilePerm)
 
 	return nil
 }
@@ -597,7 +597,7 @@ func prepareSafeSSHConfig(hostSSHDir string) string {
 	// If permissions are too broad (group/world writable), create a safe copy
 	if info.Mode().Perm()&0o022 != 0 {
 		safeDir := filepath.Join(GovardHomeDir(), "ssh")
-		if err := os.MkdirAll(safeDir, bootstrap.SecretDirPerm); err != nil {
+		if err := os.MkdirAll(safeDir, conventions.SecretDirPerm); err != nil {
 			return ""
 		}
 
@@ -608,7 +608,7 @@ func prepareSafeSSHConfig(hostSSHDir string) string {
 		}
 
 		// Write with 600 permissions
-		if err := os.WriteFile(safePath, data, bootstrap.SecretFilePerm); err != nil {
+		if err := os.WriteFile(safePath, data, conventions.SecretFilePerm); err != nil {
 			return ""
 		}
 
@@ -651,7 +651,7 @@ func renderLegacyBlueprint(root string, blueprintsFS fs.FS, config Config) error
 		return fmt.Errorf("marshal legacy rendered compose: %w", err)
 	}
 
-	if err := os.WriteFile(outputPath, out, bootstrap.DefaultFilePerm); err != nil {
+	if err := os.WriteFile(outputPath, out, conventions.DefaultFilePerm); err != nil {
 		return fmt.Errorf("write legacy legacy compose output %s: %w", outputPath, err)
 	}
 

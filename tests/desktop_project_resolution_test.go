@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"govard/internal/conventions"
 	"govard/internal/desktop"
 	"govard/internal/engine"
 	"os"
@@ -21,7 +22,7 @@ func TestDesktopProjectResolution(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = os.WriteFile(filepath.Join(projectPath, engine.BaseConfigFile), []byte("project_name: sample-project\ndomain: sample-project.test"), 0644)
+	err = os.WriteFile(filepath.Join(projectPath, conventions.BaseConfigFile), []byte("project_name: sample-project\ndomain: sample-project.test"), 0644)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"govard/internal/engine/bootstrap"
+	"govard/internal/conventions"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -115,7 +115,7 @@ func writeSleepState(state sleepStateDocument) error {
 
 	path := sleepStatePath()
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, bootstrap.SecretDirPerm); err != nil {
+	if err := os.MkdirAll(dir, conventions.SecretDirPerm); err != nil {
 		return fmt.Errorf("create sleep state dir %s: %w", dir, err)
 	}
 
@@ -136,7 +136,7 @@ func writeSleepState(state sleepStateDocument) error {
 	if err := tmp.Close(); err != nil {
 		return fmt.Errorf("close sleep state temp file: %w", err)
 	}
-	if err := os.Chmod(tmpPath, bootstrap.SecretFilePerm); err != nil {
+	if err := os.Chmod(tmpPath, conventions.SecretFilePerm); err != nil {
 		return fmt.Errorf("chmod sleep state temp file: %w", err)
 	}
 	if err := os.Rename(tmpPath, path); err != nil {

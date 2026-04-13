@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"govard/internal/engine/bootstrap"
+	"govard/internal/conventions"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -61,7 +61,7 @@ func buildSyncExecutionPlan(config engine.Config, endpoints ResolvedSyncEndpoint
 			sourcePath = filepath.Join(endpoints.Source.RootPath, opts.Path)
 			destinationPath = filepath.Join(endpoints.Destination.RootPath, opts.Path)
 			if endpoints.Destination.IsLocal {
-				if err := os.MkdirAll(filepath.Dir(destinationPath), bootstrap.DefaultDirPerm); err != nil {
+				if err := os.MkdirAll(filepath.Dir(destinationPath), conventions.DefaultDirPerm); err != nil {
 					return SyncExecutionPlan{}, fmt.Errorf("failed to create destination parent directory: %w", err)
 				}
 			}

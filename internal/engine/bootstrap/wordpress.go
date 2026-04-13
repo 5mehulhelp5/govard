@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"govard/internal/conventions"
 	"io"
 	"net/http"
 	"os"
@@ -149,7 +150,7 @@ func (w *WordPressBootstrap) createWordPressConfig(projectDir string) error {
 	}
 
 	content = injectWordPressProxySupport(content)
-	if err := os.WriteFile(filepath.Join(appDir, "wp-config.php"), []byte(content), DefaultFilePerm); err != nil {
+	if err := os.WriteFile(filepath.Join(appDir, "wp-config.php"), []byte(content), conventions.DefaultFilePerm); err != nil {
 		return fmt.Errorf("write wp-config.php: %w", err)
 	}
 
@@ -323,11 +324,11 @@ func downloadAndExtractWordPressCore(projectDir string) error {
 		targetPath := filepath.Join(projectDir, filepath.FromSlash(relativePath))
 		switch header.Typeflag {
 		case tar.TypeDir:
-			if err := os.MkdirAll(targetPath, DefaultDirPerm); err != nil {
+			if err := os.MkdirAll(targetPath, conventions.DefaultDirPerm); err != nil {
 				return fmt.Errorf("create WordPress directory %s: %w", targetPath, err)
 			}
 		case tar.TypeReg:
-			if err := os.MkdirAll(filepath.Dir(targetPath), DefaultDirPerm); err != nil {
+			if err := os.MkdirAll(filepath.Dir(targetPath), conventions.DefaultDirPerm); err != nil {
 				return fmt.Errorf("create WordPress parent directory %s: %w", filepath.Dir(targetPath), err)
 			}
 			file, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(header.Mode))

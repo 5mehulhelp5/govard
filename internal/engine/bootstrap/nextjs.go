@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"fmt"
+	"govard/internal/conventions"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -101,7 +102,7 @@ func (n *NextJSBootstrap) Configure(projectDir string) error {
 		content := `NODE_ENV=development
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 `
-		if err := os.WriteFile(envPath, []byte(content), SecretFilePerm); err != nil {
+		if err := os.WriteFile(envPath, []byte(content), conventions.SecretFilePerm); err != nil {
 			return fmt.Errorf("failed to create .env.local: %w", err)
 		}
 		pterm.Success.Println("Created .env.local")
@@ -112,7 +113,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 		content := `NODE_ENV=development
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 `
-		if err := os.WriteFile(envExamplePath, []byte(content), DefaultFilePerm); err != nil {
+		if err := os.WriteFile(envExamplePath, []byte(content), conventions.DefaultFilePerm); err != nil {
 			pterm.Warning.Printf("Failed to create .env.example: %v\n", err)
 		}
 	}

@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"govard/internal/engine/bootstrap"
+	"govard/internal/conventions"
 
 	"github.com/pterm/pterm"
 )
@@ -491,7 +491,7 @@ func buildMagento1Commands(projectName string, config Config) []magentoCommand {
 
 	if config.Domain != "" {
 		baseURL := fmt.Sprintf("https://%s/", config.Domain)
-		sqlStatements := bootstrap.BuildMagento1SetConfigSQLStatements(baseURL, "")
+		sqlStatements := BuildMagento1SetConfigSQLStatements(baseURL, "")
 		for idx, sql := range sqlStatements {
 			commands = append(commands, magentoCommand{
 				Desc: fmt.Sprintf("Setting Magento 1 base configuration (%d/%d)", idx+1, len(sqlStatements)),
@@ -509,11 +509,11 @@ func buildMagento1Commands(projectName string, config Config) []magentoCommand {
 		var sqlStatements []string
 		switch mapping.ScopeType() {
 		case "website":
-			sqlStatements = bootstrap.BuildMagento1WebsiteBaseURLSQLStatements(scopeCode, baseURL, "")
+			sqlStatements = BuildMagento1WebsiteBaseURLSQLStatements(scopeCode, baseURL, "")
 		case "store":
-			sqlStatements = bootstrap.BuildMagento1StoreBaseURLSQLStatements(scopeCode, baseURL, "")
+			sqlStatements = BuildMagento1StoreBaseURLSQLStatements(scopeCode, baseURL, "")
 		default:
-			sqlStatements = bootstrap.BuildMagento1ScopedBaseURLSQLStatements(scopeCode, baseURL, "")
+			sqlStatements = BuildMagento1ScopedBaseURLSQLStatements(scopeCode, baseURL, "")
 		}
 		for idx, sql := range sqlStatements {
 			commands = append(commands, magentoCommand{
@@ -662,7 +662,7 @@ func patchMagentoElasticsearchSchemaForLibxml() (bool, error) {
 		return false, nil
 	}
 
-	if err := os.WriteFile(schemaPath, []byte(updated), bootstrap.DefaultFilePerm); err != nil {
+	if err := os.WriteFile(schemaPath, []byte(updated), conventions.DefaultFilePerm); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -719,7 +719,7 @@ func magentoDockerExecArgs(containerName string, config Config, args ...string) 
 func magento1DockerSQLExecArgs(containerName string, sql string) []string {
 	script := fmt.Sprintf(
 		`if command -v mysql >/dev/null 2>&1; then DB_CLI=mysql; elif command -v mariadb >/dev/null 2>&1; then DB_CLI=mariadb; else exit 1; fi && echo %s | "$DB_CLI" -u %s %s -f`,
-		bootstrap.ShellEscape(sql), bootstrap.ShellEscape("magento"), bootstrap.ShellEscape("magento"),
+		ShellQuote(sql), ShellQuote("magento"), ShellQuote("magento"),
 	)
 
 	return []string{
@@ -823,17 +823,17 @@ func prepareMagentoRunMappingAssets(config Config) (string, string, error) {
 	nginxPath := filepath.Join(GovardHomeDir(), "nginx", config.ProjectName, "mage-run-map.conf")
 	apachePath := filepath.Join(GovardHomeDir(), "apache", config.ProjectName, "mage-run-map.conf")
 
-	if err := os.MkdirAll(filepath.Dir(nginxPath), bootstrap.DefaultDirPerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(nginxPath), conventions.DefaultDirPerm); err != nil {
 		return "", "", err
 	}
-	if err := os.MkdirAll(filepath.Dir(apachePath), bootstrap.DefaultDirPerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(apachePath), conventions.DefaultDirPerm); err != nil {
 		return "", "", err
 	}
 
-	if err := os.WriteFile(nginxPath, []byte(buildMagentoNginxRunMap(config.StoreDomains)), bootstrap.DefaultFilePerm); err != nil {
+	if err := os.WriteFile(nginxPath, []byte(buildMagentoNginxRunMap(config.StoreDomains)), conventions.DefaultFilePerm); err != nil {
 		return "", "", err
 	}
-	if err := os.WriteFile(apachePath, []byte(buildMagentoApacheRunMap(config.StoreDomains)), bootstrap.DefaultFilePerm); err != nil {
+	if err := os.WriteFile(apachePath, []byte(buildMagentoApacheRunMap(config.StoreDomains)), conventions.DefaultFilePerm); err != nil {
 		return "", "", err
 	}
 
@@ -890,4 +890,76 @@ func buildMagentoApacheRunMap(mappings StoreDomainMappings) string {
 	}
 	lines = append(lines, "")
 	return strings.Join(lines, "\n")
+}
+
+func BuildMagento1SetConfigSQLStatements(baseURL string, dbPrefix string) []string {
+	return []string{
+		fmt.Sprintf("UPDATE %score_config_data SET value = '%s' WHERE path IN ('web/secure/base_url', 'web/unsecure/base_url')", dbPrefix, baseURL),
+		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}' WHERE path IN ('web/unsecure/base_link_url', 'web/secure/base_link_url')",
+		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}skin/' WHERE path IN ('web/unsecure/base_skin_url', 'web/secure/base_skin_url')",
+		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}media/' WHERE path IN ('web/unsecure/base_media_url', 'web/secure/base_media_url')",
+		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}js/' WHERE path IN ('web/unsecure/base_js_url', 'web/secure/base_js_url')",
+		"UPDATE " + dbPrefix + "core_config_data SET value = 'HTTP_X_FORWARDED_PROTO' WHERE path = 'web/secure/offloader_header'",
+		"UPDATE " + dbPrefix + "core_config_data SET value = '1' WHERE path = 'web/secure/use_in_frontend'",
+		"UPDATE " + dbPrefix + "core_config_data SET value = '1' WHERE path = 'web/secure/use_in_adminhtml'",
+		"UPDATE " + dbPrefix + "core_config_data SET value = '0' WHERE path = 'web/url/redirect_to_base'",
+		"UPDATE " + dbPrefix + "core_config_data SET value = NULL WHERE path = 'web/cookie/cookie_domain'",
+		"UPDATE " + dbPrefix + "core_config_data SET value = '/' WHERE path = 'web/cookie/cookie_path'",
+	}
+}
+
+func BuildMagento1ScopedBaseURLSQLStatements(scopeCode string, baseURL string, dbPrefix string) []string {
+	statements := BuildMagento1WebsiteBaseURLSQLStatements(scopeCode, baseURL, dbPrefix)
+	statements = append(statements, BuildMagento1StoreBaseURLSQLStatements(scopeCode, baseURL, dbPrefix)...)
+	return statements
+}
+
+func BuildMagento1WebsiteBaseURLSQLStatements(scopeCode string, baseURL string, dbPrefix string) []string {
+	scopeCodeSQL := conventions.ShellQuote(scopeCode)
+	baseURLSQL := conventions.ShellQuote(baseURL)
+	configTable := dbPrefix + "core_config_data"
+	scopeTable := dbPrefix + "core_website"
+	return []string{
+		fmt.Sprintf(
+			"UPDATE %s cfg JOIN %s scope_entity ON scope_entity.website_id = cfg.scope_id SET cfg.value = %s WHERE cfg.scope = 'websites' AND scope_entity.code = %s AND cfg.path = 'web/unsecure/base_url'",
+			configTable, scopeTable, baseURLSQL, scopeCodeSQL,
+		),
+		fmt.Sprintf(
+			"INSERT INTO %s (scope, scope_id, path, value) SELECT 'websites', scope_entity.website_id, 'web/unsecure/base_url', %s FROM %s scope_entity WHERE scope_entity.code = %s AND NOT EXISTS (SELECT 1 FROM %s cfg WHERE cfg.scope = 'websites' AND cfg.scope_id = scope_entity.website_id AND cfg.path = 'web/unsecure/base_url')",
+			configTable, baseURLSQL, scopeTable, scopeCodeSQL, configTable,
+		),
+		fmt.Sprintf(
+			"UPDATE %s cfg JOIN %s scope_entity ON scope_entity.website_id = cfg.scope_id SET cfg.value = %s WHERE cfg.scope = 'websites' AND scope_entity.code = %s AND cfg.path = 'web/secure/base_url'",
+			configTable, scopeTable, baseURLSQL, scopeCodeSQL,
+		),
+		fmt.Sprintf(
+			"INSERT INTO %s (scope, scope_id, path, value) SELECT 'websites', scope_entity.website_id, 'web/secure/base_url', %s FROM %s scope_entity WHERE scope_entity.code = %s AND NOT EXISTS (SELECT 1 FROM %s cfg WHERE cfg.scope = 'websites' AND cfg.scope_id = scope_entity.website_id AND cfg.path = 'web/secure/base_url')",
+			configTable, baseURLSQL, scopeTable, scopeCodeSQL, configTable,
+		),
+	}
+}
+
+func BuildMagento1StoreBaseURLSQLStatements(scopeCode string, baseURL string, dbPrefix string) []string {
+	scopeCodeSQL := conventions.ShellQuote(scopeCode)
+	baseURLSQL := conventions.ShellQuote(baseURL)
+	configTable := dbPrefix + "core_config_data"
+	scopeTable := dbPrefix + "core_store"
+	return []string{
+		fmt.Sprintf(
+			"UPDATE %s cfg JOIN %s scope_entity ON scope_entity.store_id = cfg.scope_id SET cfg.value = %s WHERE cfg.scope = 'stores' AND scope_entity.code = %s AND cfg.path = 'web/unsecure/base_url'",
+			configTable, scopeTable, baseURLSQL, scopeCodeSQL,
+		),
+		fmt.Sprintf(
+			"INSERT INTO %s (scope, scope_id, path, value) SELECT 'stores', scope_entity.store_id, 'web/unsecure/base_url', %s FROM %s scope_entity WHERE scope_entity.code = %s AND NOT EXISTS (SELECT 1 FROM %s cfg WHERE cfg.scope = 'stores' AND cfg.scope_id = scope_entity.store_id AND cfg.path = 'web/unsecure/base_url')",
+			configTable, baseURLSQL, scopeTable, scopeCodeSQL, configTable,
+		),
+		fmt.Sprintf(
+			"UPDATE %s cfg JOIN %s scope_entity ON scope_entity.store_id = cfg.scope_id SET cfg.value = %s WHERE cfg.scope = 'stores' AND scope_entity.code = %s AND cfg.path = 'web/secure/base_url'",
+			configTable, scopeTable, baseURLSQL, scopeCodeSQL,
+		),
+		fmt.Sprintf(
+			"INSERT INTO %s (scope, scope_id, path, value) SELECT 'stores', scope_entity.store_id, 'web/secure/base_url', %s FROM %s scope_entity WHERE scope_entity.code = %s AND NOT EXISTS (SELECT 1 FROM %s cfg WHERE cfg.scope = 'stores' AND cfg.scope_id = scope_entity.store_id AND cfg.path = 'web/secure/base_url')",
+			configTable, conventions.ShellQuote(baseURL), scopeTable, conventions.ShellQuote(scopeCode), configTable,
+		),
+	}
 }

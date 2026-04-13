@@ -9,7 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"govard/internal/engine/bootstrap"
+	"govard/internal/conventions"
 	"io"
 	"net/http"
 	"os"
@@ -282,8 +282,8 @@ func fetchLatestReleaseTag(client *http.Client, repo string) (string, error) {
 	cacheData.Tag = tag
 	cacheData.FetchedAt = time.Now()
 	if b, err := json.Marshal(cacheData); err == nil {
-		_ = os.MkdirAll(filepath.Dir(cacheFile), bootstrap.DefaultDirPerm)
-		_ = os.WriteFile(cacheFile, b, bootstrap.DefaultFilePerm)
+		_ = os.MkdirAll(filepath.Dir(cacheFile), conventions.DefaultDirPerm)
+		_ = os.WriteFile(cacheFile, b, conventions.DefaultFilePerm)
 	}
 
 	return tag, nil
@@ -462,7 +462,7 @@ func extractBinaryFromTarGz(archivePath, workDir, binaryName string) (string, er
 			return "", fmt.Errorf("close extracted binary: %w", closeErr)
 		}
 
-		if err := os.Chmod(outPath, bootstrap.DefaultDirPerm); err != nil {
+		if err := os.Chmod(outPath, conventions.DefaultDirPerm); err != nil {
 			return "", fmt.Errorf("set executable bit: %w", err)
 		}
 		return outPath, nil
@@ -511,7 +511,7 @@ func extractBinaryFromZip(archivePath, workDir, binaryName string) (string, erro
 			return "", fmt.Errorf("close extracted binary: %w", closeOutErr)
 		}
 
-		if err := os.Chmod(outPath, bootstrap.DefaultDirPerm); err != nil {
+		if err := os.Chmod(outPath, conventions.DefaultDirPerm); err != nil {
 			return "", fmt.Errorf("set executable bit: %w", err)
 		}
 		return outPath, nil
@@ -528,7 +528,7 @@ func replaceBinary(sourcePath, targetPath string) error {
 	defer in.Close()
 
 	targetDir := filepath.Dir(targetPath)
-	if err := os.MkdirAll(targetDir, bootstrap.DefaultDirPerm); err != nil {
+	if err := os.MkdirAll(targetDir, conventions.DefaultDirPerm); err != nil {
 		return fmt.Errorf("ensure target directory: %w", err)
 	}
 
@@ -548,7 +548,7 @@ func replaceBinary(sourcePath, targetPath string) error {
 		return fmt.Errorf("close temp file: %w", err)
 	}
 
-	if err := os.Chmod(tempPath, bootstrap.DefaultDirPerm); err != nil {
+	if err := os.Chmod(tempPath, conventions.DefaultDirPerm); err != nil {
 		_ = os.Remove(tempPath)
 		return fmt.Errorf("set executable bit on temp file: %w", err)
 	}
@@ -606,7 +606,7 @@ func extractBinaryFromDebPackage(debPath, workDir, binaryName string) (string, e
 	if err := os.RemoveAll(extractDir); err != nil {
 		return "", fmt.Errorf("reset deb extract directory: %w", err)
 	}
-	if err := os.MkdirAll(extractDir, bootstrap.DefaultDirPerm); err != nil {
+	if err := os.MkdirAll(extractDir, conventions.DefaultDirPerm); err != nil {
 		return "", fmt.Errorf("create deb extract directory: %w", err)
 	}
 

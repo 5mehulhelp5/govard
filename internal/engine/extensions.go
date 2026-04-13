@@ -2,7 +2,7 @@ package engine
 
 import (
 	"fmt"
-	"govard/internal/engine/bootstrap"
+	"govard/internal/conventions"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -11,11 +11,11 @@ import (
 )
 
 const (
-	ProjectExtensionsDir       = ".govard"
-	ProjectCommandsDir         = ".govard/commands"
-	ProjectHooksDir            = ".govard/hooks"
-	ProjectLocalConfigPath     = ".govard/.govard.local.yml"
-	ProjectComposeOverridePath = ".govard/docker-compose.override.yml"
+	ProjectExtensionsDir       = conventions.ProjectExtensionsDir
+	ProjectCommandsDir         = conventions.ProjectCommandsDir
+	ProjectHooksDir            = conventions.ProjectHooksDir
+	ProjectLocalConfigPath     = conventions.ProjectLocalConfigPath
+	ProjectComposeOverridePath = conventions.ProjectComposeOverridePath
 	GlobalCommandsDirEnvVar    = "GOVARD_GLOBAL_COMMANDS_DIR"
 )
 
@@ -38,7 +38,7 @@ func EnsureExtensionContract(root string, force bool) ([]string, error) {
 		filepath.Join(cleanRoot, ProjectHooksDir),
 	}
 	for _, dir := range dirs {
-		if err := os.MkdirAll(dir, bootstrap.DefaultDirPerm); err != nil {
+		if err := os.MkdirAll(dir, conventions.DefaultDirPerm); err != nil {
 			return nil, fmt.Errorf("create directory %s: %w", dir, err)
 		}
 	}
@@ -46,7 +46,7 @@ func EnsureExtensionContract(root string, force bool) ([]string, error) {
 	files := []scaffoldFile{
 		{
 			Path: filepath.Join(cleanRoot, ProjectLocalConfigPath),
-			Mode: bootstrap.DefaultFilePerm,
+			Mode: conventions.DefaultFilePerm,
 			Content: `# Project-local Govard overrides (recommended to keep uncommitted).
 # This file is loaded after .govard.yml.
 #
@@ -62,7 +62,7 @@ func EnsureExtensionContract(root string, force bool) ([]string, error) {
 		},
 		{
 			Path: filepath.Join(cleanRoot, ProjectComposeOverridePath),
-			Mode: bootstrap.DefaultFilePerm,
+			Mode: conventions.DefaultFilePerm,
 			Content: `# Project-specific compose overrides merged after framework blueprints.
 #
 # Example:
@@ -74,7 +74,7 @@ func EnsureExtensionContract(root string, force bool) ([]string, error) {
 		},
 		{
 			Path: filepath.Join(cleanRoot, ProjectHooksDir, "pre_up.sh"),
-			Mode: bootstrap.DefaultDirPerm,
+			Mode: conventions.DefaultDirPerm,
 			Content: `#!/usr/bin/env bash
 set -euo pipefail
 
@@ -83,7 +83,7 @@ echo "[govard hook] pre_up: project-specific setup"
 		},
 		{
 			Path: filepath.Join(cleanRoot, ProjectCommandsDir, "hello"),
-			Mode: bootstrap.DefaultDirPerm,
+			Mode: conventions.DefaultDirPerm,
 			Content: `#!/usr/bin/env bash
 set -euo pipefail
 
