@@ -1,6 +1,9 @@
 package engine
 
-import "strings"
+import (
+	"govard/internal/conventions"
+	"strings"
+)
 
 // FrameworkConfig defines the configuration for a specific framework
 type FrameworkConfig struct {
@@ -36,7 +39,7 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 		Name:               "magento2",
 		Runtime:            "php",
 		AppService:         "php",
-		AppWorkdir:         "/var/www/html",
+		AppWorkdir:         conventions.DefaultWorkDir,
 		NGINXPUBLIC:        "/pub",
 		NGINXTemplate:      "magento2.conf",
 		DatabaseName:       "magento",
@@ -70,7 +73,7 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 		Name:               "laravel",
 		Runtime:            "php",
 		AppService:         "php",
-		AppWorkdir:         "/var/www/html",
+		AppWorkdir:         conventions.DefaultWorkDir,
 		NGINXPUBLIC:        "/public",
 		NGINXTemplate:      "laravel.conf",
 		DatabaseName:       "laravel",
@@ -151,7 +154,7 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 		Name:               "drupal",
 		Runtime:            "php",
 		AppService:         "php",
-		AppWorkdir:         "/var/www/html",
+		AppWorkdir:         conventions.DefaultWorkDir,
 		NGINXPUBLIC:        "/web",
 		NGINXTemplate:      "drupal.conf",
 		DatabaseName:       "drupal",
@@ -181,7 +184,7 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 		Name:               "symfony",
 		Runtime:            "php",
 		AppService:         "php",
-		AppWorkdir:         "/var/www/html",
+		AppWorkdir:         conventions.DefaultWorkDir,
 		NGINXPUBLIC:        "/public",
 		NGINXTemplate:      "symfony.conf",
 		DatabaseName:       "symfony",
@@ -212,7 +215,7 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 		Name:               "magento1",
 		Runtime:            "php",
 		AppService:         "php",
-		AppWorkdir:         "/var/www/html",
+		AppWorkdir:         conventions.DefaultWorkDir,
 		NGINXPUBLIC:        "",
 		NGINXTemplate:      "magento1.conf",
 		DatabaseName:       "magento",
@@ -241,7 +244,7 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 		Name:               "openmage",
 		Runtime:            "php",
 		AppService:         "php",
-		AppWorkdir:         "/var/www/html",
+		AppWorkdir:         conventions.DefaultWorkDir,
 		NGINXPUBLIC:        "",
 		NGINXTemplate:      "magento1.conf",
 		DatabaseName:       "openmage",
@@ -270,7 +273,7 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 		Name:               "shopware",
 		Runtime:            "php",
 		AppService:         "php",
-		AppWorkdir:         "/var/www/html",
+		AppWorkdir:         conventions.DefaultWorkDir,
 		NGINXPUBLIC:        "/public",
 		NGINXTemplate:      "shopware.conf",
 		DatabaseName:       "shopware",
@@ -301,7 +304,7 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 		Name:               "cakephp",
 		Runtime:            "php",
 		AppService:         "php",
-		AppWorkdir:         "/var/www/html",
+		AppWorkdir:         conventions.DefaultWorkDir,
 		NGINXPUBLIC:        "/webroot",
 		NGINXTemplate:      "cakephp.conf",
 		DatabaseName:       "cakephp",
@@ -329,7 +332,7 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 		Name:               "wordpress",
 		Runtime:            "php",
 		AppService:         "php",
-		AppWorkdir:         "/var/www/html",
+		AppWorkdir:         conventions.DefaultWorkDir,
 		NGINXPUBLIC:        "",
 		NGINXTemplate:      "wordpress.conf",
 		DatabaseName:       "wordpress",
@@ -357,7 +360,7 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 		Name:               "custom",
 		Runtime:            "php",
 		AppService:         "php",
-		AppWorkdir:         "/var/www/html",
+		AppWorkdir:         conventions.DefaultWorkDir,
 		NGINXPUBLIC:        "",
 		NGINXTemplate:      "default.conf",
 		DatabaseName:       "app",
@@ -414,5 +417,5 @@ func ResolveFrameworkAppWorkdir(name string) string {
 	if ok && strings.TrimSpace(config.AppWorkdir) != "" {
 		return config.AppWorkdir
 	}
-	return "/var/www/html"
+	return conventions.DefaultWorkDir
 }

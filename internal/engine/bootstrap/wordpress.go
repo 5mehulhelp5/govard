@@ -374,10 +374,10 @@ func wordpressRunnerAppDir(projectDir string) string {
 	appDir := wordpressAppDir(projectDir)
 	relativeDir, err := filepath.Rel(projectDir, appDir)
 	if err != nil || relativeDir == "." {
-		return "/var/www/html"
+		return conventions.DefaultWorkDir
 	}
 
-	return path.Join("/var/www/html", filepath.ToSlash(relativeDir))
+	return path.Join(conventions.DefaultWorkDir, filepath.ToSlash(relativeDir))
 }
 
 func SetWordPressCoreDownloaderForTest(fn func(projectDir string) error) func() {

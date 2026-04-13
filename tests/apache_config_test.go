@@ -28,7 +28,7 @@ func TestApacheHTTPDConfigAvoidsUnsupportedProxyPassEnvParameter(t *testing.T) {
 
 func TestApacheHTTPDConfigAllowsMagentoRootHtaccessOverrides(t *testing.T) {
 	content := readApacheHTTPDConfig(t)
-	if !strings.Contains(content, "<Directory \"/var/www/html\">") {
+	if !strings.Contains(content, "<Directory \"@CONVENTIONS_WORK_DIR@\">") {
 		t.Fatalf("expected apache config to allow overrides from Magento root directory")
 	}
 }

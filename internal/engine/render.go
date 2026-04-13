@@ -51,6 +51,8 @@ type RenderData struct {
 	ComposerVersion       string
 	RuntimeDomainHosts    []string
 	HostGovardRootCAPath  string
+	WorkDir               string
+	HomeWWWData           string
 }
 
 func findBlueprintsDir(startDir string) (string, error) {
@@ -350,7 +352,7 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 	// Determine image repository
 	imageRepo := strings.TrimSpace(os.Getenv("GOVARD_IMAGE_REPOSITORY"))
 	if imageRepo == "" {
-		imageRepo = "ddtcorex/govard-"
+		imageRepo = conventions.DefaultImageRepoPrefix
 	}
 
 	// Prepare render data
@@ -366,6 +368,8 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 		ComposerVersion:      config.Stack.ComposerVersion,
 		RuntimeDomainHosts:   runtimeDomainHosts,
 		HostGovardRootCAPath: govardRootCAPath,
+		WorkDir:              conventions.DefaultWorkDir,
+		HomeWWWData:          conventions.HomeWWWData,
 	}
 	if config.Stack.WebRoot != "" {
 		renderData.NGINXPublic = config.Stack.WebRoot

@@ -56,7 +56,7 @@ func ensureBootstrapMagentoEnvPHP(config engine.Config, opts BootstrapRuntimeOpt
 		}
 	}
 
-	containerName := fmt.Sprintf("%s-db-1", config.ProjectName)
+	containerName := fmt.Sprintf("%s%s", config.ProjectName, conventions.DBSuffix)
 	localDB := resolveLocalDBCredentials(config, containerName)
 
 	template := fmt.Sprintf(`<?php
@@ -71,7 +71,7 @@ return [
         'table_prefix' => '',
         'connection' => [
             'default' => [
-                'host' => 'db',
+                'host' => '"+conventions.DefaultMagentoDBHost+"',
                 'dbname' => %q,
                 'username' => %q,
                 'password' => %q,

@@ -48,7 +48,7 @@ func FixComposerCompatibility(config engine.Config) error {
 func ensureSpecificComposerVersion(config engine.Config, version string) error {
 	pterm.Info.Printf("Ensuring Composer version %s is installed in container...\n", version)
 
-	containerName := fmt.Sprintf("%s-php-1", config.ProjectName)
+	containerName := fmt.Sprintf("%s%s", config.ProjectName, conventions.PHPSuffix)
 
 	downloadUrl := "https://getcomposer.org/composer-stable.phar"
 	if version != "latest" {

@@ -7,4 +7,5 @@ const (
 	DefaultMagentoDBUser = "magento"
 	DefaultMagentoDBPass = "magento"
 	DefaultMagentoDBName = "magento"
+	DefaultMagentoDBHost = "db"
 )

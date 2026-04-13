@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"gopkg.in/yaml.v3"
+	"govard/internal/conventions"
 )
 
 type DoctorCheckStatus string
@@ -522,7 +523,7 @@ func CheckSSHAgentStatus() (string, error) {
 	// 3. Optional: Check inside the PHP container if running
 	config := loadConfig()
 	if config.ProjectName != "" {
-		containerName := fmt.Sprintf("%s-php-1", config.ProjectName)
+		containerName := fmt.Sprintf("%s%s", config.ProjectName, conventions.PHPSuffix)
 		// Only check if container is running
 		inspect := exec.Command("docker", "inspect", "-f", "{{.State.Running}}", containerName)
 		if output, err := inspect.Output(); err == nil && strings.TrimSpace(string(output)) == "true" {
@@ -543,7 +544,7 @@ func CheckSearchIndexBlock() error {
 		return nil
 	}
 
-	containerName := fmt.Sprintf("%s-elasticsearch-1", config.ProjectName)
+	containerName := fmt.Sprintf("%s%s", config.ProjectName, conventions.ElasticsearchSuffix)
 	// Check if container is running first
 	inspect := exec.Command("docker", "inspect", "-f", "{{.State.Running}}", containerName)
 	if output, err := inspect.Output(); err != nil || strings.TrimSpace(string(output)) != "true" {

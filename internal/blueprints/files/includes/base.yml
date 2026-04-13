@@ -11,7 +11,7 @@ services:
     hostname: {{ .Config.ProjectName }}-web
     image: {{ if $isApache }}{{ $.ImageRepository }}apache:{{ .Config.Stack.ApacheVersion }}{{ else }}{{ $.ImageRepository }}nginx:{{ .Config.Stack.NginxVersion }}{{ end }}
     volumes:
-      - .:/var/www/html
+      - .:{{ .WorkDir }}
       {{ if and (not $isApache) .NginxConfigPath }}
       - "{{ .NginxConfigPath }}:/etc/nginx/templates/{{ if $isHybrid }}hybrid.conf{{ else }}{{ .NGINXTemplate }}{{ end }}:ro"
       {{ end }}
@@ -31,7 +31,7 @@ services:
       {{ end }}
     environment:
       {{ if $isApache }}
-      - APACHE_DOCUMENT_ROOT=/var/www/html{{ .NGINXPublic }}
+      - APACHE_DOCUMENT_ROOT={{ .WorkDir }}{{ .NGINXPublic }}
       - APACHE_XDEBUG_SESSION={{ .XdebugSessionPattern }}
       {{ else }}
       - NGINX_PUBLIC={{ .NGINXPublic }}
@@ -44,13 +44,13 @@ services:
       - PUID={{ .Config.Stack.UserID }}
       - PGID={{ .Config.Stack.GroupID }}
       - CHOWN_DIR_LIST="{{ range $i, $dir := .Config.Stack.ChownDirList }}{{ if $i }} {{ end }}{{ $dir }}{{ end }}"
-
+ 
   {{ if $isHybrid }}
   apache:
     hostname: {{ .Config.ProjectName }}-apache
     image: {{ $.ImageRepository }}apache:{{ .Config.Stack.ApacheVersion }}
     volumes:
-      - .:/var/www/html
+      - .:{{ .WorkDir }}
       {{ if .ApacheConfigDir }}
       - "{{ .ApacheConfigDir }}:/usr/local/apache2/conf"
       {{ end }}
@@ -59,35 +59,35 @@ services:
     depends_on:
       - php
     environment:
-      - APACHE_DOCUMENT_ROOT=/var/www/html{{ .NGINXPublic }}
+      - APACHE_DOCUMENT_ROOT={{ .WorkDir }}{{ .NGINXPublic }}
       - APACHE_XDEBUG_SESSION={{ .XdebugSessionPattern }}
       - PUID={{ .Config.Stack.UserID }}
       - PGID={{ .Config.Stack.GroupID }}
       - CHOWN_DIR_LIST="{{ range $i, $dir := .Config.Stack.ChownDirList }}{{ if $i }} {{ end }}{{ $dir }}{{ end }}"
   {{ end }}
-
+ 
   php:
     hostname: {{ .Config.ProjectName }}-php-fpm
     image: {{ if eq .Config.Framework "magento2" }}{{ $.ImageRepository }}php-magento2:{{ .Config.Stack.PHPVersion }}{{ else if or (eq .Config.Framework "magento1") (eq .Config.Framework "openmage") }}{{ $.ImageRepository }}php-magento1:{{ .Config.Stack.PHPVersion }}{{ else }}{{ $.ImageRepository }}php:{{ .Config.Stack.PHPVersion }}{{ end }}
     volumes:
-      - .:/var/www/html
+      - .:{{ .WorkDir }}
       {{ if (lt .Config.Stack.PHPVersion "7.3") }}
       - /dev/null:/usr/local/etc/php-fpm.d/docker-tuned.conf:ro
       {{ end }}
       {{ if .HostSSHDir }}
-      - "{{ .HostSSHDir }}:/home/www-data/.ssh:ro"
+      - "{{ .HostSSHDir }}:{{ .HomeWWWData }}/.ssh:ro"
       {{ end }}
       {{ if .SafeSSHConfig }}
-      - "{{ .SafeSSHConfig }}:/home/www-data/.ssh/config:ro"
+      - "{{ .SafeSSHConfig }}:{{ .HomeWWWData }}/.ssh/config:ro"
       {{ end }}
       {{ if .SSHAuthSock }}
       - "{{ .SSHAuthSock }}:/ssh-agent"
       {{ end }}
       {{ if .HostComposerCacheDir }}
-      - "{{ .HostComposerCacheDir }}:/home/www-data/.cache/composer"
+      - "{{ .HostComposerCacheDir }}:{{ .HomeWWWData }}/.cache/composer"
       {{ end }}
       {{ if .HostComposerConfigDir }}
-      - "{{ .HostComposerConfigDir }}:/home/www-data/.composer:ro"
+      - "{{ .HostComposerConfigDir }}:{{ .HomeWWWData }}/.composer:ro"
       {{ end }}
       {{ if .HostGovardRootCAPath }}
       - "{{ .HostGovardRootCAPath }}:/usr/local/share/ca-certificates/govard.crt:ro"
@@ -100,7 +100,7 @@ services:
       SSH_AUTH_SOCK: "/ssh-agent"
       {{ end }}
       GIT_SSH_COMMAND: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-      COMPOSER_CACHE_DIR: "/home/www-data/.cache/composer"
+      COMPOSER_CACHE_DIR: "{{ .HomeWWWData }}/.cache/composer"
       COMPOSER_VERSION: "{{ .ComposerVersion }}"
       PUID: {{ .Config.Stack.UserID }}
       PGID: {{ .Config.Stack.GroupID }}
@@ -115,30 +115,30 @@ services:
     ports:
       - "35729:35729"
     {{ end }}
-
+ 
   {{ if .Config.Stack.Features.Xdebug }}
   php-debug:
     hostname: {{ .Config.ProjectName }}-php-debug
     image: {{ if eq .Config.Framework "magento2" }}{{ $.ImageRepository }}php-magento2:{{ .Config.Stack.PHPVersion }}-debug{{ else if or (eq .Config.Framework "magento1") (eq .Config.Framework "openmage") }}{{ $.ImageRepository }}php-magento1:{{ .Config.Stack.PHPVersion }}-debug{{ else }}{{ $.ImageRepository }}php:{{ .Config.Stack.PHPVersion }}-debug{{ end }}
     volumes:
-      - .:/var/www/html
+      - .:{{ .WorkDir }}
       {{ if (lt .Config.Stack.PHPVersion "7.3") }}
       - /dev/null:/usr/local/etc/php-fpm.d/docker-tuned.conf:ro
       {{ end }}
       {{ if .HostSSHDir }}
-      - "{{ .HostSSHDir }}:/home/www-data/.ssh:ro"
+      - "{{ .HostSSHDir }}:{{ .HomeWWWData }}/.ssh:ro"
       {{ end }}
       {{ if .SafeSSHConfig }}
-      - "{{ .SafeSSHConfig }}:/home/www-data/.ssh/config:ro"
+      - "{{ .SafeSSHConfig }}:{{ .HomeWWWData }}/.ssh/config:ro"
       {{ end }}
       {{ if .SSHAuthSock }}
       - "{{ .SSHAuthSock }}:/ssh-agent"
       {{ end }}
       {{ if .HostComposerCacheDir }}
-      - "{{ .HostComposerCacheDir }}:/home/www-data/.cache/composer"
+      - "{{ .HostComposerCacheDir }}:{{ .HomeWWWData }}/.cache/composer"
       {{ end }}
       {{ if .HostComposerConfigDir }}
-      - "{{ .HostComposerConfigDir }}:/home/www-data/.composer:ro"
+      - "{{ .HostComposerConfigDir }}:{{ .HomeWWWData }}/.composer:ro"
       {{ end }}
       {{ if .HostGovardRootCAPath }}
       - "{{ .HostGovardRootCAPath }}:/usr/local/share/ca-certificates/govard.crt:ro"
@@ -157,7 +157,7 @@ services:
       SSH_AUTH_SOCK: "/ssh-agent"
       {{ end }}
       GIT_SSH_COMMAND: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-      COMPOSER_CACHE_DIR: "/home/www-data/.cache/composer"
+      COMPOSER_CACHE_DIR: "{{ .HomeWWWData }}/.cache/composer"
       COMPOSER_VERSION: "{{ .ComposerVersion }}"
       PUID: {{ .Config.Stack.UserID }}
       PGID: {{ .Config.Stack.GroupID }}

@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"govard/internal/conventions"
 	"govard/internal/engine"
 
 	"github.com/pkg/browser"
@@ -74,11 +75,11 @@ func openDBClient(ctx context.Context, project string) (string, error) {
 	if containerProjectName == "" {
 		containerProjectName = normalizedProject
 	}
-	containerName := containerProjectName + "-db-1"
+	containerName := containerProjectName + conventions.DBSuffix
 
-	user := "magento"
-	pass := "magento"
-	db := "magento"
+	user := conventions.DefaultMagentoDBUser
+	pass := conventions.DefaultMagentoDBPass
+	db := conventions.DefaultMagentoDBName
 
 	envCmd := exec.Command("docker", "inspect", "-f", "{{range .Config.Env}}{{println .}}{{end}}", containerName)
 	if envOut, err := envCmd.Output(); err == nil {
@@ -522,17 +523,17 @@ func normalizeShellUser(info *projectInfo, service string, user string) string {
 	if info != nil {
 		if info.configLoaded {
 			// Match CLI behavior: use ResolveProjectExecUser for consistency (UID:GID mapping)
-			return info.config.ResolveProjectExecUser("www-data")
+			return info.config.ResolveProjectExecUser(conventions.UserWWWData)
 		}
 	}
 	if service == "php" || service == "" {
-		return "www-data"
+		return conventions.UserWWWData
 	}
 	if service == "apache" {
-		return "www-data"
+		return conventions.UserWWWData
 	}
 	if info != nil && info.configLoaded && info.config.Stack.Services.WebServer == "apache" && service == "web" {
-		return "www-data"
+		return conventions.UserWWWData
 	}
 	return ""
 }
@@ -541,7 +542,7 @@ func normalizeShellUser(info *projectInfo, service string, user string) string {
 
 func resolveShellContainer(info *projectInfo, service string) string {
 	target := resolveShellServiceName(info, service)
-	return fmt.Sprintf("%s-%s-1", info.name, target)
+	return fmt.Sprintf("%s-%s%s", info.name, target, conventions.ReplicaSuffix)
 }
 
 func resolveShellServiceName(info *projectInfo, service string) string {

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"govard/internal/conventions"
 	"govard/internal/engine"
 	"strings"
 
@@ -64,7 +65,7 @@ func runPHPUnit(config engine.Config, args []string) error {
 	cmdArgs := []string{"-d", "memory_limit=-1", binaryPath}
 	cmdArgs = append(cmdArgs, args...)
 
-	return RunInContainer(config.ProjectName+"-php-1", ResolveProjectExecUser(config, "www-data"), "php", cmdArgs)
+	return RunInContainer(config.ProjectName+conventions.PHPSuffix, ResolveProjectExecUser(config, conventions.UserWWWData), "php", cmdArgs)
 }
 
 func runPHPStan(config engine.Config, args []string) error {
@@ -84,7 +85,7 @@ func runPHPStan(config engine.Config, args []string) error {
 		}
 	}
 
-	return RunInContainer(config.ProjectName+"-php-1", ResolveProjectExecUser(config, "www-data"), "php", cmdArgs)
+	return RunInContainer(config.ProjectName+conventions.PHPSuffix, ResolveProjectExecUser(config, conventions.UserWWWData), "php", cmdArgs)
 }
 
 func runMFTF(config engine.Config, args []string) error {
@@ -98,7 +99,7 @@ func runMFTF(config engine.Config, args []string) error {
 	cmdArgs := []string{binaryPath, "run:group"}
 	cmdArgs = append(cmdArgs, args...)
 
-	return RunInContainer(config.ProjectName+"-php-1", ResolveProjectExecUser(config, "www-data"), "php", cmdArgs)
+	return RunInContainer(config.ProjectName+conventions.PHPSuffix, ResolveProjectExecUser(config, conventions.UserWWWData), "php", cmdArgs)
 }
 
 func runIntegrationTests(config engine.Config, args []string) error {
@@ -109,18 +110,18 @@ func runIntegrationTests(config engine.Config, args []string) error {
 		binaryPath := "vendor/bin/phpunit"
 		cmdArgs := []string{"-c", "dev/tests/integration/phpunit.xml", binaryPath}
 		cmdArgs = append(cmdArgs, args...)
-		return RunInContainer(config.ProjectName+"-php-1", ResolveProjectExecUser(config, "www-data"), "php", cmdArgs)
+		return RunInContainer(config.ProjectName+conventions.PHPSuffix, ResolveProjectExecUser(config, conventions.UserWWWData), "php", cmdArgs)
 	}
 	return fmt.Errorf("integration tests not configured for framework: %s", config.Framework)
 }
 
 func runInPHPContainer(config engine.Config, binary string, args []string) error {
-	containerName := fmt.Sprintf("%s-php-1", config.ProjectName)
+	containerName := fmt.Sprintf("%s%s", config.ProjectName, conventions.PHPSuffix)
 	if err := ensureContainerReadyForExec(containerName, "PHP"); err != nil {
 		return err
 	}
 
-	user := ResolveProjectExecUser(config, "www-data")
+	user := ResolveProjectExecUser(config, conventions.UserWWWData)
 
 	return RunInContainer(containerName, user, binary, args)
 }

@@ -6,11 +6,12 @@ import (
 	"os/exec"
 
 	"github.com/pterm/pterm"
+	"govard/internal/conventions"
 )
 
 func upgradeWordPress(ctx context.Context, config Config, opts UpgradeOptions) error {
 	pterm.Info.Println("WordPress Upgrade Pipeline")
-	containerName := fmt.Sprintf("%s-php-1", opts.ProjectName)
+	containerName := fmt.Sprintf("%s%s", opts.ProjectName, conventions.PHPSuffix)
 
 	if opts.TargetVersion == "" {
 		return fmt.Errorf("target version is required. Example: govard upgrade --version=6.7")
@@ -26,7 +27,7 @@ func upgradeWordPress(ctx context.Context, config Config, opts UpgradeOptions) e
 
 	// Step 1: WP core update
 	pterm.Info.Println("Step 1/3: Updating WordPress core...")
-	updateCmd := exec.CommandContext(ctx, "docker", "exec", "-w", "/var/www/html", containerName, "wp", "core", "update", "--version="+opts.TargetVersion)
+	updateCmd := exec.CommandContext(ctx, "docker", "exec", "-w", conventions.DefaultWorkDir, containerName, "wp", "core", "update", "--version="+opts.TargetVersion)
 	updateCmd.Stdout = opts.Stdout
 	updateCmd.Stderr = opts.Stderr
 	if err := updateCmd.Run(); err != nil {
@@ -35,7 +36,7 @@ func upgradeWordPress(ctx context.Context, config Config, opts UpgradeOptions) e
 
 	// Step 2: WP core update-db
 	pterm.Info.Println("Step 2/3: Updating database...")
-	dbCmd := exec.CommandContext(ctx, "docker", "exec", "-w", "/var/www/html", containerName, "wp", "core", "update-db")
+	dbCmd := exec.CommandContext(ctx, "docker", "exec", "-w", conventions.DefaultWorkDir, containerName, "wp", "core", "update-db")
 	dbCmd.Stdout = opts.Stdout
 	dbCmd.Stderr = opts.Stderr
 	if err := dbCmd.Run(); err != nil {
@@ -44,7 +45,7 @@ func upgradeWordPress(ctx context.Context, config Config, opts UpgradeOptions) e
 
 	// Step 3: WP cache flush
 	pterm.Info.Println("Step 3/3: Flushing cache...")
-	flushCmd := exec.CommandContext(ctx, "docker", "exec", "-w", "/var/www/html", containerName, "wp", "cache", "flush")
+	flushCmd := exec.CommandContext(ctx, "docker", "exec", "-w", conventions.DefaultWorkDir, containerName, "wp", "cache", "flush")
 	flushCmd.Stdout = opts.Stdout
 	flushCmd.Stderr = opts.Stderr
 	if err := flushCmd.Run(); err != nil {

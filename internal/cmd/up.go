@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"govard/internal/conventions"
 	"govard/internal/engine"
 	"govard/internal/proxy"
 	"govard/internal/updater"
@@ -386,7 +387,7 @@ func buildUpReadinessChecks(config engine.Config) []upReadinessCheck {
 	checks := []upReadinessCheck{
 		{
 			Service:       "php",
-			ContainerName: fmt.Sprintf("%s-php-1", config.ProjectName),
+			ContainerName: fmt.Sprintf("%s%s", config.ProjectName, conventions.PHPSuffix),
 			ProbeArgs:     phpFPMProbe,
 		},
 	}
@@ -394,7 +395,7 @@ func buildUpReadinessChecks(config engine.Config) []upReadinessCheck {
 	if config.Stack.Features.Xdebug {
 		checks = append(checks, upReadinessCheck{
 			Service:       "php-debug",
-			ContainerName: fmt.Sprintf("%s-php-debug-1", config.ProjectName),
+			ContainerName: fmt.Sprintf("%s%s", config.ProjectName, conventions.PHPDebugSuffix),
 			ProbeArgs:     phpFPMProbe,
 		})
 	}
@@ -402,7 +403,7 @@ func buildUpReadinessChecks(config engine.Config) []upReadinessCheck {
 	if config.Stack.Features.Varnish {
 		checks = append(checks, upReadinessCheck{
 			Service:       "varnish",
-			ContainerName: fmt.Sprintf("%s-varnish-1", config.ProjectName),
+			ContainerName: fmt.Sprintf("%s%s", config.ProjectName, conventions.VarnishSuffix),
 			ProbeArgs:     []string{"true"},
 		})
 	}
@@ -630,9 +631,9 @@ func projectDependsOn(config engine.Config, projectName string) bool {
 
 // ResolveUpProxyTarget resolves the upstream container for proxy registration.
 func ResolveUpProxyTarget(config engine.Config) string {
-	target := config.ProjectName + "-web-1"
+	target := config.ProjectName + "-web" + conventions.ReplicaSuffix
 	if config.Stack.Features.Varnish {
-		target = config.ProjectName + "-varnish-1"
+		target = config.ProjectName + conventions.VarnishSuffix
 	}
 	return target
 }

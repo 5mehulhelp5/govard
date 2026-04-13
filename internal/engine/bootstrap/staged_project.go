@@ -65,7 +65,7 @@ func runStagedCreateProject(projectDir string, runner func(command string) error
 }
 
 func buildStagedRunnerCommand(projectDir, stageDir, runnerCommand string) string {
-	containerStageDir := "/var/www/html"
+	containerStageDir := conventions.DefaultWorkDir
 	if relStageDir, err := filepath.Rel(projectDir, stageDir); err == nil && relStageDir != "." {
 		containerStageDir = path.Join(containerStageDir, filepath.ToSlash(relStageDir))
 	}
@@ -179,7 +179,7 @@ func runPHPProjectScript(projectDir string, runner func(command string) error, s
 	if runner != nil {
 		runnerScriptPath := scriptPath
 		if relScriptPath, err := filepath.Rel(projectDir, scriptPath); err == nil && !strings.HasPrefix(relScriptPath, "..") {
-			runnerScriptPath = path.Join("/var/www/html", filepath.ToSlash(relScriptPath))
+			runnerScriptPath = path.Join(conventions.DefaultWorkDir, filepath.ToSlash(relScriptPath))
 		}
 
 		commandArgs := []string{"php", conventions.ShellQuote(runnerScriptPath)}

@@ -7,6 +7,7 @@ import (
 
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
+	"govard/internal/conventions"
 )
 
 var debugCmd = &cobra.Command{
@@ -100,8 +101,8 @@ func runDebugShell(cmd *cobra.Command, args []string) error {
 	if !config.Stack.Features.Xdebug {
 		return fmt.Errorf("xdebug is disabled. Enable it with 'govard debug on'")
 	}
-	containerName := fmt.Sprintf("%s-php-debug-1", config.ProjectName)
-	user := ResolveProjectExecUser(config, "www-data")
+	containerName := fmt.Sprintf("%s%s", config.ProjectName, conventions.PHPDebugSuffix)
+	user := ResolveProjectExecUser(config, conventions.UserWWWData)
 
 	pterm.Info.Printf("IDE Server Name: %s-docker\n", config.ProjectName)
 

@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	defaultGovardImageRepository = "ddtcorex/govard-"
+	defaultGovardImageRepository = conventions.DefaultImageRepoPrefix
 )
 
 var (

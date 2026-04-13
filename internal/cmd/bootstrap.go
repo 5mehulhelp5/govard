@@ -298,7 +298,7 @@ func ensureBootstrapInit(cmd *cobra.Command, cwd string) error {
 }
 
 var phpContainerShellRunner = func(config engine.Config, commandLine string) error {
-	containerName := fmt.Sprintf("%s-php-1", config.ProjectName)
+	containerName := fmt.Sprintf("%s%s", config.ProjectName, conventions.PHPSuffix)
 	dockerArgs := []string{"exec"}
 	if stdinIsTerminal() {
 		dockerArgs = append(dockerArgs, "-it")
@@ -317,7 +317,7 @@ var phpContainerShellRunner = func(config engine.Config, commandLine string) err
 		dockerArgs = append(dockerArgs, "-e", "COMPOSER_AUTH="+string(data))
 	}
 
-	if user := ResolveProjectExecUser(config, "www-data"); strings.TrimSpace(user) != "" {
+	if user := ResolveProjectExecUser(config, conventions.UserWWWData); strings.TrimSpace(user) != "" {
 		dockerArgs = append(dockerArgs, "-u", user)
 	}
 	dockerArgs = append(dockerArgs, "-w", "/", containerName, "sh", "-lc", buildPHPContainerShellCommand(commandLine))
@@ -349,7 +349,7 @@ func runPHPContainerShellCommand(config engine.Config, commandLine string) error
 }
 
 func buildPHPContainerShellCommand(commandLine string) string {
-	return "cd /var/www/html && " + commandLine
+	return "cd " + conventions.DefaultWorkDir + " && " + commandLine
 }
 
 func fileExists(path string) bool {

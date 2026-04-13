@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"govard/internal/conventions"
 	"os/exec"
 	"regexp"
 	"sort"
@@ -305,14 +306,14 @@ func sanitizeStreamLine(raw []byte) string {
 
 func resolveLogContainer(info *projectInfo, service string) string {
 	if service != "" && service != "all" {
-		return info.name + "-" + service + "-1"
+		return info.name + "-" + service + conventions.ReplicaSuffix
 	}
 	// Pick first running service or default to php
 	if info.services["php"] {
-		return info.name + "-php-1"
+		return info.name + conventions.PHPSuffix
 	}
 	for s := range info.services {
-		return info.name + "-" + s + "-1"
+		return info.name + "-" + s + conventions.ReplicaSuffix
 	}
 	return info.name
 }

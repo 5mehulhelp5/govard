@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"govard/internal/conventions"
 	"govard/internal/engine"
 
 	"github.com/pterm/pterm"
@@ -52,10 +53,10 @@ func runBootstrapPostInstall(cmd *cobra.Command, config engine.Config, opts Boot
 	setupArgs := []string{
 		"setup:install",
 		"--backend-frontname=admin",
-		"--db-host=db",
-		"--db-name=magento",
-		"--db-user=magento",
-		"--db-password=magento",
+		"--db-host=" + conventions.DefaultMagentoDBHost,
+		"--db-name=" + conventions.DefaultMagentoDBName,
+		"--db-user=" + conventions.DefaultMagentoDBUser,
+		"--db-password=" + conventions.DefaultMagentoDBPass,
 		"--db-prefix=" + strings.TrimSpace(os.Getenv("DB_PREFIX")),
 		"--search-engine=opensearch",
 		"--opensearch-host=elasticsearch",
@@ -63,8 +64,8 @@ func runBootstrapPostInstall(cmd *cobra.Command, config engine.Config, opts Boot
 		"--opensearch-index-prefix=magento2",
 		"--opensearch-enable-auth=0",
 		"--opensearch-timeout=15",
-		"--admin-user=admin",
-		"--admin-password=Admin123$",
+		"--admin-user=" + conventions.DefaultAdminUser,
+		"--admin-password=" + conventions.DefaultAdminPassword,
 		"--admin-firstname=Admin",
 		"--admin-lastname=User",
 		"--admin-email=admin@" + emailDomain,
@@ -95,7 +96,7 @@ func runBootstrapPostInstall(cmd *cobra.Command, config engine.Config, opts Boot
 		}
 	}
 
-	containerName := fmt.Sprintf("%s-php-1", config.ProjectName)
+	containerName := fmt.Sprintf("%s%s", config.ProjectName, conventions.PHPSuffix)
 	if engine.IsContainerRunning(context.Background(), containerName) {
 		esFixCmd := []string{
 			"exec", "-T", "php", "sh", "-c",
@@ -135,7 +136,7 @@ func runBootstrapMagentoReindex(cmd *cobra.Command) error {
 		projectName = cfg.ProjectName
 	}
 
-	containerName := fmt.Sprintf("%s-php-1", projectName)
+	containerName := fmt.Sprintf("%s%s", projectName, conventions.PHPSuffix)
 	if !engine.IsContainerRunning(context.Background(), containerName) {
 		pterm.Warning.Printf("Skipping reindex: container %s is not running\n", containerName)
 		return nil
@@ -154,7 +155,7 @@ func runBootstrapAdminCreate(cmd *cobra.Command, config engine.Config) {
 		projectName = config.ProjectName
 	}
 
-	containerName := fmt.Sprintf("%s-php-1", projectName)
+	containerName := fmt.Sprintf("%s%s", projectName, conventions.PHPSuffix)
 	if !engine.IsContainerRunning(context.Background(), containerName) {
 		pterm.Warning.Printf("Skipping admin user creation: container %s is not running\n", containerName)
 		return
@@ -171,8 +172,8 @@ func runBootstrapAdminCreate(cmd *cobra.Command, config engine.Config) {
 		cmd,
 		govardMagentoSubcommandArgs(
 			"admin:user:create",
-			"--admin-user="+engine.DefaultMagentoAdminUser,
-			"--admin-password="+engine.DefaultMagentoAdminPassword,
+			"--admin-user="+conventions.DefaultAdminUser,
+			"--admin-password="+conventions.DefaultAdminPassword,
 			"--admin-firstname=Govard",
 			"--admin-lastname=Admin",
 			"--admin-email=admin@"+emailDomain,

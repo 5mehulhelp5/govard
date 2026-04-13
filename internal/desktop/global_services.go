@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"govard/internal/conventions"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -886,7 +887,7 @@ func reviveRunningProjectRoutesForDesktop() error {
 		config, _, configErr := engine.LoadConfigFromDir(matchedEntry.Path, false)
 		if configErr != nil {
 			if matchedEntry.Domain != "" {
-				_ = proxy.RegisterDomain(matchedEntry.Domain, projectName+"-web-1")
+				_ = proxy.RegisterDomain(matchedEntry.Domain, projectName+"-web"+conventions.ReplicaSuffix)
 			}
 			continue
 		}
@@ -921,9 +922,9 @@ func withCommandOutput(base string, commandOutput string) string {
 }
 
 func resolveDesktopUpProxyTarget(config engine.Config) string {
-	target := config.ProjectName + "-web-1"
+	target := config.ProjectName + "-web" + conventions.ReplicaSuffix
 	if config.Stack.Features.Varnish {
-		target = config.ProjectName + "-varnish-1"
+		target = config.ProjectName + conventions.VarnishSuffix
 	}
 	return target
 }

@@ -5,6 +5,8 @@ import (
 	"os"
 	"sort"
 	"strings"
+
+	"govard/internal/conventions"
 )
 
 // RequiredRuntimeImages returns all Docker images needed by the current runtime config.
@@ -13,7 +15,7 @@ func RequiredRuntimeImages(config Config, root string) []string {
 
 	imageRepo := strings.TrimSpace(os.Getenv("GOVARD_IMAGE_REPOSITORY"))
 	if imageRepo == "" {
-		imageRepo = "ddtcorex/govard-"
+		imageRepo = conventions.DefaultImageRepoPrefix
 	}
 
 	images := make([]string, 0, 8)

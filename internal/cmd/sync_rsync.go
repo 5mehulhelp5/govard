@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"govard/internal/conventions"
 	"os"
 	"os/exec"
 	"strings"
@@ -70,7 +71,7 @@ func ensureTrailingSlash(path string) string {
 }
 
 func buildDatabaseSyncAction(config engine.Config, source SyncEndpoint, destination SyncEndpoint, noNoise bool, noPII bool) (string, func() error, error) {
-	localDBContainer := fmt.Sprintf("%s-db-1", config.ProjectName)
+	localDBContainer := fmt.Sprintf("%s%s", config.ProjectName, conventions.DBSuffix)
 	localCredentials := resolveLocalDBCredentials(config, localDBContainer)
 
 	switch {

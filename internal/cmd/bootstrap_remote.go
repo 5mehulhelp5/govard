@@ -149,7 +149,7 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts Bootstrap
 
 	if shouldRunFrameworkPostClone(config, opts) {
 		cwd, _ := os.Getwd()
-		containerName := fmt.Sprintf("%s-db-1", config.ProjectName)
+		containerName := fmt.Sprintf("%s%s", config.ProjectName, conventions.DBSuffix)
 		localDB := resolveLocalDBCredentials(config, containerName)
 
 		bootstrapOpts := bootstrap.Options{
@@ -158,7 +158,7 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts Bootstrap
 			Runner: func(command string) error {
 				return runPHPContainerShellCommand(config, command)
 			},
-			DBHost:      "db",
+			DBHost:      conventions.DefaultMagentoDBHost,
 			DBUser:      localDB.Username,
 			DBPass:      localDB.Password,
 			DBName:      localDB.Database,

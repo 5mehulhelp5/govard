@@ -294,9 +294,9 @@ func buildMagento2Commands(projectName string, config Config, lockedKeys map[str
 		conventions.BinMagento,
 		"setup:config:set",
 		"--db-host=db",
-		"--db-name=magento",
-		"--db-user=magento",
-		"--db-password=magento",
+		"--db-name=" + conventions.DefaultMagentoDBName,
+		"--db-user=" + conventions.DefaultMagentoDBUser,
+		"--db-password=" + conventions.DefaultMagentoDBPass,
 	}
 	configSetArgs = append(configSetArgs, "--no-interaction")
 
@@ -541,7 +541,7 @@ func buildMagentoSearchConfigSetCommands(containerName string, config Config, en
 	}{
 		{desc: "Setting Search Host", path: "catalog/search/" + prefix + "_server_hostname", value: conventions.ServiceElasticsearch},
 		{desc: "Setting Search Port", path: "catalog/search/" + prefix + "_server_port", value: "9200"},
-		{desc: "Setting Search Index Prefix", path: "catalog/search/" + prefix + "_index_prefix", value: "magento2"},
+		{desc: "Setting Search Index Prefix", path: "catalog/search/" + prefix + "_index_prefix", value: conventions.DefaultMagentoDBName},
 		{desc: "Setting Search Auth", path: "catalog/search/" + prefix + "_enable_auth", value: "0"},
 		{desc: "Setting Search Timeout", path: "catalog/search/" + prefix + "_server_timeout", value: "15"},
 	}
@@ -712,7 +712,7 @@ func magentoDockerExecArgs(containerName string, config Config, args ...string) 
 	if user := resolveMagentoExecUser(config); strings.TrimSpace(user) != "" {
 		result = append(result, "-u", user)
 	}
-	result = append(result, "-w", "/var/www/html", containerName)
+	result = append(result, "-w", conventions.DefaultWorkDir, containerName)
 	result = append(result, args...)
 	return result
 }
@@ -720,12 +720,12 @@ func magentoDockerExecArgs(containerName string, config Config, args ...string) 
 func magento1DockerSQLExecArgs(containerName string, sql string) []string {
 	script := fmt.Sprintf(
 		`if command -v mysql >/dev/null 2>&1; then DB_CLI=mysql; elif command -v mariadb >/dev/null 2>&1; then DB_CLI=mariadb; else exit 1; fi && echo %s | "$DB_CLI" -u %s %s -f`,
-		ShellQuote(sql), ShellQuote("magento"), ShellQuote("magento"),
+		ShellQuote(sql), ShellQuote(conventions.DefaultMagentoDBUser), ShellQuote(conventions.DefaultMagentoDBName),
 	)
 
 	return []string{
 		"exec", "-i",
-		"-e", "MYSQL_PWD=magento",
+		"-e", "MYSQL_PWD=" + conventions.DefaultMagentoDBPass,
 		containerName,
 		"sh", "-lc", script,
 	}
@@ -735,7 +735,7 @@ func resolveMagentoExecUser(config Config) string {
 	if config.Stack.UserID > 0 && config.Stack.GroupID > 0 {
 		return fmt.Sprintf("%d:%d", config.Stack.UserID, config.Stack.GroupID)
 	}
-	return "www-data"
+	return conventions.UserWWWData
 }
 
 func FixProjectPermissions(projectName string, config Config) error {
@@ -756,7 +756,7 @@ func FixProjectPermissions(projectName string, config Config) error {
 	script := fmt.Sprintf("for d in %s; do if [ -e \"$d\" ]; then chown -R %s \"$d\" && chmod -R u+rwX \"$d\"; fi; done && if [ -f bin/magento ]; then chmod +x bin/magento; fi", dirs, user)
 
 	// We MUST run as root to have permission to change file ownership.
-	args := []string{"exec", "-u", "root", "-w", "/var/www/html", containerName, "sh", "-lc", script}
+	args := []string{"exec", "-u", "root", "-w", conventions.DefaultWorkDir, containerName, "sh", "-lc", script}
 	output, err := exec.Command("docker", args...).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("fix permissions failed: %w\nOutput: %s", err, string(output))

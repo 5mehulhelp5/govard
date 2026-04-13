@@ -3,7 +3,7 @@ services:
   queue:
     image: {{ $.ImageRepository }}php:{{ .Config.Stack.PHPVersion }}
     volumes:
-      - .:/var/www/html
+      - .:{{ .WorkDir }}
     command: php artisan queue:work --sleep=3 --tries=3
     networks:
       - govard-net

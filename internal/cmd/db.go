@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"govard/internal/conventions"
 	"govard/internal/engine"
 	"govard/internal/engine/remote"
 
@@ -519,7 +520,7 @@ func buildDBImportCommand(config engine.Config, options dbCommandOptions) (*exec
 }
 
 func dbContainerName(config engine.Config) string {
-	return fmt.Sprintf("%s-db-1", config.ProjectName)
+	return fmt.Sprintf("%s%s", config.ProjectName, conventions.DBSuffix)
 }
 
 func ensureLocalDBRunning(containerName string) error {

@@ -66,6 +66,7 @@ func prepareNginxConfigAsset(blueprintsFS fs.FS, data RenderData, hybrid bool) (
 	rendered := strings.NewReplacer(
 		"${NGINX_PUBLIC}", data.NGINXPublic,
 		"${XDEBUG_SESSION_PATTERN}", data.XdebugSessionPattern,
+		"${CONVENTIONS_WORK_DIR}", conventions.DefaultWorkDir,
 	).Replace(string(content))
 
 	destPath := filepath.Join(GovardHomeDir(), "nginx", data.Config.ProjectName, "default.conf")
@@ -92,6 +93,7 @@ func prepareApacheHTTPDConfigAsset(blueprintsFS fs.FS, data RenderData) (string,
 	rendered := strings.NewReplacer(
 		"@DOCROOT@", data.ApacheDocumentRoot,
 		"@XDEBUG_SESSION@", data.XdebugSessionPattern,
+		"@CONVENTIONS_WORK_DIR@", conventions.DefaultWorkDir,
 	).Replace(string(content))
 
 	destPath := filepath.Join(GovardHomeDir(), "apache", data.Config.ProjectName, "httpd.conf")
@@ -114,12 +116,12 @@ func buildContainerDocumentRoot(webRoot string) string {
 	webRoot = strings.TrimSpace(webRoot)
 	switch webRoot {
 	case "", "/":
-		return "/var/www/html/"
+		return conventions.DefaultWorkDir + "/"
 	default:
 		if !strings.HasPrefix(webRoot, "/") {
 			webRoot = "/" + webRoot
 		}
-		return "/var/www/html" + webRoot
+		return conventions.DefaultWorkDir + webRoot
 	}
 }
 
