@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.48.2] - 2026-04-14
+
+### ✨ New Features
+
+- **Apache Configuration:** Added a global rewrite rule to handle legacy `index.php/` path patterns, resolving 403 Forbidden errors for Magento 1 environments using "pretty" URLs without modifying site-level `.htaccess` files.
+
+### 🛠 Improvements
+
+- **Blueprint Lifecycle:** Incremented internal `BlueprintVersion` to **1.39**, triggering automatic environment re-renders to ensure existing Apache environments receive the new rewrite rules.
+
 ## [1.48.1] - 2026-04-11
 
 ### ✨ New Features
