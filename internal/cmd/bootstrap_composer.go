@@ -194,11 +194,7 @@ func EnsureBootstrapAuthJSONForTest(config engine.Config, mageUsername, magePass
 }
 
 func isMinorComposerVersion(version string) bool {
-	parts := strings.Split(version, ".")
-	if len(parts) == 2 {
-		return true
-	}
-	return false
+	return len(strings.Split(version, ".")) == 2
 }
 
 func resolveComposerPatchVersion(minorVersion string) (string, error) {

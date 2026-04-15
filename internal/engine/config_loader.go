@@ -106,6 +106,7 @@ func LoadConfigFromDirWithProfile(root string, requireBase bool, profile string)
 		cfg.Domain = inferProjectDomain(root)
 	}
 
+	cfg.Profile = profile
 	NormalizeConfig(&cfg, root)
 	if err := ValidateConfig(cfg); err != nil {
 		return Config{}, nil, err
@@ -188,6 +189,7 @@ func LoadRawConfigFromDirWithProfile(root string, requireBase bool, profile stri
 		cfg.ProjectName = inferProjectName(root)
 	}
 
+	cfg.Profile = profile
 	return cfg, nil
 }
 
