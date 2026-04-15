@@ -58,7 +58,7 @@ func runBootstrapSymfonyFreshInstall(cmd *cobra.Command, config engine.Config, o
 		Runner: func(command string) error {
 			return runPHPContainerShellCommand(config, command)
 		},
-		DBHost: "db", // Internal container hostname
+		DBHost: conventions.DefaultDBHost, // Internal container hostname
 		DBUser: localDB.Username,
 		DBPass: localDB.Password,
 		DBName: localDB.Database,
@@ -92,7 +92,7 @@ func runBootstrapLaravelFreshInstall(cmd *cobra.Command, config engine.Config, o
 		Runner: func(command string) error {
 			return runPHPContainerShellCommand(config, command)
 		},
-		DBHost: "db", // Internal container hostname
+		DBHost: conventions.DefaultDBHost, // Internal container hostname
 		DBUser: localDB.Username,
 		DBPass: localDB.Password,
 		DBName: localDB.Database,
@@ -153,7 +153,7 @@ func runBootstrapWordPressFreshInstall(cmd *cobra.Command, config engine.Config,
 		Runner: func(command string) error {
 			return runPHPContainerShellCommand(config, command)
 		},
-		DBHost: "db",
+		DBHost: conventions.DefaultDBHost,
 		DBUser: localDB.Username,
 		DBPass: localDB.Password,
 		DBName: localDB.Database,

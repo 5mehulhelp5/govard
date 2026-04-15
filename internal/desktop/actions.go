@@ -35,9 +35,9 @@ var runEnvironmentComposeForDesktop = defaultRunEnvironmentComposeForDesktop
 func quickAction(ctx context.Context, action string, project string) (string, error) {
 	switch action {
 	case "open-mail", "open-mail-client":
-		return openDestination(ctx, buildProxyURL("mail"), "Opening Mailpit...")
+		return openDestination(ctx, buildProxyURL(conventions.TargetMail), "Opening Mailpit...")
 	case "open-pma":
-		return openDestination(ctx, buildProxyURL("pma"), "Opening PHPMyAdmin...")
+		return openDestination(ctx, buildProxyURL(conventions.TargetPMA), "Opening PHPMyAdmin...")
 	case "open-db-client":
 		return openDBClient(ctx, project)
 	case "toggle-xdebug":
@@ -88,27 +88,15 @@ func openDBClient(ctx context.Context, project string) (string, error) {
 			parts := strings.SplitN(strings.TrimSpace(line), "=", 2)
 			if len(parts) == 2 {
 				switch parts[0] {
-				case "MYSQL_USER":
+				case conventions.EnvMySQLUser, conventions.EnvPostgresUser:
 					if parts[1] != "" {
 						user = parts[1]
 					}
-				case "POSTGRES_USER":
-					if parts[1] != "" {
-						user = parts[1]
-					}
-				case "MYSQL_PASSWORD":
+				case conventions.EnvMySQLPassword, conventions.EnvPostgresPassword:
 					if parts[1] != "" {
 						pass = parts[1]
 					}
-				case "POSTGRES_PASSWORD":
-					if parts[1] != "" {
-						pass = parts[1]
-					}
-				case "MYSQL_DATABASE":
-					if parts[1] != "" {
-						db = parts[1]
-					}
-				case "POSTGRES_DB":
+				case conventions.EnvMySQLDatabase, conventions.EnvPostgresDatabase:
 					if parts[1] != "" {
 						db = parts[1]
 					}
@@ -123,12 +111,12 @@ func openDBClient(ctx context.Context, project string) (string, error) {
 	}
 
 	scheme := "mysql"
-	internalPort := "3306"
+	internalPort := strconv.Itoa(conventions.MySQLPort)
 	if info.configLoaded {
 		dbType := strings.ToLower(info.config.Stack.DBType)
-		if strings.Contains(dbType, "postgres") {
+		if strings.Contains(dbType, conventions.ServicePostgreSQL) {
 			scheme = "postgresql"
-			internalPort = "5432"
+			internalPort = defaultDatabasePortForType(info.config.Stack.DBType)
 		}
 	}
 
@@ -175,7 +163,7 @@ func openDBClient(ctx context.Context, project string) (string, error) {
 }
 
 func buildPMAOpenURL(project string, database string) string {
-	target := buildProxyURL("pma")
+	target := buildProxyURL(conventions.TargetPMA)
 	params := neturl.Values{}
 
 	if normalizedProject := strings.TrimSpace(project); normalizedProject != "" {
@@ -278,9 +266,9 @@ func buildDesktopDBClientURL(scheme string, user string, pass string, host strin
 	normalizedPort := strings.TrimSpace(port)
 	if normalizedPort == "" {
 		if normalizedScheme == "postgresql" {
-			normalizedPort = "5432"
+			normalizedPort = strconv.Itoa(conventions.PostgresPort)
 		} else {
-			normalizedPort = "3306"
+			normalizedPort = strconv.Itoa(conventions.MySQLPort)
 		}
 	}
 
@@ -526,13 +514,13 @@ func normalizeShellUser(info *projectInfo, service string, user string) string {
 			return info.config.ResolveProjectExecUser(conventions.UserWWWData)
 		}
 	}
-	if service == "php" || service == "" {
+	if service == conventions.TargetPHP || service == "" {
 		return conventions.UserWWWData
 	}
 	if service == "apache" {
 		return conventions.UserWWWData
 	}
-	if info != nil && info.configLoaded && info.config.Stack.Services.WebServer == "apache" && service == "web" {
+	if info != nil && info.configLoaded && info.config.Stack.Services.WebServer == "apache" && service == conventions.TargetWeb {
 		return conventions.UserWWWData
 	}
 	return ""
@@ -551,10 +539,10 @@ func resolveShellServiceName(info *projectInfo, service string) string {
 
 func defaultShellService(info *projectInfo) string {
 	if info == nil || len(info.services) == 0 {
-		return "php"
+		return conventions.TargetPHP
 	}
 
-	for _, preferred := range []string{"web", "php", "app"} {
+	for _, preferred := range []string{conventions.TargetWeb, conventions.TargetPHP, conventions.TargetApp} {
 		if info.services[preferred] {
 			return preferred
 		}
@@ -569,7 +557,7 @@ func defaultShellService(info *projectInfo) string {
 		return candidates[0]
 	}
 
-	return "php"
+	return conventions.TargetPHP
 }
 
 func resolveServiceName(info *projectInfo, service string, fallback string) string {

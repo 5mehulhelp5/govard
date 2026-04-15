@@ -89,7 +89,7 @@ func (l *LaravelBootstrap) Install(projectDir string) error {
 	if data, err := os.ReadFile(envPath); err == nil {
 		dbHost := l.Options.DBHost
 		if dbHost == "" {
-			dbHost = "db"
+			dbHost = conventions.DefaultDBHost
 		}
 		dbUser := l.Options.DBUser
 		if dbUser == "" {
@@ -140,7 +140,7 @@ func (l *LaravelBootstrap) Configure(projectDir string) error {
 		if err == nil {
 			dbHost := l.Options.DBHost
 			if dbHost == "" {
-				dbHost = "db"
+				dbHost = conventions.DefaultDBHost
 			}
 			updated := string(content)
 			if !strings.Contains(updated, "DB_HOST="+dbHost) {
@@ -181,7 +181,7 @@ func (l *LaravelBootstrap) PostClone(projectDir string) error {
 		if data, err := os.ReadFile(envPath); err == nil {
 			dbHost := l.Options.DBHost
 			if dbHost == "" {
-				dbHost = "db"
+				dbHost = conventions.DefaultDBHost
 			}
 			content := string(data)
 			content = strings.ReplaceAll(content, "DB_HOST=127.0.0.1", "DB_HOST="+dbHost)

@@ -194,7 +194,7 @@ func (w *WordPressBootstrap) installWordPressSite(projectDir, siteURL string) er
 		"require " + strconv.Quote(loadPath) + ";",
 		"require " + strconv.Quote(upgradePath) + ";",
 		"if (!is_blog_installed()) {",
-		"    wp_install(" + strconv.Quote("WordPress Site") + ", " + strconv.Quote("admin") + ", " + strconv.Quote("admin@local.test") + ", true, '', " + strconv.Quote("admin") + ");",
+		"    wp_install(" + strconv.Quote("WordPress Site") + ", " + strconv.Quote(conventions.DefaultAdminUser) + ", " + strconv.Quote(conventions.DefaultAdminEmail) + ", true, '', " + strconv.Quote(conventions.DefaultAdminPassword) + ");",
 		"}",
 	}, "\n")
 
@@ -238,7 +238,7 @@ func (w *WordPressBootstrap) updateWordPressSiteURL(projectDir, siteURL string) 
 func (w *WordPressBootstrap) resolveDBConfig() (host, user, pass, name string) {
 	host = strings.TrimSpace(w.Options.DBHost)
 	if host == "" {
-		host = "db"
+		host = conventions.DefaultDBHost
 	}
 	user = strings.TrimSpace(w.Options.DBUser)
 	if user == "" {
@@ -261,7 +261,7 @@ func (w *WordPressBootstrap) waitForWordPressDatabase(projectDir string) error {
 		"mysqli_report(MYSQLI_REPORT_OFF);",
 		"$db = mysqli_init();",
 		"if (!$db) { exit(1); }",
-		"if (!@mysqli_real_connect($db, " + strconv.Quote(dbHost) + ", " + strconv.Quote(dbUser) + ", " + strconv.Quote(dbPass) + ", " + strconv.Quote(dbName) + ", 3306)) {",
+		"if (!@mysqli_real_connect($db, " + strconv.Quote(dbHost) + ", " + strconv.Quote(dbUser) + ", " + strconv.Quote(dbPass) + ", " + strconv.Quote(dbName) + ", " + strconv.Itoa(conventions.MySQLPort) + ")) {",
 		"    exit(1);",
 		"}",
 	}, "\n")

@@ -89,8 +89,8 @@ func (m *Magento1Bootstrap) PostClone(projectDir string) error {
 }
 
 func (m *Magento1Bootstrap) CreateAdmin(projectDir string) error {
-	adminEmail := fmt.Sprintf("admin@%s", m.Options.Domain)
-	containerName := fmt.Sprintf("%s-db-1", m.Options.ProjectName)
+	adminEmail := conventions.AdminEmailForDomain(m.Options.Domain)
+	containerName := fmt.Sprintf("%s%s", m.Options.ProjectName, conventions.DBSuffix)
 
 	pterm.Info.Println("Creating Magento 1 admin user...")
 	return RunMagento1AdminUserSQL(containerName, m.Options.DBUser, m.Options.DBPass, m.Options.DBName, "", adminEmail)
@@ -120,10 +120,10 @@ func (m *Magento1Bootstrap) createLocalXml(projectDir string) error {
             </db>
             <default_setup>
                 <connection>
-                    <host><![CDATA[db]]></host>
-                    <username><![CDATA[magento]]></username>
-                    <password><![CDATA[magento]]></password>
-                    <dbname><![CDATA[magento]]></dbname>
+	                    <host><![CDATA[%s]]></host>
+	                    <username><![CDATA[%s]]></username>
+	                    <password><![CDATA[%s]]></password>
+	                    <dbname><![CDATA[%s]]></dbname>
                     <initStatements><![CDATA[SET NAMES utf8]]></initStatements>
                     <model><![CDATA[mysql4]]></model>
                     <type><![CDATA[pdo_mysql]]></type>
@@ -146,13 +146,18 @@ func (m *Magento1Bootstrap) createLocalXml(projectDir string) error {
         <routers>
             <adminhtml>
                 <args>
-                    <frontName><![CDATA[admin]]></frontName>
+	                    <frontName><![CDATA[%s]]></frontName>
                 </args>
             </adminhtml>
         </routers>
     </admin>
 </config>
-`, cryptKey)
+`, cryptKey,
+		conventions.DefaultDBHost,
+		conventions.DefaultMagentoDBUser,
+		conventions.DefaultMagentoDBPass,
+		conventions.DefaultMagentoDBName,
+		conventions.DefaultAdminPath)
 
 	etcPath := filepath.Join(projectDir, "app", "etc")
 	if err := os.MkdirAll(etcPath, conventions.DefaultDirPerm); err != nil {
@@ -180,13 +185,13 @@ func generateMagento1CryptKey() (string, error) {
 // RunMagento1AdminUserSQL inserts/updates the admin user in the local DB using a salted MD5 hash.
 // This matches the approach in warden-custom-commands bootstrap.cmd for maximum M1 compatibility.
 func RunMagento1AdminUserSQL(containerName string, dbUser string, dbPassword string, dbName string, dbPrefix string, adminEmail string) error {
-	// Salted MD5: md5("admin" + "Admin123$") + ":admin"
-	passHash := Md5SaltedHash("admin", "Admin123$")
-	saltedPass := passHash + ":admin"
+	// Salted MD5: md5(default admin user + default admin password) + ":" + default admin user.
+	passHash := Md5SaltedHash(conventions.DefaultAdminUser, conventions.DefaultAdminPassword)
+	saltedPass := passHash + ":" + conventions.DefaultAdminUser
 
 	insertSQL := fmt.Sprintf(`
 INSERT INTO %sadmin_user(username, firstname, lastname, email, password, created, lognum, reload_acl_flag, is_active, extra, rp_token, rp_token_created_at)
-VALUES ("admin", "Admin", "User", %q, %q, NOW(), 0, 0, 1, NULL, NULL, NOW())
+VALUES (%q, "Admin", "User", %q, %q, NOW(), 0, 0, 1, NULL, NULL, NOW())
 ON DUPLICATE KEY UPDATE password = %q, is_active = 1;
 
 -- Ensure Administrators group exists
@@ -199,12 +204,12 @@ SELECT role_id, 'all', NULL, 0, 'G', 'allow' FROM %sadmin_role WHERE role_type =
 
 -- Assign user to Administrators
 INSERT INTO %sadmin_role (parent_id, tree_level, sort_order, role_type, user_id, role_name)
-SELECT role_id, 2, 0, 'U', (SELECT user_id FROM %sadmin_user WHERE username = 'admin' LIMIT 1), 'admin'
+SELECT role_id, 2, 0, 'U', (SELECT user_id FROM %sadmin_user WHERE username = %q LIMIT 1), %q
 FROM %sadmin_role WHERE role_type = 'G' AND role_name = 'Administrators' LIMIT 1
-ON DUPLICATE KEY UPDATE parent_id = VALUES(parent_id);
-`,
-		dbPrefix, adminEmail, saltedPass, saltedPass,
-		dbPrefix, dbPrefix, dbPrefix, dbPrefix, dbPrefix, dbPrefix)
+		ON DUPLICATE KEY UPDATE parent_id = VALUES(parent_id);
+		`,
+		dbPrefix, conventions.DefaultAdminUser, adminEmail, saltedPass, saltedPass,
+		dbPrefix, dbPrefix, dbPrefix, dbPrefix, dbPrefix, conventions.DefaultAdminUser, conventions.DefaultAdminUser, dbPrefix)
 
 	return RunMagento1SQL(containerName, dbUser, dbPassword, dbName, insertSQL)
 }

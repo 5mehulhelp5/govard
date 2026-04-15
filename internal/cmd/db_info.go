@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"govard/internal/conventions"
 	"govard/internal/engine"
 
 	"github.com/pterm/pterm"
@@ -30,7 +31,7 @@ func runDBInfo(cmd *cobra.Command, config engine.Config, options dbCommandOption
 			}
 			fmt.Fprintf(cmd.OutOrStdout(), "Port:         %d\n", credentials.Port)
 			if credentials.Port == 0 {
-				fmt.Fprintf(cmd.OutOrStdout(), "Port:         3306 (default)\n")
+				fmt.Fprintf(cmd.OutOrStdout(), "Port:         %d (default)\n", conventions.MySQLPort)
 			}
 			fmt.Fprintf(cmd.OutOrStdout(), "Username:     %s\n", credentials.Username)
 			fmt.Fprintf(cmd.OutOrStdout(), "Database:     %s\n", credentials.Database)
@@ -54,7 +55,7 @@ func runDBInfo(cmd *cobra.Command, config engine.Config, options dbCommandOption
 			}
 			fmt.Fprintf(cmd.OutOrStdout(), "Port:         %d\n", credentials.Port)
 			if credentials.Port == 0 {
-				fmt.Fprintf(cmd.OutOrStdout(), "Port:         3306 (default)\n")
+				fmt.Fprintf(cmd.OutOrStdout(), "Port:         %d (default)\n", conventions.MySQLPort)
 			}
 			fmt.Fprintf(cmd.OutOrStdout(), "Username:     %s\n", credentials.Username)
 			fmt.Fprintf(cmd.OutOrStdout(), "Database:     %s\n", credentials.Database)

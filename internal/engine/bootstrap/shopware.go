@@ -55,7 +55,7 @@ func (s *ShopwareBootstrap) Install(projectDir string) error {
 	pterm.Info.Println("Running Shopware installation steps...")
 
 	dbHost, dbUser, dbPass, dbName := s.resolveDBConfig()
-	databaseURL := fmt.Sprintf("mysql://%s:%s@%s:3306/%s", dbUser, dbPass, dbHost, dbName)
+	databaseURL := fmt.Sprintf("mysql://%s:%s@%s:%d/%s", dbUser, dbPass, dbHost, conventions.MySQLPort, dbName)
 	siteURL := s.resolveSiteURL()
 	envPath := filepath.Join(projectDir, ".env")
 	if _, err := os.Stat(envPath); os.IsNotExist(err) {
@@ -96,7 +96,7 @@ func (s *ShopwareBootstrap) Configure(projectDir string) error {
 	pterm.Info.Println("Configuring Shopware environment...")
 
 	dbHost, dbUser, dbPass, dbName := s.resolveDBConfig()
-	databaseURL := fmt.Sprintf("mysql://%s:%s@%s:3306/%s", dbUser, dbPass, dbHost, dbName)
+	databaseURL := fmt.Sprintf("mysql://%s:%s@%s:%d/%s", dbUser, dbPass, dbHost, conventions.MySQLPort, dbName)
 	siteURL := s.resolveSiteURL()
 	envPath := filepath.Join(projectDir, ".env")
 	if _, err := os.Stat(envPath); err == nil {
@@ -130,7 +130,7 @@ func (s *ShopwareBootstrap) PostClone(projectDir string) error {
 		if _, err := os.Stat(envLocalPath); err == nil {
 			data, _ := os.ReadFile(envLocalPath)
 			dbHost, dbUser, dbPass, dbName := s.resolveDBConfig()
-			content := replaceOrAppendEnvAssignment(string(data), "DATABASE_URL", fmt.Sprintf("mysql://%s:%s@%s:3306/%s", dbUser, dbPass, dbHost, dbName))
+			content := replaceOrAppendEnvAssignment(string(data), "DATABASE_URL", fmt.Sprintf("mysql://%s:%s@%s:%d/%s", dbUser, dbPass, dbHost, conventions.MySQLPort, dbName))
 			content = replaceOrAppendEnvAssignment(content, "APP_URL", siteURL)
 			content = replaceOrAppendEnvAssignment(content, "PROXY_URL", siteURL)
 			_ = os.WriteFile(envPath, []byte(content), conventions.SecretFilePerm)
@@ -165,7 +165,7 @@ func (s *ShopwareBootstrap) runBinConsole(projectDir string, args ...string) err
 func (s *ShopwareBootstrap) resolveDBConfig() (host, user, pass, name string) {
 	host = strings.TrimSpace(s.Options.DBHost)
 	if host == "" {
-		host = "db"
+		host = conventions.DefaultDBHost
 	}
 	user = strings.TrimSpace(s.Options.DBUser)
 	if user == "" {

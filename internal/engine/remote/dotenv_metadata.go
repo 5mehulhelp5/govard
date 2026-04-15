@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"govard/internal/conventions"
 	"govard/internal/engine"
 )
 
@@ -87,7 +88,7 @@ func resolveDotenvDBInfo(payload dotenvDBProbePayload) (DotenvDBInfo, error) {
 		host = "127.0.0.1"
 	}
 
-	port := 3306
+	port := conventions.MySQLPort
 	portRaw := strings.TrimSpace(engine.FirstNonEmpty(payload.DatabasePort, payload.DBPort, payload.MysqlPort))
 	if portRaw != "" {
 		parsed, err := strconv.Atoi(portRaw)
@@ -136,7 +137,7 @@ func parseDotenvDatabaseURL(raw string) (DotenvDBInfo, error) {
 		host = "127.0.0.1"
 	}
 
-	port := 3306
+	port := conventions.MySQLPort
 	if rawPort := strings.TrimSpace(parsed.Port()); rawPort != "" {
 		parsedPort, parseErr := strconv.Atoi(rawPort)
 		if parseErr != nil || parsedPort <= 0 {

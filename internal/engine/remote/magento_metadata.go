@@ -53,18 +53,18 @@ func DetectMagento2Version(remoteName string, remoteCfg engine.RemoteConfig) (st
 func ParseMagentoDBHostPort(raw string) (string, int) {
 	hostRaw := strings.TrimSpace(raw)
 	if hostRaw == "" {
-		return conventions.DefaultMagentoDBHost, 3306
+		return conventions.DefaultDBHost, conventions.MySQLPort
 	}
 
 	hostRaw = strings.TrimPrefix(hostRaw, "tcp://")
 	if hostRaw == "" {
-		return conventions.DefaultMagentoDBHost, 3306
+		return conventions.DefaultDBHost, conventions.MySQLPort
 	}
 
 	if host, port, err := net.SplitHostPort(hostRaw); err == nil {
 		if parsed, parseErr := strconv.Atoi(port); parseErr == nil && parsed > 0 {
 			if strings.TrimSpace(host) == "" {
-				host = conventions.DefaultMagentoDBHost
+				host = conventions.DefaultDBHost
 			}
 			return host, parsed
 		}
@@ -76,13 +76,13 @@ func ParseMagentoDBHostPort(raw string) (string, int) {
 		if parsed, err := strconv.Atoi(portText); err == nil && parsed > 0 {
 			host := strings.TrimSpace(parts[0])
 			if host == "" {
-				host = conventions.DefaultMagentoDBHost
+				host = conventions.DefaultDBHost
 			}
 			return host, parsed
 		}
 	}
 
-	return hostRaw, 3306
+	return hostRaw, conventions.MySQLPort
 }
 
 func NormalizeMagentoVersion(raw string) string {
@@ -167,6 +167,6 @@ func normalizeMagentoVersion(raw string) string {
 	return cleaned
 }
 
-const magentoDBProbePHP = `$c=@include "app/etc/env.php"; if(!is_array($c)){fwrite(STDERR,"env.php not found"); exit(2);} $d=$c["` + conventions.DefaultMagentoDBHost + `"]["connection"]["default"] ?? null; if(!is_array($d)){fwrite(STDERR,"db.default missing"); exit(3);} $r=["host"=>$d["host"] ?? "", "username"=>$d["username"] ?? "", "password"=>$d["password"] ?? "", "dbname"=>$d["dbname"] ?? "", "crypt_key"=>($c["crypt"]["key"] ?? "")]; echo base64_encode(json_encode($r));`
+const magentoDBProbePHP = `$c=@include "app/etc/env.php"; if(!is_array($c)){fwrite(STDERR,"env.php not found"); exit(2);} $d=$c["db"]["connection"]["default"] ?? null; if(!is_array($d)){fwrite(STDERR,"db.default missing"); exit(3);} $r=["host"=>$d["host"] ?? "", "username"=>$d["username"] ?? "", "password"=>$d["password"] ?? "", "dbname"=>$d["dbname"] ?? "", "crypt_key"=>($c["crypt"]["key"] ?? "")]; echo base64_encode(json_encode($r));`
 
 const magentoVersionProbePHP = `$c=@json_decode(@file_get_contents("composer.json"), true); if(!is_array($c)){fwrite(STDERR,"composer.json missing"); exit(2);} $r=$c["require"] ?? []; $v=""; if(isset($r["magento/product-community-edition"])){$v=$r["magento/product-community-edition"]; } elseif(isset($r["magento/product-enterprise-edition"])){$v=$r["magento/product-enterprise-edition"]; } echo (string)$v;`

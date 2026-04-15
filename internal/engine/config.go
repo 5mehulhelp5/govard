@@ -139,7 +139,7 @@ func GetDefaultChownDirList(framework string) []string {
 	// The SSH directory is always mounted :ro, so chown would fail.
 	list := []string{"/bash_history"}
 	if framework == "magento2" {
-		list = append(list, conventions.DefaultWorkDir, "/home/"+conventions.UserWWWData+"/.cache/composer")
+		list = append(list, conventions.DefaultWorkDir, conventions.HomeWWWData+"/.cache/composer")
 	}
 	return list
 }

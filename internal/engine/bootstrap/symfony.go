@@ -78,7 +78,7 @@ func (s *SymfonyBootstrap) Install(projectDir string) error {
 	if _, err := os.Stat(envLocalPath); os.IsNotExist(err) {
 		dbHost := s.Options.DBHost
 		if dbHost == "" {
-			dbHost = "db"
+			dbHost = conventions.DefaultDBHost
 		}
 		dbUser := s.Options.DBUser
 		if dbUser == "" {
@@ -95,9 +95,9 @@ func (s *SymfonyBootstrap) Install(projectDir string) error {
 
 		content := fmt.Sprintf(`APP_ENV=dev
 APP_SECRET=your-secret-key-here
-DATABASE_URL="mysql://%s:%s@%s:3306/%s?serverVersion=11.4.0-MariaDB&charset=utf8mb4"
+DATABASE_URL="mysql://%s:%s@%s:%d/%s?serverVersion=11.4.0-MariaDB&charset=utf8mb4"
 MAILER_DSN=smtp://mailpit:1025
-`, dbUser, dbPass, dbHost, dbName)
+`, dbUser, dbPass, dbHost, conventions.MySQLPort, dbName)
 		if err := os.WriteFile(envLocalPath, []byte(content), conventions.SecretFilePerm); err != nil {
 			return fmt.Errorf("failed to create .env.local: %w", err)
 		}
@@ -131,7 +131,7 @@ func (s *SymfonyBootstrap) Configure(projectDir string) error {
 		if err == nil {
 			dbHost := s.Options.DBHost
 			if dbHost == "" {
-				dbHost = "db"
+				dbHost = conventions.DefaultDBHost
 			}
 			dbUser := s.Options.DBUser
 			if dbUser == "" {
@@ -150,8 +150,8 @@ func (s *SymfonyBootstrap) Configure(projectDir string) error {
 			if !strings.Contains(updated, "@"+dbHost+":") {
 				updated = strings.ReplaceAll(updated,
 					"DATABASE_URL=",
-					fmt.Sprintf("DATABASE_URL=\"mysql://%s:%s@%s:3306/%s?serverVersion=11.4.0-MariaDB&charset=utf8mb4\"",
-						dbUser, dbPass, dbHost, dbName))
+					fmt.Sprintf("DATABASE_URL=\"mysql://%s:%s@%s:%d/%s?serverVersion=11.4.0-MariaDB&charset=utf8mb4\"",
+						dbUser, dbPass, dbHost, conventions.MySQLPort, dbName))
 				_ = os.WriteFile(envLocalPath, []byte(updated), conventions.SecretFilePerm)
 			}
 		}

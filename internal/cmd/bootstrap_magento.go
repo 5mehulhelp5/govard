@@ -75,7 +75,7 @@ func buildBootstrapMagentoEnvPHP(cryptKey string, localDB dbCredentials) string 
 	return fmt.Sprintf(`<?php
 return [
     'backend' => [
-        'frontName' => 'admin'
+        'frontName' => %q
     ],
     'crypt' => [
         'key' => %q
@@ -113,7 +113,8 @@ return [
         'date' => 'Mon, 01 May 2023 00:00:00 +0000'
     ]
 ];
-`, cryptKey,
+`, conventions.DefaultAdminPath,
+		cryptKey,
 		conventions.DefaultMagentoDBHost,
 		localDB.Database, localDB.Username, localDB.Password,
 		conventions.DefaultMagentoDBHost,

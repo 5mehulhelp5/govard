@@ -158,7 +158,7 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts Bootstrap
 			Runner: func(command string) error {
 				return runPHPContainerShellCommand(config, command)
 			},
-			DBHost:      conventions.DefaultMagentoDBHost,
+			DBHost:      conventions.DefaultDBHost,
 			DBUser:      localDB.Username,
 			DBPass:      localDB.Password,
 			DBName:      localDB.Database,

@@ -22,7 +22,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const remoteMagentoAdminProbeScript = `$c=@include "app/etc/env.php"; if(!is_array($c)){fwrite(STDERR,"env.php not found"); exit(2);} echo (string)($c["backend"]["frontName"] ?? "admin");`
+const remoteMagentoAdminProbeScript = `$c=@include "app/etc/env.php"; if(!is_array($c)){fwrite(STDERR,"env.php not found"); exit(2);} echo (string)($c["backend"]["frontName"] ?? "` + conventions.DefaultAdminPath + `");`
 const remoteLastSyncReadLimit = 5000
 
 type SyncInput struct {
@@ -367,8 +367,8 @@ func resolveRemoteAdminURL(project string, remoteName string) (string, string, e
 		return "", "", err
 	}
 
-	adminPath := "admin"
-	if strings.EqualFold(strings.TrimSpace(cfg.Framework), "magento2") {
+	adminPath := conventions.DefaultAdminPath
+	if strings.EqualFold(strings.TrimSpace(cfg.Framework), conventions.FrameworkMagento2) {
 		detectedPath, probeErr := detectRemoteMagentoAdminPathForDesktop(resolvedRemoteName, remoteCfg)
 		if probeErr == nil {
 			adminPath = detectedPath
@@ -451,12 +451,12 @@ func detectRemoteMagentoAdminPathForDesktop(
 	probeCmd := engineremote.BuildSSHExecCommand(remoteName, remoteCfg, true, remoteCommand)
 	output, err := probeCmd.CombinedOutput()
 	if err != nil {
-		return "admin", fmt.Errorf("probe failed: %w", err)
+		return conventions.DefaultAdminPath, fmt.Errorf("probe failed: %w", err)
 	}
 
 	value := strings.Trim(strings.TrimSpace(string(output)), "/")
 	if value == "" {
-		value = "admin"
+		value = conventions.DefaultAdminPath
 	}
 	return value, nil
 }
@@ -477,7 +477,7 @@ func buildRemoteAdminURLForDesktop(remoteCfg engine.RemoteConfig, adminPath stri
 	base = strings.TrimRight(base, "/")
 	trimmedPath := strings.Trim(strings.TrimSpace(adminPath), "/")
 	if trimmedPath == "" {
-		trimmedPath = "admin"
+		trimmedPath = conventions.DefaultAdminPath
 	}
 
 	return base + "/" + trimmedPath

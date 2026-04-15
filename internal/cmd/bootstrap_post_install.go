@@ -44,15 +44,11 @@ func runBootstrapHyvaInstall(cmd *cobra.Command, opts BootstrapRuntimeOptions) e
 }
 
 func runBootstrapPostInstall(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions) error {
-	emailDomain := config.Domain
-	if emailDomain == "" {
-		// Used in older templates, keeping logic if extending later
-		_ = "local.test"
-	}
+	adminEmail := conventions.AdminEmailForDomain(config.Domain)
 
 	setupArgs := []string{
 		"setup:install",
-		"--backend-frontname=admin",
+		"--backend-frontname=" + conventions.DefaultAdminPath,
 		"--db-host=" + conventions.DefaultMagentoDBHost,
 		"--db-name=" + conventions.DefaultMagentoDBName,
 		"--db-user=" + conventions.DefaultMagentoDBUser,
@@ -68,18 +64,18 @@ func runBootstrapPostInstall(cmd *cobra.Command, config engine.Config, opts Boot
 		"--admin-password=" + conventions.DefaultAdminPassword,
 		"--admin-firstname=Admin",
 		"--admin-lastname=User",
-		"--admin-email=admin@" + emailDomain,
+		"--admin-email=" + adminEmail,
 	}
 
 	if opts.MetaVersion != "" {
 		if comparison, comparable := compareNumericDotVersions(opts.MetaVersion, "2.4.8"); comparable && comparison < 0 {
 			setupArgs = []string{
 				"setup:install",
-				"--backend-frontname=admin",
-				"--db-host=db",
-				"--db-name=magento",
-				"--db-user=magento",
-				"--db-password=magento",
+				"--backend-frontname=" + conventions.DefaultAdminPath,
+				"--db-host=" + conventions.DefaultMagentoDBHost,
+				"--db-name=" + conventions.DefaultMagentoDBName,
+				"--db-user=" + conventions.DefaultMagentoDBUser,
+				"--db-password=" + conventions.DefaultMagentoDBPass,
 				"--db-prefix=" + strings.TrimSpace(os.Getenv("DB_PREFIX")),
 				"--search-engine=elasticsearch7",
 				"--elasticsearch-host=elasticsearch",
@@ -87,11 +83,11 @@ func runBootstrapPostInstall(cmd *cobra.Command, config engine.Config, opts Boot
 				"--elasticsearch-index-prefix=magento2",
 				"--elasticsearch-enable-auth=0",
 				"--elasticsearch-timeout=15",
-				"--admin-user=admin",
-				"--admin-password=Admin123$",
+				"--admin-user=" + conventions.DefaultAdminUser,
+				"--admin-password=" + conventions.DefaultAdminPassword,
 				"--admin-firstname=Admin",
 				"--admin-lastname=User",
-				"--admin-email=admin@" + emailDomain,
+				"--admin-email=" + adminEmail,
 			}
 		}
 	}
@@ -161,12 +157,6 @@ func runBootstrapAdminCreate(cmd *cobra.Command, config engine.Config) {
 		return
 	}
 
-	emailDomain := config.Domain
-	if emailDomain == "" {
-		// Used in older templates, keeping logic if extending later
-		_ = "local.test"
-	}
-
 	pterm.Info.Println("Creating Magento admin user...")
 	err := runGovardSubcommandSilent(
 		cmd,
@@ -176,7 +166,7 @@ func runBootstrapAdminCreate(cmd *cobra.Command, config engine.Config) {
 			"--admin-password="+conventions.DefaultAdminPassword,
 			"--admin-firstname=Govard",
 			"--admin-lastname=Admin",
-			"--admin-email=admin@"+emailDomain,
+			"--admin-email="+conventions.AdminEmailForDomain(config.Domain),
 		)...,
 	)
 	if err != nil {

@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 
+	"govard/internal/conventions"
 	"govard/internal/engine"
 	engineremote "govard/internal/engine/remote"
 
@@ -36,12 +37,12 @@ func runOpenAdminTarget(config engine.Config, requestedEnvironment string) error
 			return err
 		}
 		var adminPath string
-		if strings.EqualFold(strings.TrimSpace(config.Framework), "emdash") {
+		if strings.EqualFold(strings.TrimSpace(config.Framework), conventions.FrameworkEmdash) {
 			adminPath = "_emdash/admin"
 		} else {
 			detectedAdminPath, probeErr := detectRemoteMagentoAdminPath(config, environment, remoteCfg)
 			if probeErr != nil {
-				adminPath = "admin"
+				adminPath = conventions.DefaultAdminPath
 				pterm.Warning.Printf("Could not auto-detect admin path for '%s': %v\n", environment, probeErr)
 			} else {
 				adminPath = detectedAdminPath
@@ -163,20 +164,20 @@ func runOpenPortainerTarget(config engine.Config, requestedEnvironment string) e
 
 func openAdminURL(config engine.Config) string {
 	baseURL := "https://" + strings.TrimSpace(config.Domain)
-	if strings.EqualFold(strings.TrimSpace(config.Framework), "emdash") {
+	if strings.EqualFold(strings.TrimSpace(config.Framework), conventions.FrameworkEmdash) {
 		return joinURLWithPath(baseURL, "_emdash/admin")
 	}
-	return joinURLWithPath(baseURL, "admin")
+	return joinURLWithPath(baseURL, conventions.DefaultAdminPath)
 }
 
 func detectLocalAdminURL(config engine.Config) string {
-	if strings.EqualFold(strings.TrimSpace(config.Framework), "emdash") {
+	if strings.EqualFold(strings.TrimSpace(config.Framework), conventions.FrameworkEmdash) {
 		return openAdminURL(config)
 	}
 
 	baseURL := "https://" + strings.TrimSpace(config.Domain)
-	if strings.ToLower(strings.TrimSpace(config.Framework)) != "magento2" {
-		return joinURLWithPath(baseURL, "admin")
+	if strings.ToLower(strings.TrimSpace(config.Framework)) != conventions.FrameworkMagento2 {
+		return joinURLWithPath(baseURL, conventions.DefaultAdminPath)
 	}
 
 	projectRoot, _ := os.Getwd()
@@ -247,7 +248,7 @@ func buildRemoteAdminURL(remoteCfg engine.RemoteConfig, adminPath string) string
 	base = strings.TrimRight(base, "/")
 	trimmedPath := strings.Trim(strings.TrimSpace(adminPath), "/")
 	if trimmedPath == "" {
-		trimmedPath = "admin"
+		trimmedPath = conventions.DefaultAdminPath
 	}
 	return base + "/" + trimmedPath
 }
@@ -317,7 +318,7 @@ func parseMagentoAdminDBRows(raw string) map[string]string {
 func resolveMagentoAdminURL(baseURL string, envFrontName string, dbValues map[string]string) string {
 	frontName := strings.Trim(strings.TrimSpace(envFrontName), "/")
 	if frontName == "" {
-		frontName = "admin"
+		frontName = conventions.DefaultAdminPath
 	}
 
 	if truthyMagentoConfig(dbValues["admin/url/use_custom_path"]) {
@@ -369,11 +370,11 @@ func joinURLWithPath(baseURL string, path string) string {
 }
 
 func detectRemoteMagentoAdminPath(config engine.Config, remoteName string, remoteCfg engine.RemoteConfig) (string, error) {
-	if strings.ToLower(strings.TrimSpace(config.Framework)) != "magento2" {
-		return "admin", nil
+	if strings.ToLower(strings.TrimSpace(config.Framework)) != conventions.FrameworkMagento2 {
+		return conventions.DefaultAdminPath, nil
 	}
 
-	phpScript := `$c=@include "app/etc/env.php"; if(!is_array($c)){fwrite(STDERR,"env.php not found"); exit(2);} echo (string)($c["backend"]["frontName"] ?? "admin");`
+	phpScript := `$c=@include "app/etc/env.php"; if(!is_array($c)){fwrite(STDERR,"env.php not found"); exit(2);} echo (string)($c["backend"]["frontName"] ?? "` + conventions.DefaultAdminPath + `");`
 	remoteCommand := "php -r " + engine.ShellQuote(phpScript)
 	if path := strings.TrimSpace(remoteCfg.Path); path != "" {
 		remoteCommand = "cd " + engineremote.QuoteRemotePath(path) + " && " + remoteCommand
@@ -382,12 +383,12 @@ func detectRemoteMagentoAdminPath(config engine.Config, remoteName string, remot
 	probeCmd := engineremote.BuildSSHExecCommand(remoteName, remoteCfg, true, remoteCommand)
 	output, err := probeCmd.CombinedOutput()
 	if err != nil {
-		return "admin", fmt.Errorf("probe failed: %w", err)
+		return conventions.DefaultAdminPath, fmt.Errorf("probe failed: %w", err)
 	}
 
 	value := strings.Trim(strings.TrimSpace(string(output)), "/")
 	if value == "" {
-		value = "admin"
+		value = conventions.DefaultAdminPath
 	}
 	return value, nil
 }
