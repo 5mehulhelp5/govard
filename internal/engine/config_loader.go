@@ -139,6 +139,58 @@ func LoadRawConfigFromDir(root string, requireBase bool) (Config, error) {
 	return cfg, nil
 }
 
+// LoadRawConfigFromDirWithProfile loads the configuration WITHOUT applying normalization or validation,
+// but merging all profile and local layers just like LoadConfigFromDirWithProfile.
+// This is used to detect which fields were explicitly provided in the layered files by the user.
+func LoadRawConfigFromDirWithProfile(root string, requireBase bool, profile string) (Config, error) {
+	paths := ResolveConfigLayerPathsWithProfile(root, profile)
+	merged := map[string]interface{}{}
+	loaded := make([]string, 0, len(paths))
+
+	for idx, path := range paths {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				if idx == 0 && requireBase {
+					return Config{}, fmt.Errorf("%s not found", BaseConfigFile)
+				}
+				continue
+			}
+			return Config{}, fmt.Errorf("failed to read %s: %w", path, err)
+		}
+
+		var layer map[string]interface{}
+		if err := yaml.Unmarshal(data, &layer); err != nil {
+			return Config{}, fmt.Errorf("failed to parse %s: %w", path, err)
+		}
+		if layer == nil {
+			layer = map[string]interface{}{}
+		}
+
+		MergeMap(merged, layer)
+		loaded = append(loaded, path)
+	}
+
+	if requireBase && len(loaded) == 0 {
+		return Config{}, fmt.Errorf("%s not found", BaseConfigFile)
+	}
+
+	var cfg Config
+	payload, err := yaml.Marshal(merged)
+	if err != nil {
+		return Config{}, fmt.Errorf("failed to marshal merged config: %w", err)
+	}
+	if err := yaml.Unmarshal(payload, &cfg); err != nil {
+		return Config{}, fmt.Errorf("failed to decode merged config: %w", err)
+	}
+
+	if cfg.ProjectName == "" {
+		cfg.ProjectName = inferProjectName(root)
+	}
+
+	return cfg, nil
+}
+
 func LoadBaseConfigFromDir(root string, requireBase bool) (Config, error) {
 	path := filepath.Join(root, BaseConfigFile)
 	data, err := os.ReadFile(path)

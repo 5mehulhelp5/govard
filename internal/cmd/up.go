@@ -149,7 +149,7 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 				if err != nil {
 					return fmt.Errorf("load layered config: %w", err)
 				}
-				rawConfig, _ := engine.LoadRawConfigFromDir(context.Cwd, false)
+				rawConfig, _ := engine.LoadRawConfigFromDirWithProfile(context.Cwd, false, context.Profile)
 				if warnings := engine.CollectProfileSyncWarnings(rawConfig, context.Metadata); len(warnings) > 0 {
 					for _, warning := range warnings {
 						pterm.Warning.Println(warning)

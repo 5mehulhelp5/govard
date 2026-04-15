@@ -1,12 +1,16 @@
 package cmd
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"govard/internal/conventions"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"govard/internal/engine"
 
@@ -49,6 +53,17 @@ func ensureSpecificComposerVersion(config engine.Config, version string) error {
 	pterm.Info.Printf("Ensuring Composer version %s is installed in container...\n", version)
 
 	containerName := fmt.Sprintf("%s%s", config.ProjectName, conventions.PHPSuffix)
+
+	// Dynamically resolve minor versions like "2.7" to the latest patch release (e.g. "2.7.9")
+	if isMinorComposerVersion(version) && version != "2.2" {
+		resolved, err := resolveComposerPatchVersion(version)
+		if err == nil && resolved != "" {
+			pterm.Info.Printf("Resolved Composer minor version %s to patch release %s\n", version, resolved)
+			version = resolved
+		} else {
+			pterm.Warning.Printf("Could not dynamically resolve Composer version %s: %v\n", version, err)
+		}
+	}
 
 	downloadUrl := "https://getcomposer.org/composer-stable.phar"
 	if version != "latest" {
@@ -176,4 +191,52 @@ func EnsureBootstrapAuthJSONForTest(config engine.Config, mageUsername, magePass
 		MagePassword: strings.TrimSpace(magePassword),
 		AssumeYes:    assumeYes,
 	})
+}
+
+func isMinorComposerVersion(version string) bool {
+	parts := strings.Split(version, ".")
+	if len(parts) == 2 {
+		return true
+	}
+	return false
+}
+
+func resolveComposerPatchVersion(minorVersion string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://repo.packagist.org/p2/composer/composer.json", nil)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("unexpected status %d", resp.StatusCode)
+	}
+
+	var result struct {
+		Packages struct {
+			Composer []struct {
+				Version string `json:"version"`
+			} `json:"composer/composer"`
+		} `json:"packages"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", err
+	}
+
+	for _, c := range result.Packages.Composer {
+		// We want the most recent matching version that isn't a pre-release like RC/alpha/beta
+		if strings.HasPrefix(c.Version, minorVersion+".") && !strings.Contains(strings.ToLower(c.Version), "-") {
+			return c.Version, nil
+		}
+	}
+	return "", fmt.Errorf("no stable patch versions found for %s", minorVersion)
 }
