@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:css": "tailwindcss -i ./assets/styles-src.css -o ./assets/styles.css --minify",
-    "watch:css": "tailwindcss -i ./assets/styles-src.css -o ./assets/styles.css --watch"
+    "build:css": "BROWSERSLIST_IGNORE_OLD_DATA=1 tailwindcss -i ./assets/styles-src.css -o ./assets/styles.css --minify",
+    "watch:css": "BROWSERSLIST_IGNORE_OLD_DATA=1 tailwindcss -i ./assets/styles-src.css -o ./assets/styles.css --watch"
   },
   "devDependencies": {
     "@tailwindcss/container-queries": "^0.1.1",

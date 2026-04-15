@@ -98,26 +98,8 @@ func buildSyncExecutionPlan(config engine.Config, endpoints ResolvedSyncEndpoint
 			return plan, nil
 		}
 
-		framework := strings.ToLower(config.Framework)
-		excludes := opts.Exclude
-
-		switch framework {
-		case "magento2", "magento1", "openmage":
-			excludes = append(excludes, getMagentoMediaExcludes(opts.Media)...)
-		case "wordpress":
-			excludes = append(excludes, getWordPressMediaExcludes(opts.Media)...)
-		case "laravel":
-			excludes = append(excludes, getLaravelMediaExcludes(opts.Media)...)
-		default:
-			// Standard "Smart" behavior for other frameworks
-			if opts.Media != MediaSyncAll {
-				excludes = append(excludes, "cache/", "tmp/", "logs/")
-			}
-		}
-
-		if opts.Media == MediaSyncMinimal {
-			excludes = append(excludes, getMinimalExcludes()...)
-		}
+		excludes := append([]string{}, opts.Exclude...)
+		excludes = append(excludes, engine.GetFrameworkMediaExcludes(config.Framework, opts.Media)...)
 
 		rsyncCmd, _, err := buildRsyncForEndpoints(
 			endpoints.Source,
@@ -362,111 +344,7 @@ func resolveSyncResumeMode(resume bool, noResume bool) bool {
 }
 
 func getSyncNoiseExcludes(framework string) []string {
-	// 1. Global Metadata & Noise (IDE, OS, Version Control)
-	globalIgnores := []string{
-		".git/", ".idea/", ".vscode/", ".DS_Store", "thumbs.db", "node_modules/",
-	}
-
-	// 2. Sensitive Security/Config Patterns (The "Sanitize" logic)
-	sensitivePatterns := []string{
-		".env", "*.pem", "*.key", "auth.json",
-	}
-
-	excludes := append(globalIgnores, sensitivePatterns...)
-	switch strings.ToLower(framework) {
-	case "magento2":
-		excludes = append(excludes,
-			"var/cache/", "var/page_cache/", "var/view_preprocessed/", "var/log/",
-			"pub/static/_cache/", "generated/code/", "generated/metadata/",
-		)
-	case "magento1", "openmage":
-		excludes = append(excludes,
-			"var/cache/", "var/full_page_cache/", "var/session/", "var/tmp/", "var/log/",
-		)
-	case "laravel":
-		excludes = append(excludes,
-			"storage/framework/cache/data/*", "storage/framework/sessions/*",
-			"storage/framework/views/*", "storage/logs/*",
-		)
-	case "wordpress":
-		excludes = append(excludes, "wp-content/cache/", "wp-content/logs/")
-	default:
-		// Fallback: exclude generic log and cache dirs if present
-		excludes = append(excludes, "var/log/", "var/cache/", "logs/", "cache/")
-	}
-	return excludes
-}
-
-func getCommonMediaExcludes() []string {
-	return []string{
-		"*.gz", "*.zip", "*.tar", "*.7z", "*.sql", "*.tmp", "*.temp", "*.bak", "*.old", "*.log",
-		"*tmp*/",
-		"*temp*/",
-		"*cache*/",
-		"*bak*/",
-		"*old*/",
-		"*log*/",
-		"*session*/",
-	}
-}
-
-func getMagentoMediaExcludes(mode string) []string {
-	mode = strings.ToLower(strings.TrimSpace(mode))
-	if mode == MediaSyncAll {
-		return []string{}
-	}
-
-	excludes := getCommonMediaExcludes()
-	excludes = append(excludes,
-		"itm",
-		"import",
-		"export",
-		"importexport",
-		"captcha",
-		"analytics",
-		"custom_options",
-		"customer_address",
-		"sitemap",
-		"catalog_webp",
-		"opti_image",
-		"webp_image",
-		"shoppingfeed",
-		"feeds",
-		"ftp",
-		"lengow",
-	)
-
-	if mode == MediaSyncOptimized || mode == MediaSyncMinimal {
-		// Optimized or Minimal mode: exclude catalog images entirely to save time/space
-		excludes = append(excludes, "catalog/product")
-	}
-
-	return excludes
-}
-
-func getWordPressMediaExcludes(mode string) []string {
-	mode = strings.ToLower(strings.TrimSpace(mode))
-	excludes := getCommonMediaExcludes()
-	if mode == MediaSyncAll {
-		return []string{}
-	}
-	return excludes
-}
-
-func getLaravelMediaExcludes(mode string) []string {
-	mode = strings.ToLower(strings.TrimSpace(mode))
-	excludes := getCommonMediaExcludes()
-	if mode == MediaSyncAll {
-		return []string{}
-	}
-	return append(excludes, "testing/")
-}
-
-func getMinimalExcludes() []string {
-	return []string{
-		"*.jpg", "*.jpeg", "*.png", "*.gif", "*.webp", "*.svg", "*.ico",
-		"*.mp4", "*.mov", "*.webm", "*.ogv", "*.mp3", "*.pdf",
-	}
+	return engine.GetFrameworkSyncNoiseExcludes(framework)
 }
 
 func isSyncingDirectory(path, sourcePath, destinationPath string) bool {

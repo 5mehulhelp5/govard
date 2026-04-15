@@ -358,12 +358,7 @@ func fileExists(path string) bool {
 }
 
 func frameworkRequiresRunningEnvForFreshInstall(framework string) bool {
-	switch strings.ToLower(strings.TrimSpace(framework)) {
-	case "nextjs", "emdash":
-		return false
-	default:
-		return true
-	}
+	return engine.FrameworkRequiresRunningEnvForFreshInstall(framework)
 }
 
 func stringSliceContains(slice []string, item string) bool {
@@ -391,7 +386,7 @@ func shouldRunFrameworkPostClone(config engine.Config, opts BootstrapRuntimeOpti
 	if !opts.ComposerInstall {
 		return false
 	}
-	return config.Framework == "symfony" || config.Framework == "laravel" || config.Framework == "wordpress" || config.Framework == "magento1" || config.Framework == "openmage"
+	return engine.FrameworkSupportsPostClone(config.Framework)
 }
 
 func shouldIgnoreFrameworkPostCloneError(config engine.Config, err error, cwd string) bool {

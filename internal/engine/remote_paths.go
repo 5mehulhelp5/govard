@@ -15,18 +15,10 @@ func ResolveRemotePathsForConfig(framework string, remote RemoteConfig) (string,
 	if strings.TrimSpace(remote.Paths.Media) != "" {
 		return root, remote.Paths.Media
 	}
-	switch framework {
-	case "magento2":
-		return root, root + "/pub/media"
-	case "magento1", "openmage":
-		return root, root + "/media"
-	case "wordpress":
-		return root, root + "/wp-content/uploads"
-	case "drupal":
-		return root, root + "/sites/default/files"
-	case "shopware":
-		return root, root + "/public/media"
-	default:
-		return root, root + "/public/media"
+
+	mediaSubpath := ResolveFrameworkRemoteMediaSubpath(framework)
+	if root == "" {
+		return root, "/" + strings.TrimLeft(mediaSubpath, "/")
 	}
+	return root, strings.TrimRight(root, "/") + "/" + strings.TrimLeft(mediaSubpath, "/")
 }
