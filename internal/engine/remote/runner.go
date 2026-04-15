@@ -2,6 +2,7 @@ package remote
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -77,7 +78,9 @@ func BuildRsyncCommand(
 	args = append(args, "-e", strings.Join(sshArgs, " "))
 	args = append(args, source, destination)
 
-	return exec.Command("rsync", args...)
+	cmd := exec.Command("rsync", args...)
+	cmd.Env = append(os.Environ(), "RSYNC_OLD_ARGS=1")
+	return cmd
 }
 
 func RunRemoteShell(remoteName string, remoteCfg engine.RemoteConfig, remoteCommand string) error {
