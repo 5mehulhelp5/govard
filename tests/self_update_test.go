@@ -34,6 +34,44 @@ func TestNormalizeReleaseTagForTest(t *testing.T) {
 	}
 }
 
+func TestValidateReleaseTagForTest(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		in      string
+		want    string
+		wantErr bool
+	}{
+		{name: "valid", in: "1.2.3", want: "v1.2.3"},
+		{name: "valid prefixed", in: "v2.3.4", want: "v2.3.4"},
+		{name: "empty", in: "", wantErr: true},
+		{name: "invalid suffix", in: "v1.2.3-rc1", wantErr: true},
+		{name: "path traversal", in: "../../1.2.3", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := cmd.ValidateReleaseTagForTest(tt.in)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("ValidateReleaseTagForTest(%q) expected error, got none", tt.in)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("ValidateReleaseTagForTest(%q) unexpected error: %v", tt.in, err)
+			}
+			if got != tt.want {
+				t.Fatalf("ValidateReleaseTagForTest(%q) = %q, want %q", tt.in, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestBuildReleaseAssetNameForTest(t *testing.T) {
 	t.Parallel()
 
@@ -72,13 +110,23 @@ func TestBuildReleaseAssetNameForTest(t *testing.T) {
 			goarch:  "386",
 			wantErr: true,
 		},
+		{
+			name:    "invalid release tag",
+			goos:    "linux",
+			goarch:  "amd64",
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			gotAsset, gotBinary, err := cmd.BuildReleaseAssetNameForTest("govard", "v1.0.1", tt.goos, tt.goarch)
+			releaseTag := "v1.0.1"
+			if tt.name == "invalid release tag" {
+				releaseTag = "v1.0.1-rc1"
+			}
+			gotAsset, gotBinary, err := cmd.BuildReleaseAssetNameForTest("govard", releaseTag, tt.goos, tt.goarch)
 			if tt.wantErr {
 				if err == nil {
 					t.Fatalf("BuildReleaseAssetNameForTest() expected error, got none")

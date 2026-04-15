@@ -3,6 +3,7 @@ package cmd
 import (
 	"compress/gzip"
 	"fmt"
+	"govard/internal/conventions"
 	"io"
 	"os"
 	"path/filepath"
@@ -51,7 +52,7 @@ func runDBDump(cmd *cobra.Command, config engine.Config, options dbCommandOption
 
 		targetPath := filepath.Clean(targetFile)
 		// Ensure the directory exists (e.g. var/)
-		if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(targetPath), conventions.DefaultDirPerm); err != nil {
 			return fmt.Errorf("create dump directory: %w", err)
 		}
 

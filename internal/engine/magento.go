@@ -6,9 +6,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
-	"govard/internal/engine/bootstrap"
+	"govard/internal/conventions"
 
 	"github.com/pterm/pterm"
 )
@@ -20,8 +21,8 @@ type magentoCommand struct {
 }
 
 const (
-	DefaultMagentoAdminUser     = "admin"
-	DefaultMagentoAdminPassword = "Admin123$"
+	DefaultMagentoAdminUser     = conventions.DefaultAdminUser
+	DefaultMagentoAdminPassword = conventions.DefaultAdminPassword
 )
 
 // MagentoConfigCommandsForTest exposes command planning for tests.
@@ -51,7 +52,7 @@ func ConfigureMagento(projectName string, config Config) error {
 		}
 	}
 
-	containerName := fmt.Sprintf("%s-php-1", projectName)
+	containerName := fmt.Sprintf("%s%s", projectName, conventions.PHPSuffix)
 	lockedKeys, _ := CheckMagentoEnvPHPLockedKeys(containerName, config)
 	if len(lockedKeys) > 0 {
 		pterm.Info.Printf("Detected %d locked core config keys in env.php. Govard will perform forced overrides to match local environment.\n", len(lockedKeys))
@@ -139,7 +140,7 @@ func ConfigureMagento(projectName string, config Config) error {
 			}
 
 			if strings.Contains(string(output), "not found") || strings.Contains(string(output), "No such container") {
-				return fmt.Errorf("container %s is not running. Run 'govard env up' first", fmt.Sprintf("%s-php-1", projectName))
+				return fmt.Errorf("container %s is not running. Run 'govard env up' first", fmt.Sprintf("%s%s", projectName, conventions.PHPSuffix))
 			}
 			if cmd.Optional {
 				pterm.Warning.Printf("Non-fatal Magento configure step failed (%s): %v\n", cmd.Desc, err)
@@ -226,7 +227,7 @@ func isMagentoConfigPathUnavailable(output string) bool {
 }
 
 func runMagentoConfigImport(containerName string, config Config) error {
-	args := magentoDockerExecArgs(containerName, config, "bin/magento", "app:config:import", "--no-interaction")
+	args := magentoDockerExecArgs(containerName, config, conventions.BinMagento, "app:config:import", "--no-interaction")
 	output, err := exec.Command("docker", args...).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("app:config:import failed: %w\nOutput: %s", err, string(output))
@@ -235,7 +236,7 @@ func runMagentoConfigImport(containerName string, config Config) error {
 }
 
 func runMagentoSetupUpgrade(containerName string, config Config) error {
-	args := magentoDockerExecArgs(containerName, config, "bin/magento", "setup:upgrade", "--no-interaction")
+	args := magentoDockerExecArgs(containerName, config, conventions.BinMagento, "setup:upgrade", "--no-interaction")
 	output, err := exec.Command("docker", args...).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("setup:upgrade failed: %w\nOutput: %s", err, string(output))
@@ -286,16 +287,16 @@ func buildFrameworkAutoConfigurationCommands(projectName string, config Config) 
 }
 
 func buildMagento2Commands(projectName string, config Config, lockedKeys map[string]bool) []magentoCommand {
-	containerName := fmt.Sprintf("%s-php-1", projectName)
+	containerName := fmt.Sprintf("%s%s", projectName, conventions.PHPSuffix)
 	searchEngine := ResolveMagentoSearchEngine(config)
 
 	configSetArgs := []string{
-		"bin/magento",
+		conventions.BinMagento,
 		"setup:config:set",
 		"--db-host=db",
-		"--db-name=magento",
-		"--db-user=magento",
-		"--db-password=magento",
+		"--db-name=" + conventions.DefaultMagentoDBName,
+		"--db-user=" + conventions.DefaultMagentoDBUser,
+		"--db-password=" + conventions.DefaultMagentoDBPass,
 	}
 	configSetArgs = append(configSetArgs, "--no-interaction")
 
@@ -308,7 +309,7 @@ func buildMagento2Commands(projectName string, config Config, lockedKeys map[str
 	if searchEngine != "" {
 		commands = append(commands, magentoCommand{
 			Desc: "Setting Search Engine",
-			Args: magentoDockerExecArgs(containerName, config, "bin/magento", "config:set",
+			Args: magentoDockerExecArgs(containerName, config, conventions.BinMagento, "config:set",
 				"catalog/search/engine", searchEngine, "--no-interaction"),
 			Optional: true,
 		})
@@ -317,19 +318,19 @@ func buildMagento2Commands(projectName string, config Config, lockedKeys map[str
 
 	commands = append(commands, magentoCommand{
 		Desc: "Enable Developer Mode",
-		Args: magentoDockerExecArgs(containerName, config, "bin/magento", "deploy:mode:set", "developer", "--no-interaction"),
+		Args: magentoDockerExecArgs(containerName, config, conventions.BinMagento, "deploy:mode:set", conventions.MagentoDeveloperMode, "--no-interaction"),
 	})
 
-	if config.Stack.Services.Cache == "redis" || config.Stack.Services.Cache == "valkey" {
+	if config.Stack.Services.Cache == conventions.ServiceRedis || config.Stack.Services.Cache == "valkey" {
 		commands = append(commands, magentoCommand{
 			Desc: "Configuring Redis Cache",
-			Args: magentoDockerExecArgs(containerName, config, "bin/magento", "setup:config:set",
+			Args: magentoDockerExecArgs(containerName, config, conventions.BinMagento, "setup:config:set",
 				"--cache-backend=redis", "--cache-backend-redis-server=redis", "--cache-backend-redis-db=0", "--no-interaction"),
 			Optional: true,
 		})
 		commands = append(commands, magentoCommand{
 			Desc: "Configuring Redis Sessions",
-			Args: magentoDockerExecArgs(containerName, config, "bin/magento", "setup:config:set",
+			Args: magentoDockerExecArgs(containerName, config, conventions.BinMagento, "setup:config:set",
 				"--session-save=redis", "--session-save-redis-host=redis", "--session-save-redis-db=2", "--no-interaction"),
 			Optional: true,
 		})
@@ -338,25 +339,25 @@ func buildMagento2Commands(projectName string, config Config, lockedKeys map[str
 	if config.Stack.Features.Varnish {
 		commands = append(commands, magentoCommand{
 			Desc: "Configuring Varnish Page Cache",
-			Args: magentoDockerExecArgs(containerName, config, "bin/magento", "config:set",
+			Args: magentoDockerExecArgs(containerName, config, conventions.BinMagento, "config:set",
 				"system/full_page_cache/caching_application", "2", "--no-interaction"),
 		})
 		commands = append(commands, magentoCommand{
 			Desc: "Configuring Varnish Purge Hosts",
-			Args: magentoDockerExecArgs(containerName, config, "bin/magento", "setup:config:set",
-				"--http-cache-hosts=varnish:80", "--no-interaction"),
+			Args: magentoDockerExecArgs(containerName, config, conventions.BinMagento, "setup:config:set",
+				"--http-cache-hosts="+conventions.ServiceVarnish+":"+strconv.Itoa(conventions.HTTPPort), "--no-interaction"),
 			Optional: true,
 		})
 		commands = append(commands, magentoCommand{
 			Desc: "Configuring Varnish Backend Host",
-			Args: magentoDockerExecArgs(containerName, config, "bin/magento", "config:set",
+			Args: magentoDockerExecArgs(containerName, config, conventions.BinMagento, "config:set",
 				"system/full_page_cache/varnish/backend_host", "web", "--no-interaction"),
 			Optional: true,
 		})
 		commands = append(commands, magentoCommand{
 			Desc: "Configuring Varnish Backend Port",
-			Args: magentoDockerExecArgs(containerName, config, "bin/magento", "config:set",
-				"system/full_page_cache/varnish/backend_port", "80", "--no-interaction"),
+			Args: magentoDockerExecArgs(containerName, config, conventions.BinMagento, "config:set",
+				"system/full_page_cache/varnish/backend_port", strconv.Itoa(conventions.HTTPPort), "--no-interaction"),
 			Optional: true,
 		})
 	}
@@ -366,17 +367,17 @@ func buildMagento2Commands(projectName string, config Config, lockedKeys map[str
 		if lockedKeys["web/unsecure/base_url"] || lockedKeys["web/secure/base_url"] {
 			commands = append(commands, magentoCommand{
 				Desc: "Setting Base URLs (Locked in env.php)",
-				Args: magentoDockerExecArgs(containerName, config, "bin/magento", "config:set",
+				Args: magentoDockerExecArgs(containerName, config, conventions.BinMagento, "config:set",
 					"--lock-env", "web/unsecure/base_url", baseUrl, "--no-interaction"),
 			}, magentoCommand{
 				Desc: "Setting Secure Base URLs (Locked in env.php)",
-				Args: magentoDockerExecArgs(containerName, config, "bin/magento", "config:set",
+				Args: magentoDockerExecArgs(containerName, config, conventions.BinMagento, "config:set",
 					"--lock-env", "web/secure/base_url", baseUrl, "--no-interaction"),
 			})
 		} else {
 			commands = append(commands, magentoCommand{
 				Desc: "Setting Base URLs",
-				Args: magentoDockerExecArgs(containerName, config, "bin/magento", "setup:store-config:set",
+				Args: magentoDockerExecArgs(containerName, config, conventions.BinMagento, "setup:store-config:set",
 					"--base-url="+baseUrl, "--base-url-secure="+baseUrl, "--no-interaction"),
 			})
 		}
@@ -386,7 +387,7 @@ func buildMagento2Commands(projectName string, config Config, lockedKeys map[str
 			// For local dev, using the full domain is usually safest.
 			commands = append(commands, magentoCommand{
 				Desc: "Setting Cookie Domain (Locked in env.php)",
-				Args: magentoDockerExecArgs(containerName, config, "bin/magento", "config:set",
+				Args: magentoDockerExecArgs(containerName, config, conventions.BinMagento, "config:set",
 					"--lock-env", "web/cookie/cookie_domain", config.Domain, "--no-interaction"),
 				Optional: true,
 			})
@@ -395,7 +396,7 @@ func buildMagento2Commands(projectName string, config Config, lockedKeys map[str
 		if lockedKeys["web/secure/offloader_header"] {
 			commands = append(commands, magentoCommand{
 				Desc: "Setting Offloader Header (Locked in env.php)",
-				Args: magentoDockerExecArgs(containerName, config, "bin/magento", "config:set",
+				Args: magentoDockerExecArgs(containerName, config, conventions.BinMagento, "config:set",
 					"--lock-env", "web/secure/offloader_header", "X-Forwarded-Proto", "--no-interaction"),
 				Optional: true,
 			})
@@ -417,12 +418,12 @@ func buildMagento2Commands(projectName string, config Config, lockedKeys map[str
 		}
 		commands = append(commands, magentoCommand{
 			Desc: fmt.Sprintf("Setting Base URL for %s %s", scopeDesc, scopeCode),
-			Args: magentoDockerExecArgs(containerName, config, "bin/magento", "config:set",
+			Args: magentoDockerExecArgs(containerName, config, conventions.BinMagento, "config:set",
 				scopeFlag, "--scope-code="+scopeCode, "web/unsecure/base_url", baseURL, "--no-interaction"),
 			Optional: true,
 		}, magentoCommand{
 			Desc: fmt.Sprintf("Setting Secure Base URL for %s %s", scopeDesc, scopeCode),
-			Args: magentoDockerExecArgs(containerName, config, "bin/magento", "config:set",
+			Args: magentoDockerExecArgs(containerName, config, conventions.BinMagento, "config:set",
 				scopeFlag, "--scope-code="+scopeCode, "web/secure/base_url", baseURL, "--no-interaction"),
 			Optional: true,
 		})
@@ -430,20 +431,20 @@ func buildMagento2Commands(projectName string, config Config, lockedKeys map[str
 
 	commands = append(commands, magentoCommand{
 		Desc: "Enable Web Server Rewrites",
-		Args: magentoDockerExecArgs(containerName, config, "bin/magento", "config:set",
+		Args: magentoDockerExecArgs(containerName, config, conventions.BinMagento, "config:set",
 			"web/seo/use_rewrites", "1", "--no-interaction"),
 		Optional: true,
 	})
 
 	commands = append(commands, magentoCommand{
 		Desc: "Disable reCAPTCHA",
-		Args: magentoDockerExecArgs(containerName, config, "bin/magento", "config:set",
+		Args: magentoDockerExecArgs(containerName, config, conventions.BinMagento, "config:set",
 			"recaptcha_frontend/type_for/customer_login", "invisible", "--no-interaction"),
 		Optional: true,
 	})
 	commands = append(commands, magentoCommand{
 		Desc: "Disable 2FA",
-		Args: magentoDockerExecArgs(containerName, config, "bin/magento", "config:set",
+		Args: magentoDockerExecArgs(containerName, config, conventions.BinMagento, "config:set",
 			"twofactorauth/general/enable", "0", "--no-interaction"),
 		Optional: true,
 	})
@@ -453,7 +454,7 @@ func buildMagento2Commands(projectName string, config Config, lockedKeys map[str
 		// Using --lock-env to write to app/etc/env.php as requested (prevents DB pollution).
 		commands = append(commands, magentoCommand{
 			Desc: "Injecting LiveReload script into env.php footer",
-			Args: magentoDockerExecArgs(containerName, config, "bin/magento", "config:set",
+			Args: magentoDockerExecArgs(containerName, config, conventions.BinMagento, "config:set",
 				"--lock-env", "design/footer/absolute_footer", lrScript, "--no-interaction"),
 			Optional: true,
 		})
@@ -475,7 +476,7 @@ func ConfigureMagento1(projectName string, config Config) error {
 				continue
 			}
 			if strings.Contains(string(output), "No such container") {
-				return fmt.Errorf("container %s is not running. Run 'govard env up' first", fmt.Sprintf("%s-db-1", projectName))
+				return fmt.Errorf("container %s is not running. Run 'govard env up' first", fmt.Sprintf("%s%s", projectName, conventions.DBSuffix))
 			}
 			return fmt.Errorf("command failed: %s %v\nOutput: %s", cmd.Desc, err, string(output))
 		}
@@ -486,12 +487,12 @@ func ConfigureMagento1(projectName string, config Config) error {
 }
 
 func buildMagento1Commands(projectName string, config Config) []magentoCommand {
-	containerName := fmt.Sprintf("%s-db-1", projectName)
+	containerName := fmt.Sprintf("%s%s", projectName, conventions.DBSuffix)
 	commands := make([]magentoCommand, 0)
 
 	if config.Domain != "" {
 		baseURL := fmt.Sprintf("https://%s/", config.Domain)
-		sqlStatements := bootstrap.BuildMagento1SetConfigSQLStatements(baseURL, "")
+		sqlStatements := BuildMagento1SetConfigSQLStatements(baseURL, "")
 		for idx, sql := range sqlStatements {
 			commands = append(commands, magentoCommand{
 				Desc: fmt.Sprintf("Setting Magento 1 base configuration (%d/%d)", idx+1, len(sqlStatements)),
@@ -509,11 +510,11 @@ func buildMagento1Commands(projectName string, config Config) []magentoCommand {
 		var sqlStatements []string
 		switch mapping.ScopeType() {
 		case "website":
-			sqlStatements = bootstrap.BuildMagento1WebsiteBaseURLSQLStatements(scopeCode, baseURL, "")
+			sqlStatements = BuildMagento1WebsiteBaseURLSQLStatements(scopeCode, baseURL, "")
 		case "store":
-			sqlStatements = bootstrap.BuildMagento1StoreBaseURLSQLStatements(scopeCode, baseURL, "")
+			sqlStatements = BuildMagento1StoreBaseURLSQLStatements(scopeCode, baseURL, "")
 		default:
-			sqlStatements = bootstrap.BuildMagento1ScopedBaseURLSQLStatements(scopeCode, baseURL, "")
+			sqlStatements = BuildMagento1ScopedBaseURLSQLStatements(scopeCode, baseURL, "")
 		}
 		for idx, sql := range sqlStatements {
 			commands = append(commands, magentoCommand{
@@ -538,9 +539,9 @@ func buildMagentoSearchConfigSetCommands(containerName string, config Config, en
 		path  string
 		value string
 	}{
-		{desc: "Setting Search Host", path: "catalog/search/" + prefix + "_server_hostname", value: "elasticsearch"},
+		{desc: "Setting Search Host", path: "catalog/search/" + prefix + "_server_hostname", value: conventions.ServiceElasticsearch},
 		{desc: "Setting Search Port", path: "catalog/search/" + prefix + "_server_port", value: "9200"},
-		{desc: "Setting Search Index Prefix", path: "catalog/search/" + prefix + "_index_prefix", value: "magento2"},
+		{desc: "Setting Search Index Prefix", path: "catalog/search/" + prefix + "_index_prefix", value: conventions.DefaultMagentoDBName},
 		{desc: "Setting Search Auth", path: "catalog/search/" + prefix + "_enable_auth", value: "0"},
 		{desc: "Setting Search Timeout", path: "catalog/search/" + prefix + "_server_timeout", value: "15"},
 	}
@@ -552,7 +553,7 @@ func buildMagentoSearchConfigSetCommands(containerName string, config Config, en
 			Args: magentoDockerExecArgs(
 				containerName,
 				config,
-				"bin/magento",
+				conventions.BinMagento,
 				"config:set",
 				setting.path,
 				setting.value,
@@ -566,8 +567,8 @@ func buildMagentoSearchConfigSetCommands(containerName string, config Config, en
 
 func resolveMagentoSearchConfigPrefix(engineName string) string {
 	switch engineName {
-	case "opensearch":
-		return "opensearch"
+	case conventions.ServiceOpenSearch:
+		return conventions.ServiceOpenSearch
 	case "elasticsearch7":
 		return "elasticsearch7"
 	default:
@@ -588,8 +589,8 @@ func ResolveMagentoSearchEngine(config Config) string {
 	}
 
 	// Magento < 2.4.8 uses the elasticsearch7 engine name/flags even when running OpenSearch.
-	if isMagentoVersionAtLeast(config.FrameworkVersion, "2.4.8") && search == "opensearch" {
-		return "opensearch"
+	if isMagentoVersionAtLeast(config.FrameworkVersion, "2.4.8") && search == conventions.ServiceOpenSearch {
+		return conventions.ServiceOpenSearch
 	}
 	return "elasticsearch7"
 }
@@ -662,7 +663,7 @@ func patchMagentoElasticsearchSchemaForLibxml() (bool, error) {
 		return false, nil
 	}
 
-	if err := os.WriteFile(schemaPath, []byte(updated), 0644); err != nil {
+	if err := os.WriteFile(schemaPath, []byte(updated), conventions.DefaultFilePerm); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -676,7 +677,7 @@ func isMagentoVersionAtLeast(raw string, minimum string) bool {
 // It is used by the CLI (govard db query) during bootstrap or auto-configuration.
 func BuildMagentoSearchHostFixSQL(host string, searchEngine string) string {
 	if host == "" {
-		host = "elasticsearch"
+		host = conventions.ServiceElasticsearch
 	}
 	// Query information_schema to handle potential table prefixes
 	sql := "SET @table_name = (SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE '%core_config_data' LIMIT 1); "
@@ -711,7 +712,7 @@ func magentoDockerExecArgs(containerName string, config Config, args ...string) 
 	if user := resolveMagentoExecUser(config); strings.TrimSpace(user) != "" {
 		result = append(result, "-u", user)
 	}
-	result = append(result, "-w", "/var/www/html", containerName)
+	result = append(result, "-w", conventions.DefaultWorkDir, containerName)
 	result = append(result, args...)
 	return result
 }
@@ -719,12 +720,12 @@ func magentoDockerExecArgs(containerName string, config Config, args ...string) 
 func magento1DockerSQLExecArgs(containerName string, sql string) []string {
 	script := fmt.Sprintf(
 		`if command -v mysql >/dev/null 2>&1; then DB_CLI=mysql; elif command -v mariadb >/dev/null 2>&1; then DB_CLI=mariadb; else exit 1; fi && echo %s | "$DB_CLI" -u %s %s -f`,
-		bootstrap.ShellEscape(sql), bootstrap.ShellEscape("magento"), bootstrap.ShellEscape("magento"),
+		ShellQuote(sql), ShellQuote(conventions.DefaultMagentoDBUser), ShellQuote(conventions.DefaultMagentoDBName),
 	)
 
 	return []string{
 		"exec", "-i",
-		"-e", "MYSQL_PWD=magento",
+		"-e", "MYSQL_PWD=" + conventions.DefaultMagentoDBPass,
 		containerName,
 		"sh", "-lc", script,
 	}
@@ -734,11 +735,11 @@ func resolveMagentoExecUser(config Config) string {
 	if config.Stack.UserID > 0 && config.Stack.GroupID > 0 {
 		return fmt.Sprintf("%d:%d", config.Stack.UserID, config.Stack.GroupID)
 	}
-	return "www-data"
+	return conventions.UserWWWData
 }
 
 func FixProjectPermissions(projectName string, config Config) error {
-	containerName := fmt.Sprintf("%s-php-1", projectName)
+	containerName := fmt.Sprintf("%s%s", projectName, conventions.PHPSuffix)
 	if len(config.Stack.ChownDirList) == 0 {
 		return nil
 	}
@@ -755,7 +756,7 @@ func FixProjectPermissions(projectName string, config Config) error {
 	script := fmt.Sprintf("for d in %s; do if [ -e \"$d\" ]; then chown -R %s \"$d\" && chmod -R u+rwX \"$d\"; fi; done && if [ -f bin/magento ]; then chmod +x bin/magento; fi", dirs, user)
 
 	// We MUST run as root to have permission to change file ownership.
-	args := []string{"exec", "-u", "root", "-w", "/var/www/html", containerName, "sh", "-lc", script}
+	args := []string{"exec", "-u", "root", "-w", conventions.DefaultWorkDir, containerName, "sh", "-lc", script}
 	output, err := exec.Command("docker", args...).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("fix permissions failed: %w\nOutput: %s", err, string(output))
@@ -823,17 +824,17 @@ func prepareMagentoRunMappingAssets(config Config) (string, string, error) {
 	nginxPath := filepath.Join(GovardHomeDir(), "nginx", config.ProjectName, "mage-run-map.conf")
 	apachePath := filepath.Join(GovardHomeDir(), "apache", config.ProjectName, "mage-run-map.conf")
 
-	if err := os.MkdirAll(filepath.Dir(nginxPath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(nginxPath), conventions.DefaultDirPerm); err != nil {
 		return "", "", err
 	}
-	if err := os.MkdirAll(filepath.Dir(apachePath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(apachePath), conventions.DefaultDirPerm); err != nil {
 		return "", "", err
 	}
 
-	if err := os.WriteFile(nginxPath, []byte(buildMagentoNginxRunMap(config.StoreDomains)), 0o644); err != nil {
+	if err := os.WriteFile(nginxPath, []byte(buildMagentoNginxRunMap(config.StoreDomains)), conventions.DefaultFilePerm); err != nil {
 		return "", "", err
 	}
-	if err := os.WriteFile(apachePath, []byte(buildMagentoApacheRunMap(config.StoreDomains)), 0o644); err != nil {
+	if err := os.WriteFile(apachePath, []byte(buildMagentoApacheRunMap(config.StoreDomains)), conventions.DefaultFilePerm); err != nil {
 		return "", "", err
 	}
 
@@ -890,4 +891,76 @@ func buildMagentoApacheRunMap(mappings StoreDomainMappings) string {
 	}
 	lines = append(lines, "")
 	return strings.Join(lines, "\n")
+}
+
+func BuildMagento1SetConfigSQLStatements(baseURL string, dbPrefix string) []string {
+	return []string{
+		fmt.Sprintf("UPDATE %score_config_data SET value = '%s' WHERE path IN ('web/secure/base_url', 'web/unsecure/base_url')", dbPrefix, baseURL),
+		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}' WHERE path IN ('web/unsecure/base_link_url', 'web/secure/base_link_url')",
+		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}skin/' WHERE path IN ('web/unsecure/base_skin_url', 'web/secure/base_skin_url')",
+		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}media/' WHERE path IN ('web/unsecure/base_media_url', 'web/secure/base_media_url')",
+		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}js/' WHERE path IN ('web/unsecure/base_js_url', 'web/secure/base_js_url')",
+		"UPDATE " + dbPrefix + "core_config_data SET value = 'HTTP_X_FORWARDED_PROTO' WHERE path = 'web/secure/offloader_header'",
+		"UPDATE " + dbPrefix + "core_config_data SET value = '1' WHERE path = 'web/secure/use_in_frontend'",
+		"UPDATE " + dbPrefix + "core_config_data SET value = '1' WHERE path = 'web/secure/use_in_adminhtml'",
+		"UPDATE " + dbPrefix + "core_config_data SET value = '0' WHERE path = 'web/url/redirect_to_base'",
+		"UPDATE " + dbPrefix + "core_config_data SET value = NULL WHERE path = 'web/cookie/cookie_domain'",
+		"UPDATE " + dbPrefix + "core_config_data SET value = '/' WHERE path = 'web/cookie/cookie_path'",
+	}
+}
+
+func BuildMagento1ScopedBaseURLSQLStatements(scopeCode string, baseURL string, dbPrefix string) []string {
+	statements := BuildMagento1WebsiteBaseURLSQLStatements(scopeCode, baseURL, dbPrefix)
+	statements = append(statements, BuildMagento1StoreBaseURLSQLStatements(scopeCode, baseURL, dbPrefix)...)
+	return statements
+}
+
+func BuildMagento1WebsiteBaseURLSQLStatements(scopeCode string, baseURL string, dbPrefix string) []string {
+	scopeCodeSQL := conventions.ShellQuote(scopeCode)
+	baseURLSQL := conventions.ShellQuote(baseURL)
+	configTable := dbPrefix + "core_config_data"
+	scopeTable := dbPrefix + "core_website"
+	return []string{
+		fmt.Sprintf(
+			"UPDATE %s cfg JOIN %s scope_entity ON scope_entity.website_id = cfg.scope_id SET cfg.value = %s WHERE cfg.scope = 'websites' AND scope_entity.code = %s AND cfg.path = 'web/unsecure/base_url'",
+			configTable, scopeTable, baseURLSQL, scopeCodeSQL,
+		),
+		fmt.Sprintf(
+			"INSERT INTO %s (scope, scope_id, path, value) SELECT 'websites', scope_entity.website_id, 'web/unsecure/base_url', %s FROM %s scope_entity WHERE scope_entity.code = %s AND NOT EXISTS (SELECT 1 FROM %s cfg WHERE cfg.scope = 'websites' AND cfg.scope_id = scope_entity.website_id AND cfg.path = 'web/unsecure/base_url')",
+			configTable, baseURLSQL, scopeTable, scopeCodeSQL, configTable,
+		),
+		fmt.Sprintf(
+			"UPDATE %s cfg JOIN %s scope_entity ON scope_entity.website_id = cfg.scope_id SET cfg.value = %s WHERE cfg.scope = 'websites' AND scope_entity.code = %s AND cfg.path = 'web/secure/base_url'",
+			configTable, scopeTable, baseURLSQL, scopeCodeSQL,
+		),
+		fmt.Sprintf(
+			"INSERT INTO %s (scope, scope_id, path, value) SELECT 'websites', scope_entity.website_id, 'web/secure/base_url', %s FROM %s scope_entity WHERE scope_entity.code = %s AND NOT EXISTS (SELECT 1 FROM %s cfg WHERE cfg.scope = 'websites' AND cfg.scope_id = scope_entity.website_id AND cfg.path = 'web/secure/base_url')",
+			configTable, baseURLSQL, scopeTable, scopeCodeSQL, configTable,
+		),
+	}
+}
+
+func BuildMagento1StoreBaseURLSQLStatements(scopeCode string, baseURL string, dbPrefix string) []string {
+	scopeCodeSQL := conventions.ShellQuote(scopeCode)
+	baseURLSQL := conventions.ShellQuote(baseURL)
+	configTable := dbPrefix + "core_config_data"
+	scopeTable := dbPrefix + "core_store"
+	return []string{
+		fmt.Sprintf(
+			"UPDATE %s cfg JOIN %s scope_entity ON scope_entity.store_id = cfg.scope_id SET cfg.value = %s WHERE cfg.scope = 'stores' AND scope_entity.code = %s AND cfg.path = 'web/unsecure/base_url'",
+			configTable, scopeTable, baseURLSQL, scopeCodeSQL,
+		),
+		fmt.Sprintf(
+			"INSERT INTO %s (scope, scope_id, path, value) SELECT 'stores', scope_entity.store_id, 'web/unsecure/base_url', %s FROM %s scope_entity WHERE scope_entity.code = %s AND NOT EXISTS (SELECT 1 FROM %s cfg WHERE cfg.scope = 'stores' AND cfg.scope_id = scope_entity.store_id AND cfg.path = 'web/unsecure/base_url')",
+			configTable, baseURLSQL, scopeTable, scopeCodeSQL, configTable,
+		),
+		fmt.Sprintf(
+			"UPDATE %s cfg JOIN %s scope_entity ON scope_entity.store_id = cfg.scope_id SET cfg.value = %s WHERE cfg.scope = 'stores' AND scope_entity.code = %s AND cfg.path = 'web/secure/base_url'",
+			configTable, scopeTable, baseURLSQL, scopeCodeSQL,
+		),
+		fmt.Sprintf(
+			"INSERT INTO %s (scope, scope_id, path, value) SELECT 'stores', scope_entity.store_id, 'web/secure/base_url', %s FROM %s scope_entity WHERE scope_entity.code = %s AND NOT EXISTS (SELECT 1 FROM %s cfg WHERE cfg.scope = 'stores' AND cfg.scope_id = scope_entity.store_id AND cfg.path = 'web/secure/base_url')",
+			configTable, conventions.ShellQuote(baseURL), scopeTable, conventions.ShellQuote(scopeCode), configTable,
+		),
+	}
 }

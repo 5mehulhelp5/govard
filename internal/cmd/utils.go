@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"govard/internal/conventions"
 	"govard/internal/engine"
 	"os"
 	"os/exec"
@@ -44,7 +45,7 @@ func loadWritableConfig() (engine.Config, error) {
 	wd, _ := os.Getwd()
 	config, err := engine.LoadBaseConfigFromDir(wd, true)
 	if err != nil {
-		return engine.Config{}, fmt.Errorf("could not load %s: %w", engine.BaseConfigFile, err)
+		return engine.Config{}, fmt.Errorf("could not load %s: %w", conventions.BaseConfigFile, err)
 	}
 	return config, nil
 }
@@ -61,9 +62,9 @@ func saveConfig(config engine.Config) {
 		pterm.Error.Printf("Failed to marshal config: %v\n", err)
 		return
 	}
-	err = os.WriteFile(engine.BaseConfigFile, data, 0644)
+	err = os.WriteFile(conventions.BaseConfigFile, data, conventions.DefaultFilePerm)
 	if err != nil {
-		pterm.Error.Printf("Failed to write %s: %v\n", engine.BaseConfigFile, err)
+		pterm.Error.Printf("Failed to write %s: %v\n", conventions.BaseConfigFile, err)
 	}
 }
 

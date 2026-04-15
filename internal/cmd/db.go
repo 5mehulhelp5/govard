@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"govard/internal/conventions"
 	"govard/internal/engine"
 	"govard/internal/engine/remote"
 
@@ -490,19 +491,12 @@ func buildDBDumpCommand(config engine.Config, options dbCommandOptions) (*exec.C
 		// We need to wrap the command to create the directory and redirect output
 		// Note: we use base64 or complex quoting if needed, but here simple redirection should work if we quote the filename
 		// Using sh -c to allow redirects and mkdir -p on the remote
-		quotedFile := quoteRemotePath(remoteFile)
+		quotedFile := remote.QuoteRemotePath(remoteFile)
 		remoteCmd := fmt.Sprintf("mkdir -p $(dirname %s) && { %s; } | gzip > %s", quotedFile, dumpStr, quotedFile)
 		return remote.BuildSSHExecCommand(options.Environment, remoteCfg, true, remoteCmd), remoteFile, nil
 	}
 
 	return remote.BuildSSHExecCommand(options.Environment, remoteCfg, true, dumpStr), "", nil
-}
-
-func quoteRemotePath(path string) string {
-	if strings.HasPrefix(path, "~/") {
-		return "$HOME/" + engine.ShellQuote(path[2:])
-	}
-	return engine.ShellQuote(path)
 }
 
 func buildDBImportCommand(config engine.Config, options dbCommandOptions) (*exec.Cmd, error) {
@@ -526,7 +520,7 @@ func buildDBImportCommand(config engine.Config, options dbCommandOptions) (*exec
 }
 
 func dbContainerName(config engine.Config) string {
-	return fmt.Sprintf("%s-db-1", config.ProjectName)
+	return fmt.Sprintf("%s%s", config.ProjectName, conventions.DBSuffix)
 }
 
 func ensureLocalDBRunning(containerName string) error {

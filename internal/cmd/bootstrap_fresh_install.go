@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"govard/internal/conventions"
 	"govard/internal/engine"
 	"govard/internal/engine/bootstrap"
 
@@ -48,7 +49,7 @@ func runBootstrapMagentoFreshInstall(cmd *cobra.Command, config engine.Config, o
 }
 
 func runBootstrapSymfonyFreshInstall(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions, cwd string) error {
-	containerName := fmt.Sprintf("%s-db-1", config.ProjectName)
+	containerName := fmt.Sprintf("%s%s", config.ProjectName, conventions.DBSuffix)
 	localDB := resolveLocalDBCredentials(config, containerName)
 
 	symfonyOpts := bootstrap.Options{
@@ -57,7 +58,7 @@ func runBootstrapSymfonyFreshInstall(cmd *cobra.Command, config engine.Config, o
 		Runner: func(command string) error {
 			return runPHPContainerShellCommand(config, command)
 		},
-		DBHost: "db", // Internal container hostname
+		DBHost: conventions.DefaultDBHost, // Internal container hostname
 		DBUser: localDB.Username,
 		DBPass: localDB.Password,
 		DBName: localDB.Database,
@@ -82,7 +83,7 @@ func runBootstrapSymfonyFreshInstall(cmd *cobra.Command, config engine.Config, o
 }
 
 func runBootstrapLaravelFreshInstall(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions, cwd string) error {
-	containerName := fmt.Sprintf("%s-db-1", config.ProjectName)
+	containerName := fmt.Sprintf("%s%s", config.ProjectName, conventions.DBSuffix)
 	localDB := resolveLocalDBCredentials(config, containerName)
 
 	laravelOpts := bootstrap.Options{
@@ -91,7 +92,7 @@ func runBootstrapLaravelFreshInstall(cmd *cobra.Command, config engine.Config, o
 		Runner: func(command string) error {
 			return runPHPContainerShellCommand(config, command)
 		},
-		DBHost: "db", // Internal container hostname
+		DBHost: conventions.DefaultDBHost, // Internal container hostname
 		DBUser: localDB.Username,
 		DBPass: localDB.Password,
 		DBName: localDB.Database,
@@ -143,7 +144,7 @@ func runBootstrapDrupalFreshInstall(cmd *cobra.Command, config engine.Config, op
 }
 
 func runBootstrapWordPressFreshInstall(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions, cwd string) error {
-	containerName := fmt.Sprintf("%s-db-1", config.ProjectName)
+	containerName := fmt.Sprintf("%s%s", config.ProjectName, conventions.DBSuffix)
 	localDB := resolveLocalDBCredentials(config, containerName)
 
 	wpOpts := bootstrap.Options{
@@ -152,7 +153,7 @@ func runBootstrapWordPressFreshInstall(cmd *cobra.Command, config engine.Config,
 		Runner: func(command string) error {
 			return runPHPContainerShellCommand(config, command)
 		},
-		DBHost: "db",
+		DBHost: conventions.DefaultDBHost,
 		DBUser: localDB.Username,
 		DBPass: localDB.Password,
 		DBName: localDB.Database,
@@ -349,7 +350,7 @@ func runBootstrapFreshCreateProject(cmd *cobra.Command, config engine.Config, op
 		"rm -rf /tmp/govard-create-project",
 		"composer create-project -q -n --repository-url=https://repo.magento.com " +
 			engine.ShellQuote(opts.MetaPackage) + " /tmp/govard-create-project" + versionPart,
-		"if command -v rsync >/dev/null 2>&1; then rsync -a /tmp/govard-create-project/ /var/www/html/; else cp -a /tmp/govard-create-project/. /var/www/html/; fi",
+		"if command -v rsync >/dev/null 2>&1; then rsync -a /tmp/govard-create-project/ " + conventions.DefaultWorkDir + "/; else cp -a /tmp/govard-create-project/. " + conventions.DefaultWorkDir + "/; fi",
 		"rm -rf /tmp/govard-create-project",
 	}, " && ")
 

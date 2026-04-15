@@ -312,7 +312,7 @@ var remoteExecCmd = &cobra.Command{
 		}
 
 		if remoteCfg.Path != "" {
-			commandLine = fmt.Sprintf("cd %s && %s", remoteCfg.Path, commandLine)
+			commandLine = fmt.Sprintf("cd %s && %s", remote.QuoteRemotePath(remoteCfg.Path), commandLine)
 		}
 
 		// Pre-flight check: offer to copy SSH key if auth fails

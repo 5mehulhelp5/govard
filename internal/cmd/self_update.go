@@ -9,17 +9,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"govard/internal/conventions"
 	"io"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
 
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
+
+	"govard/internal/engine"
 )
 
 const (
@@ -66,11 +70,16 @@ var selfUpdateCmd = &cobra.Command{
 		}
 
 		client := &http.Client{Timeout: 300 * time.Second}
-		releaseTag := normalizeReleaseTag(selfUpdateVersion)
+		releaseTag := ""
 		repo := selfUpdateRepo()
 
 		var err error
-		if releaseTag == "" {
+		if strings.TrimSpace(selfUpdateVersion) != "" {
+			releaseTag, err = validateReleaseTag(selfUpdateVersion)
+			if err != nil {
+				return err
+			}
+		} else {
 			pterm.Info.Println("Resolving latest release...")
 			releaseTag, err = fetchLatestReleaseTag(client, repo)
 			if err != nil {
@@ -215,6 +224,23 @@ func normalizeReleaseTag(tag string) string {
 	return "v" + trimmed
 }
 
+func isValidReleaseTag(tag string) bool {
+	// Simple regex to ensure tag follows vX.Y.Z format, avoiding path traversal or command injection
+	matched, _ := regexp.MatchString(`^v\d+\.\d+\.\d+$`, tag)
+	return matched
+}
+
+func validateReleaseTag(tag string) (string, error) {
+	normalized := normalizeReleaseTag(tag)
+	if normalized == "" {
+		return "", errors.New("release tag is empty")
+	}
+	if !isValidReleaseTag(normalized) {
+		return "", fmt.Errorf("invalid release tag: %q", tag)
+	}
+	return normalized, nil
+}
+
 func selfUpdateRepo() string {
 	repo := strings.TrimSpace(os.Getenv(selfUpdateRepoEnvVar))
 	if repo == "" {
@@ -238,14 +264,16 @@ func selfUpdateReleaseBaseURL(repo, releaseTag string) string {
 }
 
 func fetchLatestReleaseTag(client *http.Client, repo string) (string, error) {
-	cacheFile := filepath.Join(os.TempDir(), "govard-latest-release.json")
+	cacheFile := filepath.Join(engine.GovardHomeDir(), "cache", "latest-release.json")
 	var cacheData struct {
 		Tag       string    `json:"tag"`
 		FetchedAt time.Time `json:"fetched_at"`
 	}
 	if b, err := os.ReadFile(cacheFile); err == nil {
 		if json.Unmarshal(b, &cacheData) == nil && time.Since(cacheData.FetchedAt) < time.Hour {
-			return cacheData.Tag, nil
+			if isValidReleaseTag(cacheData.Tag) {
+				return cacheData.Tag, nil
+			}
 		}
 	}
 
@@ -262,15 +290,16 @@ func fetchLatestReleaseTag(client *http.Client, repo string) (string, error) {
 		return "", fmt.Errorf("decode latest release payload: %w", err)
 	}
 
-	tag := normalizeReleaseTag(release.TagName)
-	if tag == "" {
-		return "", errors.New("latest release response did not include tag_name")
+	tag, err := validateReleaseTag(release.TagName)
+	if err != nil {
+		return "", fmt.Errorf("invalid release tag received from upstream: %w", err)
 	}
 
 	cacheData.Tag = tag
 	cacheData.FetchedAt = time.Now()
 	if b, err := json.Marshal(cacheData); err == nil {
-		_ = os.WriteFile(cacheFile, b, 0644)
+		_ = os.MkdirAll(filepath.Dir(cacheFile), conventions.DefaultDirPerm)
+		_ = os.WriteFile(cacheFile, b, conventions.DefaultFilePerm)
 	}
 
 	return tag, nil
@@ -293,10 +322,11 @@ func buildReleaseAssetName(binaryName, releaseTag, goos, goarch string) (string,
 		return "", "", fmt.Errorf("unsupported OS: %s", goos)
 	}
 
-	versionNoPrefix := strings.TrimPrefix(normalizeReleaseTag(releaseTag), "v")
-	if versionNoPrefix == "" {
-		return "", "", errors.New("release tag is empty")
+	validReleaseTag, err := validateReleaseTag(releaseTag)
+	if err != nil {
+		return "", "", err
 	}
+	versionNoPrefix := strings.TrimPrefix(validReleaseTag, "v")
 
 	if goos == "windows" {
 		return fmt.Sprintf("%s_%s_%s_%s.zip", binaryName, versionNoPrefix, osLabel, goarch), binaryName + ".exe", nil
@@ -449,7 +479,7 @@ func extractBinaryFromTarGz(archivePath, workDir, binaryName string) (string, er
 			return "", fmt.Errorf("close extracted binary: %w", closeErr)
 		}
 
-		if err := os.Chmod(outPath, 0o755); err != nil {
+		if err := os.Chmod(outPath, conventions.DefaultDirPerm); err != nil {
 			return "", fmt.Errorf("set executable bit: %w", err)
 		}
 		return outPath, nil
@@ -498,7 +528,7 @@ func extractBinaryFromZip(archivePath, workDir, binaryName string) (string, erro
 			return "", fmt.Errorf("close extracted binary: %w", closeOutErr)
 		}
 
-		if err := os.Chmod(outPath, 0o755); err != nil {
+		if err := os.Chmod(outPath, conventions.DefaultDirPerm); err != nil {
 			return "", fmt.Errorf("set executable bit: %w", err)
 		}
 		return outPath, nil
@@ -515,7 +545,7 @@ func replaceBinary(sourcePath, targetPath string) error {
 	defer in.Close()
 
 	targetDir := filepath.Dir(targetPath)
-	if err := os.MkdirAll(targetDir, 0o755); err != nil {
+	if err := os.MkdirAll(targetDir, conventions.DefaultDirPerm); err != nil {
 		return fmt.Errorf("ensure target directory: %w", err)
 	}
 
@@ -535,7 +565,7 @@ func replaceBinary(sourcePath, targetPath string) error {
 		return fmt.Errorf("close temp file: %w", err)
 	}
 
-	if err := os.Chmod(tempPath, 0o755); err != nil {
+	if err := os.Chmod(tempPath, conventions.DefaultDirPerm); err != nil {
 		_ = os.Remove(tempPath)
 		return fmt.Errorf("set executable bit on temp file: %w", err)
 	}
@@ -593,7 +623,7 @@ func extractBinaryFromDebPackage(debPath, workDir, binaryName string) (string, e
 	if err := os.RemoveAll(extractDir); err != nil {
 		return "", fmt.Errorf("reset deb extract directory: %w", err)
 	}
-	if err := os.MkdirAll(extractDir, 0o755); err != nil {
+	if err := os.MkdirAll(extractDir, conventions.DefaultDirPerm); err != nil {
 		return "", fmt.Errorf("create deb extract directory: %w", err)
 	}
 
@@ -891,6 +921,11 @@ func installViaDeb(client *http.Client, checksumsBody, baseURL, releaseTag, work
 // NormalizeReleaseTagForTest exposes normalizeReleaseTag for tests in /tests.
 func NormalizeReleaseTagForTest(tag string) string {
 	return normalizeReleaseTag(tag)
+}
+
+// ValidateReleaseTagForTest exposes validateReleaseTag for tests in /tests.
+func ValidateReleaseTagForTest(tag string) (string, error) {
+	return validateReleaseTag(tag)
 }
 
 // BuildReleaseAssetNameForTest exposes buildReleaseAssetName for tests in /tests.

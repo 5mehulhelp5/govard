@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"govard/internal/conventions"
+
 	"gopkg.in/yaml.v3"
 )
 
@@ -77,7 +79,7 @@ func MigrateFromWarden(root string) (MigrationResult, error) {
 	result := MigrationResult{
 		ProjectName:     env["WARDEN_ENV_NAME"],
 		Framework:       mapWardenTypeToFramework(env["WARDEN_ENV_TYPE"]),
-		PHPVersion:      env["PHP_VERSION"],
+		PHPVersion:      env[conventions.EnvPHPVersion],
 		NodeVersion:     env["NODE_VERSION"],
 		ComposerVersion: env["COMPOSER_VERSION"],
 		DBVersion:       env["MYSQL_DISTRIBUTION_VERSION"],
@@ -117,7 +119,7 @@ func MigrateFromWarden(root string) (MigrationResult, error) {
 		result.SearchVersion = env["OPENSEARCH_VERSION"]
 	} else if env["WARDEN_ELASTICSEARCH"] == "1" {
 		result.SearchService = "elasticsearch"
-		result.SearchVersion = env["ELASTICSEARCH_VERSION"]
+		result.SearchVersion = env[conventions.EnvElasticsearchVersion]
 	}
 
 	// Legacy Warden SSH variables

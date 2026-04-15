@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"fmt"
+	"govard/internal/conventions"
 	"os"
 	"path/filepath"
 	"strings"
@@ -77,7 +78,7 @@ func (s *SymfonyBootstrap) Install(projectDir string) error {
 	if _, err := os.Stat(envLocalPath); os.IsNotExist(err) {
 		dbHost := s.Options.DBHost
 		if dbHost == "" {
-			dbHost = "db"
+			dbHost = conventions.DefaultDBHost
 		}
 		dbUser := s.Options.DBUser
 		if dbUser == "" {
@@ -94,10 +95,10 @@ func (s *SymfonyBootstrap) Install(projectDir string) error {
 
 		content := fmt.Sprintf(`APP_ENV=dev
 APP_SECRET=your-secret-key-here
-DATABASE_URL="mysql://%s:%s@%s:3306/%s?serverVersion=11.4.0-MariaDB&charset=utf8mb4"
+DATABASE_URL="mysql://%s:%s@%s:%d/%s?serverVersion=11.4.0-MariaDB&charset=utf8mb4"
 MAILER_DSN=smtp://mailpit:1025
-`, dbUser, dbPass, dbHost, dbName)
-		if err := os.WriteFile(envLocalPath, []byte(content), 0600); err != nil {
+`, dbUser, dbPass, dbHost, conventions.MySQLPort, dbName)
+		if err := os.WriteFile(envLocalPath, []byte(content), conventions.SecretFilePerm); err != nil {
 			return fmt.Errorf("failed to create .env.local: %w", err)
 		}
 		pterm.Success.Println("Created .env.local")
@@ -130,7 +131,7 @@ func (s *SymfonyBootstrap) Configure(projectDir string) error {
 		if err == nil {
 			dbHost := s.Options.DBHost
 			if dbHost == "" {
-				dbHost = "db"
+				dbHost = conventions.DefaultDBHost
 			}
 			dbUser := s.Options.DBUser
 			if dbUser == "" {
@@ -149,9 +150,9 @@ func (s *SymfonyBootstrap) Configure(projectDir string) error {
 			if !strings.Contains(updated, "@"+dbHost+":") {
 				updated = strings.ReplaceAll(updated,
 					"DATABASE_URL=",
-					fmt.Sprintf("DATABASE_URL=\"mysql://%s:%s@%s:3306/%s?serverVersion=11.4.0-MariaDB&charset=utf8mb4\"",
-						dbUser, dbPass, dbHost, dbName))
-				_ = os.WriteFile(envLocalPath, []byte(updated), 0600)
+					fmt.Sprintf("DATABASE_URL=\"mysql://%s:%s@%s:%d/%s?serverVersion=11.4.0-MariaDB&charset=utf8mb4\"",
+						dbUser, dbPass, dbHost, conventions.MySQLPort, dbName))
+				_ = os.WriteFile(envLocalPath, []byte(updated), conventions.SecretFilePerm)
 			}
 		}
 	}
@@ -176,7 +177,7 @@ func (s *SymfonyBootstrap) PostClone(projectDir string) error {
 			localContent := string(data)
 			localContent = strings.ReplaceAll(localContent, "APP_ENV=prod", "APP_ENV=dev")
 			localContent = strings.ReplaceAll(localContent, "APP_DEBUG=0", "APP_DEBUG=1")
-			_ = os.WriteFile(envLocalPath, []byte(localContent), 0600)
+			_ = os.WriteFile(envLocalPath, []byte(localContent), conventions.SecretFilePerm)
 		}
 	}
 

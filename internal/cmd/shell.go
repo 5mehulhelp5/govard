@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 
+	"govard/internal/conventions"
 	"govard/internal/engine"
 
 	"github.com/spf13/cobra"
@@ -55,7 +56,7 @@ func resolveShellExecution(config engine.Config) (string, string, string) {
 	workdir := engine.ResolveFrameworkAppWorkdir(config.Framework)
 	user := ""
 	if !engine.FrameworkUsesNodeRuntime(config.Framework) {
-		user = ResolveProjectExecUser(config, "www-data")
+		user = ResolveProjectExecUser(config, conventions.UserWWWData)
 	}
-	return fmt.Sprintf("%s-%s-1", config.ProjectName, serviceName), workdir, user
+	return fmt.Sprintf("%s-%s%s", config.ProjectName, serviceName, conventions.ReplicaSuffix), workdir, user
 }

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"govard/internal/conventions"
 	"govard/internal/engine"
 	engineremote "govard/internal/engine/remote"
 
@@ -49,9 +50,9 @@ func runOpenDBTarget(config engine.Config, requestedEnvironment string, pmaFlag 
 				return err
 			}
 			credentials := resolveLocalDBCredentials(config, containerName)
-			// Assuming Ward doesn't bind 3306 locally by default, we build a connect string to point to 127.0.0.1:3306
+			// Assuming Ward doesn't bind MySQL locally by default, we build a connect string to point to 127.0.0.1:3306
 			// A local developer might have overriden their proxy map or bound it to the host.
-			connectionURL := buildOpenDBConnectionURL(credentials, 3306)
+			connectionURL := buildOpenDBConnectionURL(credentials, conventions.MySQLPort)
 			pterm.Info.Printf("Opening DB URL %s\n", connectionURL)
 			return openURL(connectionURL)
 		}
@@ -73,7 +74,7 @@ func runOpenDBTarget(config engine.Config, requestedEnvironment string, pmaFlag 
 	}
 	remotePort := credentials.Port
 	if remotePort <= 0 {
-		remotePort = 3306
+		remotePort = conventions.MySQLPort
 	}
 
 	localPort, err := findAvailableLocalPort(remotePort)
@@ -168,7 +169,7 @@ func buildOpenDBPMAURL(project string, database string) string {
 
 func findAvailableLocalPort(startPort int) (int, error) {
 	if startPort <= 0 {
-		startPort = 3306
+		startPort = conventions.MySQLPort
 	}
 
 	for port := startPort; port <= 65535; port++ {

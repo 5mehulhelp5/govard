@@ -3,6 +3,7 @@ package tests
 import (
 	"testing"
 
+	"govard/internal/conventions"
 	"govard/internal/desktop"
 	"govard/internal/engine"
 )
@@ -47,6 +48,37 @@ func TestDesktopPkgBuildDerivedServicesForTestUsesServiceState(t *testing.T) {
 			t.Fatalf("service %q expected running status, got %q", service.Name, service.Status)
 		}
 	}
+}
+
+func TestDesktopPkgBuildDerivedServicesForTestUsesPostgreSQLPort(t *testing.T) {
+	config := engine.Config{
+		Stack: engine.Stack{
+			DBType: "postgres",
+			Services: engine.Services{
+				WebServer: "nginx",
+			},
+		},
+	}
+
+	services := desktop.BuildDerivedServicesForTest(config, map[string]string{
+		"web": "running",
+		"db":  "running",
+	})
+
+	for _, service := range services {
+		if service.Target != "db" {
+			continue
+		}
+		if service.Name != "PostgreSQL" {
+			t.Fatalf("expected PostgreSQL label, got %q", service.Name)
+		}
+		if service.Port != "5432" {
+			t.Fatalf("expected PostgreSQL port %d, got %q", conventions.PostgresPort, service.Port)
+		}
+		return
+	}
+
+	t.Fatalf("expected derived db service, got %#v", services)
 }
 
 func TestDesktopPkgBuildFallbackServicesForTestPreservesObservedState(t *testing.T) {

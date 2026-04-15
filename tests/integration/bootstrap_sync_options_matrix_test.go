@@ -39,7 +39,7 @@ func TestBootstrapOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 		result.AssertSuccess(t)
 
 		logs := shim.ReadLog(t)
-		assertMatrixContains(t, logs, "deploy@dev.example.com:/var/www/html/")
+		assertMatrixContains(t, logs, "deploy@dev.example.com:'/var/www/html/'")
 		if got := strings.Count(logs, "rsync|"); got != 1 {
 			t.Fatalf("expected one rsync invocation for --code-only, got %d logs:\n%s", got, logs)
 		}
@@ -71,7 +71,7 @@ func TestBootstrapOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 		result.AssertSuccess(t)
 
 		logs := shim.ReadLog(t)
-		assertMatrixContains(t, logs, "deploy@staging.example.com:/srv/www/staging/")
+		assertMatrixContains(t, logs, "deploy@staging.example.com:'/srv/www/staging/'")
 		assertMatrixContains(t, logs, "docker|exec -i -e MYSQL_PWD=magento m2-clone-basic-db-1 sh -lc if command -v mysql >/dev/null 2>&1; then DB_CLI=mysql; elif command -v mariadb >/dev/null 2>&1; then DB_CLI=mariadb;")
 		assertMatrixNotContains(t, logs, "DROP DATABASE IF EXISTS")
 	})
@@ -301,7 +301,7 @@ func TestSyncOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 		logs := shim.ReadLog(t)
 		assertMatrixContains(t, logs, "rsync|")
 		assertMatrixContains(t, logs, "--delete")
-		assertMatrixContains(t, logs, "deploy@staging.example.com:/srv/www/staging/app/code")
+		assertMatrixContains(t, logs, "deploy@staging.example.com:'/srv/www/staging/app/code'")
 		assertMatrixContains(t, logs, filepath.Join(projectDir, "app", "code"))
 	})
 
@@ -329,7 +329,7 @@ func TestSyncOptionsMatrixWithSimulatedEnvironments(t *testing.T) {
 		result.AssertSuccess(t)
 
 		logs := shim.ReadLog(t)
-		assertMatrixContains(t, logs, "deploy@staging.example.com:/srv/www/staging/pub/media/")
+		assertMatrixContains(t, logs, "deploy@staging.example.com:'/srv/www/staging/pub/media/'")
 		assertMatrixContains(t, logs, "--include catalog/*")
 		assertMatrixContains(t, logs, "--exclude catalog/cache")
 		assertMatrixNotContains(t, logs, "--append-verify")

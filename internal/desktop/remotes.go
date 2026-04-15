@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"govard/internal/conventions"
 	"io"
 	"net"
 	"net/url"
@@ -21,7 +22,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const remoteMagentoAdminProbeScript = `$c=@include "app/etc/env.php"; if(!is_array($c)){fwrite(STDERR,"env.php not found"); exit(2);} echo (string)($c["backend"]["frontName"] ?? "admin");`
+const remoteMagentoAdminProbeScript = `$c=@include "app/etc/env.php"; if(!is_array($c)){fwrite(STDERR,"env.php not found"); exit(2);} echo (string)($c["backend"]["frontName"] ?? "` + conventions.DefaultAdminPath + `");`
 const remoteLastSyncReadLimit = 5000
 
 type SyncInput struct {
@@ -366,8 +367,8 @@ func resolveRemoteAdminURL(project string, remoteName string) (string, string, e
 		return "", "", err
 	}
 
-	adminPath := "admin"
-	if strings.EqualFold(strings.TrimSpace(cfg.Framework), "magento2") {
+	adminPath := conventions.DefaultAdminPath
+	if strings.EqualFold(strings.TrimSpace(cfg.Framework), conventions.FrameworkMagento2) {
 		detectedPath, probeErr := detectRemoteMagentoAdminPathForDesktop(resolvedRemoteName, remoteCfg)
 		if probeErr == nil {
 			adminPath = detectedPath
@@ -444,18 +445,18 @@ func detectRemoteMagentoAdminPathForDesktop(
 ) (string, error) {
 	remoteCommand := "php -r " + engine.ShellQuote(remoteMagentoAdminProbeScript)
 	if path := strings.TrimSpace(remoteCfg.Path); path != "" {
-		remoteCommand = "cd " + engine.ShellQuote(path) + " && " + remoteCommand
+		remoteCommand = "cd " + engineremote.QuoteRemotePath(path) + " && " + remoteCommand
 	}
 
 	probeCmd := engineremote.BuildSSHExecCommand(remoteName, remoteCfg, true, remoteCommand)
 	output, err := probeCmd.CombinedOutput()
 	if err != nil {
-		return "admin", fmt.Errorf("probe failed: %w", err)
+		return conventions.DefaultAdminPath, fmt.Errorf("probe failed: %w", err)
 	}
 
 	value := strings.Trim(strings.TrimSpace(string(output)), "/")
 	if value == "" {
-		value = "admin"
+		value = conventions.DefaultAdminPath
 	}
 	return value, nil
 }
@@ -476,7 +477,7 @@ func buildRemoteAdminURLForDesktop(remoteCfg engine.RemoteConfig, adminPath stri
 	base = strings.TrimRight(base, "/")
 	trimmedPath := strings.Trim(strings.TrimSpace(adminPath), "/")
 	if trimmedPath == "" {
-		trimmedPath = "admin"
+		trimmedPath = conventions.DefaultAdminPath
 	}
 
 	return base + "/" + trimmedPath
@@ -637,7 +638,7 @@ func buildRemoteShellCommandForDesktop(projectPath string) string {
 	if trimmedPath == "" {
 		return "(bash -l || sh)"
 	}
-	return "cd " + engine.ShellQuote(trimmedPath) + " && (bash -l || sh)"
+	return "cd " + engineremote.QuoteRemotePath(trimmedPath) + " && (bash -l || sh)"
 }
 
 func resolveSSHAgentSocketForDesktop(remoteCfg engine.RemoteConfig) (string, error) {
@@ -993,7 +994,7 @@ func findExactProjectMatch(query string) (engine.ProjectRegistryEntry, error) {
 }
 
 func pathHasBaseConfig(root string) bool {
-	configPath := filepath.Join(filepath.Clean(strings.TrimSpace(root)), engine.BaseConfigFile)
+	configPath := filepath.Join(filepath.Clean(strings.TrimSpace(root)), conventions.BaseConfigFile)
 	info, err := os.Stat(configPath)
 	if err != nil {
 		return false
@@ -1374,8 +1375,8 @@ func writeBaseConfig(root string, config engine.Config) error {
 	if err != nil {
 		return fmt.Errorf("marshal config: %w", err)
 	}
-	if err := os.WriteFile(filepath.Join(root, engine.BaseConfigFile), data, 0644); err != nil {
-		return fmt.Errorf("write %s: %w", engine.BaseConfigFile, err)
+	if err := os.WriteFile(filepath.Join(root, conventions.BaseConfigFile), data, conventions.SecretFilePerm); err != nil {
+		return fmt.Errorf("write %s: %w", conventions.BaseConfigFile, err)
 	}
 	return nil
 }

@@ -145,8 +145,8 @@ func TestMagentoThreeEnvironmentInitBootstrapAndSyncOptions(t *testing.T) {
 	stagingBootstrap.AssertSuccess(t)
 
 	bootstrapLogs := shim.ReadLog(t)
-	assertContains(t, bootstrapLogs, "deploy@dev.example.com:/var/www/html/")
-	assertContains(t, bootstrapLogs, "deploy@staging.example.com:/srv/www/staging/")
+	assertContains(t, bootstrapLogs, "deploy@dev.example.com:'/var/www/html/'")
+	assertContains(t, bootstrapLogs, "deploy@staging.example.com:'/srv/www/staging/'")
 	assertContains(t, bootstrapLogs, "docker|exec -i -e MYSQL_PWD=magento")
 
 	syncPlan := env.RunGovardWithEnv(
@@ -193,5 +193,5 @@ func TestMagentoThreeEnvironmentInitBootstrapAndSyncOptions(t *testing.T) {
 	assertContains(t, syncLogs, "--include app/*")
 	assertContains(t, syncLogs, "--exclude vendor/")
 	assertContains(t, syncLogs, "--delete")
-	assertContains(t, syncLogs, "deploy@dev.example.com:/var/www/html/app/code")
+	assertContains(t, syncLogs, "deploy@dev.example.com:'/var/www/html/app/code'")
 }

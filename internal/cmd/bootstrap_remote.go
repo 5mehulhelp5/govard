@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"govard/internal/conventions"
 	"govard/internal/engine"
 	"govard/internal/engine/bootstrap"
 	"govard/internal/engine/remote"
@@ -41,7 +42,7 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts Bootstrap
 					return fmt.Errorf("remote '%s' is not configured", opts.Source)
 				}
 			} else {
-				return fmt.Errorf("remote '%s' is not configured. Add it to remotes in %s", opts.Source, engine.BaseConfigFile)
+				return fmt.Errorf("remote '%s' is not configured. Add it to remotes in %s", opts.Source, conventions.BaseConfigFile)
 			}
 		}
 
@@ -148,7 +149,7 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts Bootstrap
 
 	if shouldRunFrameworkPostClone(config, opts) {
 		cwd, _ := os.Getwd()
-		containerName := fmt.Sprintf("%s-db-1", config.ProjectName)
+		containerName := fmt.Sprintf("%s%s", config.ProjectName, conventions.DBSuffix)
 		localDB := resolveLocalDBCredentials(config, containerName)
 
 		bootstrapOpts := bootstrap.Options{
@@ -157,7 +158,7 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts Bootstrap
 			Runner: func(command string) error {
 				return runPHPContainerShellCommand(config, command)
 			},
-			DBHost:      "db",
+			DBHost:      conventions.DefaultDBHost,
 			DBUser:      localDB.Username,
 			DBPass:      localDB.Password,
 			DBName:      localDB.Database,

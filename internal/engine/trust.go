@@ -8,6 +8,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"govard/internal/conventions"
 	"net"
 	"os"
 	"os/exec"
@@ -139,7 +140,7 @@ func exportRootCA() (rootCAExport, error) {
 	}
 
 	sslDir := filepath.Join(homeDir, ".govard", "ssl")
-	if err := os.MkdirAll(sslDir, 0o755); err != nil {
+	if err := os.MkdirAll(sslDir, conventions.DefaultDirPerm); err != nil {
 		return rootCAExport{}, fmt.Errorf("failed to create ssl directory %s: %w", sslDir, err)
 	}
 	localCertPath := filepath.Join(sslDir, "root.crt")
@@ -159,7 +160,7 @@ func exportRootCA() (rootCAExport, error) {
 		}
 	}
 
-	if err := os.Chmod(tempCertPath, 0o644); err != nil {
+	if err := os.Chmod(tempCertPath, conventions.DefaultFilePerm); err != nil {
 		return rootCAExport{}, fmt.Errorf("failed to set permissions on %s: %w", tempCertPath, err)
 	}
 	if hasOwnership {
@@ -409,7 +410,7 @@ func ensureNSSDatabase(path string) error {
 	if looksLikeNSSDatabase(path) {
 		return nil
 	}
-	if err := os.MkdirAll(path, 0o700); err != nil {
+	if err := os.MkdirAll(path, conventions.SecretDirPerm); err != nil {
 		return fmt.Errorf("create NSS db directory: %w", err)
 	}
 

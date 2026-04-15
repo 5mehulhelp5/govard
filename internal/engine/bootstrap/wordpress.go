@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"govard/internal/conventions"
 	"io"
 	"net/http"
 	"os"
@@ -149,7 +150,7 @@ func (w *WordPressBootstrap) createWordPressConfig(projectDir string) error {
 	}
 
 	content = injectWordPressProxySupport(content)
-	if err := os.WriteFile(filepath.Join(appDir, "wp-config.php"), []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(appDir, "wp-config.php"), []byte(content), conventions.DefaultFilePerm); err != nil {
 		return fmt.Errorf("write wp-config.php: %w", err)
 	}
 
@@ -193,7 +194,7 @@ func (w *WordPressBootstrap) installWordPressSite(projectDir, siteURL string) er
 		"require " + strconv.Quote(loadPath) + ";",
 		"require " + strconv.Quote(upgradePath) + ";",
 		"if (!is_blog_installed()) {",
-		"    wp_install(" + strconv.Quote("WordPress Site") + ", " + strconv.Quote("admin") + ", " + strconv.Quote("admin@local.test") + ", true, '', " + strconv.Quote("admin") + ");",
+		"    wp_install(" + strconv.Quote("WordPress Site") + ", " + strconv.Quote(conventions.DefaultAdminUser) + ", " + strconv.Quote(conventions.DefaultAdminEmail) + ", true, '', " + strconv.Quote(conventions.DefaultAdminPassword) + ");",
 		"}",
 	}, "\n")
 
@@ -237,7 +238,7 @@ func (w *WordPressBootstrap) updateWordPressSiteURL(projectDir, siteURL string) 
 func (w *WordPressBootstrap) resolveDBConfig() (host, user, pass, name string) {
 	host = strings.TrimSpace(w.Options.DBHost)
 	if host == "" {
-		host = "db"
+		host = conventions.DefaultDBHost
 	}
 	user = strings.TrimSpace(w.Options.DBUser)
 	if user == "" {
@@ -260,7 +261,7 @@ func (w *WordPressBootstrap) waitForWordPressDatabase(projectDir string) error {
 		"mysqli_report(MYSQLI_REPORT_OFF);",
 		"$db = mysqli_init();",
 		"if (!$db) { exit(1); }",
-		"if (!@mysqli_real_connect($db, " + strconv.Quote(dbHost) + ", " + strconv.Quote(dbUser) + ", " + strconv.Quote(dbPass) + ", " + strconv.Quote(dbName) + ", 3306)) {",
+		"if (!@mysqli_real_connect($db, " + strconv.Quote(dbHost) + ", " + strconv.Quote(dbUser) + ", " + strconv.Quote(dbPass) + ", " + strconv.Quote(dbName) + ", " + strconv.Itoa(conventions.MySQLPort) + ")) {",
 		"    exit(1);",
 		"}",
 	}, "\n")
@@ -323,11 +324,11 @@ func downloadAndExtractWordPressCore(projectDir string) error {
 		targetPath := filepath.Join(projectDir, filepath.FromSlash(relativePath))
 		switch header.Typeflag {
 		case tar.TypeDir:
-			if err := os.MkdirAll(targetPath, 0o755); err != nil {
+			if err := os.MkdirAll(targetPath, conventions.DefaultDirPerm); err != nil {
 				return fmt.Errorf("create WordPress directory %s: %w", targetPath, err)
 			}
 		case tar.TypeReg:
-			if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
+			if err := os.MkdirAll(filepath.Dir(targetPath), conventions.DefaultDirPerm); err != nil {
 				return fmt.Errorf("create WordPress parent directory %s: %w", filepath.Dir(targetPath), err)
 			}
 			file, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(header.Mode))
@@ -373,10 +374,10 @@ func wordpressRunnerAppDir(projectDir string) string {
 	appDir := wordpressAppDir(projectDir)
 	relativeDir, err := filepath.Rel(projectDir, appDir)
 	if err != nil || relativeDir == "." {
-		return "/var/www/html"
+		return conventions.DefaultWorkDir
 	}
 
-	return path.Join("/var/www/html", filepath.ToSlash(relativeDir))
+	return path.Join(conventions.DefaultWorkDir, filepath.ToSlash(relativeDir))
 }
 
 func SetWordPressCoreDownloaderForTest(fn func(projectDir string) error) func() {

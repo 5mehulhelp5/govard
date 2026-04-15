@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"govard/internal/blueprints"
+	"govard/internal/conventions"
 	"io/fs"
 	"os"
 	"path"
@@ -50,6 +51,8 @@ type RenderData struct {
 	ComposerVersion       string
 	RuntimeDomainHosts    []string
 	HostGovardRootCAPath  string
+	WorkDir               string
+	HomeWWWData           string
 }
 
 func findBlueprintsDir(startDir string) (string, error) {
@@ -349,7 +352,7 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 	// Determine image repository
 	imageRepo := strings.TrimSpace(os.Getenv("GOVARD_IMAGE_REPOSITORY"))
 	if imageRepo == "" {
-		imageRepo = "ddtcorex/govard-"
+		imageRepo = conventions.DefaultImageRepoPrefix
 	}
 
 	// Prepare render data
@@ -365,6 +368,8 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 		ComposerVersion:      config.Stack.ComposerVersion,
 		RuntimeDomainHosts:   runtimeDomainHosts,
 		HostGovardRootCAPath: govardRootCAPath,
+		WorkDir:              conventions.DefaultWorkDir,
+		HomeWWWData:          conventions.HomeWWWData,
 	}
 	if config.Stack.WebRoot != "" {
 		renderData.NGINXPublic = config.Stack.WebRoot
@@ -424,10 +429,10 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 		if err != nil {
 			return fmt.Errorf("failed to render varnish vcl: %w", err)
 		}
-		if err := os.MkdirAll(vclDestDir, 0755); err != nil {
+		if err := os.MkdirAll(vclDestDir, conventions.DefaultDirPerm); err != nil {
 			return fmt.Errorf("failed to create varnish dir: %w", err)
 		}
-		if err := os.WriteFile(vclDest, []byte(rendered), 0644); err != nil {
+		if err := os.WriteFile(vclDest, []byte(rendered), conventions.DefaultFilePerm); err != nil {
 			return fmt.Errorf("failed to write varnish vcl: %w", err)
 		}
 	}
@@ -471,7 +476,7 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 	if err := EnsureComposePathReady(outputPath); err != nil {
 		return fmt.Errorf("failed to prepare compose output path: %w", err)
 	}
-	f, err := os.Create(outputPath)
+	f, err := os.OpenFile(outputPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, conventions.DefaultFilePerm)
 	if err != nil {
 		return fmt.Errorf("create compose output %s: %w", outputPath, err)
 	}
@@ -494,7 +499,7 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 		return fmt.Errorf("write compose output %s: %w", outputPath, err)
 	}
 
-	_ = os.WriteFile(hashPath, []byte(currentHash), 0644)
+	_ = os.WriteFile(hashPath, []byte(currentHash), conventions.DefaultFilePerm)
 
 	return nil
 }
@@ -596,7 +601,7 @@ func prepareSafeSSHConfig(hostSSHDir string) string {
 	// If permissions are too broad (group/world writable), create a safe copy
 	if info.Mode().Perm()&0o022 != 0 {
 		safeDir := filepath.Join(GovardHomeDir(), "ssh")
-		if err := os.MkdirAll(safeDir, 0700); err != nil {
+		if err := os.MkdirAll(safeDir, conventions.SecretDirPerm); err != nil {
 			return ""
 		}
 
@@ -607,7 +612,7 @@ func prepareSafeSSHConfig(hostSSHDir string) string {
 		}
 
 		// Write with 600 permissions
-		if err := os.WriteFile(safePath, data, 0600); err != nil {
+		if err := os.WriteFile(safePath, data, conventions.SecretFilePerm); err != nil {
 			return ""
 		}
 
@@ -650,7 +655,7 @@ func renderLegacyBlueprint(root string, blueprintsFS fs.FS, config Config) error
 		return fmt.Errorf("marshal legacy rendered compose: %w", err)
 	}
 
-	if err := os.WriteFile(outputPath, out, 0644); err != nil {
+	if err := os.WriteFile(outputPath, out, conventions.DefaultFilePerm); err != nil {
 		return fmt.Errorf("write legacy legacy compose output %s: %w", outputPath, err)
 	}
 

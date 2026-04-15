@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"govard/internal/conventions"
 	"govard/internal/engine"
 )
 
@@ -52,18 +53,18 @@ func DetectMagento2Version(remoteName string, remoteCfg engine.RemoteConfig) (st
 func ParseMagentoDBHostPort(raw string) (string, int) {
 	hostRaw := strings.TrimSpace(raw)
 	if hostRaw == "" {
-		return "db", 3306
+		return conventions.DefaultDBHost, conventions.MySQLPort
 	}
 
 	hostRaw = strings.TrimPrefix(hostRaw, "tcp://")
 	if hostRaw == "" {
-		return "db", 3306
+		return conventions.DefaultDBHost, conventions.MySQLPort
 	}
 
 	if host, port, err := net.SplitHostPort(hostRaw); err == nil {
 		if parsed, parseErr := strconv.Atoi(port); parseErr == nil && parsed > 0 {
 			if strings.TrimSpace(host) == "" {
-				host = "db"
+				host = conventions.DefaultDBHost
 			}
 			return host, parsed
 		}
@@ -75,13 +76,13 @@ func ParseMagentoDBHostPort(raw string) (string, int) {
 		if parsed, err := strconv.Atoi(portText); err == nil && parsed > 0 {
 			host := strings.TrimSpace(parts[0])
 			if host == "" {
-				host = "db"
+				host = conventions.DefaultDBHost
 			}
 			return host, parsed
 		}
 	}
 
-	return hostRaw, 3306
+	return hostRaw, conventions.MySQLPort
 }
 
 func NormalizeMagentoVersion(raw string) string {

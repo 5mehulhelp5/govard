@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"govard/internal/conventions"
 	"govard/internal/engine"
 
 	"github.com/spf13/cobra"
@@ -33,7 +34,7 @@ var toolCmd = &cobra.Command{
 	Long: `Run framework CLIs and common package manager commands directly inside the project containers.
 This eliminates the need to install PHP, Composer, or Node.js on your host machine.
 Govard automatically routes commands to the correct container (usually PHP) and
-executes them as the appropriate user (e.g., www-data).
+executes them as the appropriate user (e.g., conventions.UserWWWData).
 
 Case Studies:
 - Clean Workspace: Run 'govard tool magento setup:upgrade' without needing PHP/MySQL on your laptop.
@@ -210,7 +211,7 @@ func initFrameworkCommands() {
 }
 
 func RunInContainer(containerName string, user string, binary string, args []string) error {
-	return RunInContainerAt(containerName, user, "/var/www/html", binary, args)
+	return RunInContainerAt(containerName, user, conventions.DefaultWorkDir, binary, args)
 }
 
 func RunInContainerAt(containerName string, user string, workdir string, binary string, args []string) error {
@@ -224,7 +225,7 @@ func RunInContainerAt(containerName string, user string, workdir string, binary 
 		dockerArgs = append(dockerArgs, "-u", user)
 	}
 	if strings.TrimSpace(workdir) == "" {
-		workdir = "/var/www/html"
+		workdir = conventions.DefaultWorkDir
 	}
 	dockerArgs = append(dockerArgs, "-w", workdir, containerName, binary)
 	dockerArgs = append(dockerArgs, args...)
@@ -245,7 +246,7 @@ func resolveToolExecution(config engine.Config, binary string, defaultUser strin
 
 	if engine.FrameworkUsesNodeRuntime(config.Framework) {
 		return commandExecutionTarget{
-			ContainerName: fmt.Sprintf("%s-%s-1", config.ProjectName, serviceName),
+			ContainerName: fmt.Sprintf("%s-%s%s", config.ProjectName, serviceName, conventions.ReplicaSuffix),
 			Workdir:       workdir,
 			User:          user,
 		}
@@ -254,13 +255,13 @@ func resolveToolExecution(config engine.Config, binary string, defaultUser strin
 	if config.Framework == "magento2" && (binary == "php" || binary == "composer" ||
 		binary == "npm" || binary == "yarn" || binary == "npx" ||
 		binary == "pnpm" || binary == "grunt") {
-		user = config.ResolveProjectExecUser("www-data")
+		user = config.ResolveProjectExecUser(conventions.UserWWWData)
 	} else if user == "" {
-		user = config.ResolveProjectExecUser("www-data")
+		user = config.ResolveProjectExecUser(conventions.UserWWWData)
 	}
 
 	return commandExecutionTarget{
-		ContainerName: fmt.Sprintf("%s-%s-1", config.ProjectName, serviceName),
+		ContainerName: fmt.Sprintf("%s-%s%s", config.ProjectName, serviceName, conventions.ReplicaSuffix),
 		Workdir:       workdir,
 		User:          user,
 	}

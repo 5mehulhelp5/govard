@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"govard/internal/conventions"
 	"govard/internal/engine"
 	"os"
 	"os/exec"
@@ -371,10 +372,10 @@ Case Studies:
 
 		data, err := yaml.Marshal(&writableConfig)
 		if err != nil {
-			return fmt.Errorf("marshal %s: %w", engine.BaseConfigFile, err)
+			return fmt.Errorf("marshal %s: %w", conventions.BaseConfigFile, err)
 		}
-		if err := os.WriteFile(engine.BaseConfigFile, data, 0644); err != nil {
-			return fmt.Errorf("write %s: %w", engine.BaseConfigFile, err)
+		if err := os.WriteFile(conventions.BaseConfigFile, data, conventions.DefaultFilePerm); err != nil {
+			return fmt.Errorf("write %s: %w", conventions.BaseConfigFile, err)
 		}
 		pterm.Success.Println("✅ Generated .govard.yml")
 
@@ -436,14 +437,14 @@ Case Studies:
 }
 
 func loadExistingInitConfig(cwd string) (engine.Config, bool) {
-	configPath := filepath.Join(cwd, engine.BaseConfigFile)
+	configPath := filepath.Join(cwd, conventions.BaseConfigFile)
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return engine.Config{}, false
 	}
 	var existing engine.Config
 	if err := yaml.Unmarshal(data, &existing); err != nil {
-		pterm.Warning.Printf("Could not load existing %s for merge: %v\n", engine.BaseConfigFile, err)
+		pterm.Warning.Printf("Could not load existing %s for merge: %v\n", conventions.BaseConfigFile, err)
 		return engine.Config{}, false
 	}
 	return existing, true

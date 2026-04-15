@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"fmt"
+	"govard/internal/conventions"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -81,14 +82,14 @@ func (l *LaravelBootstrap) Install(projectDir string) error {
 		examplePath := filepath.Join(projectDir, ".env.example")
 		if _, err := os.Stat(examplePath); err == nil {
 			data, _ := os.ReadFile(examplePath)
-			_ = os.WriteFile(envPath, data, 0600)
+			_ = os.WriteFile(envPath, data, conventions.SecretFilePerm)
 		}
 	}
 
 	if data, err := os.ReadFile(envPath); err == nil {
 		dbHost := l.Options.DBHost
 		if dbHost == "" {
-			dbHost = "db"
+			dbHost = conventions.DefaultDBHost
 		}
 		dbUser := l.Options.DBUser
 		if dbUser == "" {
@@ -110,7 +111,7 @@ func (l *LaravelBootstrap) Install(projectDir string) error {
 		content = strings.ReplaceAll(content, "DB_DATABASE=laravel", "DB_DATABASE="+dbName)
 		content = strings.ReplaceAll(content, "DB_USERNAME=root", "DB_USERNAME="+dbUser)
 		content = strings.ReplaceAll(content, "DB_PASSWORD=", "DB_PASSWORD="+dbPass)
-		_ = os.WriteFile(envPath, []byte(content), 0600)
+		_ = os.WriteFile(envPath, []byte(content), conventions.SecretFilePerm)
 	}
 
 	if err := l.runArtisanCommand(projectDir, "key:generate"); err != nil {
@@ -139,13 +140,13 @@ func (l *LaravelBootstrap) Configure(projectDir string) error {
 		if err == nil {
 			dbHost := l.Options.DBHost
 			if dbHost == "" {
-				dbHost = "db"
+				dbHost = conventions.DefaultDBHost
 			}
 			updated := string(content)
 			if !strings.Contains(updated, "DB_HOST="+dbHost) {
 				updated = strings.ReplaceAll(updated, "DB_HOST=127.0.0.1", "DB_HOST="+dbHost)
 				updated = strings.ReplaceAll(updated, "DB_HOST=localhost", "DB_HOST="+dbHost)
-				_ = os.WriteFile(envPath, []byte(updated), 0600)
+				_ = os.WriteFile(envPath, []byte(updated), conventions.SecretFilePerm)
 			}
 		}
 	}
@@ -172,7 +173,7 @@ func (l *LaravelBootstrap) PostClone(projectDir string) error {
 			content := string(data)
 			content = strings.ReplaceAll(content, "APP_ENV=production", "APP_ENV=local")
 			content = strings.ReplaceAll(content, "APP_DEBUG=false", "APP_DEBUG=true")
-			_ = os.WriteFile(envPath, []byte(content), 0600)
+			_ = os.WriteFile(envPath, []byte(content), conventions.SecretFilePerm)
 		}
 	}
 
@@ -180,12 +181,12 @@ func (l *LaravelBootstrap) PostClone(projectDir string) error {
 		if data, err := os.ReadFile(envPath); err == nil {
 			dbHost := l.Options.DBHost
 			if dbHost == "" {
-				dbHost = "db"
+				dbHost = conventions.DefaultDBHost
 			}
 			content := string(data)
 			content = strings.ReplaceAll(content, "DB_HOST=127.0.0.1", "DB_HOST="+dbHost)
 			content = strings.ReplaceAll(content, "DB_HOST=localhost", "DB_HOST="+dbHost)
-			_ = os.WriteFile(envPath, []byte(content), 0600)
+			_ = os.WriteFile(envPath, []byte(content), conventions.SecretFilePerm)
 		}
 	}
 

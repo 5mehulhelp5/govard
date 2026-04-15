@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"govard/internal/conventions"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,7 +36,7 @@ func ensureBootstrapMagentoEnvPHP(config engine.Config, opts BootstrapRuntimeOpt
 		return nil
 	}
 
-	if err := os.MkdirAll(filepath.Dir(envPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(envPath), conventions.DefaultDirPerm); err != nil {
 		return fmt.Errorf("failed to create app/etc: %w", err)
 	}
 
@@ -55,13 +56,26 @@ func ensureBootstrapMagentoEnvPHP(config engine.Config, opts BootstrapRuntimeOpt
 		}
 	}
 
-	containerName := fmt.Sprintf("%s-db-1", config.ProjectName)
+	containerName := fmt.Sprintf("%s%s", config.ProjectName, conventions.DBSuffix)
 	localDB := resolveLocalDBCredentials(config, containerName)
 
-	template := fmt.Sprintf(`<?php
+	template := buildBootstrapMagentoEnvPHP(cryptKey, localDB)
+
+	if err := os.WriteFile(envPath, []byte(template), conventions.DefaultFilePerm); err != nil {
+		return fmt.Errorf("failed to write app/etc/env.php: %w", err)
+	}
+
+	pterm.Info.Println("Generated local app/etc/env.php for bootstrap.")
+	return nil
+}
+
+func buildBootstrapMagentoEnvPHP(cryptKey string, localDB dbCredentials) string {
+	localDB = localDB.withDefaults()
+
+	return fmt.Sprintf(`<?php
 return [
     'backend' => [
-        'frontName' => 'admin'
+        'frontName' => %q
     ],
     'crypt' => [
         'key' => %q
@@ -70,14 +84,14 @@ return [
         'table_prefix' => '',
         'connection' => [
             'default' => [
-                'host' => 'db',
+                'host' => %q,
                 'dbname' => %q,
                 'username' => %q,
                 'password' => %q,
                 'active' => '1'
             ],
             'indexer' => [
-                'host' => 'db',
+                'host' => %q,
                 'dbname' => %q,
                 'username' => %q,
                 'password' => %q,
@@ -99,17 +113,13 @@ return [
         'date' => 'Mon, 01 May 2023 00:00:00 +0000'
     ]
 ];
-`, cryptKey,
+`, conventions.DefaultAdminPath,
+		cryptKey,
+		conventions.DefaultMagentoDBHost,
 		localDB.Database, localDB.Username, localDB.Password,
+		conventions.DefaultMagentoDBHost,
 		localDB.Database, localDB.Username, localDB.Password,
 	)
-
-	if err := os.WriteFile(envPath, []byte(template), 0644); err != nil {
-		return fmt.Errorf("failed to write app/etc/env.php: %w", err)
-	}
-
-	pterm.Info.Println("Generated local app/etc/env.php for bootstrap.")
-	return nil
 }
 
 func runMagentoSearchHostFixViaCLI(cmd *cobra.Command, config engine.Config) error {
@@ -125,4 +135,12 @@ func runMagentoSearchHostFixViaCLI(cmd *cobra.Command, config engine.Config) err
 		pterm.Warning.Printf("Could not fix search host via 'govard db query' (continuing): %v\n", err)
 	}
 	return err
+}
+
+func BuildBootstrapMagentoEnvPHPForTest(cryptKey, database, username, password string) string {
+	return buildBootstrapMagentoEnvPHP(cryptKey, dbCredentials{
+		Database: database,
+		Username: username,
+		Password: password,
+	})
 }

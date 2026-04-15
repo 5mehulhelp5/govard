@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"fmt"
+	"govard/internal/conventions"
 	"io"
 	"os"
 	"os/exec"
@@ -64,15 +65,15 @@ func runStagedCreateProject(projectDir string, runner func(command string) error
 }
 
 func buildStagedRunnerCommand(projectDir, stageDir, runnerCommand string) string {
-	containerStageDir := "/var/www/html"
+	containerStageDir := conventions.DefaultWorkDir
 	if relStageDir, err := filepath.Rel(projectDir, stageDir); err == nil && relStageDir != "." {
 		containerStageDir = path.Join(containerStageDir, filepath.ToSlash(relStageDir))
 	}
 
 	return fmt.Sprintf(
 		"export GOVARD_STAGE_DIR=%s GOVARD_STAGE_HOST_DIR=%s; %s",
-		shellQuote(containerStageDir),
-		shellQuote(stageDir),
+		conventions.ShellQuote(containerStageDir),
+		conventions.ShellQuote(stageDir),
 		runnerCommand,
 	)
 }
@@ -136,7 +137,7 @@ func copyProjectFile(srcPath, dstPath string, mode os.FileMode) error {
 	}
 	defer srcFile.Close()
 
-	if err := os.MkdirAll(filepath.Dir(dstPath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(dstPath), conventions.DefaultDirPerm); err != nil {
 		return fmt.Errorf("create project parent directory %s: %w", filepath.Dir(dstPath), err)
 	}
 
@@ -157,7 +158,7 @@ func runComposerProjectCommand(projectDir string, runner func(command string) er
 	if runner != nil {
 		commandArgs := make([]string, len(args))
 		for i, arg := range args {
-			commandArgs[i] = shellQuote(arg)
+			commandArgs[i] = conventions.ShellQuote(arg)
 		}
 		return runner("composer " + strings.Join(commandArgs, " "))
 	}
@@ -178,12 +179,12 @@ func runPHPProjectScript(projectDir string, runner func(command string) error, s
 	if runner != nil {
 		runnerScriptPath := scriptPath
 		if relScriptPath, err := filepath.Rel(projectDir, scriptPath); err == nil && !strings.HasPrefix(relScriptPath, "..") {
-			runnerScriptPath = path.Join("/var/www/html", filepath.ToSlash(relScriptPath))
+			runnerScriptPath = path.Join(conventions.DefaultWorkDir, filepath.ToSlash(relScriptPath))
 		}
 
-		commandArgs := []string{"php", shellQuote(runnerScriptPath)}
+		commandArgs := []string{"php", conventions.ShellQuote(runnerScriptPath)}
 		for _, arg := range args {
-			commandArgs = append(commandArgs, shellQuote(arg))
+			commandArgs = append(commandArgs, conventions.ShellQuote(arg))
 		}
 		return runner(strings.Join(commandArgs, " "))
 	}
@@ -198,7 +199,7 @@ func runPHPProjectScript(projectDir string, runner func(command string) error, s
 
 func runPHPOneLiner(projectDir string, runner func(command string) error, code string) error {
 	if runner != nil {
-		return runner("php -r " + shellQuote(code))
+		return runner("php -r " + conventions.ShellQuote(code))
 	}
 
 	cmd := exec.Command("php", "-r", code)
@@ -207,10 +208,6 @@ func runPHPOneLiner(projectDir string, runner func(command string) error, code s
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	return cmd.Run()
-}
-
-func shellQuote(value string) string {
-	return "'" + strings.ReplaceAll(value, "'", "'\"'\"'") + "'"
 }
 
 func RunStagedCreateProjectForTest(projectDir string, runner func(command string) error, createInStage func(stageDir string) error, runnerCommand string) error {

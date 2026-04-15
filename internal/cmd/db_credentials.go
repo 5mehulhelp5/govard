@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	_ "embed"
 	"fmt"
 	"os/exec"
 	"strconv"
 	"strings"
 
+	"govard/internal/conventions"
 	"govard/internal/engine"
 	"govard/internal/engine/remote"
 )
@@ -22,31 +24,31 @@ func defaultDBCredentialsForFramework(framework string) dbCredentials {
 	switch strings.TrimSpace(framework) {
 	case "symfony":
 		return dbCredentials{
-			Port:     3306,
+			Port:     conventions.MySQLPort,
 			Username: "symfony",
 			Password: "symfony",
 			Database: "symfony",
 		}
 	case "laravel":
 		return dbCredentials{
-			Port:     3306,
+			Port:     conventions.MySQLPort,
 			Username: "laravel",
 			Password: "laravel",
 			Database: "laravel",
 		}
 	case "wordpress":
 		return dbCredentials{
-			Port:     3306,
+			Port:     conventions.MySQLPort,
 			Username: "wordpress",
 			Password: "wordpress",
 			Database: "wordpress",
 		}
 	default:
 		return dbCredentials{
-			Port:     3306,
-			Username: "magento",
-			Password: "magento",
-			Database: "magento",
+			Port:     conventions.MySQLPort,
+			Username: conventions.DefaultMagentoDBUser,
+			Password: conventions.DefaultMagentoDBPass,
+			Database: conventions.DefaultMagentoDBName,
 		}
 	}
 }
@@ -54,13 +56,13 @@ func defaultDBCredentialsForFramework(framework string) dbCredentials {
 func (credentials dbCredentials) withDefaults() dbCredentials {
 	result := credentials
 	if strings.TrimSpace(result.Username) == "" {
-		result.Username = "magento"
+		result.Username = conventions.DefaultMagentoDBUser
 	}
 	if strings.TrimSpace(result.Database) == "" {
-		result.Database = "magento"
+		result.Database = conventions.DefaultMagentoDBName
 	}
 	if strings.TrimSpace(result.Host) != "" && result.Port <= 0 {
-		result.Port = 3306
+		result.Port = conventions.MySQLPort
 	}
 	if result.Port < 0 {
 		result.Port = 0
@@ -71,7 +73,7 @@ func (credentials dbCredentials) withDefaults() dbCredentials {
 func resolveRemoteDBCredentials(config engine.Config, remoteName string, remoteCfg engine.RemoteConfig) (dbCredentials, error) {
 	fallback := defaultDBCredentialsForFramework(config.Framework)
 	switch strings.TrimSpace(config.Framework) {
-	case "magento2":
+	case conventions.FrameworkMagento2:
 		metadata, err := remote.ProbeMagento2Environment(remoteName, remoteCfg)
 		if err != nil {
 			return fallback, err
@@ -84,7 +86,7 @@ func resolveRemoteDBCredentials(config engine.Config, remoteName string, remoteC
 			Password: metadata.DB.Password,
 			Database: metadata.DB.Database,
 		}.withDefaults(), nil
-	case "magento1", "openmage":
+	case conventions.FrameworkMagento1, conventions.FrameworkOpenMage:
 		metadata, err := remote.ProbeMagento1Environment(remoteName, remoteCfg)
 		if err != nil {
 			return fallback, err
@@ -177,10 +179,10 @@ func parseEnvMap(raw string) map[string]string {
 func buildRemoteMySQLDumpCommandString(credentials dbCredentials, noNoise bool, noPII bool, framework string, compress bool) string {
 	credentials = credentials.withDefaults()
 
-	dbCliDetect := `if command -v mariadb-dump >/dev/null 2>&1; then DUMP_BIN=mariadb-dump; else DUMP_BIN=mysqldump; fi`
+	dbCliDetect := conventions.MySQLDumpBinDetect
 
 	// Common options
-	commonArgs := []string{"\"$DUMP_BIN\"", "--max-allowed-packet=512M", "--force", "--single-transaction", "--no-tablespaces"}
+	commonArgs := []string{"\"$DUMP_BIN\"", "--max-allowed-packet=" + conventions.MySQLMaxAllowedPacket, "--force", "--single-transaction", "--no-tablespaces"}
 	if host := strings.TrimSpace(credentials.Host); host != "" {
 		commonArgs = append(commonArgs, "-h"+engine.ShellQuote(host))
 	}
@@ -228,7 +230,7 @@ func buildRemoteMySQLConnectCommandString(credentials dbCredentials) string {
 func buildRemoteMySQLImportCommandString(credentials dbCredentials) string {
 	credentials = credentials.withDefaults()
 
-	args := []string{"mysql", "--max-allowed-packet=512M"}
+	args := []string{"mysql", "--max-allowed-packet=" + conventions.MySQLMaxAllowedPacket}
 	if host := strings.TrimSpace(credentials.Host); host != "" {
 		args = append(args, "-h"+engine.ShellQuote(host))
 	}
@@ -273,10 +275,10 @@ func buildLocalDBDumpCommand(containerName string, credentials dbCredentials, no
 func buildLocalMySQLDumpCommandScript(credentials dbCredentials, noNoise bool, noPII bool, framework string) string {
 	credentials = credentials.withDefaults()
 
-	dbCliDetect := `if command -v mariadb-dump >/dev/null 2>&1; then DUMP_BIN=mariadb-dump; else DUMP_BIN=mysqldump; fi`
+	dbCliDetect := conventions.MySQLDumpBinDetect
 
 	// Common options
-	commonArgs := []string{"\"$DUMP_BIN\"", "--max-allowed-packet=512M", "--force", "--single-transaction", "--no-tablespaces", "-hdb", "-u" + engine.ShellQuote(credentials.Username)}
+	commonArgs := []string{"\"$DUMP_BIN\"", "--max-allowed-packet=" + conventions.MySQLMaxAllowedPacket, "--force", "--single-transaction", "--no-tablespaces", "-hdb", "-u" + engine.ShellQuote(credentials.Username)}
 
 	// Pass 1: Metadata
 	metadataArgs := append([]string{}, commonArgs...)
@@ -289,332 +291,8 @@ func buildLocalMySQLDumpCommandScript(credentials dbCredentials, noNoise bool, n
 	ignoreArgs := buildIgnoredTableArgs(credentials.Database, "", noNoise, noPII, framework)
 	dataArgs = append(dataArgs, ignoreArgs...)
 	dataArgs = append(dataArgs, engine.ShellQuote(credentials.Database))
-
 	dumpCmd := fmt.Sprintf("{ %s; %s; }", strings.Join(metadataArgs, " "), strings.Join(dataArgs, " "))
-
 	return dbCliDetect + " && " + dumpCmd
-}
-
-// magento1IgnoredTables is the list of ephemeral/noise tables excluded for Magento 1 when --no-noise is specified.
-// Ported from warden-custom-commands (env-adapters/magento1/utils.sh).
-var magento1IgnoredTables = []string{
-	"catalogsearch_fulltext",
-	"catalogsearch_query",
-	"catalogsearch_result",
-	"core_session",
-	"cron_schedule",
-	"enterprise_logging_event",
-	"enterprise_logging_event_changes",
-	"index_event",
-	"log_customer",
-	"log_quote",
-	"log_summary",
-	"log_summary_type",
-	"log_url",
-	"log_url_info",
-	"log_visitor",
-	"log_visitor_info",
-	"log_visitor_online",
-	"mkp_api_session_vendor",
-	"report_compared_product_index",
-	"report_viewed_product_index",
-	"smtppro_email_log",
-	"udprod_images",
-}
-
-// magento1SensitiveTables is the list of PII/sensitive tables excluded for Magento 1 when --no-pii is specified.
-// Ported from warden-custom-commands (env-adapters/magento1/utils.sh).
-var magento1SensitiveTables = []string{
-	"admin_user",
-	"api_user",
-	"customer_address_entity",
-	"customer_address_entity_datetime",
-	"customer_address_entity_decimal",
-	"customer_address_entity_int",
-	"customer_address_entity_text",
-	"customer_address_entity_varchar",
-	"customer_entity",
-	"customer_entity_datetime",
-	"customer_entity_decimal",
-	"customer_entity_int",
-	"customer_entity_text",
-	"customer_entity_varchar",
-	"newsletter_subscriber",
-	"sales_flat_order",
-	"sales_flat_order_address",
-	"sales_flat_order_grid",
-	"sales_flat_order_item",
-	"sales_flat_order_payment",
-	"sales_flat_order_status_history",
-	"sales_flat_quote",
-	"sales_flat_quote_address",
-	"sales_flat_quote_item",
-	"sales_flat_quote_payment",
-	"sales_flat_shipment",
-	"sales_flat_shipment_grid",
-	"sales_flat_shipment_item",
-	"sales_flat_shipment_track",
-	"sales_flat_invoice",
-	"sales_flat_invoice_grid",
-	"sales_flat_invoice_item",
-	"sales_flat_creditmemo",
-	"sales_flat_creditmemo_grid",
-	"sales_flat_creditmemo_item",
-	"wishlist",
-	"wishlist_item",
-}
-
-// magento2IgnoredTables is the list of ephemeral/noise tables excluded when --no-noise is specified.
-// Ported from warden-custom-commands v2.7.0 IGNORED_TABLES (env-adapters/magento2/utils.sh).
-var magento2IgnoredTables = []string{
-	"admin_system_messages",
-	"admin_user_expiration",
-	"admin_user_session",
-	"adminnotification_inbox",
-	"amasty_fpc_activity",
-	"amasty_fpc_context_debug",
-	"amasty_fpc_flushes_log",
-	"amasty_fpc_job_queue",
-	"amasty_fpc_log",
-	"amasty_fpc_pages_to_flush",
-	"amasty_fpc_queue_page",
-	"amasty_fpc_reports",
-	"amasty_mostviewed_product_index",
-	"amasty_mostviewed_product_viewed_index",
-	"amasty_mostviewed_product_viewed_index_replica",
-	"amasty_reports_abandoned_cart",
-	"amasty_xsearch_users_search",
-	"cache_tag",
-	"catalog_category_product_cl",
-	"catalog_category_product_index_replica",
-	"catalog_category_product_index_tmp",
-	"catalog_product_attribute_cl",
-	"catalog_product_category_cl",
-	"catalog_product_index_eav_decimal_idx",
-	"catalog_product_index_eav_decimal_tmp",
-	"catalog_product_index_eav_idx",
-	"catalog_product_index_eav_replica",
-	"catalog_product_index_eav_tmp",
-	"catalog_product_index_price_bundle_idx",
-	"catalog_product_index_price_bundle_opt_idx",
-	"catalog_product_index_price_bundle_opt_tmp",
-	"catalog_product_index_price_bundle_sel_idx",
-	"catalog_product_index_price_bundle_sel_tmp",
-	"catalog_product_index_price_bundle_tmp",
-	"catalog_product_index_price_cfg_opt_agr_idx",
-	"catalog_product_index_price_cfg_opt_agr_tmp",
-	"catalog_product_index_price_cfg_opt_idx",
-	"catalog_product_index_price_cfg_opt_tmp",
-	"catalog_product_index_price_downlod_idx",
-	"catalog_product_index_price_downlod_tmp",
-	"catalog_product_index_price_final_idx",
-	"catalog_product_index_price_final_tmp",
-	"catalog_product_index_price_idx",
-	"catalog_product_index_price_opt_agr_idx",
-	"catalog_product_index_price_opt_agr_tmp",
-	"catalog_product_index_price_opt_idx",
-	"catalog_product_index_price_opt_tmp",
-	"catalog_product_index_price_replica",
-	"catalog_product_index_price_tmp",
-	"catalog_product_price_cl",
-	"cataloginventory_stock_cl",
-	"cataloginventory_stock_status_idx",
-	"cataloginventory_stock_status_tmp",
-	"catalogsearch_fulltext_cl",
-	"catalogsearch_fulltext_scope1",
-	"catalogsearch_fulltext_scope2",
-	"cron_schedule",
-	"customer_grid_flat_cl",
-	"customer_log",
-	"customer_visitor",
-	"design_config_grid_flat_cl",
-	"elasticsuite_tracker_log_customer_link",
-	"elasticsuite_tracker_log_event",
-	"import_history",
-	"inventory_cl",
-	"inventory_stock_sales_channel_cl",
-	"kiwicommerce_activity",
-	"kiwicommerce_activity_detail",
-	"kiwicommerce_activity_log",
-	"klaviyo_sync_queue",
-	"login_as_customer",
-	"magento_bulk",
-	"magento_logging_event",
-	"magento_logging_event_changes",
-	"magento_login_as_customer_log",
-	"mageplaza_smtp_log",
-	"mailchimp_errors",
-	"mailchimp_sync_batches",
-	"mailchimp_sync_ecommerce",
-	"mailchimp_webhook_request",
-	"mst_cache_warmer_job",
-	"mst_cache_warmer_page",
-	"mst_cache_warmer_trace",
-	"mst_search_index_store",
-	"mst_seo_audit_check_result_aggregated",
-	"oauth_nonce",
-	"oauth_token_request_log",
-	"password_reset_request_event",
-	"persistent_session",
-	"queue_message",
-	"queue_message_status",
-	"report_compared_product_index",
-	"report_event",
-	"report_viewed_product_aggregated_daily",
-	"report_viewed_product_aggregated_monthly",
-	"report_viewed_product_aggregated_yearly",
-	"report_viewed_product_index",
-	"reporting_module_status",
-	"reporting_system_updates",
-	"reporting_users",
-	"sales_bestsellers_aggregated_daily",
-	"sales_bestsellers_aggregated_monthly",
-	"sales_bestsellers_aggregated_yearly",
-	"sales_invoiced_aggregated",
-	"sales_invoiced_aggregated_order",
-	"sales_order_aggregated_created",
-	"sales_order_aggregated_updated",
-	"sales_refunded_aggregated",
-	"sales_refunded_aggregated_order",
-	"sales_shipping_aggregated",
-	"sales_shipping_aggregated_order",
-	"search_query",
-	"session",
-	"sutunam_activity",
-	"sutunam_activity_detail",
-	"sutunam_activity_log",
-	"ui_bookmark",
-	"yotpo_order_sync",
-	"yotpo_sync_queue",
-}
-
-// magento2SensitiveTables is the list of PII/sensitive tables excluded when --no-pii is specified.
-// Ported from warden-custom-commands v2.7.0 SENSITIVE_TABLES (env-adapters/magento2/utils.sh).
-var magento2SensitiveTables = []string{
-	"admin_passwords",
-	"admin_user",
-	"aw_ca_company",
-	"aw_ca_company_domain",
-	"aw_ca_company_payments",
-	"aw_ca_company_user",
-	"company",
-	"company_advanced_customer_entity",
-	"company_credit",
-	"company_credit_history",
-	"company_order_entity",
-	"company_payment",
-	"company_permissions",
-	"company_roles",
-	"company_shipping",
-	"company_structure",
-	"company_team",
-	"company_user_roles",
-	"customer_address_entity",
-	"customer_address_entity_datetime",
-	"customer_address_entity_decimal",
-	"customer_address_entity_int",
-	"customer_address_entity_text",
-	"customer_address_entity_varchar",
-	"customer_entity",
-	"customer_entity_datetime",
-	"customer_entity_decimal",
-	"customer_entity_int",
-	"customer_entity_text",
-	"customer_entity_varchar",
-	"customer_grid_flat",
-	"downloadable_link_purchased",
-	"downloadable_link_purchased_item",
-	"email_automation",
-	"email_contact",
-	"magento_customerbalance",
-	"magento_customerbalance_history",
-	"magento_customersegment_customer",
-	"magento_giftcardaccount",
-	"magento_reward",
-	"magento_reward_history",
-	"magento_rma",
-	"magento_rma_grid",
-	"magento_rma_item_entity",
-	"magento_rma_shipping_label",
-	"magento_rma_status_history",
-	"newsletter_subscriber",
-	"paypal_billing_agreement",
-	"paypal_billing_agreement_order",
-	"paypal_payment_transaction",
-	"paypal_settlement_report",
-	"paypal_settlement_report_row",
-	"product_alert_price",
-	"product_alert_stock",
-	"purchase_order_company_config",
-	"quote",
-	"quote_address",
-	"quote_address_item",
-	"quote_id_mask",
-	"quote_item",
-	"quote_item_option",
-	"quote_payment",
-	"quote_shipping_rate",
-	"sales_creditmemo",
-	"sales_creditmemo_comment",
-	"sales_creditmemo_grid",
-	"sales_creditmemo_item",
-	"sales_invoice",
-	"sales_invoice_comment",
-	"sales_invoice_grid",
-	"sales_invoice_item",
-	"sales_order",
-	"sales_order_address",
-	"sales_order_grid",
-	"sales_order_item",
-	"sales_order_payment",
-	"sales_order_status_history",
-	"sales_order_tax",
-	"sales_order_tax_item",
-	"sales_payment_transaction",
-	"sales_shipment",
-	"sales_shipment_comment",
-	"sales_shipment_grid",
-	"sales_shipment_item",
-	"sales_shipment_track",
-	"vault_payment_token",
-	"vault_payment_token_order_payment_link",
-	"wishlist",
-	"wishlist_item",
-	"wishlist_item_option",
-}
-
-var laravelIgnoredTables = []string{
-	"cache",
-	"cache_locks",
-	"failed_jobs",
-	"job_batches",
-	"jobs",
-	"sessions",
-	"telescope_entries",
-	"telescope_entries_tags",
-	"telescope_monitoring",
-}
-
-var laravelSensitiveTables = []string{
-	"password_reset_tokens",
-	"password_resets",
-	"personal_access_tokens",
-	"users",
-}
-
-var wordpressIgnoredTables = []string{
-	"options_bak",
-	"options_replica",
-	"options_tmp",
-	"redirection_404",
-	"wflogs",
-}
-
-var wordpressSensitiveTables = []string{
-	"commentmeta",
-	"comments",
-	"usermeta",
-	"users",
 }
 
 // buildIgnoredTableArgs returns docker exec --ignore-table flags for the given credentials and filter flags.
@@ -632,37 +310,7 @@ func buildIgnoredTableArgs(dbName string, dbPrefix string, noNoise bool, noPII b
 }
 
 func getIgnoredTableList(noNoise bool, noPII bool, framework string) []string {
-	if !noNoise && !noPII {
-		return nil
-	}
-
-	var ignored []string
-	var sensitive []string
-
-	switch strings.TrimSpace(framework) {
-	case "laravel":
-		ignored = laravelIgnoredTables
-		sensitive = laravelSensitiveTables
-	case "wordpress":
-		ignored = wordpressIgnoredTables
-		sensitive = wordpressSensitiveTables
-	case "magento1", "openmage":
-		ignored = magento1IgnoredTables
-		sensitive = magento1SensitiveTables
-	default:
-		// Default to magento2 behavior
-		ignored = magento2IgnoredTables
-		sensitive = magento2SensitiveTables
-	}
-
-	tables := make([]string, 0)
-	if noNoise {
-		tables = append(tables, ignored...)
-	}
-	if noPII {
-		tables = append(tables, sensitive...)
-	}
-	return tables
+	return engine.GetFrameworkIgnoredTables(framework, noNoise, noPII)
 }
 
 func mysqlPasswordExportPrefix(password string) string {
@@ -682,7 +330,7 @@ func buildLocalMySQLClientCommandScript(credentials dbCredentials, force bool) s
 	}
 
 	return strings.Join([]string{
-		`if command -v mysql >/dev/null 2>&1; then DB_CLI=mysql; elif command -v mariadb >/dev/null 2>&1; then DB_CLI=mariadb; else echo "mysql client not found (mysql/mariadb)" >&2; exit 127; fi`,
+		conventions.MySQLClientBinDetect,
 		query,
 	}, " && ")
 }
@@ -735,11 +383,10 @@ func buildLocalDBQueryCommand(containerName string, credentials dbCredentials, q
 func buildLocalMySQLQueryCommandScript(credentials dbCredentials, query string) string {
 	credentials = credentials.withDefaults()
 
-	escapedQuery := strings.ReplaceAll(query, "'", "'\"'\"'")
-	queryCmd := "exec \"$DB_CLI\" -u " + engine.ShellQuote(credentials.Username) + " -e '" + escapedQuery + "'" + " " + engine.ShellQuote(credentials.Database)
+	queryCmd := "exec \"$DB_CLI\" -u " + engine.ShellQuote(credentials.Username) + " -e " + engine.ShellQuote(query) + " " + engine.ShellQuote(credentials.Database)
 
 	return strings.Join([]string{
-		`if command -v mysql >/dev/null 2>&1; then DB_CLI=mysql; elif command -v mariadb >/dev/null 2>&1; then DB_CLI=mariadb; else echo "mysql client not found (mysql/mariadb)" >&2; exit 127; fi`,
+		conventions.MySQLClientBinDetect,
 		queryCmd,
 	}, " && ")
 }
@@ -782,14 +429,14 @@ func GetDatabaseSize(config engine.Config, remoteName string, remoteCfg engine.R
 	}
 	mysqlArgs = append(mysqlArgs, "-u"+engine.ShellQuote(credentials.Username), "-e", engine.ShellQuote(query))
 
-	dbCliDetect := `if command -v mysql >/dev/null 2>&1; then DB_CLI=mysql; elif command -v mariadb >/dev/null 2>&1; then DB_CLI=mariadb; else echo "mysql client not found" >&2; exit 127; fi`
+	dbCliDetect := conventions.MySQLClientBinDetect
 	mysqlCmd := mysqlPasswordExportPrefix(credentials.Password) + strings.Join(mysqlArgs, " ")
 	cmdStr := fmt.Sprintf("%s && %s", dbCliDetect, mysqlCmd)
 
 	var output []byte
 	var err error
 	if remoteName == "local" {
-		containerName := fmt.Sprintf("%s-db-1", config.ProjectName)
+		containerName := fmt.Sprintf("%s%s", config.ProjectName, conventions.DBSuffix)
 		output, err = exec.Command("docker", "exec", containerName, "sh", "-c", cmdStr).CombinedOutput()
 	} else {
 		sshCmd := remote.BuildSSHExecCommand(remoteName, remoteCfg, true, cmdStr)
@@ -814,4 +461,11 @@ func GetDatabaseSize(config engine.Config, remoteName string, remoteCfg engine.R
 	targetSize := int64(float64(logicalSize) * 0.6)
 
 	return targetSize, nil
+}
+
+func BuildLocalMySQLQueryCommandScriptForTest(username string, database string, query string) string {
+	return buildLocalMySQLQueryCommandScript(dbCredentials{
+		Username: username,
+		Database: database,
+	}, query)
 }

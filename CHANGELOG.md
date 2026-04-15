@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ✨ New Features
 
-- **Apache Configuration:** Added a global rewrite rule to handle legacy `index.php/` path patterns, resolving 403 Forbidden errors for Magento 1 environments using "pretty" URLs without modifying site-level `.htaccess` files.
+- **Apache Configuration:** Added shared Apache handling for legacy `index.php/` path patterns, including explicit `PATH_INFO` support so Magento 1 environments can use "pretty" URLs without dropping route segments or triggering 403 errors.
 
 ### 🛠 Improvements
 

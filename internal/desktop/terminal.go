@@ -2,6 +2,7 @@ package desktop
 
 import (
 	"fmt"
+	"govard/internal/conventions"
 	"os/exec"
 	"strings"
 )
@@ -35,7 +36,7 @@ func (s *LogService) StartServiceTerminalInOS(project, service, user, shell stri
 	chosenShell := normalizeShell(shell)
 	chosenUser := normalizeShellUser(info, targetService, user)
 
-	args := []string{"exec", "-it", "-w", "/var/www/html", "-e", "TERM=screen-256color"}
+	args := []string{"exec", "-it", "-w", conventions.DefaultWorkDir, "-e", "TERM=screen-256color"}
 	if chosenUser != "" {
 		args = append(args, "-u", chosenUser)
 	}

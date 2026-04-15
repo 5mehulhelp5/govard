@@ -5,9 +5,11 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 
+	"govard/internal/conventions"
 	"govard/internal/engine/bootstrap"
 )
 
@@ -210,6 +212,15 @@ require_once ABSPATH . 'wp-settings.php';
 	}
 	if !strings.Contains(joined, "/var/www/html/wp-load.php") || !strings.Contains(joined, "wp_install(") {
 		t.Fatalf("expected wp-load.php / wp_install() in runner commands, got:\n%s", joined)
+	}
+	if !strings.Contains(joined, strconv.Quote(conventions.DefaultAdminUser)) {
+		t.Fatalf("expected default admin user in runner commands, got:\n%s", joined)
+	}
+	if !strings.Contains(joined, strconv.Quote(conventions.DefaultAdminEmail)) {
+		t.Fatalf("expected default admin email in runner commands, got:\n%s", joined)
+	}
+	if !strings.Contains(joined, strconv.Quote(conventions.DefaultAdminPassword)) {
+		t.Fatalf("expected default admin password in runner commands, got:\n%s", joined)
 	}
 }
 

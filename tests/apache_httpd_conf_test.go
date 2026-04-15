@@ -22,4 +22,12 @@ func TestApacheTemplateHonorsForwardedHTTPS(t *testing.T) {
 	if !strings.Contains(template, `SetHandler "proxy:fcgi://php:9000"`) {
 		t.Fatal("apache template must use SetHandler-based PHP-FPM proxying so per-directory .htaccess env is preserved")
 	}
+
+	if !strings.Contains(template, "AcceptPathInfo On") {
+		t.Fatal("apache template must allow PATH_INFO for legacy index.php/ routes")
+	}
+
+	if strings.Contains(template, "[L,DPI]") {
+		t.Fatal("apache template must not discard PATH_INFO when rewriting legacy index.php/ routes")
+	}
 }

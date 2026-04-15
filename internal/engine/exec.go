@@ -1,9 +1,9 @@
 package engine
 
 import (
+	"govard/internal/conventions"
 	"os"
 	"os/exec"
-	"strings"
 	"syscall"
 )
 
@@ -24,11 +24,7 @@ func ExecuteInteractively(cmd *exec.Cmd) error {
 	return cmd.Run()
 }
 
-// ShellQuote wraps a string in single quotes and escapes existing single quotes
-// so it is safe to use in a shell command.
+// ShellQuote is a wrapper around conventions.ShellQuote.
 func ShellQuote(raw string) string {
-	if raw == "" {
-		return "''"
-	}
-	return "'" + strings.ReplaceAll(raw, "'", `'"'"'`) + "'"
+	return conventions.ShellQuote(raw)
 }

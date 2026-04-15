@@ -3,6 +3,7 @@ package remote
 import (
 	"encoding/json"
 	"fmt"
+	"govard/internal/conventions"
 	"os"
 	"path/filepath"
 )
@@ -62,7 +63,7 @@ func (f *fileStore) load() (map[string]string, error) {
 }
 
 func (f *fileStore) save(entries map[string]string) error {
-	if err := os.MkdirAll(filepath.Dir(f.path), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Dir(f.path), conventions.SecretDirPerm); err != nil {
 		return fmt.Errorf("create auth store dir: %w", err)
 	}
 
@@ -72,7 +73,7 @@ func (f *fileStore) save(entries map[string]string) error {
 	}
 
 	tempPath := f.path + ".tmp"
-	if err := os.WriteFile(tempPath, payload, 0600); err != nil {
+	if err := os.WriteFile(tempPath, payload, conventions.SecretFilePerm); err != nil {
 		return fmt.Errorf("write auth store temp file: %w", err)
 	}
 	if err := os.Rename(tempPath, f.path); err != nil {

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"govard/internal/conventions"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -47,7 +48,7 @@ func FixComposerCompatibility(config engine.Config) error {
 func ensureSpecificComposerVersion(config engine.Config, version string) error {
 	pterm.Info.Printf("Ensuring Composer version %s is installed in container...\n", version)
 
-	containerName := fmt.Sprintf("%s-php-1", config.ProjectName)
+	containerName := fmt.Sprintf("%s%s", config.ProjectName, conventions.PHPSuffix)
 
 	downloadUrl := "https://getcomposer.org/composer-stable.phar"
 	if version != "latest" {
@@ -140,10 +141,10 @@ func ensureBootstrapAuthJSON(config engine.Config, opts BootstrapRuntimeOptions)
 
 func createAuthJSONFromCredentials(path, username, password, cwd string) error {
 	payload := fmt.Sprintf("{\n    \"http-basic\": {\n        \"repo.magento.com\": {\n            \"username\": %q,\n            \"password\": %q\n        }\n    }\n}\n", username, password)
-	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), conventions.SecretDirPerm); err != nil {
 		return fmt.Errorf("failed to ensure directory for auth.json: %w", err)
 	}
-	if err := os.WriteFile(path, []byte(payload), 0600); err != nil {
+	if err := os.WriteFile(path, []byte(payload), conventions.SecretFilePerm); err != nil {
 		return fmt.Errorf("failed writing auth.json to %s: %w", path, err)
 	}
 	pterm.Success.Printf("✅ Created auth.json in %s with provided credentials.\n", path)

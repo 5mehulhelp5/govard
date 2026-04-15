@@ -9,11 +9,13 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v3"
+
+	"govard/internal/conventions"
 )
 
 const (
-	BaseConfigFile  = ".govard.yml"
-	LocalConfigFile = ".govard.local.yml"
+	BaseConfigFile  = conventions.BaseConfigFile
+	LocalConfigFile = conventions.LocalConfigFile
 )
 
 var validEnvNamePattern = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)

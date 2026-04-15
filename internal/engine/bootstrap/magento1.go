@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"crypto/md5" //nolint:gosec // MD5 is intentional here: Magento 1 uses salted MD5 for admin passwords
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
@@ -9,6 +10,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"time"
+
+	"govard/internal/conventions"
 
 	"github.com/pterm/pterm"
 )
@@ -63,12 +66,12 @@ func (m *Magento1Bootstrap) PostClone(projectDir string) error {
 	pterm.Info.Println("Setting up cloned Magento 1 project...")
 
 	varPath := filepath.Join(projectDir, "var")
-	_ = os.MkdirAll(varPath, 0777)
-	_ = os.MkdirAll(filepath.Join(varPath, "cache"), 0777)
-	_ = os.MkdirAll(filepath.Join(varPath, "session"), 0777)
+	_ = os.MkdirAll(varPath, conventions.PublicDirPerm)
+	_ = os.MkdirAll(filepath.Join(varPath, "cache"), conventions.PublicDirPerm)
+	_ = os.MkdirAll(filepath.Join(varPath, "session"), conventions.PublicDirPerm)
 
 	mediaPath := filepath.Join(projectDir, "media")
-	_ = os.MkdirAll(mediaPath, 0777)
+	_ = os.MkdirAll(mediaPath, conventions.PublicDirPerm)
 
 	localXmlPath := filepath.Join(projectDir, "app", "etc", "local.xml")
 	if _, err := os.Stat(localXmlPath); os.IsNotExist(err) {
@@ -86,8 +89,8 @@ func (m *Magento1Bootstrap) PostClone(projectDir string) error {
 }
 
 func (m *Magento1Bootstrap) CreateAdmin(projectDir string) error {
-	adminEmail := fmt.Sprintf("admin@%s", m.Options.Domain)
-	containerName := fmt.Sprintf("%s-db-1", m.Options.ProjectName)
+	adminEmail := conventions.AdminEmailForDomain(m.Options.Domain)
+	containerName := fmt.Sprintf("%s%s", m.Options.ProjectName, conventions.DBSuffix)
 
 	pterm.Info.Println("Creating Magento 1 admin user...")
 	return RunMagento1AdminUserSQL(containerName, m.Options.DBUser, m.Options.DBPass, m.Options.DBName, "", adminEmail)
@@ -117,10 +120,10 @@ func (m *Magento1Bootstrap) createLocalXml(projectDir string) error {
             </db>
             <default_setup>
                 <connection>
-                    <host><![CDATA[db]]></host>
-                    <username><![CDATA[magento]]></username>
-                    <password><![CDATA[magento]]></password>
-                    <dbname><![CDATA[magento]]></dbname>
+	                    <host><![CDATA[%s]]></host>
+	                    <username><![CDATA[%s]]></username>
+	                    <password><![CDATA[%s]]></password>
+	                    <dbname><![CDATA[%s]]></dbname>
                     <initStatements><![CDATA[SET NAMES utf8]]></initStatements>
                     <model><![CDATA[mysql4]]></model>
                     <type><![CDATA[pdo_mysql]]></type>
@@ -143,21 +146,26 @@ func (m *Magento1Bootstrap) createLocalXml(projectDir string) error {
         <routers>
             <adminhtml>
                 <args>
-                    <frontName><![CDATA[admin]]></frontName>
+	                    <frontName><![CDATA[%s]]></frontName>
                 </args>
             </adminhtml>
         </routers>
     </admin>
 </config>
-`, cryptKey)
+`, cryptKey,
+		conventions.DefaultDBHost,
+		conventions.DefaultMagentoDBUser,
+		conventions.DefaultMagentoDBPass,
+		conventions.DefaultMagentoDBName,
+		conventions.DefaultAdminPath)
 
 	etcPath := filepath.Join(projectDir, "app", "etc")
-	if err := os.MkdirAll(etcPath, 0755); err != nil {
+	if err := os.MkdirAll(etcPath, conventions.DefaultDirPerm); err != nil {
 		return fmt.Errorf("failed to create app/etc directory: %w", err)
 	}
 
 	localXmlPath := filepath.Join(etcPath, "local.xml")
-	if err := os.WriteFile(localXmlPath, []byte(localXmlContent), 0644); err != nil {
+	if err := os.WriteFile(localXmlPath, []byte(localXmlContent), conventions.SecretFilePerm); err != nil {
 		return fmt.Errorf("failed to write local.xml: %w", err)
 	}
 
@@ -174,88 +182,16 @@ func generateMagento1CryptKey() (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
-func BuildMagento1SetConfigSQLStatements(baseURL string, dbPrefix string) []string {
-	return []string{
-		fmt.Sprintf("UPDATE %score_config_data SET value = '%s' WHERE path IN ('web/secure/base_url', 'web/unsecure/base_url')", dbPrefix, baseURL),
-		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}' WHERE path IN ('web/unsecure/base_link_url', 'web/secure/base_link_url')",
-		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}skin/' WHERE path IN ('web/unsecure/base_skin_url', 'web/secure/base_skin_url')",
-		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}media/' WHERE path IN ('web/unsecure/base_media_url', 'web/secure/base_media_url')",
-		"UPDATE " + dbPrefix + "core_config_data SET value = '{{secure_base_url}}js/' WHERE path IN ('web/unsecure/base_js_url', 'web/secure/base_js_url')",
-		"UPDATE " + dbPrefix + "core_config_data SET value = 'HTTP_X_FORWARDED_PROTO' WHERE path = 'web/secure/offloader_header'",
-		"UPDATE " + dbPrefix + "core_config_data SET value = '1' WHERE path = 'web/secure/use_in_frontend'",
-		"UPDATE " + dbPrefix + "core_config_data SET value = '1' WHERE path = 'web/secure/use_in_adminhtml'",
-		"UPDATE " + dbPrefix + "core_config_data SET value = '0' WHERE path = 'web/url/redirect_to_base'",
-		"UPDATE " + dbPrefix + "core_config_data SET value = NULL WHERE path = 'web/cookie/cookie_domain'",
-		"UPDATE " + dbPrefix + "core_config_data SET value = '/' WHERE path = 'web/cookie/cookie_path'",
-	}
-}
-
-func BuildMagento1ScopedBaseURLSQLStatements(scopeCode string, baseURL string, dbPrefix string) []string {
-	statements := BuildMagento1WebsiteBaseURLSQLStatements(scopeCode, baseURL, dbPrefix)
-	statements = append(statements, BuildMagento1StoreBaseURLSQLStatements(scopeCode, baseURL, dbPrefix)...)
-	return statements
-}
-
-func BuildMagento1WebsiteBaseURLSQLStatements(scopeCode string, baseURL string, dbPrefix string) []string {
-	scopeCodeSQL := ShellEscape(scopeCode)
-	baseURLSQL := ShellEscape(baseURL)
-	configTable := dbPrefix + "core_config_data"
-	scopeTable := dbPrefix + "core_website"
-	return []string{
-		fmt.Sprintf(
-			"UPDATE %s cfg JOIN %s scope_entity ON scope_entity.website_id = cfg.scope_id SET cfg.value = %s WHERE cfg.scope = 'websites' AND scope_entity.code = %s AND cfg.path = 'web/unsecure/base_url'",
-			configTable, scopeTable, baseURLSQL, scopeCodeSQL,
-		),
-		fmt.Sprintf(
-			"INSERT INTO %s (scope, scope_id, path, value) SELECT 'websites', scope_entity.website_id, 'web/unsecure/base_url', %s FROM %s scope_entity WHERE scope_entity.code = %s AND NOT EXISTS (SELECT 1 FROM %s cfg WHERE cfg.scope = 'websites' AND cfg.scope_id = scope_entity.website_id AND cfg.path = 'web/unsecure/base_url')",
-			configTable, baseURLSQL, scopeTable, scopeCodeSQL, configTable,
-		),
-		fmt.Sprintf(
-			"UPDATE %s cfg JOIN %s scope_entity ON scope_entity.website_id = cfg.scope_id SET cfg.value = %s WHERE cfg.scope = 'websites' AND scope_entity.code = %s AND cfg.path = 'web/secure/base_url'",
-			configTable, scopeTable, baseURLSQL, scopeCodeSQL,
-		),
-		fmt.Sprintf(
-			"INSERT INTO %s (scope, scope_id, path, value) SELECT 'websites', scope_entity.website_id, 'web/secure/base_url', %s FROM %s scope_entity WHERE scope_entity.code = %s AND NOT EXISTS (SELECT 1 FROM %s cfg WHERE cfg.scope = 'websites' AND cfg.scope_id = scope_entity.website_id AND cfg.path = 'web/secure/base_url')",
-			configTable, baseURLSQL, scopeTable, scopeCodeSQL, configTable,
-		),
-	}
-}
-
-func BuildMagento1StoreBaseURLSQLStatements(scopeCode string, baseURL string, dbPrefix string) []string {
-	scopeCodeSQL := ShellEscape(scopeCode)
-	baseURLSQL := ShellEscape(baseURL)
-	configTable := dbPrefix + "core_config_data"
-	scopeTable := dbPrefix + "core_store"
-	return []string{
-		fmt.Sprintf(
-			"UPDATE %s cfg JOIN %s scope_entity ON scope_entity.store_id = cfg.scope_id SET cfg.value = %s WHERE cfg.scope = 'stores' AND scope_entity.code = %s AND cfg.path = 'web/unsecure/base_url'",
-			configTable, scopeTable, baseURLSQL, scopeCodeSQL,
-		),
-		fmt.Sprintf(
-			"INSERT INTO %s (scope, scope_id, path, value) SELECT 'stores', scope_entity.store_id, 'web/unsecure/base_url', %s FROM %s scope_entity WHERE scope_entity.code = %s AND NOT EXISTS (SELECT 1 FROM %s cfg WHERE cfg.scope = 'stores' AND cfg.scope_id = scope_entity.store_id AND cfg.path = 'web/unsecure/base_url')",
-			configTable, baseURLSQL, scopeTable, scopeCodeSQL, configTable,
-		),
-		fmt.Sprintf(
-			"UPDATE %s cfg JOIN %s scope_entity ON scope_entity.store_id = cfg.scope_id SET cfg.value = %s WHERE cfg.scope = 'stores' AND scope_entity.code = %s AND cfg.path = 'web/secure/base_url'",
-			configTable, scopeTable, baseURLSQL, scopeCodeSQL,
-		),
-		fmt.Sprintf(
-			"INSERT INTO %s (scope, scope_id, path, value) SELECT 'stores', scope_entity.store_id, 'web/secure/base_url', %s FROM %s scope_entity WHERE scope_entity.code = %s AND NOT EXISTS (SELECT 1 FROM %s cfg WHERE cfg.scope = 'stores' AND cfg.scope_id = scope_entity.store_id AND cfg.path = 'web/secure/base_url')",
-			configTable, baseURLSQL, scopeTable, scopeCodeSQL, configTable,
-		),
-	}
-}
-
 // RunMagento1AdminUserSQL inserts/updates the admin user in the local DB using a salted MD5 hash.
 // This matches the approach in warden-custom-commands bootstrap.cmd for maximum M1 compatibility.
 func RunMagento1AdminUserSQL(containerName string, dbUser string, dbPassword string, dbName string, dbPrefix string, adminEmail string) error {
-	// Salted MD5: md5("admin" + "Admin123$") + ":admin"
-	passHash := Md5SaltedHash("admin", "Admin123$")
-	saltedPass := passHash + ":admin"
+	// Salted MD5: md5(default admin user + default admin password) + ":" + default admin user.
+	passHash := Md5SaltedHash(conventions.DefaultAdminUser, conventions.DefaultAdminPassword)
+	saltedPass := passHash + ":" + conventions.DefaultAdminUser
 
 	insertSQL := fmt.Sprintf(`
 INSERT INTO %sadmin_user(username, firstname, lastname, email, password, created, lognum, reload_acl_flag, is_active, extra, rp_token, rp_token_created_at)
-VALUES ("admin", "Admin", "User", %q, %q, NOW(), 0, 0, 1, NULL, NULL, NOW())
+VALUES (%q, "Admin", "User", %q, %q, NOW(), 0, 0, 1, NULL, NULL, NOW())
 ON DUPLICATE KEY UPDATE password = %q, is_active = 1;
 
 -- Ensure Administrators group exists
@@ -268,12 +204,12 @@ SELECT role_id, 'all', NULL, 0, 'G', 'allow' FROM %sadmin_role WHERE role_type =
 
 -- Assign user to Administrators
 INSERT INTO %sadmin_role (parent_id, tree_level, sort_order, role_type, user_id, role_name)
-SELECT role_id, 2, 0, 'U', (SELECT user_id FROM %sadmin_user WHERE username = 'admin' LIMIT 1), 'admin'
+SELECT role_id, 2, 0, 'U', (SELECT user_id FROM %sadmin_user WHERE username = %q LIMIT 1), %q
 FROM %sadmin_role WHERE role_type = 'G' AND role_name = 'Administrators' LIMIT 1
-ON DUPLICATE KEY UPDATE parent_id = VALUES(parent_id);
-`,
-		dbPrefix, adminEmail, saltedPass, saltedPass,
-		dbPrefix, dbPrefix, dbPrefix, dbPrefix, dbPrefix, dbPrefix)
+		ON DUPLICATE KEY UPDATE parent_id = VALUES(parent_id);
+		`,
+		dbPrefix, conventions.DefaultAdminUser, adminEmail, saltedPass, saltedPass,
+		dbPrefix, dbPrefix, dbPrefix, dbPrefix, dbPrefix, conventions.DefaultAdminUser, conventions.DefaultAdminUser, dbPrefix)
 
 	return RunMagento1SQL(containerName, dbUser, dbPassword, dbName, insertSQL)
 }
@@ -282,7 +218,7 @@ ON DUPLICATE KEY UPDATE parent_id = VALUES(parent_id);
 func RunMagento1SQL(containerName string, dbUser string, dbPassword string, dbName string, sql string) error {
 	script := fmt.Sprintf(
 		`if command -v mysql >/dev/null 2>&1; then DB_CLI=mysql; elif command -v mariadb >/dev/null 2>&1; then DB_CLI=mariadb; else exit 1; fi && echo %s | "$DB_CLI" -u %s %s -f`,
-		ShellEscape(sql), ShellEscape(dbUser), ShellEscape(dbName),
+		conventions.ShellQuote(sql), conventions.ShellQuote(dbUser), conventions.ShellQuote(dbName),
 	)
 
 	args := []string{"exec", "-i"}
@@ -299,4 +235,12 @@ func RunMagento1SQL(containerName string, dbUser string, dbPassword string, dbNa
 		return fmt.Errorf("SQL exec failed: %w: %s", err, out)
 	}
 	return nil
+}
+
+// Md5SaltedHash returns the MD5 hash of (salt + password) as a hex string.
+// This matches Magento 1's salted password hashing: md5(salt . password).
+func Md5SaltedHash(salt, password string) string {
+	h := md5.New() //nolint:gosec
+	fmt.Fprint(h, salt+password)
+	return hex.EncodeToString(h.Sum(nil))
 }

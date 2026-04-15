@@ -2,10 +2,12 @@ package desktop
 
 import (
 	"fmt"
+	"govard/internal/conventions"
 	"govard/internal/engine"
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -120,11 +122,11 @@ func normalizeOnboardingFramework(framework string) string {
 	case "", "auto", "detect":
 		return ""
 	case "m2":
-		return "magento2"
+		return conventions.FrameworkMagento2
 	case "m1":
-		return "magento1"
+		return conventions.FrameworkMagento1
 	case "wp":
-		return "wordpress"
+		return conventions.FrameworkWordPress
 	default:
 		return strings.ToLower(strings.TrimSpace(framework))
 	}
@@ -134,15 +136,15 @@ func normalizeOnboardingFramework(framework string) string {
 
 func displayFramework(framework string) string {
 	switch framework {
-	case "magento1":
+	case conventions.FrameworkMagento1:
 		return "Magento 1"
-	case "magento2":
+	case conventions.FrameworkMagento2:
 		return "Magento 2"
-	case "nextjs":
+	case conventions.FrameworkNextJS:
 		return "Next.js"
-	case "emdash":
+	case conventions.FrameworkEmdash:
 		return "Emdash"
-	case "cakephp":
+	case conventions.FrameworkCakePHP:
 		return "CakePHP"
 	default:
 		return titleCase(framework)
@@ -168,6 +170,14 @@ func formatDatabase(dbType, dbVersion string) string {
 		return label
 	}
 	return fmt.Sprintf("%s %s", label, dbVersion)
+}
+
+func defaultDatabasePortForType(dbType string) string {
+	lowerDBType := strings.ToLower(strings.TrimSpace(dbType))
+	if lowerDBType == conventions.ServicePostgreSQL || lowerDBType == "postgresql" {
+		return strconv.Itoa(conventions.PostgresPort)
+	}
+	return strconv.Itoa(conventions.MySQLPort)
 }
 
 func mergeServiceState(current, candidate string) string {
@@ -215,9 +225,9 @@ func deriveServices(config engine.Config, states map[string]string) []Service {
 	if config.Stack.Services.WebServer != "" {
 		services = append(services, Service{
 			Name:   titleCase(config.Stack.Services.WebServer),
-			Status: serviceStatus(states, "web", "stopped"),
-			Port:   "80",
-			Target: "web",
+			Status: serviceStatus(states, conventions.TargetWeb, "stopped"),
+			Port:   strconv.Itoa(conventions.HTTPPort),
+			Target: conventions.TargetWeb,
 		})
 	}
 	if config.Stack.DBType != "" && config.Stack.DBType != "none" {
@@ -233,65 +243,65 @@ func deriveServices(config engine.Config, states map[string]string) []Service {
 		}
 		services = append(services, Service{
 			Name:   label,
-			Status: serviceStatus(states, "db", "stopped"),
-			Port:   "3306",
-			Target: "db",
+			Status: serviceStatus(states, conventions.TargetDB, "stopped"),
+			Port:   defaultDatabasePortForType(config.Stack.DBType),
+			Target: conventions.TargetDB,
 		})
 	}
 	if config.Stack.PHPVersion != "" {
 		services = append(services, Service{
 			Name:   "PHP",
-			Status: serviceStatus(states, "php", "stopped"),
-			Port:   "9000",
-			Target: "php",
+			Status: serviceStatus(states, conventions.TargetPHP, "stopped"),
+			Port:   strconv.Itoa(conventions.PHPFPMPort),
+			Target: conventions.TargetPHP,
 		})
 	}
 	switch config.Stack.Services.Cache {
-	case "redis":
+	case conventions.ServiceRedis:
 		services = append(services, Service{
 			Name:   "Redis",
-			Status: serviceStatus(states, "redis", "stopped"),
-			Port:   "6379",
-			Target: "redis",
+			Status: serviceStatus(states, conventions.TargetRedis, "stopped"),
+			Port:   strconv.Itoa(conventions.RedisPort),
+			Target: conventions.TargetRedis,
 		})
-	case "valkey":
+	case conventions.ServiceValkey:
 		services = append(services, Service{
 			Name:   "Valkey",
-			Status: serviceStatus(states, "valkey", "stopped"),
-			Port:   "6379",
-			Target: "valkey",
+			Status: serviceStatus(states, conventions.TargetValkey, "stopped"),
+			Port:   strconv.Itoa(conventions.RedisPort),
+			Target: conventions.TargetValkey,
 		})
 	}
 	switch config.Stack.Services.Search {
-	case "opensearch":
+	case conventions.ServiceOpenSearch:
 		services = append(services, Service{
 			Name:   "OpenSearch",
-			Status: serviceStatus(states, "opensearch", "stopped"),
-			Port:   "9200",
-			Target: "opensearch",
+			Status: serviceStatus(states, conventions.TargetOpenSearch, "stopped"),
+			Port:   strconv.Itoa(conventions.SearchPort),
+			Target: conventions.TargetOpenSearch,
 		})
-	case "elasticsearch":
+	case conventions.ServiceElasticsearch:
 		services = append(services, Service{
 			Name:   "Elasticsearch",
-			Status: serviceStatus(states, "elasticsearch", "stopped"),
-			Port:   "9200",
-			Target: "elasticsearch",
+			Status: serviceStatus(states, conventions.TargetElasticsearch, "stopped"),
+			Port:   strconv.Itoa(conventions.SearchPort),
+			Target: conventions.TargetElasticsearch,
 		})
 	}
-	if config.Stack.Services.Queue == "rabbitmq" {
+	if config.Stack.Services.Queue == conventions.ServiceRabbitMQ {
 		services = append(services, Service{
 			Name:   "RabbitMQ",
-			Status: serviceStatus(states, "rabbitmq", "stopped"),
-			Port:   "5672",
-			Target: "rabbitmq",
+			Status: serviceStatus(states, conventions.TargetRabbitMQ, "stopped"),
+			Port:   strconv.Itoa(conventions.RabbitMQPort),
+			Target: conventions.TargetRabbitMQ,
 		})
 	}
 	if config.Stack.Features.Varnish {
 		services = append(services, Service{
 			Name:   "Varnish",
-			Status: serviceStatus(states, "varnish", "stopped"),
-			Port:   "80",
-			Target: "varnish",
+			Status: serviceStatus(states, conventions.TargetVarnish, "stopped"),
+			Port:   strconv.Itoa(conventions.HTTPPort),
+			Target: conventions.TargetVarnish,
 		})
 	}
 	return services
@@ -307,61 +317,61 @@ func fallbackServices(services map[string]bool, states map[string]string) []Serv
 
 	for _, name := range keys {
 		switch name {
-		case "redis":
+		case conventions.TargetRedis:
 			out = append(out, Service{
 				Name:   "Redis",
-				Status: serviceStatus(states, "redis", "running"),
-				Port:   "6379",
-				Target: "redis",
+				Status: serviceStatus(states, conventions.TargetRedis, "running"),
+				Port:   strconv.Itoa(conventions.RedisPort),
+				Target: conventions.TargetRedis,
 			})
-		case "elasticsearch":
+		case conventions.TargetElasticsearch:
 			out = append(out, Service{
 				Name:   "Elasticsearch",
-				Status: serviceStatus(states, "elasticsearch", "running"),
-				Port:   "9200",
-				Target: "elasticsearch",
+				Status: serviceStatus(states, conventions.TargetElasticsearch, "running"),
+				Port:   strconv.Itoa(conventions.SearchPort),
+				Target: conventions.TargetElasticsearch,
 			})
-		case "opensearch":
+		case conventions.TargetOpenSearch:
 			out = append(out, Service{
 				Name:   "OpenSearch",
-				Status: serviceStatus(states, "opensearch", "running"),
-				Port:   "9200",
-				Target: "opensearch",
+				Status: serviceStatus(states, conventions.TargetOpenSearch, "running"),
+				Port:   strconv.Itoa(conventions.SearchPort),
+				Target: conventions.TargetOpenSearch,
 			})
-		case "varnish":
+		case conventions.TargetVarnish:
 			out = append(out, Service{
 				Name:   "Varnish",
-				Status: serviceStatus(states, "varnish", "running"),
-				Port:   "80",
-				Target: "varnish",
+				Status: serviceStatus(states, conventions.TargetVarnish, "running"),
+				Port:   strconv.Itoa(conventions.HTTPPort),
+				Target: conventions.TargetVarnish,
 			})
-		case "rabbitmq":
+		case conventions.TargetRabbitMQ:
 			out = append(out, Service{
 				Name:   "RabbitMQ",
-				Status: serviceStatus(states, "rabbitmq", "running"),
-				Port:   "5672",
-				Target: "rabbitmq",
+				Status: serviceStatus(states, conventions.TargetRabbitMQ, "running"),
+				Port:   strconv.Itoa(conventions.RabbitMQPort),
+				Target: conventions.TargetRabbitMQ,
 			})
-		case "web":
+		case conventions.TargetWeb:
 			out = append(out, Service{
 				Name:   "Web",
-				Status: serviceStatus(states, "web", "running"),
-				Port:   "80",
-				Target: "web",
+				Status: serviceStatus(states, conventions.TargetWeb, "running"),
+				Port:   strconv.Itoa(conventions.HTTPPort),
+				Target: conventions.TargetWeb,
 			})
-		case "php":
+		case conventions.TargetPHP:
 			out = append(out, Service{
 				Name:   "PHP",
-				Status: serviceStatus(states, "php", "running"),
-				Port:   "9000",
-				Target: "php",
+				Status: serviceStatus(states, conventions.TargetPHP, "running"),
+				Port:   strconv.Itoa(conventions.PHPFPMPort),
+				Target: conventions.TargetPHP,
 			})
-		case "db":
+		case conventions.TargetDB:
 			out = append(out, Service{
 				Name:   "Database",
-				Status: serviceStatus(states, "db", "running"),
-				Port:   "3306",
-				Target: "db",
+				Status: serviceStatus(states, conventions.TargetDB, "running"),
+				Port:   strconv.Itoa(conventions.MySQLPort),
+				Target: conventions.TargetDB,
 			})
 		}
 	}
@@ -416,22 +426,22 @@ func summarizeServices(services map[string]bool) string {
 }
 
 var orderedServiceTargets = []string{
-	"web",
-	"php",
-	"db",
-	"redis",
-	"valkey",
-	"elasticsearch",
-	"opensearch",
-	"varnish",
-	"rabbitmq",
-	"mail",
-	"pma",
+	conventions.TargetWeb,
+	conventions.TargetPHP,
+	conventions.TargetDB,
+	conventions.TargetRedis,
+	conventions.TargetValkey,
+	conventions.TargetElasticsearch,
+	conventions.TargetOpenSearch,
+	conventions.TargetVarnish,
+	conventions.TargetRabbitMQ,
+	conventions.TargetMail,
+	conventions.TargetPMA,
 }
 
 func normalizeServiceTargets(discovered map[string]bool) []string {
 	if len(discovered) == 0 {
-		return []string{"web"}
+		return []string{conventions.TargetWeb}
 	}
 
 	var targets []string
@@ -458,7 +468,7 @@ func normalizeServiceTargets(discovered map[string]bool) []string {
 	targets = append(targets, extras...)
 
 	if len(targets) == 0 {
-		return []string{"web"}
+		return []string{conventions.TargetWeb}
 	}
 	return targets
 }

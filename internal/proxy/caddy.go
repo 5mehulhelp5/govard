@@ -11,10 +11,11 @@ import (
 
 const caddyExecRetryAttempts = 8
 const caddyExecRetryDelay = 350 * time.Millisecond
+const caddyAdminAPI = "http://localhost:2019"
 
 var initCaddyCommandRunner = func(container string, initJSON string) error {
 	_, err := runCaddyExec(container, "curl", "-s", "-X", "POST",
-		"http://localhost:2019/load",
+		fmt.Sprintf("%s/load", caddyAdminAPI),
 		"-H", "Content-Type: application/json",
 		"-d", initJSON)
 	if err != nil {
@@ -150,7 +151,7 @@ func EnsureTLS() error {
 }
 
 func fetchCaddyConfig(container string) (map[string]interface{}, error) {
-	output, err := runCaddyExec(container, "curl", "-s", "http://localhost:2019/config/")
+	output, err := runCaddyExec(container, "curl", "-s", fmt.Sprintf("%s/config/", caddyAdminAPI))
 	if err != nil {
 		return nil, fmt.Errorf("fetch caddy config: %w", err)
 	}
@@ -175,7 +176,7 @@ func loadCaddyConfig(container string, config map[string]interface{}) error {
 	}
 
 	if _, err := runCaddyExec(container, "curl", "-s", "-X", "POST",
-		"http://localhost:2019/load",
+		fmt.Sprintf("%s/load", caddyAdminAPI),
 		"-H", "Content-Type: application/json",
 		"-d", string(payload)); err != nil {
 		return fmt.Errorf("caddy load failed: %w", err)

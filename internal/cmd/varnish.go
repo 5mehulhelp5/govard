@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"govard/internal/conventions"
 	"os"
 	"os/exec"
 
@@ -34,7 +35,7 @@ Supports custom utility commands (log, ban, stats) and standard Docker Compose m
 		}
 
 		config := loadConfig()
-		containerName := fmt.Sprintf("%s-varnish-1", config.ProjectName)
+		containerName := fmt.Sprintf("%s%s", config.ProjectName, conventions.VarnishSuffix)
 
 		if len(args) == 0 {
 			return cmd.Help()

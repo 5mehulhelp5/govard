@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"govard/internal/conventions"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -104,13 +105,13 @@ func fixGovardHomeDirectory(check engine.DoctorCheck) DoctorFixResult {
 
 	for _, dir := range dirs {
 		result.Actions = append(result.Actions, fmt.Sprintf("mkdir -p %s", dir))
-		if err := os.MkdirAll(dir, 0o700); err != nil {
+		if err := os.MkdirAll(dir, conventions.SecretDirPerm); err != nil {
 			result.Status = DoctorFixStatusSkipped
 			result.Message = err.Error()
 			return result
 		}
 		result.Actions = append(result.Actions, fmt.Sprintf("chmod 700 %s", dir))
-		if err := os.Chmod(dir, 0o700); err != nil {
+		if err := os.Chmod(dir, conventions.SecretDirPerm); err != nil {
 			result.Status = DoctorFixStatusSkipped
 			result.Message = err.Error()
 			return result
@@ -231,7 +232,7 @@ func tuneProjectProfileCore(check engine.DoctorCheck, forceTune bool, forceOverr
 	}
 
 	// Read original bytes for no-op detection
-	originalBytes, _ := os.ReadFile(engine.BaseConfigFile)
+	originalBytes, _ := os.ReadFile(conventions.BaseConfigFile)
 
 	metadata := engine.DetectFramework(wd)
 	version := strings.TrimSpace(metadata.Version)
@@ -424,7 +425,7 @@ func tuneProjectProfileCore(check engine.DoctorCheck, forceTune bool, forceOverr
 		return result
 	}
 
-	if err := os.WriteFile(engine.BaseConfigFile, updated, 0o644); err != nil {
+	if err := os.WriteFile(conventions.BaseConfigFile, updated, conventions.SecretFilePerm); err != nil {
 		result.Status = DoctorFixStatusFailed
 		result.Message = fmt.Sprintf("failed to write updated config: %v", err)
 		return result
@@ -519,7 +520,7 @@ func fixLegacyConfig(check engine.DoctorCheck) DoctorFixResult {
 		Actions: []string{},
 	}
 
-	data, err := os.ReadFile(engine.BaseConfigFile)
+	data, err := os.ReadFile(conventions.BaseConfigFile)
 	if err != nil {
 		result.Status = DoctorFixStatusFailed
 		result.Message = fmt.Sprintf("failed to read config: %v", err)
@@ -608,7 +609,7 @@ func fixLegacyConfig(check engine.DoctorCheck) DoctorFixResult {
 		return result
 	}
 
-	if err := os.WriteFile(engine.BaseConfigFile, updated, 0o644); err != nil {
+	if err := os.WriteFile(conventions.BaseConfigFile, updated, conventions.SecretFilePerm); err != nil {
 		result.Status = DoctorFixStatusFailed
 		result.Message = fmt.Sprintf("failed to write updated config: %v", err)
 		return result

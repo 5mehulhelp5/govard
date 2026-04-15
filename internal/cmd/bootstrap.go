@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"govard/internal/conventions"
 	"govard/internal/engine"
 
 	"github.com/pterm/pterm"
@@ -275,14 +276,14 @@ Note: -e/--environment accepts remote name aliases (e.g. 'dev' matches a remote 
 }
 
 func ensureBootstrapInit(cmd *cobra.Command, cwd string) error {
-	configPath := filepath.Join(cwd, engine.BaseConfigFile)
+	configPath := filepath.Join(cwd, conventions.BaseConfigFile)
 	if _, err := os.Stat(configPath); err == nil {
 		return nil
 	} else if !errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("failed to check %s: %w", engine.BaseConfigFile, err)
+		return fmt.Errorf("failed to check %s: %w", conventions.BaseConfigFile, err)
 	}
 
-	pterm.Info.Printf("%s not found. Running `govard init` first.\n", engine.BaseConfigFile)
+	pterm.Info.Printf("%s not found. Running `govard init` first.\n", conventions.BaseConfigFile)
 	initArgs := []string{"init"}
 	if bootstrapFramework != "" {
 		initArgs = append(initArgs, "--framework", bootstrapFramework)
@@ -297,7 +298,7 @@ func ensureBootstrapInit(cmd *cobra.Command, cwd string) error {
 }
 
 var phpContainerShellRunner = func(config engine.Config, commandLine string) error {
-	containerName := fmt.Sprintf("%s-php-1", config.ProjectName)
+	containerName := fmt.Sprintf("%s%s", config.ProjectName, conventions.PHPSuffix)
 	dockerArgs := []string{"exec"}
 	if stdinIsTerminal() {
 		dockerArgs = append(dockerArgs, "-it")
@@ -316,7 +317,7 @@ var phpContainerShellRunner = func(config engine.Config, commandLine string) err
 		dockerArgs = append(dockerArgs, "-e", "COMPOSER_AUTH="+string(data))
 	}
 
-	if user := ResolveProjectExecUser(config, "www-data"); strings.TrimSpace(user) != "" {
+	if user := ResolveProjectExecUser(config, conventions.UserWWWData); strings.TrimSpace(user) != "" {
 		dockerArgs = append(dockerArgs, "-u", user)
 	}
 	dockerArgs = append(dockerArgs, "-w", "/", containerName, "sh", "-lc", buildPHPContainerShellCommand(commandLine))
@@ -348,7 +349,7 @@ func runPHPContainerShellCommand(config engine.Config, commandLine string) error
 }
 
 func buildPHPContainerShellCommand(commandLine string) string {
-	return "cd /var/www/html && " + commandLine
+	return "cd " + conventions.DefaultWorkDir + " && " + commandLine
 }
 
 func fileExists(path string) bool {
@@ -357,12 +358,7 @@ func fileExists(path string) bool {
 }
 
 func frameworkRequiresRunningEnvForFreshInstall(framework string) bool {
-	switch strings.ToLower(strings.TrimSpace(framework)) {
-	case "nextjs", "emdash":
-		return false
-	default:
-		return true
-	}
+	return engine.FrameworkRequiresRunningEnvForFreshInstall(framework)
 }
 
 func stringSliceContains(slice []string, item string) bool {
@@ -390,7 +386,7 @@ func shouldRunFrameworkPostClone(config engine.Config, opts BootstrapRuntimeOpti
 	if !opts.ComposerInstall {
 		return false
 	}
-	return config.Framework == "symfony" || config.Framework == "laravel" || config.Framework == "wordpress" || config.Framework == "magento1" || config.Framework == "openmage"
+	return engine.FrameworkSupportsPostClone(config.Framework)
 }
 
 func shouldIgnoreFrameworkPostCloneError(config engine.Config, err error, cwd string) bool {

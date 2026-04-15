@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"govard/internal/conventions"
 	"io"
 	"os"
 	"os/exec"
@@ -17,7 +18,7 @@ import (
 )
 
 func upgradeMagento2(ctx context.Context, config Config, opts UpgradeOptions) error {
-	containerName := fmt.Sprintf("%s-php-1", opts.ProjectName)
+	containerName := fmt.Sprintf("%s%s", opts.ProjectName, conventions.PHPSuffix)
 
 	if opts.TargetVersion == "" {
 		return fmt.Errorf("target version is required. Example: govard upgrade --version=2.4.8-p4")
@@ -71,7 +72,7 @@ func upgradeMagento2(ctx context.Context, config Config, opts UpgradeOptions) er
 			if err != nil {
 				return fmt.Errorf("failed to marshal config: %w", err)
 			}
-			if err := os.WriteFile(filepath.Join(opts.ProjectDir, ".govard.yml"), yamlOut, 0644); err != nil {
+			if err := os.WriteFile(filepath.Join(opts.ProjectDir, ".govard.yml"), yamlOut, conventions.DefaultFilePerm); err != nil {
 				return fmt.Errorf("failed to write .govard.yml: %w", err)
 			}
 		}
@@ -114,7 +115,7 @@ func upgradeMagento2(ctx context.Context, config Config, opts UpgradeOptions) er
 	relaxPackages(containerName)
 
 	// Composer update
-	cmdArgs := []string{"exec", "-w", "/var/www/html", containerName, "composer", "update", "magento/*", "phpunit/*", "--with-all-dependencies"}
+	cmdArgs := []string{"exec", "-w", conventions.DefaultWorkDir, containerName, conventions.BinComposer, "update", "magento/*", "phpunit/*", "--with-all-dependencies"}
 	updateCmd := exec.CommandContext(ctx, "docker", cmdArgs...)
 	updateCmd.Stdout = opts.Stdout
 	updateCmd.Stderr = opts.Stderr
@@ -124,7 +125,7 @@ func upgradeMagento2(ctx context.Context, config Config, opts UpgradeOptions) er
 
 	pterm.Info.Println("Step 5/6: Running setup:upgrade...")
 	if !opts.NoDBUpgrade {
-		suArgs := []string{"exec", "-w", "/var/www/html", containerName, "bin/magento", "setup:upgrade", "--no-interaction"}
+		suArgs := []string{"exec", "-w", conventions.DefaultWorkDir, containerName, conventions.BinMagento, "setup:upgrade", "--no-interaction"}
 		su := exec.CommandContext(ctx, "docker", suArgs...)
 		su.Stdout = opts.Stdout
 		su.Stderr = opts.Stderr
@@ -136,13 +137,13 @@ func upgradeMagento2(ctx context.Context, config Config, opts UpgradeOptions) er
 	}
 
 	pterm.Info.Println("Step 6/6: Compiling and flushing cache...")
-	diArgs := []string{"exec", "-w", "/var/www/html", containerName, "bin/magento", "setup:di:compile"}
+	diArgs := []string{"exec", "-w", conventions.DefaultWorkDir, containerName, conventions.BinMagento, "setup:di:compile"}
 	diCmd := exec.CommandContext(ctx, "docker", diArgs...)
 	if err := diCmd.Run(); err != nil {
 		pterm.Warning.Printf("setup:di:compile failed: %v\n", err)
 	}
 
-	cacheArgs := []string{"exec", "-w", "/var/www/html", containerName, "bin/magento", "cache:flush"}
+	cacheArgs := []string{"exec", "-w", conventions.DefaultWorkDir, containerName, conventions.BinMagento, "cache:flush"}
 	cacheCmd := exec.CommandContext(ctx, "docker", cacheArgs...)
 	if err := cacheCmd.Run(); err != nil {
 		pterm.Warning.Printf("cache:flush failed: %v\n", err)
@@ -156,7 +157,7 @@ func upgradeMagento2(ctx context.Context, config Config, opts UpgradeOptions) er
 }
 
 func getMagentoCurrentVersion(containerName string) (string, error) {
-	cmdArgs := []string{"exec", "-w", "/var/www/html", containerName, "php", "bin/magento", "--version"}
+	cmdArgs := []string{"exec", "-w", conventions.DefaultWorkDir, containerName, "php", conventions.BinMagento, "--version"}
 	out, err := exec.Command("docker", cmdArgs...).CombinedOutput()
 	if err == nil {
 		re := regexp.MustCompile(`\d+\.\d+\.\d+(-p\d+)?`)
@@ -175,20 +176,20 @@ func updateMagentoComposerJson(opts UpgradeOptions, containerName string) error 
 	// Backup
 	b, err := os.ReadFile(composerPath)
 	if err == nil {
-		if err := os.WriteFile(backupPath, b, 0644); err != nil {
+		if err := os.WriteFile(backupPath, b, conventions.DefaultFilePerm); err != nil {
 			pterm.Warning.Printf("Failed to create backup: %v\n", err)
 		}
 	}
 
-	projCmd := exec.Command("docker", "exec", "-w", "/var/www/html", containerName, "composer", "create-project", "--no-install", "--ignore-platform-reqs", "--repository=https://repo.magento.com/", "magento/project-community-edition", "temp_upgrade_source", opts.TargetVersion)
+	projCmd := exec.Command("docker", "exec", "-w", conventions.DefaultWorkDir, containerName, conventions.BinComposer, "create-project", "--no-install", "--ignore-platform-reqs", "--repository=https://repo.magento.com/", "magento/project-community-edition", "temp_upgrade_source", opts.TargetVersion)
 	projCmd.Stdout = opts.Stdout
 	projCmd.Stderr = opts.Stderr
 	if err := projCmd.Run(); err != nil {
 		return fmt.Errorf("failed to fetch composer.json for %s", opts.TargetVersion)
 	}
 
-	newComposerBytes, err := exec.Command("docker", "exec", "-w", "/var/www/html", containerName, "cat", "temp_upgrade_source/composer.json").Output()
-	_ = exec.Command("docker", "exec", "-w", "/var/www/html", containerName, "rm", "-rf", "temp_upgrade_source").Run()
+	newComposerBytes, err := exec.Command("docker", "exec", "-w", conventions.DefaultWorkDir, containerName, "cat", "temp_upgrade_source/composer.json").Output()
+	_ = exec.Command("docker", "exec", "-w", conventions.DefaultWorkDir, containerName, "rm", "-rf", "temp_upgrade_source").Run()
 
 	if err != nil {
 		return fmt.Errorf("failed to read fetched composer.json")
@@ -216,7 +217,7 @@ func updateMagentoComposerJson(opts UpgradeOptions, containerName string) error 
 		return err
 	}
 
-	return os.WriteFile(composerPath, mergedBytes, 0644)
+	return os.WriteFile(composerPath, mergedBytes, conventions.DefaultFilePerm)
 }
 
 func mergeComposerMapKeys(current map[string]interface{}, target map[string]interface{}, key string) {
@@ -265,7 +266,7 @@ func relaxPackages(containerName string) {
 	}
 
 	// Check existing in composer.json
-	cmdGet := exec.Command("docker", "exec", "-w", "/var/www/html", containerName, "cat", "composer.json")
+	cmdGet := exec.Command("docker", "exec", "-w", conventions.DefaultWorkDir, containerName, "cat", "composer.json")
 	out, err := cmdGet.Output()
 	if err != nil {
 		return
@@ -281,7 +282,7 @@ func relaxPackages(containerName string) {
 	}
 
 	if len(toRelax) > 0 {
-		args := append([]string{"exec", "-w", "/var/www/html", containerName, "composer", "require"}, toRelax...)
+		args := append([]string{"exec", "-w", conventions.DefaultWorkDir, containerName, conventions.BinComposer, "require"}, toRelax...)
 		args = append(args, "--no-update")
 		if err := exec.Command("docker", args...).Run(); err != nil {
 			pterm.Warning.Printf("Failed to relax packages: %v\n", err)
@@ -291,7 +292,7 @@ func relaxPackages(containerName string) {
 
 func checkDatabaseReady(ctx context.Context, config Config, containerName string) {
 	for i := 0; i < 30; i++ {
-		cmdArgs := []string{"exec", "-w", "/var/www/html", containerName, "php", "-r", "$m=new mysqli('db', 'magento', 'magento'); if($m->connect_error) exit(1); exit(0);"}
+		cmdArgs := []string{"exec", "-w", conventions.DefaultWorkDir, containerName, "php", "-r", "$m=new mysqli('db', 'magento', 'magento'); if($m->connect_error) exit(1); exit(0);"}
 		out := exec.CommandContext(ctx, "docker", cmdArgs...)
 		if err := out.Run(); err == nil {
 			return
