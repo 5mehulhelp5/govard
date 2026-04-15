@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.49.1] - 2026-04-15
+
+### 🐛 Bug Fixes
+
+- **Remote Synchronization:** Injected `RSYNC_OLD_ARGS=1` environment variable to ensure backward compatibility with `rsync` versions >= 3.2.4 by disabling the strict `--protect-args` default behavior, resolving path quoting failures during file and media sync operations.
+
 ## [1.49.0] - 2026-04-15
 
 ### ✨ New Features
