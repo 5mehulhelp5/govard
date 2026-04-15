@@ -479,7 +479,7 @@ func extractBinaryFromTarGz(archivePath, workDir, binaryName string) (string, er
 			return "", fmt.Errorf("close extracted binary: %w", closeErr)
 		}
 
-		if err := os.Chmod(outPath, conventions.DefaultDirPerm); err != nil {
+		if err := os.Chmod(outPath, conventions.ExecutablePerm); err != nil {
 			return "", fmt.Errorf("set executable bit: %w", err)
 		}
 		return outPath, nil
@@ -528,7 +528,7 @@ func extractBinaryFromZip(archivePath, workDir, binaryName string) (string, erro
 			return "", fmt.Errorf("close extracted binary: %w", closeOutErr)
 		}
 
-		if err := os.Chmod(outPath, conventions.DefaultDirPerm); err != nil {
+		if err := os.Chmod(outPath, conventions.ExecutablePerm); err != nil {
 			return "", fmt.Errorf("set executable bit: %w", err)
 		}
 		return outPath, nil
@@ -565,7 +565,7 @@ func replaceBinary(sourcePath, targetPath string) error {
 		return fmt.Errorf("close temp file: %w", err)
 	}
 
-	if err := os.Chmod(tempPath, conventions.DefaultDirPerm); err != nil {
+	if err := os.Chmod(tempPath, conventions.ExecutablePerm); err != nil {
 		_ = os.Remove(tempPath)
 		return fmt.Errorf("set executable bit on temp file: %w", err)
 	}

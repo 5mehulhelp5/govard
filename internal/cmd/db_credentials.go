@@ -278,7 +278,7 @@ func buildLocalMySQLDumpCommandScript(credentials dbCredentials, noNoise bool, n
 	dbCliDetect := conventions.MySQLDumpBinDetect
 
 	// Common options
-	commonArgs := []string{"\"$DUMP_BIN\"", "--max-allowed-packet=" + conventions.MySQLMaxAllowedPacket, "--force", "--single-transaction", "--no-tablespaces", "-hdb", "-u" + engine.ShellQuote(credentials.Username)}
+	commonArgs := []string{"\"$DUMP_BIN\"", "--max-allowed-packet=" + conventions.MySQLMaxAllowedPacket, "--force", "--single-transaction", "--no-tablespaces", "-h" + conventions.DefaultDBHost, "-u" + engine.ShellQuote(credentials.Username)}
 
 	// Pass 1: Metadata
 	metadataArgs := append([]string{}, commonArgs...)

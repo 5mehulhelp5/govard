@@ -425,7 +425,7 @@ func tuneProjectProfileCore(check engine.DoctorCheck, forceTune bool, forceOverr
 		return result
 	}
 
-	if err := os.WriteFile(conventions.BaseConfigFile, updated, conventions.SecretFilePerm); err != nil {
+	if err := os.WriteFile(conventions.BaseConfigFile, updated, conventions.DefaultFilePerm); err != nil {
 		result.Status = DoctorFixStatusFailed
 		result.Message = fmt.Sprintf("failed to write updated config: %v", err)
 		return result
@@ -609,7 +609,7 @@ func fixLegacyConfig(check engine.DoctorCheck) DoctorFixResult {
 		return result
 	}
 
-	if err := os.WriteFile(conventions.BaseConfigFile, updated, conventions.SecretFilePerm); err != nil {
+	if err := os.WriteFile(conventions.BaseConfigFile, updated, conventions.DefaultFilePerm); err != nil {
 		result.Status = DoctorFixStatusFailed
 		result.Message = fmt.Sprintf("failed to write updated config: %v", err)
 		return result

@@ -15,4 +15,6 @@ const (
 	PublicDirPerm os.FileMode = 0777
 	// PublicFilePerm is the loose permission for public files (e.g. shared logs).
 	PublicFilePerm os.FileMode = 0666
+	// ExecutablePerm is the permission for executable binaries (owner rwx, group/other rx).
+	ExecutablePerm os.FileMode = 0755
 )

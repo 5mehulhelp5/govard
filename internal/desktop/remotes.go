@@ -1375,7 +1375,7 @@ func writeBaseConfig(root string, config engine.Config) error {
 	if err != nil {
 		return fmt.Errorf("marshal config: %w", err)
 	}
-	if err := os.WriteFile(filepath.Join(root, conventions.BaseConfigFile), data, conventions.SecretFilePerm); err != nil {
+	if err := os.WriteFile(filepath.Join(root, conventions.BaseConfigFile), data, conventions.DefaultFilePerm); err != nil {
 		return fmt.Errorf("write %s: %w", conventions.BaseConfigFile, err)
 	}
 	return nil
