@@ -99,6 +99,122 @@ remotes:
 	}
 }
 
+func TestBootstrapCommandBareMediaFlagDoesNotConsumeEnvironmentFlag(t *testing.T) {
+	resetBootstrapFlagsForRuntimeTest(t)
+
+	tempDir := t.TempDir()
+	chdirForTest(t, tempDir)
+	writeRuntimeConfig(t, tempDir, `project_name: sample-project
+domain: sample.test
+framework: laravel
+remotes:
+  staging:
+    host: staging.example.com
+    user: deploy
+    path: /srv/www/staging
+  dev:
+    host: dev.example.com
+    user: deploy
+    path: /srv/www/dev
+`)
+	t.Setenv("HOME", tempDir)
+	if err := os.WriteFile(filepath.Join(tempDir, "composer.json"), []byte("{}\n"), 0o644); err != nil {
+		t.Fatalf("write composer.json: %v", err)
+	}
+
+	calls := make([][]string, 0, 8)
+	defer cmd.SetGovardSubcommandRunnerForTest(func(subCmd *cobra.Command, args ...string) error {
+		captured := make([]string, len(args))
+		copy(captured, args)
+		calls = append(calls, captured)
+		return nil
+	})()
+	defer cmd.SetBootstrapRemoteDirExistsForTest(func(remoteName string, remoteCfg engine.RemoteConfig, remotePath string) bool {
+		return true
+	})()
+	defer cmd.SetPHPContainerShellRunnerForTest(func(config engine.Config, commandLine string) error {
+		return nil
+	})()
+
+	root := cmd.RootCommandForTest()
+	root.SetOut(io.Discard)
+	root.SetErr(io.Discard)
+	root.SetArgs([]string{"bootstrap", "--media", "-e", "dev", "--yes", "--skip-up"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("bootstrap bare --media flow failed: %v", err)
+	}
+
+	want := [][]string{
+		{"remote", "test", "dev"},
+		{"tool", "composer", "install", "-n"},
+		{"tool", "composer", "dump-autoload", "-n"},
+		{"db", "import", "--yes", "--stream-db", "--environment", "dev"},
+		{"tool", "composer", "dump-autoload", "-n"},
+		{"sync", "--source", "dev", "--media", "optimized", "--yes"},
+	}
+	if !reflect.DeepEqual(calls, want) {
+		t.Fatalf("subcommand calls = %#v, want %#v", calls, want)
+	}
+}
+
+func TestBootstrapCommandExplicitMediaModeStillParsesWithSpaceSeparatedValue(t *testing.T) {
+	resetBootstrapFlagsForRuntimeTest(t)
+
+	tempDir := t.TempDir()
+	chdirForTest(t, tempDir)
+	writeRuntimeConfig(t, tempDir, `project_name: sample-project
+domain: sample.test
+framework: laravel
+remotes:
+  staging:
+    host: staging.example.com
+    user: deploy
+    path: /srv/www/staging
+  dev:
+    host: dev.example.com
+    user: deploy
+    path: /srv/www/dev
+`)
+	t.Setenv("HOME", tempDir)
+	if err := os.WriteFile(filepath.Join(tempDir, "composer.json"), []byte("{}\n"), 0o644); err != nil {
+		t.Fatalf("write composer.json: %v", err)
+	}
+
+	calls := make([][]string, 0, 8)
+	defer cmd.SetGovardSubcommandRunnerForTest(func(subCmd *cobra.Command, args ...string) error {
+		captured := make([]string, len(args))
+		copy(captured, args)
+		calls = append(calls, captured)
+		return nil
+	})()
+	defer cmd.SetBootstrapRemoteDirExistsForTest(func(remoteName string, remoteCfg engine.RemoteConfig, remotePath string) bool {
+		return true
+	})()
+	defer cmd.SetPHPContainerShellRunnerForTest(func(config engine.Config, commandLine string) error {
+		return nil
+	})()
+
+	root := cmd.RootCommandForTest()
+	root.SetOut(io.Discard)
+	root.SetErr(io.Discard)
+	root.SetArgs([]string{"bootstrap", "--media", "all", "-e", "dev", "--yes", "--skip-up"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("bootstrap explicit --media all flow failed: %v", err)
+	}
+
+	want := [][]string{
+		{"remote", "test", "dev"},
+		{"tool", "composer", "install", "-n"},
+		{"tool", "composer", "dump-autoload", "-n"},
+		{"db", "import", "--yes", "--stream-db", "--environment", "dev"},
+		{"tool", "composer", "dump-autoload", "-n"},
+		{"sync", "--source", "dev", "--media", "all", "--yes"},
+	}
+	if !reflect.DeepEqual(calls, want) {
+		t.Fatalf("subcommand calls = %#v, want %#v", calls, want)
+	}
+}
+
 func TestBootstrapCommandRuntimeMagento1RemoteFlowUsesConfigAuto(t *testing.T) {
 	resetBootstrapFlagsForRuntimeTest(t)
 

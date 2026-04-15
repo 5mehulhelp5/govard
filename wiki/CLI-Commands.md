@@ -299,6 +299,7 @@ govard sync --db --no-noise --no-pii
 ```
 
 Auto-selects `staging` remote if no `--source` is provided, falling back to `dev`.
+When `--media` is used without a mode, Govard defaults it to `optimized`.
 
 **Key flags:**
 
@@ -310,7 +311,7 @@ Auto-selects `staging` remote if no `--source` is provided, falling back to `dev
 | `--plan` | Print plan and exit |
 | `-I, --include` | Rsync include pattern (repeatable) |
 | `-X, --exclude` | Rsync exclude pattern (repeatable) |
-| `-m, --media [mode]` | Media sync scope (`none`, `minimal`, `optimized`, `all`) |
+| `-m, --media [mode]` | Media sync scope (`none`, `minimal`, `optimized`, `all`); bare `--media` defaults to `optimized` |
 | `-N, --no-noise` | Exclude ephemeral data |
 | `-P, --no-pii` | Exclude sensitive data |
 

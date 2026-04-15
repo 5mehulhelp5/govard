@@ -137,7 +137,7 @@ Note: -e/--environment accepts remote name aliases (e.g. 'dev' matches a remote 
 			}
 		}()
 
-		opts, err := resolveBootstrapOptions(cmd)
+		opts, err := resolveBootstrapOptions(cmd, args)
 		if err != nil {
 			return err
 		}
@@ -498,7 +498,10 @@ func init() {
 	bootstrapCmd.Flags().BoolVar(&bootstrapSkipDB, "no-db", false, "Skip database import")
 	bootstrapCmd.Flags().BoolVar(&bootstrapNoStreamDB, "no-stream-db", false, "Disable stream-db import mode")
 	bootstrapCmd.Flags().BoolVar(&bootstrapSkipMedia, "no-media", false, "Skip media sync")
-	bootstrapCmd.Flags().StringVar(&bootstrapMediaModeFlag, "media", "", "Media sync mode: optimized (default for remote), all, catalog (Magento only), minimal, or none")
+	bootstrapCmd.Flags().StringVar(&bootstrapMediaModeFlag, "media", "", "Media sync mode: optimized (default when used without a value), all, catalog (Magento only), minimal, or none")
+	if mediaFlag := bootstrapCmd.Flags().Lookup("media"); mediaFlag != nil {
+		mediaFlag.NoOptDefVal = MediaSyncOptimized
+	}
 	bootstrapCmd.Flags().BoolVar(&bootstrapSkipAdmin, "no-admin", false, "Skip admin user creation (Magento only)")
 
 	// 5. Privacy & Data Filtering

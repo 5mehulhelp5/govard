@@ -246,8 +246,11 @@ Plan and run a safe sync:
 ```bash
 govard sync --source staging --destination local --full --plan
 govard sync --source staging --destination local --full
+govard sync --source dev --media
 govard sync --source prod --file --path "app/etc/config.php"
 ```
+
+`--media` can be used without an explicit mode and defaults to `optimized`.
 
 Inspect remote audit events:
 

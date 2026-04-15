@@ -80,6 +80,7 @@ govard sync -s prod --file --path app/etc/config.php
 ```
 
 Auto-selects `staging` if no `--source` provided, falling back to `dev`.
+Bare `--media` defaults to the `optimized` media mode.
 
 ### Endpoint Flags
 
@@ -95,7 +96,7 @@ Auto-selects `staging` if no `--source` provided, falling back to `dev`.
 | :--- | :--- |
 | `-A, --full` | Everything (files + media + database) |
 | `-f, --file` | Source code and generic files |
-| `-m, --media` | Framework-specific media assets |
+| `-m, --media [mode]` | Framework-specific media assets; bare `--media` defaults to `optimized` |
 | `-b, --db` | Project database |
 
 ### Transfer Flags

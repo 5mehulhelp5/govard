@@ -110,6 +110,7 @@ Case Studies:
 		noNoise, _ := cmd.Flags().GetBool("no-noise")
 		noPII, _ := cmd.Flags().GetBool("no-pii")
 		mediaMode, _ := cmd.Flags().GetString("media")
+		mediaMode = resolveMediaModeFlagValue(cmd, mediaMode, args)
 		includePatternsRaw, _ := cmd.Flags().GetStringArray("include")
 		excludePatternsRaw, _ := cmd.Flags().GetStringArray("exclude")
 		includePatterns := normalizeSyncPatterns(includePatternsRaw)
@@ -351,7 +352,10 @@ func init() {
 	// 2. Resource Scopes
 	syncCmd.Flags().BoolP("full", "A", false, "Sync files, media, and database")
 	syncCmd.Flags().BoolP("file", "f", false, "Sync source code/files")
-	syncCmd.Flags().StringP("media", "m", "", "Sync media files (modes: optimized, all, catalog, minimal, or none)")
+	syncCmd.Flags().StringP("media", "m", "", "Sync media files (default: optimized when used without a value; modes: optimized, all, catalog, minimal, or none)")
+	if mediaFlag := syncCmd.Flags().Lookup("media"); mediaFlag != nil {
+		mediaFlag.NoOptDefVal = MediaSyncOptimized
+	}
 	syncCmd.Flags().BoolP("db", "b", false, "Sync database")
 
 	// 3. Filters & Paths

@@ -36,7 +36,7 @@ type BootstrapRuntimeOptions struct {
 	ExcludePatterns []string
 }
 
-func resolveBootstrapOptions(cmd *cobra.Command) (BootstrapRuntimeOptions, error) {
+func resolveBootstrapOptions(cmd *cobra.Command, args []string) (BootstrapRuntimeOptions, error) {
 	opts := BootstrapRuntimeOptions{
 		Source:          normalizeBootstrapSource(bootstrapEnv),
 		Clone:           bootstrapClone,
@@ -64,6 +64,7 @@ func resolveBootstrapOptions(cmd *cobra.Command) (BootstrapRuntimeOptions, error
 		NoCompress:      bootstrapNoCompress,
 		ExcludePatterns: bootstrapExclude,
 	}
+	opts.MediaSync = resolveMediaModeFlagValue(cmd, opts.MediaSync, args)
 
 	if opts.MetaPackage == "" {
 		opts.MetaPackage = defaultBootstrapMetaPackage

@@ -86,6 +86,58 @@ func TestSyncCommandSourceWinsOverLegacyEnvironmentAlias(t *testing.T) {
 	}
 }
 
+func TestSyncCommandBareMediaFlagDoesNotConsumeEnvironmentFlag(t *testing.T) {
+	resetSyncFlagsForAliasTest(t)
+
+	tempDir := t.TempDir()
+	writeSyncAliasConfig(t, tempDir)
+	chdirForTest(t, tempDir)
+
+	root := cmd.RootCommandForTest()
+	buf := &bytes.Buffer{}
+	root.SetOut(buf)
+	root.SetErr(io.Discard)
+	root.SetArgs([]string{"sync", "--plan", "--media", "-e", "dev"})
+
+	if err := root.Execute(); err != nil {
+		t.Fatalf("execute: %v", err)
+	}
+
+	out := buf.String()
+	if !strings.Contains(out, "Source:      dev") {
+		t.Fatalf("expected bare --media to keep -e bound to dev, got: %s", out)
+	}
+	if !strings.Contains(out, "Scopes:      media (optimized)") {
+		t.Fatalf("expected media scope when bare --media is used, got: %s", out)
+	}
+}
+
+func TestSyncCommandExplicitMediaModeStillParsesWithSpaceSeparatedValue(t *testing.T) {
+	resetSyncFlagsForAliasTest(t)
+
+	tempDir := t.TempDir()
+	writeSyncAliasConfig(t, tempDir)
+	chdirForTest(t, tempDir)
+
+	root := cmd.RootCommandForTest()
+	buf := &bytes.Buffer{}
+	root.SetOut(buf)
+	root.SetErr(io.Discard)
+	root.SetArgs([]string{"sync", "--plan", "--media", "all", "-e", "dev"})
+
+	if err := root.Execute(); err != nil {
+		t.Fatalf("execute: %v", err)
+	}
+
+	out := buf.String()
+	if !strings.Contains(out, "Source:      dev") {
+		t.Fatalf("expected source to remain dev when --media all is used, got: %s", out)
+	}
+	if !strings.Contains(out, "Scopes:      media (all)") {
+		t.Fatalf("expected explicit media mode all, got: %s", out)
+	}
+}
+
 func TestResetSyncFlagsForTestClearsStringArrayFlags(t *testing.T) {
 	resetSyncFlagsForAliasTest(t)
 
