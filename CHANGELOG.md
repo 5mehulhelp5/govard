@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.49.0] - 2026-04-15
+
+### ✨ New Features
+
+- **Apache Configuration:** Added `index.php` rewrite rules and explicit `PATH_INFO` support for legacy Magento 1 environments.
+- **Magento 1 Support:** Improved environment bootstrap logic and path resolution for legacy framework versions.
+- **Configuration Registry:** Externalized framework configuration into a centralized JSON manifest and migrated synchronization logic to a high-performance engine-based provider.
+- **Composer Management:** Implemented profile-aware raw configuration loading and dynamic Composer patch version resolution for improved stack accuracy.
+
+### 🛠 Improvements
+
+- **Environment Infrastructure:** Incremented internal `BlueprintVersion` to **1.39**, triggering automatic re-renders for improved Apache compatibility.
+- **Security & Permissions:** Standardized file and directory permissions using a new bootstrap security package and implemented defense-in-depth shell injection protection for all database queries.
+
+### 🔄 Refactors
+
+- **Core Conventions:** Consolidated all hardcoded project naming, binary conventions, file permissions, and path constants into a new centralized `conventions` package.
+- **Dynamic Paths:** Replaced static path definitions with dynamic `WorkDir` and `HomeWWWData` variables across the engine and Docker configurations for improved portability.
+
 ## [1.48.2] - 2026-04-14
 
 ### ✨ New Features
