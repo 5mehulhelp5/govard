@@ -59,7 +59,20 @@ func ensureBootstrapMagentoEnvPHP(config engine.Config, opts BootstrapRuntimeOpt
 	containerName := fmt.Sprintf("%s%s", config.ProjectName, conventions.DBSuffix)
 	localDB := resolveLocalDBCredentials(config, containerName)
 
-	template := fmt.Sprintf(`<?php
+	template := buildBootstrapMagentoEnvPHP(cryptKey, localDB)
+
+	if err := os.WriteFile(envPath, []byte(template), conventions.DefaultFilePerm); err != nil {
+		return fmt.Errorf("failed to write app/etc/env.php: %w", err)
+	}
+
+	pterm.Info.Println("Generated local app/etc/env.php for bootstrap.")
+	return nil
+}
+
+func buildBootstrapMagentoEnvPHP(cryptKey string, localDB dbCredentials) string {
+	localDB = localDB.withDefaults()
+
+	return fmt.Sprintf(`<?php
 return [
     'backend' => [
         'frontName' => 'admin'
@@ -71,14 +84,14 @@ return [
         'table_prefix' => '',
         'connection' => [
             'default' => [
-                'host' => '"+conventions.DefaultMagentoDBHost+"',
+                'host' => %q,
                 'dbname' => %q,
                 'username' => %q,
                 'password' => %q,
                 'active' => '1'
             ],
             'indexer' => [
-                'host' => 'db',
+                'host' => %q,
                 'dbname' => %q,
                 'username' => %q,
                 'password' => %q,
@@ -101,16 +114,11 @@ return [
     ]
 ];
 `, cryptKey,
+		conventions.DefaultMagentoDBHost,
 		localDB.Database, localDB.Username, localDB.Password,
+		conventions.DefaultMagentoDBHost,
 		localDB.Database, localDB.Username, localDB.Password,
 	)
-
-	if err := os.WriteFile(envPath, []byte(template), conventions.DefaultFilePerm); err != nil {
-		return fmt.Errorf("failed to write app/etc/env.php: %w", err)
-	}
-
-	pterm.Info.Println("Generated local app/etc/env.php for bootstrap.")
-	return nil
 }
 
 func runMagentoSearchHostFixViaCLI(cmd *cobra.Command, config engine.Config) error {
@@ -126,4 +134,12 @@ func runMagentoSearchHostFixViaCLI(cmd *cobra.Command, config engine.Config) err
 		pterm.Warning.Printf("Could not fix search host via 'govard db query' (continuing): %v\n", err)
 	}
 	return err
+}
+
+func BuildBootstrapMagentoEnvPHPForTest(cryptKey, database, username, password string) string {
+	return buildBootstrapMagentoEnvPHP(cryptKey, dbCredentials{
+		Database: database,
+		Username: username,
+		Password: password,
+	})
 }

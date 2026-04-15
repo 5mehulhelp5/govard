@@ -70,11 +70,16 @@ var selfUpdateCmd = &cobra.Command{
 		}
 
 		client := &http.Client{Timeout: 300 * time.Second}
-		releaseTag := normalizeReleaseTag(selfUpdateVersion)
+		releaseTag := ""
 		repo := selfUpdateRepo()
 
 		var err error
-		if releaseTag == "" {
+		if strings.TrimSpace(selfUpdateVersion) != "" {
+			releaseTag, err = validateReleaseTag(selfUpdateVersion)
+			if err != nil {
+				return err
+			}
+		} else {
 			pterm.Info.Println("Resolving latest release...")
 			releaseTag, err = fetchLatestReleaseTag(client, repo)
 			if err != nil {
@@ -225,6 +230,17 @@ func isValidReleaseTag(tag string) bool {
 	return matched
 }
 
+func validateReleaseTag(tag string) (string, error) {
+	normalized := normalizeReleaseTag(tag)
+	if normalized == "" {
+		return "", errors.New("release tag is empty")
+	}
+	if !isValidReleaseTag(normalized) {
+		return "", fmt.Errorf("invalid release tag: %q", tag)
+	}
+	return normalized, nil
+}
+
 func selfUpdateRepo() string {
 	repo := strings.TrimSpace(os.Getenv(selfUpdateRepoEnvVar))
 	if repo == "" {
@@ -274,9 +290,9 @@ func fetchLatestReleaseTag(client *http.Client, repo string) (string, error) {
 		return "", fmt.Errorf("decode latest release payload: %w", err)
 	}
 
-	tag := normalizeReleaseTag(release.TagName)
-	if !isValidReleaseTag(tag) {
-		return "", fmt.Errorf("invalid release tag received from upstream: %q", tag)
+	tag, err := validateReleaseTag(release.TagName)
+	if err != nil {
+		return "", fmt.Errorf("invalid release tag received from upstream: %w", err)
 	}
 
 	cacheData.Tag = tag
@@ -306,10 +322,11 @@ func buildReleaseAssetName(binaryName, releaseTag, goos, goarch string) (string,
 		return "", "", fmt.Errorf("unsupported OS: %s", goos)
 	}
 
-	versionNoPrefix := strings.TrimPrefix(normalizeReleaseTag(releaseTag), "v")
-	if versionNoPrefix == "" {
-		return "", "", errors.New("release tag is empty")
+	validReleaseTag, err := validateReleaseTag(releaseTag)
+	if err != nil {
+		return "", "", err
 	}
+	versionNoPrefix := strings.TrimPrefix(validReleaseTag, "v")
 
 	if goos == "windows" {
 		return fmt.Sprintf("%s_%s_%s_%s.zip", binaryName, versionNoPrefix, osLabel, goarch), binaryName + ".exe", nil
@@ -904,6 +921,11 @@ func installViaDeb(client *http.Client, checksumsBody, baseURL, releaseTag, work
 // NormalizeReleaseTagForTest exposes normalizeReleaseTag for tests in /tests.
 func NormalizeReleaseTagForTest(tag string) string {
 	return normalizeReleaseTag(tag)
+}
+
+// ValidateReleaseTagForTest exposes validateReleaseTag for tests in /tests.
+func ValidateReleaseTagForTest(tag string) (string, error) {
+	return validateReleaseTag(tag)
 }
 
 // BuildReleaseAssetNameForTest exposes buildReleaseAssetName for tests in /tests.

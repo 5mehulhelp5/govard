@@ -1075,7 +1075,7 @@ func TestRenderMagento1BlueprintApacheWithRenderedHTTPDConfig(t *testing.T) {
 	}
 	configStr := string(configContent)
 
-	for _, expected := range []string{`DocumentRoot "/var/www/html/"`, `IncludeOptional conf/extra/mage-run-map.conf`, `<Directory "/var/www/html/">`} {
+	for _, expected := range []string{`DocumentRoot "/var/www/html/"`, `IncludeOptional conf/extra/mage-run-map.conf`, `<Directory "/var/www/html/">`, `AcceptPathInfo On`, `RewriteRule ^/index\.php/(.*)$ /index.php [L]`} {
 		if !strings.Contains(configStr, expected) {
 			t.Fatalf("expected rendered apache httpd.conf to contain %q, got:\n%s", expected, configStr)
 		}

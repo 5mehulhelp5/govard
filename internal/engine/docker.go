@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os/exec"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -190,11 +191,18 @@ func GetRunningProjectNames(ctx context.Context) ([]string, error) {
 		return nil, fmt.Errorf("failed to list containers: %w", err)
 	}
 
-	projectMap := make(map[string]bool)
+	return runningProjectNamesFromContainers(containers), nil
+}
+
+func runningProjectNamesFromContainers(containers []container.Summary) []string {
+	projectMap := make(map[string]struct{})
 	for _, c := range containers {
-		// Prefer Docker Compose project label for high fidelity detection
-		if projectName, ok := c.Labels["com.docker.compose.project"]; ok && projectName != "" {
-			projectMap[projectName] = true
+		projectName := strings.TrimSpace(c.Labels["com.docker.compose.project"])
+		serviceName := strings.TrimSpace(c.Labels["com.docker.compose.service"])
+		if projectName != "" && serviceName != "" {
+			if isGovardProjectService(serviceName) {
+				projectMap[projectName] = struct{}{}
+			}
 			continue
 		}
 
@@ -205,8 +213,8 @@ func GetRunningProjectNames(ctx context.Context) ([]string, error) {
 			if len(parts) >= 3 {
 				projectName := strings.Join(parts[:len(parts)-2], "-")
 				serviceName := parts[len(parts)-2]
-				if serviceName == "web" || serviceName == "php" || serviceName == "db" {
-					projectMap[projectName] = true
+				if isGovardProjectService(serviceName) {
+					projectMap[projectName] = struct{}{}
 				}
 			}
 		}
@@ -216,5 +224,19 @@ func GetRunningProjectNames(ctx context.Context) ([]string, error) {
 	for p := range projectMap {
 		projects = append(projects, p)
 	}
-	return projects, nil
+	sort.Strings(projects)
+	return projects
+}
+
+func isGovardProjectService(serviceName string) bool {
+	switch strings.TrimSpace(serviceName) {
+	case "web", "php", "db":
+		return true
+	default:
+		return false
+	}
+}
+
+func GetRunningProjectNamesFromContainersForTest(containers []container.Summary) []string {
+	return runningProjectNamesFromContainers(containers)
 }
