@@ -15,14 +15,21 @@ func TestMagentoProfileShiftDetection(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	cwd, _ := os.Getwd()
-	defer os.Chdir(cwd)
-	os.Chdir(tmpDir)
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = os.Chdir(cwd) }()
 
 	// Mock Registry
 	registryPath := filepath.Join(tmpDir, "projects.json")
-	os.Setenv("GOVARD_PROJECT_REGISTRY_PATH", registryPath)
-	defer os.Unsetenv("GOVARD_PROJECT_REGISTRY_PATH")
+	if err := os.Setenv("GOVARD_PROJECT_REGISTRY_PATH", registryPath); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = os.Unsetenv("GOVARD_PROJECT_REGISTRY_PATH") }()
 
 	registry := struct {
 		Version  int                           `json:"version"`
@@ -39,13 +46,13 @@ func TestMagentoProfileShiftDetection(t *testing.T) {
 		},
 	}
 	regData, _ := json.Marshal(registry)
-	os.WriteFile(registryPath, regData, 0644)
+	_ = os.WriteFile(registryPath, regData, 0644)
 
 	// Case 1: No change
 	config := engine.Config{}
 	config.Stack.PHPVersion = "8.2"
 	config.Profile = "default"
-	
+
 	shifted, reason := engine.CheckMagentoProfileShiftCleanupForTest(config)
 	if shifted {
 		t.Errorf("Expected no shift, got %v: %s", shifted, reason)

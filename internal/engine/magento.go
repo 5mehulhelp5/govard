@@ -878,7 +878,7 @@ func checkMagentoProfileShiftCleanup(config Config) (bool, string) {
 
 func wipeMagentoGeneratedCaches(projectName string, config Config) error {
 	containerName := fmt.Sprintf("%s%s", projectName, conventions.PHPSuffix)
-	// We wipe generated and cache dirs. 
+	// We wipe generated and cache dirs.
 	// rm -rf is safe because ensureMagentoLocalWritableDirs will recreate them if needed.
 	script := "rm -rf generated/code/* generated/metadata/* var/cache/* var/page_cache/* var/view_preprocessed/*"
 	args := magentoDockerExecArgs(containerName, config, "sh", "-c", script)
@@ -1063,6 +1063,7 @@ func BuildMagento1StoreBaseURLSQLStatements(scopeCode string, baseURL string, db
 		),
 	}
 }
+
 // CheckMagentoProfileShiftCleanupForTest exposes checkMagentoProfileShiftCleanup for testing.
 func CheckMagentoProfileShiftCleanupForTest(config Config) (bool, string) {
 	return checkMagentoProfileShiftCleanup(config)
