@@ -31,7 +31,12 @@ func MagentoConfigCommandsForTest(projectName string, config Config) []magentoCo
 }
 
 func ConfigureMagento(projectName string, config Config) error {
-	pterm.Info.Println("Configuring Magento 2 environment...")
+	wasShifted, reason := checkMagentoProfileShiftCleanup(config)
+	if !wasShifted {
+		return nil
+	}
+
+	pterm.Info.Printf("Configuring Magento 2 environment (%s)...\n", reason)
 
 	if patched, err := patchMagentoElasticsearchSchemaForLibxml(); err != nil {
 		pterm.Warning.Printf("Could not apply Magento XML schema compatibility patch (continuing): %v\n", err)
@@ -43,28 +48,26 @@ func ConfigureMagento(projectName string, config Config) error {
 		pterm.Warning.Printf("Could not fix project permissions (continuing): %v\n", err)
 	}
 
-	if wasShifted, reason := checkMagentoProfileShiftCleanup(config); wasShifted {
-		pterm.Info.Printf("Detecting runtime shift (%s). Cleaning up stale Magento assets...\n", reason)
-		if wipeErr := wipeMagentoGeneratedCaches(projectName, config); wipeErr != nil {
-			pterm.Warning.Printf("Could not wipe stale caches: %v\n", wipeErr)
-		} else {
-			pterm.Success.Println("Stale Magento assets (generated/code, var/cache) cleared.")
-		}
+	pterm.Info.Printf("Detecting runtime shift (%s). Cleaning up stale Magento assets...\n", reason)
+	if wipeErr := wipeMagentoGeneratedCaches(projectName, config); wipeErr != nil {
+		pterm.Warning.Printf("Could not wipe stale caches: %v\n", wipeErr)
+	} else {
+		pterm.Success.Println("Stale Magento assets (generated/code, var/cache) cleared.")
+	}
 
-		pterm.Info.Println("Running composer install for the new profile environment...")
-		if compErr := runMagentoComposerInstall(projectName, config); compErr != nil {
-			pterm.Warning.Printf("Composer install failed (continuing): %v\n", compErr)
-		} else {
-			pterm.Success.Println("Composer dependencies synchronized.")
-		}
+	pterm.Info.Println("Running composer install for the new profile environment...")
+	if compErr := runMagentoComposerInstall(projectName, config); compErr != nil {
+		pterm.Warning.Printf("Composer install failed (continuing): %v\n", compErr)
+	} else {
+		pterm.Success.Println("Composer dependencies synchronized.")
+	}
 
-		if config.Stack.Features.Cache || config.Stack.Services.Cache != "none" {
-			pterm.Info.Println("Flushing Redis cache for the new profile...")
-			if redisErr := flushMagentoRedisCache(projectName, config); redisErr != nil {
-				pterm.Warning.Printf("Could not flush Redis: %v\n", redisErr)
-			} else {
-				pterm.Success.Println("Redis cache flushed.")
-			}
+	if config.Stack.Features.Cache || config.Stack.Services.Cache != "none" {
+		pterm.Info.Println("Flushing Redis cache for the new profile...")
+		if redisErr := flushMagentoRedisCache(projectName, config); redisErr != nil {
+			pterm.Warning.Printf("Could not flush Redis: %v\n", redisErr)
+		} else {
+			pterm.Success.Println("Redis cache flushed.")
 		}
 	}
 
@@ -849,21 +852,28 @@ func checkMagentoProfileShiftCleanup(config Config) (bool, string) {
 
 	previousPHP := ""
 	previousProfile := ""
+	foundPrevious := false
 
 	lockFile, err := ReadLockFile(LockFilePath(cwd))
 	if err == nil {
 		previousPHP = strings.TrimSpace(lockFile.Stack.PHPVersion)
 		previousProfile = strings.TrimSpace(lockFile.Project.Profile)
+		foundPrevious = true
 	} else {
 		// Fallback to project registry
 		if entry, ok := GetProjectRegistryEntry(cwd); ok {
 			previousPHP = strings.TrimSpace(entry.PHPVersion)
 			previousProfile = strings.TrimSpace(entry.Profile)
+			foundPrevious = true
 		}
 	}
 
 	currentPHP := strings.TrimSpace(config.Stack.PHPVersion)
 	currentProfile := strings.TrimSpace(config.Profile)
+
+	if !foundPrevious {
+		return true, "Initial configuration"
+	}
 
 	if previousPHP != "" && currentPHP != "" && previousPHP != currentPHP {
 		return true, fmt.Sprintf("PHP version changed: %s -> %s", previousPHP, currentPHP)
