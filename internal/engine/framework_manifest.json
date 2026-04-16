@@ -191,6 +191,7 @@
         "magento_logging_event",
         "magento_logging_event_changes",
         "magento_login_as_customer_log",
+        "magento_operation",
         "mageplaza_smtp_log",
         "mailchimp_errors",
         "mailchimp_sync_batches",
