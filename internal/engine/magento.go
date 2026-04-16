@@ -43,6 +43,31 @@ func ConfigureMagento(projectName string, config Config) error {
 		pterm.Warning.Printf("Could not fix project permissions (continuing): %v\n", err)
 	}
 
+	if wasShifted, reason := checkMagentoProfileShiftCleanup(config); wasShifted {
+		pterm.Info.Printf("Detecting runtime shift (%s). Cleaning up stale Magento assets...\n", reason)
+		if wipeErr := wipeMagentoGeneratedCaches(projectName, config); wipeErr != nil {
+			pterm.Warning.Printf("Could not wipe stale caches: %v\n", wipeErr)
+		} else {
+			pterm.Success.Println("Stale Magento assets (generated/code, var/cache) cleared.")
+		}
+
+		pterm.Info.Println("Running composer install for the new profile environment...")
+		if compErr := runMagentoComposerInstall(projectName, config); compErr != nil {
+			pterm.Warning.Printf("Composer install failed (continuing): %v\n", compErr)
+		} else {
+			pterm.Success.Println("Composer dependencies synchronized.")
+		}
+
+		if config.Stack.Features.Cache || config.Stack.Services.Cache != "none" {
+			pterm.Info.Println("Flushing Redis cache for the new profile...")
+			if redisErr := flushMagentoRedisCache(projectName, config); redisErr != nil {
+				pterm.Warning.Printf("Could not flush Redis: %v\n", redisErr)
+			} else {
+				pterm.Success.Println("Redis cache flushed.")
+			}
+		}
+	}
+
 	// Proactively unblock search index (safe via curl, not a DB query)
 	if config.Stack.Features.Search || config.Stack.Services.Search != "none" {
 		if err := FixElasticsearchIndexBlock(projectName, config); err != nil {
@@ -816,6 +841,80 @@ echo implode(',', $found);
 	return results, nil
 }
 
+func checkMagentoProfileShiftCleanup(config Config) (bool, string) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return false, ""
+	}
+
+	previousPHP := ""
+	previousProfile := ""
+
+	lockFile, err := ReadLockFile(LockFilePath(cwd))
+	if err == nil {
+		previousPHP = strings.TrimSpace(lockFile.Stack.PHPVersion)
+		previousProfile = strings.TrimSpace(lockFile.Project.Profile)
+	} else {
+		// Fallback to project registry
+		if entry, ok := GetProjectRegistryEntry(cwd); ok {
+			previousPHP = strings.TrimSpace(entry.PHPVersion)
+			previousProfile = strings.TrimSpace(entry.Profile)
+		}
+	}
+
+	currentPHP := strings.TrimSpace(config.Stack.PHPVersion)
+	currentProfile := strings.TrimSpace(config.Profile)
+
+	if previousPHP != "" && currentPHP != "" && previousPHP != currentPHP {
+		return true, fmt.Sprintf("PHP version changed: %s -> %s", previousPHP, currentPHP)
+	}
+
+	if previousProfile != currentProfile {
+		return true, fmt.Sprintf("Profile changed: %q -> %q", previousProfile, currentProfile)
+	}
+
+	return false, ""
+}
+
+func wipeMagentoGeneratedCaches(projectName string, config Config) error {
+	containerName := fmt.Sprintf("%s%s", projectName, conventions.PHPSuffix)
+	// We wipe generated and cache dirs. 
+	// rm -rf is safe because ensureMagentoLocalWritableDirs will recreate them if needed.
+	script := "rm -rf generated/code/* generated/metadata/* var/cache/* var/page_cache/* var/view_preprocessed/*"
+	args := magentoDockerExecArgs(containerName, config, "sh", "-c", script)
+	output, err := exec.Command("docker", args...).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("wipe failed: %w\nOutput: %s", err, string(output))
+	}
+	return nil
+}
+
+func runMagentoComposerInstall(projectName string, config Config) error {
+	containerName := fmt.Sprintf("%s%s", projectName, conventions.PHPSuffix)
+	// We run composer install with --no-interaction to avoid blocking.
+	// We use --ignore-platform-reqs and disable platform-check because shifting between PHP versions
+	// might cause temporary platform check failures before the environment is fully stable.
+	// This ensures the autoloader doesn't throw Fatal Error if PHP versions don't match exactly.
+	script := "composer config platform-check false && composer install --no-interaction --no-progress --optimize-autoloader --ignore-platform-reqs"
+	args := magentoDockerExecArgs(containerName, config, "sh", "-c", script)
+	output, err := exec.Command("docker", args...).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("composer install failed: %w\nOutput: %s", err, string(output))
+	}
+	return nil
+}
+
+func flushMagentoRedisCache(projectName string, config Config) error {
+	containerName := fmt.Sprintf("%s%s", projectName, conventions.RedisSuffix)
+	// We use redis-cli flushall to clear all databases (Magento often uses multiple DBs for different caches).
+	args := []string{"exec", containerName, "redis-cli", "flushall"}
+	output, err := exec.Command("docker", args...).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("redis flush failed: %w\nOutput: %s", err, string(output))
+	}
+	return nil
+}
+
 func prepareMagentoRunMappingAssets(config Config) (string, string, error) {
 	if !isMagentoFramework(config.Framework) || strings.TrimSpace(config.ProjectName) == "" {
 		return "", "", nil
@@ -963,4 +1062,8 @@ func BuildMagento1StoreBaseURLSQLStatements(scopeCode string, baseURL string, db
 			configTable, conventions.ShellQuote(baseURL), scopeTable, conventions.ShellQuote(scopeCode), configTable,
 		),
 	}
+}
+// CheckMagentoProfileShiftCleanupForTest exposes checkMagentoProfileShiftCleanup for testing.
+func CheckMagentoProfileShiftCleanupForTest(config Config) (bool, string) {
+	return checkMagentoProfileShiftCleanup(config)
 }

@@ -164,6 +164,46 @@ func IsContainerRunning(ctx context.Context, name string) bool {
 	return false
 }
 
+func IsVolumeEmpty(volumeName string) (bool, error) {
+	// We check if the volume exists first
+	cmdInspect := exec.Command("docker", "volume", "inspect", volumeName)
+	if err := cmdInspect.Run(); err != nil {
+		return true, nil // Doesn't exist, treat as empty
+	}
+
+	// Run a tiny container to check for files
+	// We skip 'lost+found' if it exists
+	cmd := exec.Command("docker", "run", "--rm", "-v", fmt.Sprintf("%s:/data:ro", volumeName), "alpine", "sh", "-c", "ls -A /data | grep -v 'lost+found' | wc -l")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return false, fmt.Errorf("failed to check volume: %w (%s)", err, strings.TrimSpace(string(output)))
+	}
+
+	countStr := strings.TrimSpace(string(output))
+	count, err := strconv.Atoi(countStr)
+	if err != nil {
+		return false, fmt.Errorf("invalid output from volume check: %q", countStr)
+	}
+
+	return count == 0, nil
+}
+
+func CloneVolume(sourceVolume, targetVolume string) error {
+	// We use alpine to copy. `cp -a` preserves ownership completely.
+	cmd := exec.Command("docker", "run", "--rm",
+		"-v", fmt.Sprintf("%s:/src:ro", sourceVolume),
+		"-v", fmt.Sprintf("%s:/dest", targetVolume),
+		"alpine:latest",
+		"sh", "-c", "rm -rf /dest/* && cp -a /src/. /dest/",
+	)
+
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("failed to clone volume: %w\nOutput: %s", err, string(output))
+	}
+
+	return nil
+}
+
 func CheckDockerComposePlugin(ctx context.Context) error {
 	command := exec.CommandContext(ctx, "docker", "compose", "version")
 	output, err := command.CombinedOutput()

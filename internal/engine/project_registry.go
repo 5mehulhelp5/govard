@@ -26,6 +26,8 @@ type ProjectRegistryEntry struct {
 	Framework    string    `json:"framework,omitempty"`
 	LastSeenAt   time.Time `json:"last_seen_at"`
 	LastCommand  string    `json:"last_command,omitempty"`
+	PHPVersion   string    `json:"php_version,omitempty"`
+	Profile      string    `json:"profile,omitempty"`
 }
 
 type projectRegistryDocument struct {
@@ -100,6 +102,26 @@ func UpsertProjectRegistryEntry(entry ProjectRegistryEntry) error {
 		return err
 	}
 	return nil
+}
+
+func GetProjectRegistryEntry(path string) (ProjectRegistryEntry, bool) {
+	path = filepath.Clean(strings.TrimSpace(path))
+	if path == "" {
+		return ProjectRegistryEntry{}, false
+	}
+
+	entries, err := ReadProjectRegistryEntries()
+	if err != nil {
+		return ProjectRegistryEntry{}, false
+	}
+
+	for _, entry := range entries {
+		if entry.Path == path {
+			return entry, true
+		}
+	}
+
+	return ProjectRegistryEntry{}, false
 }
 
 func DeleteProjectRegistryEntry(path string) error {
@@ -201,6 +223,8 @@ func normalizeProjectRegistryEntry(entry ProjectRegistryEntry) (ProjectRegistryE
 	}
 	entry.Framework = strings.TrimSpace(strings.ToLower(entry.Framework))
 	entry.LastCommand = strings.TrimSpace(strings.ToLower(entry.LastCommand))
+	entry.PHPVersion = strings.TrimSpace(entry.PHPVersion)
+	entry.Profile = strings.TrimSpace(entry.Profile)
 	if entry.LastSeenAt.IsZero() {
 		entry.LastSeenAt = time.Now().UTC()
 	} else {

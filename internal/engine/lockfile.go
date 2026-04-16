@@ -56,6 +56,7 @@ type LockProjectInfo struct {
 	StoreDomains     map[string]string `yaml:"store_domains,omitempty"`
 	Framework        string            `yaml:"framework,omitempty"`
 	FrameworkVersion string            `yaml:"framework_version,omitempty"`
+	Profile          string            `yaml:"profile,omitempty"`
 }
 
 type LockStackInfo struct {
@@ -128,6 +129,7 @@ func BuildLockFileFromConfig(cwd string, config Config, govardVersion string, de
 			StoreDomains:     flattenStoreDomainsForLock(config.StoreDomains),
 			Framework:        strings.TrimSpace(config.Framework),
 			FrameworkVersion: strings.TrimSpace(config.FrameworkVersion),
+			Profile:          strings.TrimSpace(config.Profile),
 		},
 		Stack: LockStackInfo{
 			PHPVersion:    strings.TrimSpace(config.Stack.PHPVersion),

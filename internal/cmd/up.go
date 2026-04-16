@@ -217,6 +217,13 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 			},
 		},
 		{
+			Name:         "SyncResources",
+			OnFailureTip: "govard db clone-volume",
+			Run: func() error {
+				return ensureUpProfileResourceSync(context)
+			},
+		},
+		{
 			Name:         "Pull",
 			OnFailureTip: "govard doctor --fix",
 			Run: func() error {
@@ -362,6 +369,13 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 				if err := engine.RefreshPMAActiveProjects(); err != nil {
 					pterm.Warning.Printf("Could not refresh PMA active projects: %v\n", err)
 				}
+
+				if context.Config.Framework == "magento2" {
+					if err := engine.ConfigureMagento(context.Config.ProjectName, context.Config); err != nil {
+						pterm.Warning.Printf("Magento auto-configuration failed: %v\n", err)
+					}
+				}
+
 				return nil
 			},
 		},
@@ -742,6 +756,65 @@ func runUpCommand(cmd *cobra.Command, args []string) (err error) {
 		pterm.Warning.Printf("Could not refresh cross-project runtime hosts: %v\n", refreshErr)
 	}
 	pterm.Success.Printf("Environment is up and running at https://%s\n", context.Config.Domain)
+	return nil
+}
+
+func ensureUpProfileResourceSync(context *upRuntimeContext) error {
+	if context.Profile == "" {
+		return nil
+	}
+
+	if context.Config.Stack.DBType == "" || context.Config.Stack.DBType == "none" {
+		return nil
+	}
+
+	targetVolume := fmt.Sprintf("%s_db-data-%s", context.Config.ProjectName, context.Profile)
+	isEmpty, err := engine.IsVolumeEmpty(targetVolume)
+	if err != nil {
+		return fmt.Errorf("check target volume: %w", err)
+	}
+
+	if !isEmpty {
+		return nil
+	}
+
+	// Target is empty, look for a source volume from default profile
+	sourceVolume := fmt.Sprintf("%s_db-data", context.Config.ProjectName)
+	sourceEmpty, err := engine.IsVolumeEmpty(sourceVolume)
+	if err != nil || sourceEmpty {
+		return nil // No source data found, nothing to clone
+	}
+
+	pterm.Info.Printf("Detected empty database volume for profile %q, but found data in default profile.\n", context.Profile)
+	proceed, err := pterm.DefaultInteractiveConfirm.
+		WithDefaultValue(true).
+		Show(fmt.Sprintf("Clone data from '%s' to '%s'?", sourceVolume, targetVolume))
+
+	if err != nil || !proceed {
+		return nil
+	}
+
+	pterm.Info.Printf("Cloning database data...\n")
+
+	// Ensure target volume exists with correct labels
+	checkTarget := exec.Command("docker", "volume", "inspect", targetVolume)
+	if err := checkTarget.Run(); err != nil {
+		composeVolumeName := fmt.Sprintf("db-data-%s", context.Profile)
+		createVol := exec.Command("docker", "volume", "create",
+			"--name", targetVolume,
+			"--label", fmt.Sprintf("com.docker.compose.project=%s", context.Config.ProjectName),
+			"--label", fmt.Sprintf("com.docker.compose.volume=%s", composeVolumeName),
+		)
+		if err := createVol.Run(); err != nil {
+			return fmt.Errorf("failed to create target volume: %w", err)
+		}
+	}
+
+	if err := engine.CloneVolume(sourceVolume, targetVolume); err != nil {
+		return fmt.Errorf("volume clone failed: %w", err)
+	}
+
+	pterm.Success.Println("Database volume successfully cloned!")
 	return nil
 }
 

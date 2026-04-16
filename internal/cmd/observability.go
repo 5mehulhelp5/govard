@@ -29,6 +29,8 @@ func trackProjectRegistry(config engine.Config, cwd string, command string) erro
 		Framework:    strings.TrimSpace(config.Framework),
 		LastCommand:  strings.TrimSpace(command),
 		LastSeenAt:   time.Now().UTC(),
+		PHPVersion:   strings.TrimSpace(config.Stack.PHPVersion),
+		Profile:      strings.TrimSpace(config.Profile),
 	}
 	return engine.UpsertProjectRegistryEntry(entry)
 }

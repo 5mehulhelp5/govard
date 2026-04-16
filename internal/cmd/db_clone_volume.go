@@ -83,17 +83,9 @@ func runDBCloneVolume(cmd *cobra.Command, config engine.Config, options dbComman
 
 	spinner, _ := pterm.DefaultSpinner.Start("Copying raw volume files (this may take a moment)")
 
-	// We use alpine to copy. `cp -a` preserves ownership completely.
-	copyCmd := exec.Command("docker", "run", "--rm",
-		"-v", fmt.Sprintf("%s:/src:ro", sourceVolume),
-		"-v", fmt.Sprintf("%s:/dest", targetVolume),
-		"alpine:latest",
-		"sh", "-c", "rm -rf /dest/* && cp -a /src/. /dest/",
-	)
-
-	if output, err := copyCmd.CombinedOutput(); err != nil {
+	if err := engine.CloneVolume(sourceVolume, targetVolume); err != nil {
 		spinner.Fail("Volume clone failed")
-		return fmt.Errorf("failed to clone volume: %w\nOutput: %s", err, string(output))
+		return err
 	}
 
 	spinner.Success("Volume successfully cloned!")
