@@ -39,6 +39,10 @@ type RemoteConfig struct {
 	Capabilities *RemoteCapabilities `yaml:"capabilities,omitempty"`
 	Auth         RemoteAuth          `yaml:"auth,omitempty"`
 	Paths        RemotePaths         `yaml:"paths,omitempty"`
+	DBName       string              `yaml:"db_name,omitempty"`
+	DBUser       string              `yaml:"db_user,omitempty"`
+	DBPass       string              `yaml:"db_pass,omitempty"`
+	DBPort       int                 `yaml:"db_port,omitempty"`
 }
 
 // RemoteConfigMap is a specialized map that preserves sort order during YAML marshaling.

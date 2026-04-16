@@ -7,9 +7,24 @@ const (
 	DefaultAdminPath     = "admin"
 
 	DefaultDBHost = "db"
+	DefaultDBUser = "app"
+	DefaultDBPass = "app"
+	DefaultDBName = "app"
 
 	DefaultMagentoDBUser = "magento"
 	DefaultMagentoDBPass = "magento"
 	DefaultMagentoDBName = "magento"
 	DefaultMagentoDBHost = DefaultDBHost
+
+	DefaultSymfonyDBUser = "symfony"
+	DefaultSymfonyDBPass = "symfony"
+	DefaultSymfonyDBName = "symfony"
+
+	DefaultLaravelDBUser = "laravel"
+	DefaultLaravelDBPass = "laravel"
+	DefaultLaravelDBName = "laravel"
+
+	DefaultWordPressDBUser = "wordpress"
+	DefaultWordPressDBPass = "wordpress"
+	DefaultWordPressDBName = "wordpress"
 )

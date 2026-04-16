@@ -22,33 +22,40 @@ type dbCredentials struct {
 
 func defaultDBCredentialsForFramework(framework string) dbCredentials {
 	switch strings.TrimSpace(framework) {
-	case "symfony":
+	case conventions.FrameworkSymfony:
 		return dbCredentials{
 			Port:     conventions.MySQLPort,
-			Username: "symfony",
-			Password: "symfony",
-			Database: "symfony",
+			Username: conventions.DefaultSymfonyDBUser,
+			Password: conventions.DefaultSymfonyDBPass,
+			Database: conventions.DefaultSymfonyDBName,
 		}
-	case "laravel":
+	case conventions.FrameworkLaravel:
 		return dbCredentials{
 			Port:     conventions.MySQLPort,
-			Username: "laravel",
-			Password: "laravel",
-			Database: "laravel",
+			Username: conventions.DefaultLaravelDBUser,
+			Password: conventions.DefaultLaravelDBPass,
+			Database: conventions.DefaultLaravelDBName,
 		}
-	case "wordpress":
+	case conventions.FrameworkWordPress:
 		return dbCredentials{
 			Port:     conventions.MySQLPort,
-			Username: "wordpress",
-			Password: "wordpress",
-			Database: "wordpress",
+			Username: conventions.DefaultWordPressDBUser,
+			Password: conventions.DefaultWordPressDBPass,
+			Database: conventions.DefaultWordPressDBName,
 		}
-	default:
+	case conventions.FrameworkMagento2, conventions.FrameworkMagento1, conventions.FrameworkOpenMage:
 		return dbCredentials{
 			Port:     conventions.MySQLPort,
 			Username: conventions.DefaultMagentoDBUser,
 			Password: conventions.DefaultMagentoDBPass,
 			Database: conventions.DefaultMagentoDBName,
+		}
+	default:
+		return dbCredentials{
+			Port:     conventions.MySQLPort,
+			Username: conventions.DefaultDBUser,
+			Password: conventions.DefaultDBPass,
+			Database: conventions.DefaultDBName,
 		}
 	}
 }
@@ -133,7 +140,33 @@ func resolveRemoteDBCredentials(config engine.Config, remoteName string, remoteC
 			Password: metadata.DB.Password,
 			Database: metadata.DB.Database,
 		}.withDefaults(), nil
+	case "custom":
+		if remoteCfg.DBName != "" {
+			fallback.Database = remoteCfg.DBName
+		}
+		if remoteCfg.DBUser != "" {
+			fallback.Username = remoteCfg.DBUser
+		}
+		if remoteCfg.DBPass != "" {
+			fallback.Password = remoteCfg.DBPass
+		}
+		if remoteCfg.DBPort > 0 {
+			fallback.Port = remoteCfg.DBPort
+		}
+		return fallback, nil
 	default:
+		if remoteCfg.DBName != "" {
+			fallback.Database = remoteCfg.DBName
+		}
+		if remoteCfg.DBUser != "" {
+			fallback.Username = remoteCfg.DBUser
+		}
+		if remoteCfg.DBPass != "" {
+			fallback.Password = remoteCfg.DBPass
+		}
+		if remoteCfg.DBPort > 0 {
+			fallback.Port = remoteCfg.DBPort
+		}
 		return fallback, nil
 	}
 }
