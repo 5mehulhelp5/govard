@@ -291,3 +291,17 @@ This is the **mandatory approach for agents to test the real desktop UI**.
 ### Test Reports
 
 Desktop UI test plans and results should be stored in `wiki/Desktop-App.md` or a dedicated `wiki/desktop-testing.md` file.
+
+## 17. Release Checklist
+
+When performing a new release, ensure the version string is updated in the following locations:
+
+1.  **CLI Version:** `internal/cmd/root.go` (`var Version`)
+2.  **Desktop Backend Version:** `internal/desktop/app.go` (`var Version`)
+3.  **Desktop Frontend Version:** `desktop/frontend/package.json` (`"version"`)
+4.  **Wails Config Version:** `desktop/wails.json` (`"info": { "productVersion" }`)
+5.  **Changelog:** `CHANGELOG.md` (Add new version section with date and changes)
+
+Verification before release:
+- Run `make test` to ensure all tests pass.
+- Build and check version: `make build && ./bin/govard version`.

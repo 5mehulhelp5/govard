@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.49.2] - 2026-04-17
+
+### ✨ New Features
+
+- **Magento Operations:** Added `magento_operation` to the framework manifest table list for improved synchronization control.
+- **Environment Lifecycle:** Implemented automatic Magento cache cleanup and dependency synchronization triggered by PHP version or profile shifts.
+
+### 🔄 Refactors
+
+- **Database Credentials:** Centralized database credential management and introduced support for custom database configurations via remote settings.
+- **Magento Shift Logic:** Optimized Magento profile shift detection and refined associated cleanup workflows.
+- **Code Hygiene:** Standardized internal engine formatting and improved error handling across core test suites.
+
+### 🧪 Testing
+
+- **Integration Tests:** Standardized integration test tagging with `integration` build tags for `magento_shift` and `volume_check` suites.
+
 ## [1.49.1] - 2026-04-15
 
 ### 🐛 Bug Fixes
