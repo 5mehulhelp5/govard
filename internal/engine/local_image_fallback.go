@@ -108,12 +108,6 @@ func fallbackBuildMissingGovardImagesFromCompose(composePath string, out io.Writ
 	}
 
 	if len(buildSpecs) == 0 {
-		if len(nonBuildableMissing) > 0 {
-			return nil, fmt.Errorf(
-				"missing images are not eligible for Govard local fallback build: %s",
-				strings.Join(nonBuildableMissing, ", "),
-			)
-		}
 		return nil, nil
 	}
 
@@ -162,10 +156,13 @@ func fallbackBuildMissingGovardImagesFromCompose(composePath string, out io.Writ
 	}
 
 	if len(nonBuildableMissing) > 0 {
-		return built, fmt.Errorf(
-			"missing images are not eligible for Govard local fallback build: %s",
-			strings.Join(nonBuildableMissing, ", "),
-		)
+		if len(built) == 0 {
+			return nil, fmt.Errorf(
+				"missing images are not eligible for Govard local fallback build: %s",
+				strings.Join(nonBuildableMissing, ", "),
+			)
+		}
+		fmt.Fprintf(errOut, "WARNING: missing images are not eligible for Govard local fallback build: %s\n", strings.Join(nonBuildableMissing, ", "))
 	}
 
 	return built, nil
