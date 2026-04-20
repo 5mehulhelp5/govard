@@ -30,10 +30,17 @@ func MagentoConfigCommandsForTest(projectName string, config Config) []magentoCo
 	return buildFrameworkAutoConfigurationCommands(projectName, config)
 }
 
-func ConfigureMagento(projectName string, config Config) error {
-	wasShifted, reason := checkMagentoProfileShiftCleanup(config)
-	if !wasShifted {
-		return nil
+func ConfigureMagento(projectName string, config Config, force bool) error {
+	reason := "manual trigger"
+	if !force {
+		var wasShifted bool
+		wasShifted, reason = checkMagentoProfileShiftCleanup(config)
+		if !wasShifted {
+			return nil
+		}
+		pterm.Info.Printf("Magento profile shift detected (%s). Re-configuring...\n", reason)
+	} else {
+		pterm.Info.Println("Forcing Magento auto-configuration...")
 	}
 
 	pterm.Info.Printf("Configuring Magento 2 environment (%s)...\n", reason)
@@ -711,24 +718,24 @@ func BuildMagentoSearchHostFixSQL(host string, searchEngine string) string {
 	sql := "SET @table_name = (SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE '%core_config_data' LIMIT 1); "
 
 	// 1. Fix Hostname
-	sql += fmt.Sprintf("SET @sql = CONCAT('UPDATE ', @table_name, ' SET value = \"%s\" WHERE path IN (\"catalog/search/elasticsearch_server_hostname\", \"catalog/search/elasticsearch5_server_hostname\", \"catalog/search/elasticsearch6_server_hostname\", \"catalog/search/elasticsearch7_server_hostname\", \"catalog/search/opensearch_server_hostname\")'); ", host)
+	sql += fmt.Sprintf("SET @sql = IF(@table_name IS NOT NULL, CONCAT('UPDATE ', @table_name, ' SET value = \"%s\" WHERE path IN (\"catalog/search/elasticsearch_server_hostname\", \"catalog/search/elasticsearch5_server_hostname\", \"catalog/search/elasticsearch6_server_hostname\", \"catalog/search/elasticsearch7_server_hostname\", \"catalog/search/opensearch_server_hostname\")'), 'SELECT 1'); ", host)
 	sql += "PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt; "
 
 	// 2. Fix Port (Default to 9200 for local containers)
-	sql += "SET @sql_port = CONCAT('UPDATE ', @table_name, ' SET value = \"9200\" WHERE path IN (\"catalog/search/elasticsearch5_server_port\", \"catalog/search/elasticsearch6_server_port\", \"catalog/search/elasticsearch7_server_port\", \"catalog/search/opensearch_server_port\")'); "
+	sql += "SET @sql_port = IF(@table_name IS NOT NULL, CONCAT('UPDATE ', @table_name, ' SET value = \"9200\" WHERE path IN (\"catalog/search/elasticsearch5_server_port\", \"catalog/search/elasticsearch6_server_port\", \"catalog/search/elasticsearch7_server_port\", \"catalog/search/opensearch_server_port\")'), 'SELECT 1'); "
 	sql += "PREPARE stmt_port FROM @sql_port; EXECUTE stmt_port; DEALLOCATE PREPARE stmt_port; "
 
 	// 3. Disable Authentication (Prevent issues if remote uses auth)
-	sql += "SET @sql_auth = CONCAT('UPDATE ', @table_name, ' SET value = \"0\" WHERE path IN (\"catalog/search/elasticsearch5_enable_auth\", \"catalog/search/elasticsearch6_enable_auth\", \"catalog/search/elasticsearch7_enable_auth\", \"catalog/search/opensearch_enable_auth\", \"smile_elasticsuite_core_base_settings/es_client/enable_auth\")'); "
+	sql += "SET @sql_auth = IF(@table_name IS NOT NULL, CONCAT('UPDATE ', @table_name, ' SET value = \"0\" WHERE path IN (\"catalog/search/elasticsearch5_enable_auth\", \"catalog/search/elasticsearch6_enable_auth\", \"catalog/search/elasticsearch7_enable_auth\", \"catalog/search/opensearch_enable_auth\", \"smile_elasticsuite_core_base_settings/es_client/enable_auth\")'), 'SELECT 1'); "
 	sql += "PREPARE stmt_auth FROM @sql_auth; EXECUTE stmt_auth; DEALLOCATE PREPARE stmt_auth; "
 
 	// 4. Smile_Elasticsuite specific fix (uses host:port format)
-	sql += fmt.Sprintf("SET @sql2 = CONCAT('UPDATE ', @table_name, ' SET value = \"%s:9200\" WHERE path = \"smile_elasticsuite_core_base_settings/es_client/servers\"'); ", host)
+	sql += fmt.Sprintf("SET @sql2 = IF(@table_name IS NOT NULL, CONCAT('UPDATE ', @table_name, ' SET value = \"%s:9200\" WHERE path = \"smile_elasticsuite_core_base_settings/es_client/servers\"'), 'SELECT 1'); ", host)
 	sql += "PREPARE stmt2 FROM @sql2; EXECUTE stmt2; DEALLOCATE PREPARE stmt2;"
 
 	// 5. Fix Engine Type
 	if searchEngine != "" {
-		sql += fmt.Sprintf("SET @sql_engine = CONCAT('INSERT INTO ', @table_name, ' (scope, scope_id, path, value) VALUES (''default'', 0, ''catalog/search/engine'', ''%s'') ON DUPLICATE KEY UPDATE value = ''%s'''); ", searchEngine, searchEngine)
+		sql += fmt.Sprintf("SET @sql_engine = IF(@table_name IS NOT NULL, CONCAT('INSERT INTO ', @table_name, ' (scope, scope_id, path, value) VALUES (''default'', 0, ''catalog/search/engine'', ''%s'') ON DUPLICATE KEY UPDATE value = ''%s'''), 'SELECT 1'); ", searchEngine, searchEngine)
 		sql += "PREPARE stmt_engine FROM @sql_engine; EXECUTE stmt_engine; DEALLOCATE PREPARE stmt_engine;"
 	}
 

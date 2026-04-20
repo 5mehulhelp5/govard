@@ -39,7 +39,7 @@ func applyFrameworkAutoConfiguration(cmd *cobra.Command, config engine.Config) e
 		if config.Stack.Features.Search || config.Stack.Services.Search != "none" {
 			_ = runMagentoSearchHostFixViaCLI(cmd, config)
 		}
-		return runMagento2AutoConfiguration(config.ProjectName, config)
+		return runMagento2AutoConfiguration(config.ProjectName, config, true)
 	case "magento1", "openmage":
 		return runMagento1AutoConfiguration(config.ProjectName, config)
 	case "wordpress":

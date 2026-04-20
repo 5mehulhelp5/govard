@@ -89,6 +89,15 @@ var govardSubcommandRunner = func(cmd *cobra.Command, args ...string) error {
 }
 
 func runGovardSubcommand(cmd *cobra.Command, args ...string) error {
+	// If the current command has a profile set, pass it to the subcommand
+	if cmd != nil {
+		if profile, err := cmd.Flags().GetString("profile"); err == nil && profile != "" {
+			// Find a safe spot to insert the flag. After 'db' but before 'query'?
+			// Actually, govard commands are flexible with flag positions.
+			// Appending is usually safe.
+			args = append(args, "--profile", profile)
+		}
+	}
 	return govardSubcommandRunner(cmd, args...)
 }
 

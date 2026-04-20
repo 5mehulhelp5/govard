@@ -20,6 +20,7 @@ func TestBuildMagentoSearchHostFixSQL(t *testing.T) {
 			searchEngine: "elasticsearch7",
 			expected: []string{
 				"SET @table_name = (SELECT TABLE_NAME FROM information_schema.TABLES",
+				"IF(@table_name IS NOT NULL",
 				"value = \"elasticsearch\"",
 				"value = \"9200\"",
 				"value = \"0\"",

@@ -371,7 +371,7 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 				}
 
 				if context.Config.Framework == "magento2" {
-					if err := engine.ConfigureMagento(context.Config.ProjectName, context.Config); err != nil {
+					if err := engine.ConfigureMagento(context.Config.ProjectName, context.Config, false); err != nil {
 						pterm.Warning.Printf("Magento auto-configuration failed: %v\n", err)
 					}
 				}
