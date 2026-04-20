@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.49.3] - 2026-04-20
+
+### 🐛 Bug Fixes
+
+- **Magento Auto-Configuration:** Fixed an issue where `govard config auto` would return silently without performing any actions if no profile or PHP version shift was detected. The command now correctly forces a re-configuration of the environment as intended by the user.
+- **Database Robustness:** Refactored the proactive search host fix SQL logic to safely handle empty databases or databases with custom table prefixes using MySQL `IF()` condition guards, preventing failures during initial project bootstrap or environment reset.
+
+### 🚀 Improvements
+
+- **CLI Orchestration:** Enhanced the internal subcommand runner to automatically propagate the current environment profile (`--profile`) to all nested CLI invocations, ensuring consistent behavior across complex, multi-profile development setups.
+
 ## [1.49.2] - 2026-04-17
 
 ### ✨ New Features
