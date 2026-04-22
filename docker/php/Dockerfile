@@ -18,7 +18,8 @@ ENV PHP_MAX_EXECUTION_TIME=${PHP_MAX_EXECUTION_TIME}
 # Install system dependencies
 RUN set -eux; \
     PHP_VERSION_INT=$(echo $PHP_VERSION | cut -d. -f1,2 | tr -d .); \
-    apk update && ICU_DATA_FULL=$(apk search -q icu-data-full); \
+    apk update; \
+    ICU_DATA_FULL=$(apk search -q icu-data-full); \
     ONIGURUMA=""; \
     if [ "$PHP_VERSION_INT" -ge 74 ]; then ONIGURUMA="oniguruma-dev"; fi; \
     SSL_LIB="openssl-dev"; \
@@ -64,8 +65,8 @@ RUN set -eux; \
     mariadb-client \
     postgresql-client \
     jq \
-    nodejs \
-    npm
+    nodejs; \
+    if ! command -v npm >/dev/null 2>&1; then apk add --no-cache npm; fi
 
 # Install global frontend tools
 RUN npm install -g --unsafe-perm grunt-cli gulp yarn
