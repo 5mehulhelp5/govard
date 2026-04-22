@@ -5,14 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.49.5] - 2026-04-22
+
+### 🛠 Improvements
+
+- **Diagnostics Engine:** Enhanced `govard doctor` and environment validation logic.
+- SSH Agent: Now treats an "empty" agent (connected but no identities) as a healthy state, preventing unnecessary warnings.
+- Multi-language Support: Refactored SSH agent responsiveness checks to use exit codes instead of English string matching, ensuring compatibility with non-English locales.
+- Validation Bypass: Implemented a short-circuit for "advisory" profile sync warnings in `custom` and `generic` projects to avoid obstructive recommendations for non-standard frameworks.
+
 ## [1.49.4] - 2026-04-22
 
 ### ✨ New Features
 
 - **Node.js Integration:** Implemented a robust "Hybrid" Node.js versioning strategy for all PHP containers.
-    - Pre-baked standard Node.js, NPM, Yarn, Grunt, and Gulp into the base PHP images for instant availability.
-    - Added dynamic Node.js version switching in `entrypoint.sh` that automatically downloads and installs the exact version specified in `.govard.yml` if it differs from the image default.
-    - Added `NODE_VERSION` environment variable propagation to all PHP services.
+- Pre-baked standard Node.js, NPM, Yarn, Grunt, and Gulp into the base PHP images for instant availability.
+- Added dynamic Node.js version switching in `entrypoint.sh` that automatically downloads and installs the exact version specified in `.govard.yml` if it differs from the image default.
+- Added `NODE_VERSION` environment variable propagation to all PHP services.
 
 ### 🛠 Improvements
 
