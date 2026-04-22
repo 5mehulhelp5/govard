@@ -517,7 +517,13 @@ func CheckSSHAgentStatus() (string, error) {
 	// 2. Check responsiveness on host
 	hostCheck := exec.Command("ssh-add", "-l")
 	if out, err := hostCheck.CombinedOutput(); err != nil {
-		return fmt.Sprintf("SSH agent is not responding on host: %s", strings.TrimSpace(string(out))), err
+		// Multi-language support: Check exit code instead of string.
+		// Exit code 1 means agent is running but has no identities.
+		if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
+			// Continue to container check
+		} else {
+			return fmt.Sprintf("SSH agent is not responding on host: %s", strings.TrimSpace(string(out))), err
+		}
 	}
 
 	// 3. Optional: Check inside the PHP container if running
@@ -529,7 +535,9 @@ func CheckSSHAgentStatus() (string, error) {
 		if output, err := inspect.Output(); err == nil && strings.TrimSpace(string(output)) == "true" {
 			containerCheck := exec.Command("docker", "exec", "-i", containerName, "ssh-add", "-l")
 			if out, err := containerCheck.CombinedOutput(); err != nil {
-				return fmt.Sprintf("SSH agent is working on host but NOT inside container %s: %s", containerName, strings.TrimSpace(string(out))), err
+				if exitError, ok := err.(*exec.ExitError); !ok || exitError.ExitCode() != 1 {
+					return fmt.Sprintf("SSH agent is working on host but NOT inside container %s: %s", containerName, strings.TrimSpace(string(out))), err
+				}
 			}
 			return "SSH agent is healthy on host and forwarded to container.", nil
 		}
@@ -602,6 +610,10 @@ func CheckProfileSync() error {
 // CollectProfileSyncWarnings compares the raw user configuration against framework profile recommendations.
 // It silences warnings for fields that were explicitly set by the user (non-empty in rawConfig).
 func CollectProfileSyncWarnings(rawConfig Config, metadata ProjectMetadata) []string {
+	if rawConfig.Framework == "" || rawConfig.Framework == "generic" || rawConfig.Framework == "custom" {
+		return nil
+	}
+
 	version := strings.TrimSpace(metadata.Version)
 	if version == "" {
 		version = strings.TrimSpace(rawConfig.FrameworkVersion)
