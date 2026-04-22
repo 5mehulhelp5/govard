@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.49.4] - 2026-04-22
+
+### ✨ New Features
+
+- **Node.js Integration:** Implemented a robust "Hybrid" Node.js versioning strategy for all PHP containers.
+    - Pre-baked standard Node.js, NPM, Yarn, Grunt, and Gulp into the base PHP images for instant availability.
+    - Added dynamic Node.js version switching in `entrypoint.sh` that automatically downloads and installs the exact version specified in `.govard.yml` if it differs from the image default.
+    - Added `NODE_VERSION` environment variable propagation to all PHP services.
+
+### 🛠 Improvements
+
+- **Blueprint Lifecycle:** Incremented internal `BlueprintVersion` to **1.40**, triggering automatic environment re-renders to apply new Node.js environment variables.
+- **Image Optimization:** Cleaned up redundant Node.js installation logic in `php-magento1` and `php-magento2` images as they now inherit from the centralized base image.
+
+### 🐛 Bug Fixes
+
+- **Environment:** Fixed missing Node.js/NPM environment in PHP containers for projects using the `custom` framework or non-Magento stacks.
+
 ## [1.49.3] - 2026-04-20
 
 ### 🐛 Bug Fixes
