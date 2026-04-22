@@ -102,6 +102,7 @@ services:
       GIT_SSH_COMMAND: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
       COMPOSER_CACHE_DIR: "{{ .HomeWWWData }}/.cache/composer"
       COMPOSER_VERSION: "{{ .ComposerVersion }}"
+      NODE_VERSION: "{{ .Config.Stack.NodeVersion }}"
       PUID: {{ .Config.Stack.UserID }}
       PGID: {{ .Config.Stack.GroupID }}
       CHOWN_DIR_LIST: "{{ range $i, $dir := .Config.Stack.ChownDirList }}{{ if $i }} {{ end }}{{ $dir }}{{ end }}"

@@ -9,11 +9,6 @@ LABEL dev.govard.php.version="${PHP_VERSION}"
 
 USER root
 
-RUN apk add --no-cache nodejs curl openssh-client \
-    && if ! command -v npm >/dev/null 2>&1; then apk add --no-cache npm; fi
-
-RUN npm install -g --unsafe-perm grunt-cli gulp yarn
-
 RUN set -eux; \
     PHP_VERSION_INT=$(echo $PHP_VERSION | cut -d. -f1,2 | tr -d .); \
     if [ "$PHP_VERSION_INT" -lt 72 ]; then COMPOSER_BIN="composer1"; else COMPOSER_BIN="composer"; fi; \

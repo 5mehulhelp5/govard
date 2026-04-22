@@ -63,7 +63,12 @@ RUN set -eux; \
     bind-tools \
     mariadb-client \
     postgresql-client \
-    jq
+    jq \
+    nodejs \
+    npm
+
+# Install global frontend tools
+RUN npm install -g --unsafe-perm grunt-cli gulp yarn
 
 # Install PHP extensions
 RUN set -eux; \
