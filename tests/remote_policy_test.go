@@ -9,11 +9,23 @@ import (
 
 func TestNormalizeRemoteEnvironment(t *testing.T) {
 	cases := map[string]string{
-		"":            "staging",
-		"production":  "prod",
-		"Prod":        "prod",
-		"development": "dev",
-		"qa":          "staging",
+		"production":  "production",
+		"Prod":        "production",
+		"development": "development",
+		"live":        "production",
+		"staging":     "staging",
+		"stage":       "staging",
+		"stg":         "staging",
+		"dev":         "development",
+		"develop":     "development",
+		// Custom names pass through unchanged (no longer aliased).
+		"local":      "local",
+		"qa":         "qa",
+		"uat":        "uat",
+		"test":       "test",
+		"preprod":    "preprod",
+		"demo":       "demo",
+		"client-uat": "client-uat",
 	}
 
 	for in, expected := range cases {
@@ -107,17 +119,17 @@ func TestRemoteWriteBlocked(t *testing.T) {
 	}
 
 	prod := engine.RemoteConfig{}
-	if blocked, _ := engine.RemoteWriteBlocked("prod", prod); !blocked {
+	if blocked, _ := engine.RemoteWriteBlocked("production", prod); !blocked {
 		t.Fatal("expected production remote to block writes (auto-default)")
 	}
 
 	dev := engine.RemoteConfig{}
-	if blocked, _ := engine.RemoteWriteBlocked("dev", dev); blocked {
-		t.Fatal("expected dev remote writes to be allowed")
+	if blocked, _ := engine.RemoteWriteBlocked("development", dev); blocked {
+		t.Fatal("expected development remote writes to be allowed")
 	}
 }
 
-func TestValidateConfigRejectsInvalidRemoteEnvironment(t *testing.T) {
+func TestValidateConfigRejectsInvalidRemoteName(t *testing.T) {
 	cfg := engine.Config{
 		ProjectName: "demo",
 		Domain:      "demo.test",
@@ -131,7 +143,66 @@ func TestValidateConfigRejectsInvalidRemoteEnvironment(t *testing.T) {
 		},
 	}
 	engine.NormalizeConfig(&cfg, "")
-	if err := engine.ValidateConfig(cfg); err == nil {
-		t.Fatal("expected invalid environment validation error")
+	err := engine.ValidateConfig(cfg)
+	if err == nil {
+		t.Fatal("expected invalid remote name validation error")
+	}
+	if !strings.Contains(err.Error(), "not a valid identifier") {
+		t.Fatalf("unexpected error message: %v", err)
+	}
+}
+
+func TestValidateConfigAcceptsCustomRemoteEnvironments(t *testing.T) {
+	customNames := []string{"qa", "preprod", "demo", "client-uat", "integration", "load-test", "dr"}
+	for _, name := range customNames {
+		t.Run(name, func(t *testing.T) {
+			cfg := engine.Config{
+				ProjectName: "demo",
+				Domain:      "demo.test",
+				Stack: engine.Stack{
+					Services: engine.Services{
+						WebServer: "nginx",
+						Search:    "none",
+						Cache:     "none",
+						Queue:     "none",
+					},
+				},
+				Remotes: engine.RemoteConfigMap{
+					name: {
+						Host: "example.com",
+						User: "deploy",
+						Path: "/srv/www/app",
+						Port: 22,
+					},
+				},
+			}
+			engine.NormalizeConfig(&cfg, "")
+			if err := engine.ValidateConfig(cfg); err != nil {
+				t.Fatalf("custom remote name %q should be valid, got error: %v", name, err)
+			}
+		})
+	}
+}
+
+func TestIsValidRemoteName(t *testing.T) {
+	valid := []string{
+		"dev", "staging", "prod", "production",
+		"qa", "uat", "preprod", "demo",
+		"client-uat", "load-test", "dr",
+		"env1", "my-env", "my_env",
+	}
+	for _, name := range valid {
+		if !engine.IsValidRemoteName(name) {
+			t.Errorf("IsValidRemoteName(%q) = false, want true", name)
+		}
+	}
+
+	invalid := []string{
+		"", "!!!bad!!!", "has space", "special@char", "dot.name",
+	}
+	for _, name := range invalid {
+		if engine.IsValidRemoteName(name) {
+			t.Errorf("IsValidRemoteName(%q) = true, want false", name)
+		}
 	}
 }

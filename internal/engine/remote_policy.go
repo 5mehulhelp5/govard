@@ -6,38 +6,48 @@ import (
 )
 
 const (
-	RemoteEnvDev     = "dev"
+	RemoteEnvDev     = "development"
 	RemoteEnvStaging = "staging"
-	RemoteEnvProd    = "prod"
+	RemoteEnvProd    = "production"
 
 	RemoteCapabilityFiles = "files"
 	RemoteCapabilityMedia = "media"
 	RemoteCapabilityDB    = "db"
 )
 
-var validRemoteEnvironments = map[string]struct{}{
-	RemoteEnvDev:     {},
-	RemoteEnvStaging: {},
-	RemoteEnvProd:    {},
-}
-
+// NormalizeRemoteEnvironment maps well-known aliases to their canonical names.
+// Unknown/custom names (e.g. "qa", "preprod", "demo") pass through unchanged.
+// This is used for policy decisions (sorting, protection) but NOT for validation —
+// any valid identifier is accepted as a remote name.
 func NormalizeRemoteEnvironment(value string) string {
 	cleaned := strings.ToLower(strings.TrimSpace(value))
 	switch cleaned {
-	case "", "staging", "stage", "stg", "qa", "uat", "test":
+	case "staging", "stage", "stg":
 		return RemoteEnvStaging
-	case "dev", "development", "local":
+	case "dev", "development", "develop":
 		return RemoteEnvDev
 	case "prod", "production", "live":
 		return RemoteEnvProd
 	default:
+		// Custom environment names (qa, preprod, demo, client-uat, etc.) pass through as-is.
 		return cleaned
 	}
 }
 
-func IsValidRemoteEnvironment(value string) bool {
-	_, ok := validRemoteEnvironments[NormalizeRemoteEnvironment(value)]
-	return ok
+// IsValidRemoteName checks that a remote name is a valid identifier.
+// It accepts lowercase letters, digits, hyphens, and underscores.
+// Custom environment names like "qa", "preprod", "demo", "client-uat" are all valid.
+func IsValidRemoteName(name string) bool {
+	cleaned := strings.ToLower(strings.TrimSpace(name))
+	if cleaned == "" {
+		return false
+	}
+	for _, r := range cleaned {
+		if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '-' && r != '_' {
+			return false
+		}
+	}
+	return true
 }
 
 // RemoteCapabilityEnabled returns true if the capability is allowed.

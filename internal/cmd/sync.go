@@ -394,11 +394,9 @@ func handleRsyncError(err error, scope string) (bool, error) {
 	}
 
 	if (exitCode == 23 || exitCode == 24) && scope == SyncScopeFiles {
-		pterm.Error.Printf("File synchronization failed with partial errors (exit code %d). Please check for permission issues, broken symlinks, or directory loops.\n", exitCode)
-	} else {
-		pterm.Error.Printf("Failed to sync: %v\n", err)
+		return false, fmt.Errorf("file synchronization failed with partial errors (exit code %d): %w", exitCode, err)
 	}
-	return false, fmt.Errorf("sync command failed: %w", err)
+	return false, fmt.Errorf("failed to sync: %w", err)
 }
 
 // HandleRsyncErrorForTest is a wrapper for testing internal error handling logic.

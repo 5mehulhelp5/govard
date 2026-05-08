@@ -77,8 +77,8 @@ func ValidateConfig(cfg Config) error {
 		if strings.TrimSpace(name) == "" {
 			return fmt.Errorf("remote name cannot be empty")
 		}
-		if !IsValidRemoteEnvironment(name) {
-			return fmt.Errorf("remote name '%s' does not map to a known environment (must normalize to dev, staging, or prod)", name)
+		if !IsValidRemoteName(name) {
+			return fmt.Errorf("remote name '%s' is not a valid identifier (use lowercase letters, digits, hyphens, underscores)", name)
 		}
 		if strings.TrimSpace(remote.Host) == "" {
 			return fmt.Errorf("remote '%s' is missing host", name)

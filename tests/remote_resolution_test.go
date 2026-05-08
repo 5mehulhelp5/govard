@@ -88,6 +88,37 @@ func TestResolveAutoRemote(t *testing.T) {
 			want:      "development",
 		},
 		{
+			name: "Custom name explicitly requested",
+			config: engine.Config{
+				Remotes: map[string]engine.RemoteConfig{
+					"qa": {Host: "qa.com"},
+				},
+			},
+			requested: "qa",
+			want:      "qa",
+		},
+		{
+			name: "Custom name preprod explicitly requested",
+			config: engine.Config{
+				Remotes: map[string]engine.RemoteConfig{
+					"preprod": {Host: "preprod.com"},
+					"staging": {Host: "stg.com"},
+				},
+			},
+			requested: "preprod",
+			want:      "preprod",
+		},
+		{
+			name: "Custom name not found returns error",
+			config: engine.Config{
+				Remotes: map[string]engine.RemoteConfig{
+					"qa": {Host: "qa.com"},
+				},
+			},
+			requested: "demo",
+			wantErr:   "remote 'demo' is not configured",
+		},
+		{
 			name: "Neither exists",
 			config: engine.Config{
 				Remotes: map[string]engine.RemoteConfig{

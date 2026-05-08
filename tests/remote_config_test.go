@@ -158,6 +158,16 @@ func TestSortRemoteNames(t *testing.T) {
 		expected []string
 	}{
 		{
+			name:     "custom names sort after well-known",
+			input:    []string{"prod", "qa", "staging", "dev", "demo"},
+			expected: []string{"dev", "staging", "prod", "demo", "qa"},
+		},
+		{
+			name:     "only custom names sort alphabetically",
+			input:    []string{"preprod", "qa", "demo"},
+			expected: []string{"demo", "preprod", "qa"},
+		},
+		{
 			name:     "standard order",
 			input:    []string{"prod", "staging", "dev"},
 			expected: []string{"dev", "staging", "prod"},

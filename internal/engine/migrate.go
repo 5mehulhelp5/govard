@@ -152,6 +152,8 @@ func MigrateFromWarden(root string) (MigrationResult, error) {
 			envName = "staging"
 		case "dev":
 			envName = "development"
+		default:
+			// Custom environment names (e.g. REMOTE_QA_HOST) pass through as-is (lowercase).
 		}
 
 		property := parts[len(parts)-1]

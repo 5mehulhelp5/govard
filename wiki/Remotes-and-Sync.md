@@ -175,16 +175,35 @@ govard bootstrap --clone -e staging --no-pii --no-noise --delete
 
 ## Remote Name Resolution
 
+Govard accepts **any valid identifier** as a remote environment name. Names must use lowercase letters, digits, hyphens, or underscores (e.g. `qa`, `preprod`, `demo`, `client-uat`, `load-test`).
+
 Remote flags support:
-- Exact remote key lookup
-- Normalized aliases (e.g. `stg` → `staging`)
+- Exact remote key lookup (e.g. `qa`, `preprod`)
+- Normalized aliases for well-known environments (e.g. `stg` → `staging`, `live` → `production`)
+- Case-insensitive fallback matching
+
+### Well-Known Aliases
+
+| Input | Resolved as |
+| :--- | :--- |
+| `dev`, `development`, `develop` | `development` |
+| `staging`, `stage`, `stg` | `staging` |
+| `prod`, `production`, `live` | `production` |
+| Everything else (`qa`, `preprod`, `demo`, etc.) | Passed through as-is |
 
 ### Auto-Select Priority
 
 When no remote is specified for `bootstrap` or `sync`, Govard resolves:
 
-1. **`staging`** (aliases: `stg`, `stage`, `qa`, `uat`, `test`)
-2. **`dev`** (aliases: `development`, `local`)
+1. **`staging`** (or any alias: `stg`, `stage`)
+2. **`development`** (or any alias: `dev`, `develop`)
+
+If neither `staging` nor `development` exists, use `-e` to specify the remote explicitly:
+
+```bash
+govard sync -s qa --db
+govard bootstrap -e preprod --yes
+```
 
 These are equivalent when the `staging` remote exists:
 
@@ -193,6 +212,43 @@ govard sync -s stg --db
 govard sync --source staging --db
 govard sync --from staging --db
 ```
+
+### Custom Environment Examples
+
+```bash
+# Add a QA environment
+govard remote add qa --host qa.example.com --user deploy --path /var/www/app
+
+# Add a pre-production environment
+govard remote add preprod --host preprod.example.com --user deploy --path /var/www/app
+
+# Bootstrap from QA (must specify -e since it's not auto-selected)
+govard bootstrap -e qa --yes
+
+# Sync DB from preprod
+govard sync -s preprod --db --no-pii
+```
+
+### Protection Policy
+
+Custom environment names have **no automatic write protection**. Use `--protected` or the `protected: true` config flag to opt in:
+
+```bash
+govard remote add preprod --host preprod.example.com --user deploy --path /var/www/app --protected
+```
+
+Or in `.govard.yml`:
+
+```yaml
+remotes:
+  preprod:
+    host: preprod.example.com
+    user: deploy
+    path: /var/www/app
+    protected: true
+```
+
+Only remotes whose name normalizes to `prod` (i.e. `prod`, `production`, `live`) are write-protected automatically.
 
 ---
 

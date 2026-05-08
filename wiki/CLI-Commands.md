@@ -74,7 +74,7 @@ govard bootstrap -e staging --no-pii --no-noise
 - `--clone` + `--environment` — rsync the whole source from a remote server
 
 **Source selection:**
-- `-e, --environment` — source remote name (e.g. `staging`, `production`, `dev`)
+- `-e, --environment` — source remote name; accepts standard names (`staging`, `production`, `dev`) and any custom identifier (`qa`, `preprod`, `demo`, `client-uat`)
 - `--remote` — alias for `--environment`
 - `--db-dump` — import database from a local SQL file path
 

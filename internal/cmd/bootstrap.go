@@ -170,7 +170,7 @@ Note: -e/--environment accepts remote name aliases (e.g. 'dev' matches a remote 
 			if err != nil {
 				if stdinIsTerminal() && !opts.AssumeYes && !opts.Plan {
 					pterm.Warning.Printf("No remote environment found: %v\n", err)
-					options := []string{"dev", "staging", "production", "custom..."}
+					options := []string{"dev", "staging", "production", "qa", "preprod", "custom..."}
 					selected, _ := pterm.DefaultInteractiveSelect.
 						WithDefaultText("Select a remote to add").
 						WithOptions(options).

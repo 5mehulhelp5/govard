@@ -531,7 +531,7 @@ func runUpPipeline(stages []upPipelineStage) error {
 
 		started := time.Now()
 		if err := stage.Run(); err != nil {
-			pterm.Error.Printf("%s failed (%s): %v\n", step, time.Since(started).Round(time.Millisecond), err)
+			err = fmt.Errorf("%s failed (%s): %w", step, time.Since(started).Round(time.Millisecond), err)
 			if stage.OnFailureTip != "" {
 				pterm.Info.Printf("Suggested next command: %s\n", stage.OnFailureTip)
 			}

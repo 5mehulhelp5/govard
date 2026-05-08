@@ -98,7 +98,6 @@ var remoteAddCmd = &cobra.Command{
 
 		if host == "" || user == "" || path == "" {
 			err := fmt.Errorf("host, user, and path are required")
-			pterm.Error.Println(err.Error())
 			operationCategory = "validation"
 			operationMessage = "missing required flags: host/user/path"
 			writeRemoteAuditEvent(remote.AuditEvent{
@@ -115,7 +114,6 @@ var remoteAddCmd = &cobra.Command{
 		// environment is now derived from name
 		capabilities, err := engine.ParseRemoteCapabilitiesCSV(capabilitiesRaw)
 		if err != nil {
-			pterm.Error.Println(err.Error())
 			operationCategory = "validation"
 			operationMessage = err.Error()
 			writeRemoteAuditEvent(remote.AuditEvent{
@@ -131,7 +129,6 @@ var remoteAddCmd = &cobra.Command{
 		authMethod := remote.NormalizeAuthMethod(authMethodRaw)
 		if !remote.IsSupportedAuthMethod(authMethod) {
 			err := fmt.Errorf("unsupported auth method '%s' (allowed: keychain, ssh-agent, keyfile)", authMethodRaw)
-			pterm.Error.Println(err.Error())
 			operationCategory = "validation"
 			operationMessage = err.Error()
 			writeRemoteAuditEvent(remote.AuditEvent{
@@ -231,7 +228,6 @@ var remoteCopyIdCmd = &cobra.Command{
 		}
 		_, remoteCfg, err := ensureRemoteKnown(config, name)
 		if err != nil {
-			pterm.Error.Println(err.Error())
 			return err
 		}
 
@@ -280,7 +276,6 @@ var remoteExecCmd = &cobra.Command{
 		configForObservability = config
 		_, remoteCfg, err := ensureRemoteKnown(config, remoteName)
 		if err != nil {
-			pterm.Error.Println(err.Error())
 			operationCategory = "validation"
 			operationMessage = err.Error()
 			writeRemoteAuditEvent(remote.AuditEvent{
@@ -297,7 +292,6 @@ var remoteExecCmd = &cobra.Command{
 		commandLine := strings.TrimSpace(strings.Join(args[1:], " "))
 		if commandLine == "" {
 			err := fmt.Errorf("missing remote command after '--'")
-			pterm.Error.Println(err.Error())
 			operationCategory = "validation"
 			operationMessage = "missing remote command after '--'"
 			writeRemoteAuditEvent(remote.AuditEvent{
@@ -324,7 +318,6 @@ var remoteExecCmd = &cobra.Command{
 		sshCmd.Stderr = os.Stderr
 
 		if err := sshCmd.Run(); err != nil {
-			pterm.Error.Printf("Remote exec failed: %v\n", err)
 			details := remote.ClassifyFailure(err, "")
 			operationCategory = details.Category
 			operationMessage = err.Error()
@@ -336,7 +329,7 @@ var remoteExecCmd = &cobra.Command{
 				DurationMS: time.Since(startedAt).Milliseconds(),
 				Message:    err.Error(),
 			})
-			return err
+			return fmt.Errorf("remote exec failed: %w", err)
 		}
 		writeRemoteAuditEvent(remote.AuditEvent{
 			Operation:  "remote.exec",
@@ -385,7 +378,6 @@ var remoteTestCmd = &cobra.Command{
 		configForObservability = config
 		_, remoteCfg, err := ensureRemoteKnown(config, remoteName)
 		if err != nil {
-			pterm.Error.Println(err.Error())
 			operationCategory = "validation"
 			operationMessage = err.Error()
 			writeRemoteAuditEvent(remote.AuditEvent{
@@ -571,7 +563,7 @@ func findRemoteByNameOrEnvironment(config engine.Config, requested string) (stri
 	}
 	engine.SortRemoteNames(names)
 	for _, name := range names {
-		if strings.EqualFold(engine.NormalizeRemoteEnvironment(name), requested) {
+		if strings.EqualFold(engine.NormalizeRemoteEnvironment(name), engine.NormalizeRemoteEnvironment(requested)) {
 			return name, true
 		}
 	}

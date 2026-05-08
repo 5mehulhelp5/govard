@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"govard/internal/conventions"
 	"io"
 	"log/slog"
@@ -72,7 +71,6 @@ var versionCmd = &cobra.Command{
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println()
 		pterm.Error.Println(err)
 		os.Exit(1)
 	}

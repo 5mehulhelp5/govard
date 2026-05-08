@@ -186,7 +186,7 @@ Govard provides first-class support for common Composer versions to ensure insta
 
 ### Remotes
 
-Remote definitions live under `remotes.<name>`:
+Remote definitions live under `remotes.<name>`. The name can be any valid identifier — Govard accepts standard names (`dev`, `staging`, `prod`) as well as **any custom name** using lowercase letters, digits, hyphens, or underscores (e.g. `qa`, `preprod`, `demo`, `client-uat`).
 
 ```yaml
 remotes:
@@ -202,7 +202,25 @@ remotes:
     protected: false
     auth:
       method: ssh-agent
+
+  qa:
+    host: qa.example.com
+    user: deploy
+    path: /var/www/app
+    auth:
+      method: keychain
+
+  preprod:
+    host: preprod.example.com
+    user: deploy
+    path: /var/www/app
+    protected: true   # opt-in write protection for custom environments
+    auth:
+      method: ssh-agent
 ```
+
+> [!NOTE]
+> Only remotes whose name normalizes to `prod` (`prod`, `production`, `live`) are **automatically** write-protected. All other remotes — including custom names — default to unprotected. Use `protected: true` to opt in.
 
 Key subfields:
 
