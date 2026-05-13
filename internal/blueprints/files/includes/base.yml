@@ -86,8 +86,11 @@ services:
       {{ if .HostComposerCacheDir }}
       - "{{ .HostComposerCacheDir }}:{{ .HomeWWWData }}/.cache/composer"
       {{ end }}
-      {{ if .HostComposerConfigDir }}
-      - "{{ .HostComposerConfigDir }}:{{ .HomeWWWData }}/.composer:ro"
+      {{ if .HostComposerAuthPath }}
+      - "{{ .HostComposerAuthPath }}:{{ .HomeWWWData }}/.composer/auth.json:ro"
+      {{ end }}
+      {{ if .HostComposerConfigPath }}
+      - "{{ .HostComposerConfigPath }}:{{ .HomeWWWData }}/.composer/config.json:ro"
       {{ end }}
       {{ if .HostGovardRootCAPath }}
       - "{{ .HostGovardRootCAPath }}:/usr/local/share/ca-certificates/govard.crt:ro"
@@ -101,6 +104,7 @@ services:
       {{ end }}
       GIT_SSH_COMMAND: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
       COMPOSER_CACHE_DIR: "{{ .HomeWWWData }}/.cache/composer"
+      COMPOSER_HOME: "{{ .HomeWWWData }}/.composer"
       COMPOSER_VERSION: "{{ .ComposerVersion }}"
       NODE_VERSION: "{{ .Config.Stack.NodeVersion }}"
       PUID: {{ .Config.Stack.UserID }}
@@ -138,8 +142,11 @@ services:
       {{ if .HostComposerCacheDir }}
       - "{{ .HostComposerCacheDir }}:{{ .HomeWWWData }}/.cache/composer"
       {{ end }}
-      {{ if .HostComposerConfigDir }}
-      - "{{ .HostComposerConfigDir }}:{{ .HomeWWWData }}/.composer:ro"
+      {{ if .HostComposerAuthPath }}
+      - "{{ .HostComposerAuthPath }}:{{ .HomeWWWData }}/.composer/auth.json:ro"
+      {{ end }}
+      {{ if .HostComposerConfigPath }}
+      - "{{ .HostComposerConfigPath }}:{{ .HomeWWWData }}/.composer/config.json:ro"
       {{ end }}
       {{ if .HostGovardRootCAPath }}
       - "{{ .HostGovardRootCAPath }}:/usr/local/share/ca-certificates/govard.crt:ro"
@@ -159,6 +166,7 @@ services:
       {{ end }}
       GIT_SSH_COMMAND: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
       COMPOSER_CACHE_DIR: "{{ .HomeWWWData }}/.cache/composer"
+      COMPOSER_HOME: "{{ .HomeWWWData }}/.composer"
       COMPOSER_VERSION: "{{ .ComposerVersion }}"
       PUID: {{ .Config.Stack.UserID }}
       PGID: {{ .Config.Stack.GroupID }}

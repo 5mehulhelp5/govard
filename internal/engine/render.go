@@ -46,6 +46,8 @@ type RenderData struct {
 	SafeSSHConfig         string
 	HostComposerCacheDir  string
 	HostComposerConfigDir string
+	HostComposerAuthPath  string
+	HostComposerConfigPath string
 	VarnishVclPath        string
 	PackageManager        string
 	ComposerVersion       string
@@ -302,7 +304,7 @@ func RenderBlueprint(root string, config Config) error {
 
 // BlueprintVersion should be incremented whenever architectural changes are made to the embedded blueprints
 // to ensure that 'govard env up' re-renders existing environments.
-const BlueprintVersion = "1.41"
+const BlueprintVersion = "1.42"
 
 func RenderBlueprintWithProfile(root string, config Config, profile string) error {
 	blueprintsFS, err := resolveBlueprintsDirForConfig(root, config)
@@ -412,10 +414,20 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 			}
 		}
 
-		// Detect Composer config directory
+		// Detect Composer config directory and files
 		composerConfigDir := filepath.Join(home, ".composer")
 		if info, err := os.Stat(composerConfigDir); err == nil && info.IsDir() {
 			renderData.HostComposerConfigDir = composerConfigDir
+
+			authPath := filepath.Join(composerConfigDir, "auth.json")
+			if _, err := os.Stat(authPath); err == nil {
+				renderData.HostComposerAuthPath = authPath
+			}
+
+			configPath := filepath.Join(composerConfigDir, "config.json")
+			if _, err := os.Stat(configPath); err == nil {
+				renderData.HostComposerConfigPath = configPath
+			}
 		}
 	}
 
