@@ -25,8 +25,8 @@ func TestFrameworkDefaultsMagento2(t *testing.T) {
 	if config.DefaultNodeVer != "24" {
 		t.Fatalf("Expected DefaultNodeVer 24, got %s", config.DefaultNodeVer)
 	}
-	if config.DefaultDBVer != "11.4" {
-		t.Fatalf("Expected DefaultDBVer 11.4, got %s", config.DefaultDBVer)
+	if config.DefaultDBVer != "11.8" {
+		t.Fatalf("Expected DefaultDBVer 11.8, got %s", config.DefaultDBVer)
 	}
 	if config.DefaultMySQLVer != "8.4" {
 		t.Fatalf("Expected DefaultMySQLVer 8.4, got %s", config.DefaultMySQLVer)
@@ -35,11 +35,11 @@ func TestFrameworkDefaultsMagento2(t *testing.T) {
 		t.Fatalf("Expected DefaultCacheVer 7.4, got %s", config.DefaultCacheVer)
 	}
 
-	if config.DefaultSearchVer != "2.19" {
-		t.Fatalf("Expected DefaultSearchVer 2.19, got %s", config.DefaultSearchVer)
+	if config.DefaultSearchVer != "3.0" {
+		t.Fatalf("Expected DefaultSearchVer 3.0, got %s", config.DefaultSearchVer)
 	}
-	if config.DefaultQueueVer != "3.13.7" {
-		t.Fatalf("Expected DefaultQueueVer 3.13.7, got %s", config.DefaultQueueVer)
+	if config.DefaultQueueVer != "4.2" {
+		t.Fatalf("Expected DefaultQueueVer 4.2, got %s", config.DefaultQueueVer)
 	}
 }
 

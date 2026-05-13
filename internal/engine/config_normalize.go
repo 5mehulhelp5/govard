@@ -186,7 +186,7 @@ func NormalizeConfig(config *Config, root string) {
 		config.Stack.CacheVersion = profile.CacheVersion
 	} else if config.Stack.CacheVersion == "" {
 		if config.Stack.Services.Cache == "valkey" {
-			config.Stack.CacheVersion = "7.2"
+			config.Stack.CacheVersion = "9.0"
 		} else if ok && fwConfig.DefaultCacheVer != "" && strings.EqualFold(config.Stack.Services.Cache, fwConfig.DefaultCache) {
 			config.Stack.CacheVersion = fwConfig.DefaultCacheVer
 		} else {
@@ -220,7 +220,7 @@ func NormalizeConfig(config *Config, root string) {
 	} else if config.Stack.VarnishVersion == "" && ok && fwConfig.DefaultVarnishVer != "" {
 		config.Stack.VarnishVersion = fwConfig.DefaultVarnishVer
 	} else if config.Stack.VarnishVersion == "" {
-		config.Stack.VarnishVersion = "7.4"
+		config.Stack.VarnishVersion = "8.0"
 	}
 
 	if config.Stack.Services.Queue == "none" {
@@ -233,7 +233,7 @@ func NormalizeConfig(config *Config, root string) {
 	} else if config.Stack.QueueVersion == "" && ok && fwConfig.DefaultQueueVer != "" {
 		config.Stack.QueueVersion = fwConfig.DefaultQueueVer
 	} else if config.Stack.QueueVersion == "" {
-		config.Stack.QueueVersion = "3.13.7"
+		config.Stack.QueueVersion = "4.2"
 	}
 
 	if config.Stack.UserID == 0 {

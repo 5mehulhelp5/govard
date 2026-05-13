@@ -29,32 +29,32 @@ func renderTemplateFuncMap() template.FuncMap {
 
 // RenderData holds all data needed for template rendering
 type RenderData struct {
-	Config                Config
-	NGINXPublic           string
-	NGINXTemplate         string
-	NginxConfigPath       string
-	NginxMageRunMapPath   string
-	ApacheDocumentRoot    string
-	ApacheConfigDir       string
-	ApacheHTTPDConfigPath string
-	ApacheMageRunMapPath  string
-	DatabaseName          string
-	ImageRepository       string
-	XdebugSessionPattern  string
-	SSHAuthSock           string
-	HostSSHDir            string
-	SafeSSHConfig         string
-	HostComposerCacheDir  string
-	HostComposerConfigDir string
-	HostComposerAuthPath  string
+	Config                 Config
+	NGINXPublic            string
+	NGINXTemplate          string
+	NginxConfigPath        string
+	NginxMageRunMapPath    string
+	ApacheDocumentRoot     string
+	ApacheConfigDir        string
+	ApacheHTTPDConfigPath  string
+	ApacheMageRunMapPath   string
+	DatabaseName           string
+	ImageRepository        string
+	XdebugSessionPattern   string
+	SSHAuthSock            string
+	HostSSHDir             string
+	SafeSSHConfig          string
+	HostComposerCacheDir   string
+	HostComposerConfigDir  string
+	HostComposerAuthPath   string
 	HostComposerConfigPath string
-	VarnishVclPath        string
-	PackageManager        string
-	ComposerVersion       string
-	RuntimeDomainHosts    []string
-	HostGovardRootCAPath  string
-	WorkDir               string
-	HomeWWWData           string
+	VarnishVclPath         string
+	PackageManager         string
+	ComposerVersion        string
+	RuntimeDomainHosts     []string
+	HostGovardRootCAPath   string
+	WorkDir                string
+	HomeWWWData            string
 }
 
 func findBlueprintsDir(startDir string) (string, error) {

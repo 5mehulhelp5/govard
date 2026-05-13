@@ -737,7 +737,7 @@ func TestRenderMagento2BlueprintWithVarnishAcrossWebServers(t *testing.T) {
 			if !strings.Contains(contentStr, tc.expectedWebImage) {
 				t.Fatalf("expected web image %q, got:\n%s", tc.expectedWebImage, contentStr)
 			}
-			if !strings.Contains(contentStr, "image: ddtcorex/govard-varnish:7.6") {
+			if !strings.Contains(contentStr, "image: ddtcorex/govard-varnish:8.0") {
 				t.Fatalf("expected managed varnish image, got:\n%s", contentStr)
 			}
 			if !strings.Contains(contentStr, "- web") {

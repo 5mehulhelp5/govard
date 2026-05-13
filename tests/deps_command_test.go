@@ -15,7 +15,7 @@ func TestRequiredRuntimeImagesMagento(t *testing.T) {
 			DBVersion:     "10.6",
 			CacheVersion:  "7.4",
 			SearchVersion: "2.12.0",
-			QueueVersion:  "3.13.7",
+			QueueVersion:  "4.2",
 			Services: engine.Services{
 				WebServer: "nginx",
 				DB:        "mariadb",
@@ -38,8 +38,8 @@ func TestRequiredRuntimeImagesMagento(t *testing.T) {
 		"ddtcorex/govard-mariadb:10.6":      true,
 		"ddtcorex/govard-redis:7.4":         true,
 		"ddtcorex/govard-opensearch:2.12.0": true,
-		"ddtcorex/govard-rabbitmq:3.13.7":   true,
-		"ddtcorex/govard-varnish:7.6":       true,
+		"ddtcorex/govard-rabbitmq:4.2":      true,
+		"ddtcorex/govard-varnish:8.0":       true,
 	}
 
 	for _, image := range images {
@@ -57,7 +57,7 @@ func TestRequiredRuntimeImagesNextjs(t *testing.T) {
 		Stack: engine.Stack{
 			NodeVersion:  "24",
 			CacheVersion: "7.4",
-			QueueVersion: "3.13.7",
+			QueueVersion: "4.2",
 			Services: engine.Services{
 				Cache: "redis",
 				Queue: "rabbitmq",
@@ -70,9 +70,9 @@ func TestRequiredRuntimeImagesNextjs(t *testing.T) {
 	}, "")
 
 	expected := map[string]bool{
-		"node:24":                         true,
-		"ddtcorex/govard-redis:7.4":       true,
-		"ddtcorex/govard-rabbitmq:3.13.7": true,
+		"node:24":                      true,
+		"ddtcorex/govard-redis:7.4":    true,
+		"ddtcorex/govard-rabbitmq:4.2": true,
 	}
 
 	for _, image := range images {

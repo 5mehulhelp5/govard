@@ -360,7 +360,13 @@ func buildMagento2Commands(projectName string, config Config, lockedKeys map[str
 		commands = append(commands, magentoCommand{
 			Desc: "Configuring Redis Cache",
 			Args: magentoDockerExecArgs(containerName, config, conventions.BinMagento, "setup:config:set",
-				"--cache-backend=redis", "--cache-backend-redis-server=redis", "--cache-backend-redis-db=0", "--no-interaction"),
+				"--cache-backend=redis",
+				"--cache-backend-redis-server=redis",
+				"--cache-backend-redis-db=0",
+				"--page-cache=redis",
+				"--page-cache-redis-server=redis",
+				"--page-cache-redis-db=1",
+				"--no-interaction"),
 			Optional: true,
 		})
 		commands = append(commands, magentoCommand{

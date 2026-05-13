@@ -29,8 +29,8 @@ func TestNormalizeConfigDefaultsMagento2(t *testing.T) {
 	if config.Stack.DBVersion != "" {
 		t.Fatalf("Expected DBVersion empty, got %s", config.Stack.DBVersion)
 	}
-	if config.Stack.PHPVersion != "8.4" {
-		t.Fatalf("Expected PHPVersion 8.4, got %s", config.Stack.PHPVersion)
+	if config.Stack.PHPVersion != "8.5" {
+		t.Fatalf("Expected PHPVersion 8.5, got %s", config.Stack.PHPVersion)
 	}
 	if config.Stack.NodeVersion != "24" {
 		t.Fatalf("Expected NodeVersion 24, got %s", config.Stack.NodeVersion)
@@ -77,8 +77,8 @@ func TestNormalizeConfigQueueDefaults(t *testing.T) {
 
 	engine.NormalizeConfig(&config, "")
 
-	if config.Stack.QueueVersion != "3.13.7" {
-		t.Fatalf("Expected QueueVersion 3.13.7, got %s", config.Stack.QueueVersion)
+	if config.Stack.QueueVersion != "4.2" {
+		t.Fatalf("Expected QueueVersion 4.2, got %s", config.Stack.QueueVersion)
 	}
 }
 
@@ -152,12 +152,12 @@ func TestNormalizeConfigCacheAndSearchVersions(t *testing.T) {
 
 	engine.NormalizeConfig(&config, "")
 
-	if config.Stack.CacheVersion != "7.2" {
-		t.Fatalf("Expected CacheVersion 7.2, got %s", config.Stack.CacheVersion)
+	if config.Stack.CacheVersion != "9.0" {
+		t.Fatalf("Expected CacheVersion 9.0, got %s", config.Stack.CacheVersion)
 	}
 
-	if config.Stack.SearchVersion != "2.19" {
-		t.Fatalf("Expected SearchVersion 2.19, got %s", config.Stack.SearchVersion)
+	if config.Stack.SearchVersion != "3.0" {
+		t.Fatalf("Expected SearchVersion 3.0, got %s", config.Stack.SearchVersion)
 	}
 }
 

@@ -188,7 +188,7 @@ func TestFrameworkAutoConfiguration(t *testing.T) {
 		{
 			name:             "Magento 2",
 			framework:        "magento2",
-			expectedPHP:      "8.4",
+			expectedPHP:      "8.5",
 			expectedNginxPub: "/pub",
 		},
 		{

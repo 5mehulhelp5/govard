@@ -70,7 +70,7 @@ target "mariadb" {
   context    = "docker/mariadb"
   dockerfile = "Dockerfile"
   matrix = {
-    version = ["11.4", "10.11", "10.6", "10.5", "10.4", "10.3", "10.2", "10.1", "10.0"]
+    version = ["11.8", "11.4", "10.11", "10.6", "10.5", "10.4", "10.3", "10.2", "10.1", "10.0"]
   }
   args = {
     MARIADB_VERSION = version
@@ -111,10 +111,11 @@ target "opensearch" {
   context    = "docker/opensearch"
   dockerfile = "Dockerfile"
   matrix = {
-    version = ["3.0", "2.19", "2.12", "2.5", "1.3", "1.2"]
+    version = ["3.1", "3.0", "2.19", "2.12", "2.5", "1.3", "1.2"]
   }
   args = {
     OPENSEARCH_VERSION = (
+      version == "3.1"  ? "3.1.0" :
       version == "3.0"  ? "3.0.0" :
       version == "2.19" ? "2.19.0" :
       version == "2.12" ? "2.12.0" :
@@ -233,7 +234,7 @@ target "rabbitmq" {
   context    = "docker/rabbitmq"
   dockerfile = "Dockerfile"
   matrix = {
-    version = ["4.1", "4.0", "3.13", "3.12", "3.11", "3.9", "3.8", "3.7"]
+    version = ["4.2", "4.1", "4.0", "3.13", "3.12", "3.11", "3.9", "3.8", "3.7"]
   }
   args = {
     RABBITMQ_VERSION = version
@@ -261,7 +262,7 @@ target "valkey" {
   context    = "docker/valkey"
   dockerfile = "Dockerfile"
   matrix = {
-    version = ["8.0", "7.2"]
+    version = ["9.0", "8.0", "7.2"]
   }
   args = {
     VALKEY_VERSION = version
@@ -275,7 +276,7 @@ target "varnish" {
   context    = "docker/varnish"
   dockerfile = "Dockerfile"
   matrix = {
-    version = ["7.7", "7.6", "7.5", "7.4", "7.1", "7.0", "6.0", "latest"]
+    version = ["8.0", "7.7", "7.6", "7.5", "7.4", "7.1", "7.0", "6.0", "latest"]
   }
   args = {
     VARNISH_VERSION   = version == "latest" ? "7.6" : version
