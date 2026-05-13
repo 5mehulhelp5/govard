@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.50.0] - 2026-05-13
+
+### ✨ New Features
+
+- **Service Defaults:** Updated default infrastructure versions across all blueprints:
+  - **PHP:** Bumped to **8.5**
+  - **Valkey:** Bumped to **9.0** (replacing Redis defaults)
+  - **Varnish:** Bumped to **8.0**
+  - **RabbitMQ:** Bumped to **4.2**
+  - **OpenSearch:** Bumped to **3.0**
+- **Composer Security:** Replaced the generic `/root/.composer` volume mount with granular mapping of `auth.json` and `config.json` from the host. This prevents configuration leakage and ensures better isolation between the host and container environments.
+
+### 🛠 Improvements
+
+- **Remote Resolution:** Simplified remote environment resolution logic. Removed rigid auto-aliasing for custom remote names, providing more predictable behavior and better support for non-standard environment labels.
+
 ## [1.49.6] - 2026-05-04
 
 ### 🛠 Improvements
