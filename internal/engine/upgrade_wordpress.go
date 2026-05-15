@@ -25,6 +25,15 @@ func upgradeWordPress(ctx context.Context, config Config, opts UpgradeOptions) e
 		return nil
 	}
 
+	if !opts.NoInteraction {
+		confirmed, _ := pterm.DefaultInteractiveConfirm.
+			WithDefaultValue(true).
+			Show(fmt.Sprintf("Upgrade WordPress to %s?", opts.TargetVersion))
+		if !confirmed {
+			return fmt.Errorf("upgrade cancelled by user")
+		}
+	}
+
 	// Step 1: WP core update
 	pterm.Info.Println("Step 1/3: Updating WordPress core...")
 	updateCmd := exec.CommandContext(ctx, "docker", "exec", "-w", conventions.DefaultWorkDir, containerName, "wp", "core", "update", "--version="+opts.TargetVersion)

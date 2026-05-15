@@ -27,7 +27,7 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts Bootstrap
 		if _, ok := config.Remotes[opts.Source]; !ok {
 			if stdinIsTerminal() {
 				pterm.Warning.Printf("Remote '%s' is not configured.\n", opts.Source)
-				yes, _ := pterm.DefaultInteractiveConfirm.Show(fmt.Sprintf("Would you like to add remote '%s' now?", opts.Source))
+				yes, _ := pterm.DefaultInteractiveConfirm.WithDefaultValue(true).Show(fmt.Sprintf("Would you like to add remote '%s' now?", opts.Source))
 				if yes {
 					if err := runGovardSubcommand(cmd, "remote", "add", opts.Source); err != nil {
 						return err

@@ -167,7 +167,7 @@ func TestRunBootstrapFreshCreateProjectForTestBuildsExpectedCommand(t *testing.T
 		t.Fatalf("RunBootstrapFreshCreateProjectForTest() error = %v", err)
 	}
 
-	if !strings.Contains(gotCommandLine, "composer create-project -q -n --repository-url=https://repo.magento.com 'magento/project-community-edition' /tmp/govard-create-project '2.4.8'") {
+	if !strings.Contains(gotCommandLine, "composer create-project -n --ignore-platform-reqs --repository-url=https://repo.magento.com 'magento/project-community-edition' /tmp/govard-create-project '2.4.8'") {
 		t.Fatalf("unexpected create-project command: %s", gotCommandLine)
 	}
 	if !strings.Contains(gotCommandLine, "rm -rf /tmp/govard-create-project") {

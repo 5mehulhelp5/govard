@@ -22,6 +22,15 @@ func upgradeMagento1(ctx context.Context, config Config, opts UpgradeOptions) er
 		return nil
 	}
 
+	if !opts.NoInteraction {
+		confirmed, _ := pterm.DefaultInteractiveConfirm.
+			WithDefaultValue(true).
+			Show("Proceed with Magento 1 upgrade steps (Composer install, Cache flush, DB setup)?")
+		if !confirmed {
+			return fmt.Errorf("upgrade cancelled by user")
+		}
+	}
+
 	// Step 1: Composer install
 	pterm.Info.Println("Step 1/4: Installing composer dependencies...")
 	checkComposer := exec.CommandContext(ctx, "docker", "exec", "-w", conventions.DefaultWorkDir, containerName, "test", "-f", "composer.json")

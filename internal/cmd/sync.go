@@ -265,7 +265,7 @@ Case Studies:
 				fmt.Fprintln(cmd.OutOrStdout(), line)
 			}
 			fmt.Println()
-			confirmed, _ := pterm.DefaultInteractiveConfirm.WithDefaultText("Do you want to proceed with this synchronization?").Show()
+			confirmed, _ := pterm.DefaultInteractiveConfirm.WithDefaultValue(true).WithDefaultText("Do you want to proceed with this synchronization?").Show()
 			if !confirmed {
 				return fmt.Errorf("synchronization cancelled by user")
 			}

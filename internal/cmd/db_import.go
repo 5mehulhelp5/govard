@@ -47,7 +47,7 @@ func runStreamDBImport(cmd *cobra.Command, config engine.Config, options dbComma
 			if !stdinIsTerminal() {
 				return errors.New("confirmation required to drop and recreate the local database; use -y to assume yes in non-interactive environments")
 			}
-			confirmed, _ := pterm.DefaultInteractiveConfirm.WithDefaultText("Are you sure you want to drop and recreate the local database?").Show()
+			confirmed, _ := pterm.DefaultInteractiveConfirm.WithDefaultValue(true).WithDefaultText("Are you sure you want to drop and recreate the local database?").Show()
 			if !confirmed {
 				return errors.New("stream-db import cancelled by user")
 			}
@@ -177,7 +177,7 @@ func runDirectDBImport(cmd *cobra.Command, config engine.Config, options dbComma
 			if !stdinIsTerminal() {
 				return errors.New("confirmation required to drop and recreate the database; use -y to assume yes in non-interactive environments")
 			}
-			confirmed, _ := pterm.DefaultInteractiveConfirm.WithDefaultText("Are you sure you want to drop and recreate the database?").Show()
+			confirmed, _ := pterm.DefaultInteractiveConfirm.WithDefaultValue(true).WithDefaultText("Are you sure you want to drop and recreate the database?").Show()
 			if !confirmed {
 				return errors.New("database import cancelled by user")
 			}

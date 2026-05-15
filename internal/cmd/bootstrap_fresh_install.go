@@ -315,6 +315,10 @@ func runBootstrapFreshInstall(cmd *cobra.Command, config engine.Config, opts Boo
 		return err
 	}
 
+	if err := FixComposerCompatibility(config); err != nil {
+		return err
+	}
+
 	if err := runBootstrapFreshCreateProject(cmd, config, opts); err != nil {
 		return err
 	}
@@ -348,7 +352,7 @@ func runBootstrapFreshCreateProject(cmd *cobra.Command, config engine.Config, op
 	commandLine := strings.Join([]string{
 		"set -e",
 		"rm -rf /tmp/govard-create-project",
-		"composer create-project -q -n --repository-url=https://repo.magento.com " +
+		"composer create-project -n --ignore-platform-reqs --repository-url=https://repo.magento.com " +
 			engine.ShellQuote(opts.MetaPackage) + " /tmp/govard-create-project" + versionPart,
 		"if command -v rsync >/dev/null 2>&1; then rsync -a /tmp/govard-create-project/ " + conventions.DefaultWorkDir + "/; else cp -a /tmp/govard-create-project/. " + conventions.DefaultWorkDir + "/; fi",
 		"rm -rf /tmp/govard-create-project",

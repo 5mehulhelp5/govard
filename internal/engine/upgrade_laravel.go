@@ -25,6 +25,15 @@ func upgradeLaravel(ctx context.Context, config Config, opts UpgradeOptions) err
 		return nil
 	}
 
+	if !opts.NoInteraction {
+		confirmed, _ := pterm.DefaultInteractiveConfirm.
+			WithDefaultValue(true).
+			Show(fmt.Sprintf("Upgrade Laravel to ^%s?", opts.TargetVersion))
+		if !confirmed {
+			return fmt.Errorf("upgrade cancelled by user")
+		}
+	}
+
 	// Step 1: Composer require
 	pterm.Info.Println("Step 1/3: Updating composer.json...")
 	requireCmd := exec.CommandContext(ctx, "docker", "exec", "-w", conventions.DefaultWorkDir, containerName, conventions.BinComposer, "require", fmt.Sprintf("laravel/framework:^%s", opts.TargetVersion), "--no-update")

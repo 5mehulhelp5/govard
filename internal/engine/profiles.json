@@ -93,6 +93,7 @@
             "queue_version": "3.11",
             "varnish_version": "7.1",
             "nginx_version": "1.22",
+            "composer_version": "2.2",
             "rules": [
               {
                 "min": 11,
@@ -124,6 +125,7 @@
             "queue_version": "3.11",
             "varnish_version": "7.0",
             "nginx_version": "1.22",
+            "composer_version": "2.2",
             "rules": [
               {
                 "min": 13,
@@ -164,6 +166,7 @@
             "queue_version": "3.9",
             "varnish_version": "7.0",
             "nginx_version": "1.20",
+            "composer_version": "2.2",
             "rules": [
               {
                 "min": 16,
@@ -196,6 +199,7 @@
             "nginx_version": "1.18",
             "varnish_version": "6.0",
             "queue_version": "3.8",
+            "composer_version": "2.2",
             "rules": [
               {
                 "min": 2,
@@ -221,7 +225,8 @@
             "search_version": "7.9",
             "queue_version": "3.8",
             "varnish_version": "6.0",
-            "nginx_version": "1.18"
+            "nginx_version": "1.18",
+            "composer_version": "2.2"
           },
           {
             "patch": 1,
@@ -233,7 +238,8 @@
             "search_version": "7.9",
             "queue_version": "3.8",
             "varnish_version": "6.0",
-            "nginx_version": "1.18"
+            "nginx_version": "1.18",
+            "composer_version": "2.2"
           },
           {
             "patch": 0,
@@ -245,7 +251,8 @@
             "search_version": "7.6",
             "queue_version": "3.8",
             "varnish_version": "6.0",
-            "nginx_version": "1.18"
+            "nginx_version": "1.18",
+            "composer_version": "2.2"
           }
         ]
       },

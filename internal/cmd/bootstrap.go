@@ -229,7 +229,7 @@ Note: -e/--environment accepts remote name aliases (e.g. 'dev' matches a remote 
 					fmt.Fprintln(cmd.OutOrStdout(), line)
 				}
 				fmt.Println()
-				confirmed, _ := pterm.DefaultInteractiveConfirm.WithDefaultText("Do you want to proceed with this bootstrap?").Show()
+				confirmed, _ := pterm.DefaultInteractiveConfirm.WithDefaultValue(true).WithDefaultText("Do you want to proceed with this bootstrap?").Show()
 				if !confirmed {
 					return fmt.Errorf("bootstrap cancelled by user")
 				}

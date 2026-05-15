@@ -45,13 +45,8 @@ func upgradeMagento2(ctx context.Context, config Config, opts UpgradeOptions) er
 
 	if !opts.NoInteraction {
 		pterm.Warning.Println("This will update framework profile dependencies, restart the environment, and modify composer.json.")
-		fmt.Printf("Proceed with upgrade to %s? [y/N] ", opts.TargetVersion)
-		var response string
-		if _, err := fmt.Scanln(&response); err != nil {
-			return fmt.Errorf("failed to read response: %w", err)
-		}
-		response = strings.ToLower(strings.TrimSpace(response))
-		if response != "y" && response != "yes" {
+		confirm, _ := pterm.DefaultInteractiveConfirm.WithDefaultValue(true).Show(fmt.Sprintf("Proceed with upgrade to %s?", opts.TargetVersion))
+		if !confirm {
 			pterm.Info.Println("Upgrade cancelled.")
 			return nil
 		}
@@ -74,6 +69,10 @@ func upgradeMagento2(ctx context.Context, config Config, opts UpgradeOptions) er
 			}
 			if err := os.WriteFile(filepath.Join(opts.ProjectDir, ".govard.yml"), yamlOut, conventions.DefaultFilePerm); err != nil {
 				return fmt.Errorf("failed to write .govard.yml: %w", err)
+			}
+
+			if err := RenderBlueprint(opts.ProjectDir, config); err != nil {
+				return fmt.Errorf("failed to render environment: %w", err)
 			}
 		}
 
@@ -104,6 +103,10 @@ func upgradeMagento2(ctx context.Context, config Config, opts UpgradeOptions) er
 		checkDatabaseReady(ctx, config, containerName)
 	}
 
+	if err := FixComposerCompatibility(config); err != nil {
+		return fmt.Errorf("failed to fix composer compatibility: %w", err)
+	}
+
 	pterm.Info.Println("Step 3/6: Fetching and merging composer.json...")
 
 	if err := updateMagentoComposerJson(opts, containerName); err != nil {
@@ -112,10 +115,21 @@ func upgradeMagento2(ctx context.Context, config Config, opts UpgradeOptions) er
 
 	pterm.Info.Println("Step 4/6: Running composer update...")
 	// Relax some packages
-	relaxPackages(containerName)
+	relaxed := relaxPackages(containerName)
 
 	// Composer update
-	cmdArgs := []string{"exec", "-w", conventions.DefaultWorkDir, containerName, conventions.BinComposer, "update", "magento/*", "phpunit/*", "--with-all-dependencies"}
+	updatePkgs := []string{"magento/*", "phpunit/*"}
+	for _, r := range relaxed {
+		pkgName := strings.Split(r, ":")[0]
+		// Avoid duplicates and wildcards already covered
+		if pkgName == "phpunit/phpunit" {
+			continue
+		}
+		updatePkgs = append(updatePkgs, pkgName)
+	}
+
+	cmdArgs := append([]string{"exec", "-w", conventions.DefaultWorkDir, containerName, conventions.BinComposer, "update"}, updatePkgs...)
+	cmdArgs = append(cmdArgs, "--with-all-dependencies", "--ignore-platform-reqs")
 	updateCmd := exec.CommandContext(ctx, "docker", cmdArgs...)
 	updateCmd.Stdout = opts.Stdout
 	updateCmd.Stderr = opts.Stderr
@@ -243,6 +257,17 @@ func mergeComposerMapKeys(current map[string]interface{}, target map[string]inte
 		return
 	}
 
+	// For requirement sections, remove old magento/* packages that are no longer in the target version
+	if key == "require" || key == "require-dev" {
+		for k := range currentMap {
+			if strings.HasPrefix(k, "magento/") {
+				if _, ok := targetMap[k]; !ok {
+					delete(currentMap, k)
+				}
+			}
+		}
+	}
+
 	for k, v := range targetMap {
 		currentMap[k] = v
 	}
@@ -252,42 +277,87 @@ func MergeComposerMapKeysForTest(current map[string]interface{}, target map[stri
 	mergeComposerMapKeys(current, target, key)
 }
 
-func relaxPackages(containerName string) {
+func relaxPackages(containerName string) []string {
+	// Check existing in composer.json
+	cmdGet := exec.Command("docker", "exec", "-w", conventions.DefaultWorkDir, containerName, "cat", "composer.json")
+	out, err := cmdGet.Output()
+	if err != nil {
+		return nil
+	}
+	return RelaxPackagesFromContentForTest(string(out), containerName)
+}
+
+// RelaxPackagesFromContentForTest identifies packages to relax from composer.json content.
+func RelaxPackagesFromContentForTest(content string, containerName string) []string {
 	relax := []string{
 		"phpunit/phpunit:*",
 		"pdepend/pdepend:*",
 		"phpmd/phpmd:*",
 		"friendsofphp/php-cs-fixer:*",
 		"magento/magento-coding-standard:*",
+		"magento/magento-allure-phpunit:*",
+		"magento/magento2-functional-testing-framework:*",
+		"phpstan/phpstan:*",
 		"symfony/finder:*",
+		"symfony/process:*",
+		"symfony/console:*",
+		"symfony/yaml:*",
+		"symfony/var-dumper:*",
+		"symfony/event-dispatcher:*",
 		"allure-framework/allure-phpunit:*",
 		"sebastian/phpcpd:*",
+		"sebastian/comparator:*",
+		"sebastian/diff:*",
+		"sebastian/exporter:*",
+		"sebastian/recursion-context:*",
+		"sebastian/code-unit:*",
+		"sebastian/cli-parser:*",
+		"sebastian/code-unit-reverse-lookup:*",
+		"sebastian/complexity:*",
+		"sebastian/environment:*",
+		"sebastian/global-state:*",
+		"sebastian/lines-of-code:*",
+		"sebastian/object-enumerator:*",
+		"sebastian/object-reflector:*",
+		"sebastian/type:*",
+		"sebastian/version:*",
 		"laminas/laminas-dom:*",
+		"laminas/laminas-escaper:*",
+		"laminas/laminas-stdlib:*",
 	}
 
-	// Check existing in composer.json
-	cmdGet := exec.Command("docker", "exec", "-w", conventions.DefaultWorkDir, containerName, "cat", "composer.json")
-	out, err := cmdGet.Output()
-	if err != nil {
-		return
-	}
-	content := string(out)
-
-	var toRelax []string
+	var toRelax, toRelaxDev []string
 	for _, pkgStr := range relax {
 		pkgName := strings.Split(pkgStr, ":")[0]
-		if strings.Contains(content, `"`+pkgName+`"`) {
+		// Find which section it belongs to
+		reReq := regexp.MustCompile(`"require"\s*:\s*\{[^}]*"` + regexp.QuoteMeta(pkgName) + `"`)
+		reDev := regexp.MustCompile(`"require-dev"\s*:\s*\{[^}]*"` + regexp.QuoteMeta(pkgName) + `"`)
+
+		if reDev.MatchString(content) {
+			toRelaxDev = append(toRelaxDev, pkgStr)
+		} else if reReq.MatchString(content) {
 			toRelax = append(toRelax, pkgStr)
 		}
 	}
 
-	if len(toRelax) > 0 {
-		args := append([]string{"exec", "-w", conventions.DefaultWorkDir, containerName, conventions.BinComposer, "require"}, toRelax...)
-		args = append(args, "--no-update")
-		if err := exec.Command("docker", args...).Run(); err != nil {
-			pterm.Warning.Printf("Failed to relax packages: %v\n", err)
+	if containerName != "" {
+		if len(toRelax) > 0 {
+			args := append([]string{"exec", "-w", conventions.DefaultWorkDir, containerName, conventions.BinComposer, "require"}, toRelax...)
+			args = append(args, "--no-update")
+			if err := exec.Command("docker", args...).Run(); err != nil {
+				pterm.Warning.Printf("Failed to relax packages: %v\n", err)
+			}
+		}
+		if len(toRelaxDev) > 0 {
+			args := append([]string{"exec", "-w", conventions.DefaultWorkDir, containerName, conventions.BinComposer, "require", "--dev"}, toRelaxDev...)
+			args = append(args, "--no-update")
+			if err := exec.Command("docker", args...).Run(); err != nil {
+				pterm.Warning.Printf("Failed to relax dev packages: %v\n", err)
+			}
 		}
 	}
+
+	return append(toRelax, toRelaxDev...)
 }
 
 func checkDatabaseReady(ctx context.Context, config Config, containerName string) {

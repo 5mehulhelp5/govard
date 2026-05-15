@@ -772,7 +772,7 @@ func shouldProceedWithSelfUpdate(assumeYes bool) bool {
 		return false
 	}
 
-	msg, _ := pterm.DefaultInteractiveConfirm.Show("Do you want to proceed with the update?")
+	msg, _ := pterm.DefaultInteractiveConfirm.WithDefaultValue(true).Show("Do you want to proceed with the update?")
 	return msg
 }
 
@@ -818,7 +818,7 @@ func checkAndFixSystemDependencies(assumeYes bool) {
 	if len(missingDeps) > 0 {
 		confirm := assumeYes
 		if !confirm {
-			msg, _ := pterm.DefaultInteractiveConfirm.Show(fmt.Sprintf("Do you want to install missing dependencies (%s) automatically?", strings.Join(missingDeps, ", ")))
+			msg, _ := pterm.DefaultInteractiveConfirm.WithDefaultValue(true).Show(fmt.Sprintf("Do you want to install missing dependencies (%s) automatically?", strings.Join(missingDeps, ", ")))
 			confirm = msg
 		}
 

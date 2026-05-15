@@ -30,33 +30,35 @@ type profileStack struct {
 }
 
 type profileRule struct {
-	Min            int    `json:"min"`
-	Stack          string `json:"stack"`
-	PHPVersion     string `json:"php_version"`
-	DBVersion      string `json:"db_version"`
-	Cache          string `json:"cache,omitempty"`
-	Search         string `json:"search,omitempty"`
-	SearchVersion  string `json:"search_version,omitempty"`
-	VarnishVersion string `json:"varnish_version"`
-	NginxVersion   string `json:"nginx_version"`
-	QueueVersion   string `json:"queue_version"`
-	CacheVersion   string `json:"cache_version"`
+	Min             int    `json:"min"`
+	Stack           string `json:"stack"`
+	PHPVersion      string `json:"php_version"`
+	DBVersion       string `json:"db_version"`
+	Cache           string `json:"cache,omitempty"`
+	Search          string `json:"search,omitempty"`
+	SearchVersion   string `json:"search_version,omitempty"`
+	VarnishVersion  string `json:"varnish_version"`
+	NginxVersion    string `json:"nginx_version"`
+	QueueVersion    string `json:"queue_version"`
+	CacheVersion    string `json:"cache_version"`
+	ComposerVersion string `json:"composer_version,omitempty"`
 }
 
 type patchVariant struct {
-	Patch          *int          `json:"patch,omitempty"`
-	PatchMin       *int          `json:"patch_min,omitempty"`
-	PatchMax       *int          `json:"patch_max,omitempty"`
-	PHPVersion     string        `json:"php_version"`
-	DBVersion      string        `json:"db_version"`
-	Cache          string        `json:"cache,omitempty"`
-	CacheVersion   string        `json:"cache_version,omitempty"`
-	Search         string        `json:"search,omitempty"`
-	SearchVersion  string        `json:"search_version,omitempty"`
-	QueueVersion   string        `json:"queue_version"`
-	VarnishVersion string        `json:"varnish_version"`
-	NginxVersion   string        `json:"nginx_version"`
-	Rules          []profileRule `json:"rules"`
+	Patch           *int          `json:"patch,omitempty"`
+	PatchMin        *int          `json:"patch_min,omitempty"`
+	PatchMax        *int          `json:"patch_max,omitempty"`
+	PHPVersion      string        `json:"php_version"`
+	DBVersion       string        `json:"db_version"`
+	Cache           string        `json:"cache,omitempty"`
+	CacheVersion    string        `json:"cache_version,omitempty"`
+	Search          string        `json:"search,omitempty"`
+	SearchVersion   string        `json:"search_version,omitempty"`
+	QueueVersion    string        `json:"queue_version"`
+	VarnishVersion  string        `json:"varnish_version"`
+	NginxVersion    string        `json:"nginx_version"`
+	ComposerVersion string        `json:"composer_version,omitempty"`
+	Rules           []profileRule `json:"rules"`
 }
 
 type versionGroup struct {
@@ -214,6 +216,9 @@ func applyPatchBaselines(o *runtimeProfileOverride, v patchVariant) {
 	if v.NginxVersion != "" {
 		o.NginxVersion = v.NginxVersion
 	}
+	if v.ComposerVersion != "" {
+		o.ComposerVersion = v.ComposerVersion
+	}
 }
 
 func applyStackToOverride(o *runtimeProfileOverride, stack profileStack) {
@@ -249,6 +254,9 @@ func applyRuleOverrides(o *runtimeProfileOverride, rule profileRule) {
 	}
 	if rule.SearchVersion != "" {
 		o.SearchVersion = rule.SearchVersion
+	}
+	if rule.ComposerVersion != "" {
+		o.ComposerVersion = rule.ComposerVersion
 	}
 	if rule.VarnishVersion != "" {
 		o.VarnishVersion = rule.VarnishVersion
