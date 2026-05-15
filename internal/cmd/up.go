@@ -121,6 +121,7 @@ type upRuntimeContext struct {
 	RemoveOrphans bool
 	ForceRecreate bool
 	UpdateLock    bool
+	ShiftInfo     *engine.ProfileShiftInfo
 	Out           io.Writer
 	Err           io.Writer
 }
@@ -194,6 +195,43 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 				if err := engine.CheckNetworkConnectivity(); err != nil {
 					pterm.Warning.Printf("Network outbound probe failed: %v\n", err)
 				}
+				return nil
+			},
+		},
+		{
+			Name:         "ProfileGuard",
+			OnFailureTip: "govard config profile apply",
+			Run: func() error {
+				shift := engine.DetectProfileShift(context.Config)
+				if !shift.Shifted {
+					return nil
+				}
+
+				// Prompt user for confirmation when the shift is implicit
+				// (no --profile flag, not initial config, and TTY is available)
+				explicitProfile := context.Profile != ""
+				if !shift.IsInitial && !explicitProfile && stdinIsTerminal() {
+					pterm.Warning.Printf("Profile shift detected: %s\n", shift.Reason)
+					if shift.PreviousVersion != "" && shift.CurrentVersion != "" {
+						pterm.Info.Printf("  Previous: %s (PHP %s)\n", shift.PreviousVersion, shift.PreviousPHP)
+						pterm.Info.Printf("  Current:  %s (PHP %s)\n", shift.CurrentVersion, shift.CurrentPHP)
+					}
+					pterm.Info.Println("This will recreate infrastructure containers (Redis, etc.) to match the new profile.")
+
+					proceed, promptErr := pterm.DefaultInteractiveConfirm.
+						WithDefaultValue(true).
+						Show("Continue with profile switch?")
+					if promptErr != nil || !proceed {
+						return fmt.Errorf("aborted by user")
+					}
+				} else if !shift.IsInitial {
+					pterm.Info.Printf("Profile shift: %s. Preparing infrastructure...\n", shift.Reason)
+				}
+
+				// Pre-clean infrastructure before containers start
+				engine.PrepareInfraForShift(context.Config.ProjectName, context.Config)
+				context.ForceRecreate = true
+				context.ShiftInfo = &shift
 				return nil
 			},
 		},
@@ -371,7 +409,7 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 				}
 
 				if context.Config.Framework == "magento2" {
-					if err := engine.ConfigureMagento(context.Config.ProjectName, context.Config, false); err != nil {
+					if err := engine.ConfigureMagento(context.Config.ProjectName, context.Config, false, context.ShiftInfo); err != nil {
 						pterm.Warning.Printf("Magento auto-configuration failed: %v\n", err)
 					}
 				}
@@ -419,6 +457,14 @@ func buildUpReadinessChecks(config engine.Config) []upReadinessCheck {
 			Service:       "varnish",
 			ContainerName: fmt.Sprintf("%s%s", config.ProjectName, conventions.VarnishSuffix),
 			ProbeArgs:     []string{"true"},
+		})
+	}
+
+	if config.Stack.Features.Cache || config.Stack.Services.Cache != "none" {
+		checks = append(checks, upReadinessCheck{
+			Service:       "redis",
+			ContainerName: fmt.Sprintf("%s%s", config.ProjectName, conventions.RedisSuffix),
+			ProbeArgs:     []string{"redis-cli", "ping"},
 		})
 	}
 

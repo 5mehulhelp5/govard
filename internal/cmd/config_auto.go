@@ -9,7 +9,9 @@ import (
 )
 
 var (
-	runMagento2AutoConfiguration = engine.ConfigureMagento
+	runMagento2AutoConfiguration = func(projectName string, config engine.Config, force bool) error {
+		return engine.ConfigureMagento(projectName, config, force, nil)
+	}
 	runMagento1AutoConfiguration = engine.ConfigureMagento1
 )
 

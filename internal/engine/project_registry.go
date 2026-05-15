@@ -19,15 +19,16 @@ const (
 )
 
 type ProjectRegistryEntry struct {
-	Path         string    `json:"path"`
-	ProjectName  string    `json:"project_name"`
-	Domain       string    `json:"domain,omitempty"`
-	ExtraDomains []string  `json:"extra_domains,omitempty"`
-	Framework    string    `json:"framework,omitempty"`
-	LastSeenAt   time.Time `json:"last_seen_at"`
-	LastCommand  string    `json:"last_command,omitempty"`
-	PHPVersion   string    `json:"php_version,omitempty"`
-	Profile      string    `json:"profile,omitempty"`
+	Path             string    `json:"path"`
+	ProjectName      string    `json:"project_name"`
+	Domain           string    `json:"domain,omitempty"`
+	ExtraDomains     []string  `json:"extra_domains,omitempty"`
+	Framework        string    `json:"framework,omitempty"`
+	LastSeenAt       time.Time `json:"last_seen_at"`
+	LastCommand      string    `json:"last_command,omitempty"`
+	PHPVersion       string    `json:"php_version,omitempty"`
+	Profile          string    `json:"profile,omitempty"`
+	FrameworkVersion string    `json:"framework_version,omitempty"`
 }
 
 type projectRegistryDocument struct {
@@ -225,6 +226,7 @@ func normalizeProjectRegistryEntry(entry ProjectRegistryEntry) (ProjectRegistryE
 	entry.LastCommand = strings.TrimSpace(strings.ToLower(entry.LastCommand))
 	entry.PHPVersion = strings.TrimSpace(entry.PHPVersion)
 	entry.Profile = strings.TrimSpace(entry.Profile)
+	entry.FrameworkVersion = strings.TrimSpace(entry.FrameworkVersion)
 	if entry.LastSeenAt.IsZero() {
 		entry.LastSeenAt = time.Now().UTC()
 	} else {

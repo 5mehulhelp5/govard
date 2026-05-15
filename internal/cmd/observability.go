@@ -22,15 +22,16 @@ func trackProjectRegistry(config engine.Config, cwd string, command string) erro
 	}
 
 	entry := engine.ProjectRegistryEntry{
-		Path:         projectRoot,
-		ProjectName:  normalizeProjectName(config.ProjectName, projectRoot),
-		Domain:       strings.TrimSpace(config.Domain),
-		ExtraDomains: config.ExtraDomains,
-		Framework:    strings.TrimSpace(config.Framework),
-		LastCommand:  strings.TrimSpace(command),
-		LastSeenAt:   time.Now().UTC(),
-		PHPVersion:   strings.TrimSpace(config.Stack.PHPVersion),
-		Profile:      strings.TrimSpace(config.Profile),
+		Path:             projectRoot,
+		ProjectName:      normalizeProjectName(config.ProjectName, projectRoot),
+		Domain:           strings.TrimSpace(config.Domain),
+		ExtraDomains:     config.ExtraDomains,
+		Framework:        strings.TrimSpace(config.Framework),
+		LastCommand:      strings.TrimSpace(command),
+		LastSeenAt:       time.Now().UTC(),
+		PHPVersion:       strings.TrimSpace(config.Stack.PHPVersion),
+		Profile:          strings.TrimSpace(config.Profile),
+		FrameworkVersion: strings.TrimSpace(config.FrameworkVersion),
 	}
 	return engine.UpsertProjectRegistryEntry(entry)
 }

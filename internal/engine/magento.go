@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"govard/internal/conventions"
 
@@ -30,17 +31,26 @@ func MagentoConfigCommandsForTest(projectName string, config Config) []magentoCo
 	return buildFrameworkAutoConfigurationCommands(projectName, config)
 }
 
-func ConfigureMagento(projectName string, config Config, force bool) error {
+// ConfigureMagento runs post-startup Magento configuration. If shiftInfo is provided
+// and indicates a shift, it will perform cleanup and reconfiguration. If shiftInfo
+// is nil, it will auto-detect (legacy behavior).
+func ConfigureMagento(projectName string, config Config, force bool, shiftInfo *ProfileShiftInfo) error {
+	shifted := force
 	reason := "manual trigger"
-	if !force {
-		var wasShifted bool
-		wasShifted, reason = checkMagentoProfileShiftCleanup(config)
-		if !wasShifted {
-			return nil
+
+	if shiftInfo != nil {
+		// Use pre-detected shift info from ProfileGuard stage
+		shifted = shiftInfo.Shifted || force
+		if shiftInfo.Reason != "" {
+			reason = shiftInfo.Reason
 		}
-		pterm.Info.Printf("Magento profile shift detected (%s). Re-configuring...\n", reason)
-	} else {
-		pterm.Info.Println("Forcing Magento auto-configuration...")
+	} else if !force {
+		// Legacy: auto-detect if no pre-detected info provided
+		shifted, reason = checkProfileShiftCleanup(config)
+	}
+
+	if !shifted {
+		return nil
 	}
 
 	pterm.Info.Printf("Configuring Magento 2 environment (%s)...\n", reason)
@@ -55,18 +65,14 @@ func ConfigureMagento(projectName string, config Config, force bool) error {
 		pterm.Warning.Printf("Could not fix project permissions (continuing): %v\n", err)
 	}
 
-	pterm.Info.Printf("Detecting runtime shift (%s). Cleaning up stale Magento assets...\n", reason)
-	if wipeErr := wipeMagentoGeneratedCaches(projectName, config); wipeErr != nil {
-		pterm.Warning.Printf("Could not wipe stale caches: %v\n", wipeErr)
-	} else {
-		pterm.Success.Println("Stale Magento assets (generated/code, var/cache) cleared.")
-	}
-
-	pterm.Info.Println("Running composer install for the new profile environment...")
-	if compErr := runMagentoComposerInstall(projectName, config); compErr != nil {
-		pterm.Warning.Printf("Composer install failed (continuing): %v\n", compErr)
-	} else {
-		pterm.Success.Println("Composer dependencies synchronized.")
+	if shifted {
+		// Wipe Magento generated assets
+		pterm.Info.Printf("Detecting runtime shift (%s). Cleaning up stale Magento assets...\n", reason)
+		if wipeErr := wipeMagentoGeneratedCaches(projectName, config); wipeErr != nil {
+			pterm.Warning.Printf("Could not wipe stale caches: %v\n", wipeErr)
+		} else {
+			pterm.Success.Println("Stale Magento assets (generated/code, var/cache) cleared.")
+		}
 	}
 
 	if config.Stack.Features.Cache || config.Stack.Services.Cache != "none" {
@@ -85,6 +91,13 @@ func ConfigureMagento(projectName string, config Config, force bool) error {
 		} else {
 			pterm.Success.Println("Proactively unblocked search index via curl.")
 		}
+	}
+
+	pterm.Info.Println("Running composer install for the new profile environment...")
+	if compErr := runMagentoComposerInstall(projectName, config); compErr != nil {
+		pterm.Warning.Printf("Composer install failed (continuing): %v\n", compErr)
+	} else {
+		pterm.Success.Println("Composer dependencies synchronized.")
 	}
 
 	containerName := fmt.Sprintf("%s%s", projectName, conventions.PHPSuffix)
@@ -129,6 +142,10 @@ func ConfigureMagento(projectName string, config Config, force bool) error {
 					// Fallback to setup:upgrade when import isn't enough.
 					pterm.Warning.Printf("app:config:import failed (%v). Trying autoloader reset and setup:upgrade...\n", repairErr)
 					_ = ensureMagentoLocalWritableDirs(containerName, config)
+
+					// Force developer mode early to allow on-the-fly generation of Proxies/Interceptors
+					pterm.Info.Println("Switching to developer mode to enable on-the-fly class generation...")
+					_ = exec.Command("docker", magentoDockerExecArgs(containerName, config, conventions.BinMagento, "deploy:mode:set", "developer", "--no-interaction")...).Run()
 
 					// Force clean generated code and caches to break the stale Interceptor/DI crash cycle
 					_ = exec.Command("docker", magentoDockerExecArgs(containerName, config, "sh", "-c", "rm -rf generated/code/* generated/metadata/* var/cache/* var/page_cache/* var/view_preprocessed/*")...).Run()
@@ -336,6 +353,9 @@ func buildMagento2Commands(projectName string, config Config, lockedKeys map[str
 	configSetArgs = append(configSetArgs, "--no-interaction")
 
 	commands := []magentoCommand{{
+		Desc: "Enable Developer Mode",
+		Args: magentoDockerExecArgs(containerName, config, conventions.BinMagento, "deploy:mode:set", conventions.MagentoDeveloperMode, "--no-interaction"),
+	}, {
 		Desc: "Setting Database connection",
 		Args: magentoDockerExecArgs(containerName, config, configSetArgs...),
 	}}
@@ -350,11 +370,6 @@ func buildMagento2Commands(projectName string, config Config, lockedKeys map[str
 		})
 		commands = append(commands, buildMagentoSearchConfigSetCommands(containerName, config, searchEngine)...)
 	}
-
-	commands = append(commands, magentoCommand{
-		Desc: "Enable Developer Mode",
-		Args: magentoDockerExecArgs(containerName, config, conventions.BinMagento, "deploy:mode:set", conventions.MagentoDeveloperMode, "--no-interaction"),
-	})
 
 	if config.Stack.Services.Cache == conventions.ServiceRedis || config.Stack.Services.Cache == "valkey" {
 		commands = append(commands, magentoCommand{
@@ -857,48 +872,6 @@ echo implode(',', $found);
 	return results, nil
 }
 
-func checkMagentoProfileShiftCleanup(config Config) (bool, string) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return false, ""
-	}
-
-	previousPHP := ""
-	previousProfile := ""
-	foundPrevious := false
-
-	lockFile, err := ReadLockFile(LockFilePath(cwd))
-	if err == nil {
-		previousPHP = strings.TrimSpace(lockFile.Stack.PHPVersion)
-		previousProfile = strings.TrimSpace(lockFile.Project.Profile)
-		foundPrevious = true
-	} else {
-		// Fallback to project registry
-		if entry, ok := GetProjectRegistryEntry(cwd); ok {
-			previousPHP = strings.TrimSpace(entry.PHPVersion)
-			previousProfile = strings.TrimSpace(entry.Profile)
-			foundPrevious = true
-		}
-	}
-
-	currentPHP := strings.TrimSpace(config.Stack.PHPVersion)
-	currentProfile := strings.TrimSpace(config.Profile)
-
-	if !foundPrevious {
-		return true, "Initial configuration"
-	}
-
-	if previousPHP != "" && currentPHP != "" && previousPHP != currentPHP {
-		return true, fmt.Sprintf("PHP version changed: %s -> %s", previousPHP, currentPHP)
-	}
-
-	if previousProfile != currentProfile {
-		return true, fmt.Sprintf("Profile changed: %q -> %q", previousProfile, currentProfile)
-	}
-
-	return false, ""
-}
-
 func wipeMagentoGeneratedCaches(projectName string, config Config) error {
 	containerName := fmt.Sprintf("%s%s", projectName, conventions.PHPSuffix)
 	// We wipe generated and cache dirs.
@@ -914,27 +887,131 @@ func wipeMagentoGeneratedCaches(projectName string, config Config) error {
 
 func runMagentoComposerInstall(projectName string, config Config) error {
 	containerName := fmt.Sprintf("%s%s", projectName, conventions.PHPSuffix)
-	// We run composer install with --no-interaction to avoid blocking.
-	// We use --ignore-platform-reqs and disable platform-check because shifting between PHP versions
-	// might cause temporary platform check failures before the environment is fully stable.
-	// This ensures the autoloader doesn't throw Fatal Error if PHP versions don't match exactly.
-	script := "composer config platform-check false && composer install --no-interaction --no-progress --optimize-autoloader --ignore-platform-reqs"
-	args := magentoDockerExecArgs(containerName, config, "sh", "-c", script)
-	output, err := exec.Command("docker", args...).CombinedOutput()
+
+	// Two-phase composer install to avoid "Cannot redeclare class" fatal errors.
+	//
+	// Root cause: When switching between Magento profiles (e.g. 2.4.6-p3 → 2.4.8-p4),
+	// the vendor/ directory contains stale Composer plugin files (dealerdirect/phpcodesniffer-composer-installer,
+	// phpcsstandards/composer-installer, magento/composer-dependency-version-audit-plugin, etc.).
+	// When Composer starts, it activates these plugins by loading their classes via the old autoloader.
+	// If the new composer.lock requires different versions of the same plugins, Composer downloads
+	// the new files into vendor/ mid-operation, but the old classes are already in memory.
+	// When the new autoloader tries to load the same class from the updated path → Fatal Error.
+	//
+	// Fix: Phase 1 runs `composer install --no-plugins --no-scripts` which completely bypasses
+	// plugin class loading. This safely updates all packages in vendor/ including the plugin
+	// packages themselves. Phase 2 runs `composer dump-autoload` which regenerates the autoloader
+	// with the now-correct plugin files, and activates plugins against a clean state.
+
+	// Phase 1: Install packages without loading plugins or running scripts.
+	// This avoids loading stale plugin classes that would conflict with newly downloaded versions.
+	phase1Script := strings.Join([]string{
+		"rm -rf vendor/composer",
+		"composer config platform-check false 2>/dev/null",
+		"composer install --no-interaction --no-progress --no-plugins --no-scripts --ignore-platform-reqs",
+	}, " && ")
+	phase1Args := magentoDockerExecArgs(containerName, config, "sh", "-c", phase1Script)
+
+	pterm.Debug.Println("Phase 1: Installing packages (no-plugins, no-scripts)...")
+	output, err := exec.Command("docker", phase1Args...).CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("composer install failed: %w\nOutput: %s", err, string(output))
+		outText := string(output)
+
+		// If phase 1 still fails (e.g. corrupted vendor/autoload.php from an old crash),
+		// try harder: wipe the entire vendor/composer + vendor/autoload.php
+		if strings.Contains(outText, "Cannot redeclare") || strings.Contains(outText, "Fatal error") {
+			pterm.Warning.Println("Phase 1 hit autoloader corruption. Cleaning vendor/autoload.php and retrying...")
+			cleanScript := "rm -rf vendor/composer vendor/autoload.php"
+			_ = exec.Command("docker", magentoDockerExecArgs(containerName, config, "sh", "-c", cleanScript)...).Run()
+
+			output, err = exec.Command("docker", phase1Args...).CombinedOutput()
+			if err != nil {
+				return fmt.Errorf("composer install (phase 1 retry) failed: %w\nOutput: %s", err, string(output))
+			}
+		} else {
+			return fmt.Errorf("composer install (phase 1) failed: %w\nOutput: %s", err, outText)
+		}
 	}
+
+	// Phase 2: Regenerate the autoloader with the updated plugin files.
+	// This runs scripts and activates plugins against a now-clean vendor/ state.
+	phase2Script := "composer dump-autoload --optimize --no-interaction"
+	phase2Args := magentoDockerExecArgs(containerName, config, "sh", "-c", phase2Script)
+
+	pterm.Debug.Println("Phase 2: Regenerating autoloader with plugins...")
+	_, err = exec.Command("docker", phase2Args...).CombinedOutput()
+	if err != nil {
+		// Phase 2 failure is non-fatal: the packages are installed, just the autoloader
+		// might not be fully optimized. Magento will still work.
+		pterm.Warning.Printf("composer dump-autoload failed (non-fatal): %v\n", err)
+	}
+
 	return nil
 }
 
 func flushMagentoRedisCache(projectName string, config Config) error {
 	containerName := fmt.Sprintf("%s%s", projectName, conventions.RedisSuffix)
-	// We use redis-cli flushall to clear all databases (Magento often uses multiple DBs for different caches).
+
+	// 1. Wait for Redis/Valkey to be ready (up to 10 seconds)
+	// This prevents race conditions where the container is started but the server is not yet accepting connections.
+	maxRetries := 20
+	ready := false
+	var lastErr error
+
+	pterm.Debug.Printf("Waiting for cache container %s to be ready...\n", containerName)
+
+	for i := 0; i < maxRetries; i++ {
+		// 1. Check if container is running
+		inspectArgs := []string{"inspect", "-f", "{{.State.Running}}", containerName}
+		runningOutput, inspectErr := exec.Command("docker", inspectArgs...).CombinedOutput()
+		if inspectErr != nil || strings.TrimSpace(string(runningOutput)) != "true" {
+			pterm.Debug.Printf("Container %s is not running (attempt %d/%d)\n", containerName, i+1, maxRetries)
+			time.Sleep(500 * time.Millisecond)
+			continue
+		}
+
+		// 2. Try redis-cli ping
+		args := []string{"exec", containerName, "redis-cli", "ping"}
+		output, err := exec.Command("docker", args...).CombinedOutput()
+		if err == nil && strings.Contains(strings.ToLower(string(output)), "pong") {
+			ready = true
+			break
+		}
+
+		// 3. Fallback for Valkey-only images if redis-cli symlink is missing
+		args = []string{"exec", containerName, "valkey-cli", "ping"}
+		output, err = exec.Command("docker", args...).CombinedOutput()
+		if err == nil && strings.Contains(strings.ToLower(string(output)), "pong") {
+			ready = true
+			break
+		}
+
+		lastErr = err
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	if !ready {
+		// If not ready, check if it's exited and why
+		inspectArgs := []string{"inspect", "-f", "{{.State.Status}} (ExitCode: {{.State.ExitCode}})", containerName}
+		statusOutput, _ := exec.Command("docker", inspectArgs...).CombinedOutput()
+		return fmt.Errorf("cache container %s not ready: %v (Status: %s)", containerName, lastErr, strings.TrimSpace(string(statusOutput)))
+	}
+
+	// 2. Perform flushall
+	// Try redis-cli first
 	args := []string{"exec", containerName, "redis-cli", "flushall"}
+	_, err := exec.Command("docker", args...).CombinedOutput()
+	if err == nil {
+		return nil
+	}
+
+	// Fallback to valkey-cli
+	args = []string{"exec", containerName, "valkey-cli", "flushall"}
 	output, err := exec.Command("docker", args...).CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("redis flush failed: %w\nOutput: %s", err, string(output))
+		return fmt.Errorf("redis/valkey flush failed: %w\nOutput: %s", err, string(output))
 	}
+
 	return nil
 }
 
@@ -1087,7 +1164,12 @@ func BuildMagento1StoreBaseURLSQLStatements(scopeCode string, baseURL string, db
 	}
 }
 
-// CheckMagentoProfileShiftCleanupForTest exposes checkMagentoProfileShiftCleanup for testing.
-func CheckMagentoProfileShiftCleanupForTest(config Config) (bool, string) {
-	return checkMagentoProfileShiftCleanup(config)
+// CheckProfileShiftCleanupForTest exposes checkProfileShiftCleanup for testing.
+func CheckProfileShiftCleanupForTest(config Config) (bool, string) {
+	return checkProfileShiftCleanup(config)
+}
+
+// DetectProfileShiftForTest exposes DetectProfileShift for testing.
+func DetectProfileShiftForTest(config Config) ProfileShiftInfo {
+	return DetectProfileShift(config)
 }

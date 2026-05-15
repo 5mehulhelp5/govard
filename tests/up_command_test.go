@@ -104,6 +104,9 @@ func TestBuildUpReadinessChecksForPHPRuntime(t *testing.T) {
 			Features: engine.Features{
 				Xdebug: true,
 			},
+			Services: engine.Services{
+				Cache: "none",
+			},
 		},
 	})
 
@@ -151,6 +154,11 @@ func TestWaitForUpRuntimeReadinessRetriesUntilSuccess(t *testing.T) {
 	err := cmd.WaitForUpRuntimeReadinessForTest(engine.Config{
 		ProjectName: "demo",
 		Framework:   "laravel",
+		Stack: engine.Stack{
+			Services: engine.Services{
+				Cache: "none",
+			},
+		},
 	}, 3*time.Millisecond)
 	if err != nil {
 		t.Fatalf("expected readiness wait to succeed, got %v", err)
@@ -180,6 +188,11 @@ func TestWaitForUpRuntimeReadinessReturnsErrorAfterTimeout(t *testing.T) {
 	err := cmd.WaitForUpRuntimeReadinessForTest(engine.Config{
 		ProjectName: "demo",
 		Framework:   "laravel",
+		Stack: engine.Stack{
+			Services: engine.Services{
+				Cache: "none",
+			},
+		},
 	}, 2*time.Millisecond)
 	if err == nil {
 		t.Fatal("expected readiness wait to fail")
@@ -207,6 +220,11 @@ func TestWaitForUpRuntimeReadinessFailsFastWhenContainerExited(t *testing.T) {
 	err := cmd.WaitForUpRuntimeReadinessForTest(engine.Config{
 		ProjectName: "demo",
 		Framework:   "laravel",
+		Stack: engine.Stack{
+			Services: engine.Services{
+				Cache: "none",
+			},
+		},
 	}, 30*time.Second)
 	if err == nil {
 		t.Fatal("expected readiness wait to fail fast")

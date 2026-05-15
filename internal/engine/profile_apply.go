@@ -22,4 +22,7 @@ func ApplyRuntimeProfileToConfig(config *Config, profile RuntimeProfile) {
 	config.Stack.SearchVersion = profile.SearchVersion
 	config.Stack.QueueVersion = profile.QueueVersion
 	config.Stack.ComposerVersion = profile.ComposerVersion
+	if config.Profile == "" {
+		config.Profile = profile.FrameworkVersion
+	}
 }
