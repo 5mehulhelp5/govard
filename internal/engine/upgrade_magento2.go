@@ -77,7 +77,7 @@ func upgradeMagento2(ctx context.Context, config Config, opts UpgradeOptions) er
 		}
 
 		pterm.Info.Println("Step 2/6: Restarting environment (PHP, DB, Cache, Search)...")
-		composePath := ComposeFilePath(opts.ProjectDir, opts.ProjectName)
+		composePath := ComposeFilePathWithProfile(opts.ProjectDir, opts.ProjectName, config.Profile)
 		if err := RunCompose(ctx, ComposeOptions{
 			ProjectDir:  opts.ProjectDir,
 			ProjectName: opts.ProjectName,
@@ -129,12 +129,22 @@ func upgradeMagento2(ctx context.Context, config Config, opts UpgradeOptions) er
 	}
 
 	cmdArgs := append([]string{"exec", "-w", conventions.DefaultWorkDir, containerName, conventions.BinComposer, "update"}, updatePkgs...)
-	cmdArgs = append(cmdArgs, "--with-all-dependencies", "--ignore-platform-reqs")
+	cmdArgs = append(cmdArgs, "--with-all-dependencies", "--ignore-platform-reqs", "--no-install")
 	updateCmd := exec.CommandContext(ctx, "docker", cmdArgs...)
 	updateCmd.Stdout = opts.Stdout
 	updateCmd.Stderr = opts.Stderr
 	if err := updateCmd.Run(); err != nil {
 		return fmt.Errorf("composer update failed: %w", err)
+	}
+
+	pterm.Info.Println("Synchronizing dependencies safely (two-phase install)...")
+	if err := runMagentoComposerInstall(opts.ProjectName, config, opts.Stdout, opts.Stderr); err != nil {
+		return fmt.Errorf("safe composer installation failed: %w", err)
+	}
+
+	pterm.Info.Println("Cleaning up generated code and cache before database upgrade...")
+	if err := wipeMagentoGeneratedCaches(opts.ProjectName, config); err != nil {
+		pterm.Warning.Printf("Failed to wipe generated directories (continuing): %v\n", err)
 	}
 
 	pterm.Info.Println("Step 5/6: Running setup:upgrade...")

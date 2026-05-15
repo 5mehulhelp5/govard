@@ -1,7 +1,9 @@
 package engine
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -94,7 +96,7 @@ func ConfigureMagento(projectName string, config Config, force bool, shiftInfo *
 	}
 
 	pterm.Info.Println("Running composer install for the new profile environment...")
-	if compErr := runMagentoComposerInstall(projectName, config); compErr != nil {
+	if compErr := runMagentoComposerInstall(projectName, config, nil, nil); compErr != nil {
 		pterm.Warning.Printf("Composer install failed (continuing): %v\n", compErr)
 	} else {
 		pterm.Success.Println("Composer dependencies synchronized.")
@@ -885,8 +887,13 @@ func wipeMagentoGeneratedCaches(projectName string, config Config) error {
 	return nil
 }
 
-func runMagentoComposerInstall(projectName string, config Config) error {
+func runMagentoComposerInstall(projectName string, config Config, stdout, stderr io.Writer) error {
 	containerName := fmt.Sprintf("%s%s", projectName, conventions.PHPSuffix)
+
+	// Pre-cleanup: Wipe generated code to ensure a clean state for the autoloader.
+	// This prevents stale class map entries if we run composer dump-autoload --optimize later.
+	pterm.Debug.Println("Cleaning generated code before installation...")
+	_ = exec.Command("docker", magentoDockerExecArgs(containerName, config, "sh", "-c", "rm -rf generated/code/* generated/metadata/*")...).Run()
 
 	// Two-phase composer install to avoid "Cannot redeclare class" fatal errors.
 	//
@@ -913,9 +920,23 @@ func runMagentoComposerInstall(projectName string, config Config) error {
 	phase1Args := magentoDockerExecArgs(containerName, config, "sh", "-c", phase1Script)
 
 	pterm.Debug.Println("Phase 1: Installing packages (no-plugins, no-scripts)...")
-	output, err := exec.Command("docker", phase1Args...).CombinedOutput()
+	var phase1Buf bytes.Buffer
+	phase1Cmd := exec.Command("docker", phase1Args...)
+
+	if stdout != nil {
+		phase1Cmd.Stdout = io.MultiWriter(stdout, &phase1Buf)
+	} else {
+		phase1Cmd.Stdout = &phase1Buf
+	}
+	if stderr != nil {
+		phase1Cmd.Stderr = io.MultiWriter(stderr, &phase1Buf)
+	} else {
+		phase1Cmd.Stderr = &phase1Buf
+	}
+
+	err := phase1Cmd.Run()
 	if err != nil {
-		outText := string(output)
+		outText := phase1Buf.String()
 
 		// If phase 1 still fails (e.g. corrupted vendor/autoload.php from an old crash),
 		// try harder: wipe the entire vendor/composer + vendor/autoload.php
@@ -924,9 +945,21 @@ func runMagentoComposerInstall(projectName string, config Config) error {
 			cleanScript := "rm -rf vendor/composer vendor/autoload.php"
 			_ = exec.Command("docker", magentoDockerExecArgs(containerName, config, "sh", "-c", cleanScript)...).Run()
 
-			output, err = exec.Command("docker", phase1Args...).CombinedOutput()
-			if err != nil {
-				return fmt.Errorf("composer install (phase 1 retry) failed: %w\nOutput: %s", err, string(output))
+			var retryBuf bytes.Buffer
+			phase1RetryCmd := exec.Command("docker", phase1Args...)
+			if stdout != nil {
+				phase1RetryCmd.Stdout = io.MultiWriter(stdout, &retryBuf)
+			} else {
+				phase1RetryCmd.Stdout = &retryBuf
+			}
+			if stderr != nil {
+				phase1RetryCmd.Stderr = io.MultiWriter(stderr, &retryBuf)
+			} else {
+				phase1RetryCmd.Stderr = &retryBuf
+			}
+
+			if retryErr := phase1RetryCmd.Run(); retryErr != nil {
+				return fmt.Errorf("composer install (phase 1 retry) failed: %w\nOutput: %s", retryErr, retryBuf.String())
 			}
 		} else {
 			return fmt.Errorf("composer install (phase 1) failed: %w\nOutput: %s", err, outText)
@@ -935,12 +968,24 @@ func runMagentoComposerInstall(projectName string, config Config) error {
 
 	// Phase 2: Regenerate the autoloader with the updated plugin files.
 	// This runs scripts and activates plugins against a now-clean vendor/ state.
-	phase2Script := "composer dump-autoload --optimize --no-interaction"
+	phase2Script := "composer dump-autoload --no-interaction"
 	phase2Args := magentoDockerExecArgs(containerName, config, "sh", "-c", phase2Script)
 
 	pterm.Debug.Println("Phase 2: Regenerating autoloader with plugins...")
-	_, err = exec.Command("docker", phase2Args...).CombinedOutput()
-	if err != nil {
+	var phase2Buf bytes.Buffer
+	phase2Cmd := exec.Command("docker", phase2Args...)
+	if stdout != nil {
+		phase2Cmd.Stdout = io.MultiWriter(stdout, &phase2Buf)
+	} else {
+		phase2Cmd.Stdout = &phase2Buf
+	}
+	if stderr != nil {
+		phase2Cmd.Stderr = io.MultiWriter(stderr, &phase2Buf)
+	} else {
+		phase2Cmd.Stderr = &phase2Buf
+	}
+
+	if err := phase2Cmd.Run(); err != nil {
 		// Phase 2 failure is non-fatal: the packages are installed, just the autoloader
 		// might not be fully optimized. Magento will still work.
 		pterm.Warning.Printf("composer dump-autoload failed (non-fatal): %v\n", err)

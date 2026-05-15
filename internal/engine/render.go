@@ -657,7 +657,7 @@ func renderLegacyBlueprint(root string, blueprintsFS fs.FS, config Config) error
 		return err
 	}
 
-	outputPath := ComposeFilePath(root, config.ProjectName)
+	outputPath := ComposeFilePathWithProfile(root, config.ProjectName, config.Profile)
 	if err := EnsureComposePathReady(outputPath); err != nil {
 		return fmt.Errorf("failed to prepare compose output path: %w", err)
 	}

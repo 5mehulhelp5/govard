@@ -86,10 +86,12 @@ func CreateDoctorDiagnosticsPack(outputDir string, cwd string, report engine.Doc
 
 	_ = copyIfExists(filepath.Join(cwd, conventions.BaseConfigFile), filepath.Join(packDir, conventions.BaseConfigFile))
 	composeProjectName := ""
+	profile := ""
 	if cfg, _, cfgErr := engine.LoadConfigFromDir(cwd, false); cfgErr == nil {
 		composeProjectName = cfg.ProjectName
+		profile = cfg.Profile
 	}
-	_ = copyIfExists(engine.ComposeFilePath(cwd, composeProjectName), filepath.Join(packDir, ".govard-compose.yml"))
+	_ = copyIfExists(engine.ComposeFilePathWithProfile(cwd, composeProjectName, profile), filepath.Join(packDir, ".govard-compose.yml"))
 	_ = copyIfExists(remote.AuditLogPath(), filepath.Join(packDir, "remote-audit.log"))
 
 	readme := []byte(

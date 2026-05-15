@@ -40,7 +40,7 @@ func DeleteProject(ctx context.Context, projectPath string, stdout, stderr io.Wr
 	// We use the project name explicitly to allow cleanup even if compose file is missing
 	composePath := ""
 	if loadErr == nil {
-		path := ComposeFilePath(projectPath, projectName)
+		path := ComposeFilePathWithProfile(projectPath, projectName, config.Profile)
 		if _, err := os.Stat(path); err == nil {
 			composePath = path
 		}

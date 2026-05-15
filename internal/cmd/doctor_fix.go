@@ -487,7 +487,7 @@ func pullRuntimeImages(check engine.DoctorCheck) DoctorFixResult {
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {
 			pterm.Warning.Printf("Failed to pull %s. Attempting local build fallback...\n", image)
-			composePath := engine.ComposeFilePath(wd, config.ProjectName)
+			composePath := engine.ComposeFilePathWithProfile(wd, config.ProjectName, config.Profile)
 			built, fallbackErr := engine.FallbackBuildMissingGovardImagesFromCompose(composePath, os.Stdout, os.Stderr)
 			if fallbackErr != nil {
 				result.Status = DoctorFixStatusFailed

@@ -384,7 +384,7 @@ Case Studies:
 			pterm.Info.Println("You can retry compose rendering later via `govard env up`.")
 			return nil
 		}
-		composePath := engine.ComposeFilePath(cwd, config.ProjectName)
+		composePath := engine.ComposeFilePathWithProfile(cwd, config.ProjectName, config.Profile)
 		pterm.Success.Printf("✅ Rendered compose file at %s\n", composePath)
 
 		if migrateFrom != "" {

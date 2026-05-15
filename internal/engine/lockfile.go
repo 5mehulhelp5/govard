@@ -102,7 +102,7 @@ func BuildLockFileFromConfig(cwd string, config Config, govardVersion string, de
 		return LockFile{}, fmt.Errorf("resolve docker compose version: %w", err)
 	}
 
-	composePath := ComposeFilePath(cwd, normalizeLockProjectName(config, cwd))
+	composePath := ComposeFilePathWithProfile(cwd, normalizeLockProjectName(config, cwd), config.Profile)
 	serviceImages, err := resolvedDeps.ReadServiceImages(composePath)
 	if err != nil {
 		return LockFile{}, fmt.Errorf("resolve service images: %w", err)

@@ -96,7 +96,7 @@ func proxyEnvToCompose(cmd *cobra.Command, args []string) error {
 	subcommand := args[0]
 	config := loadConfig()
 	cwd, _ := os.Getwd()
-	composePath := engine.ComposeFilePath(cwd, config.ProjectName)
+	composePath := engine.ComposeFilePathWithProfile(cwd, config.ProjectName, config.Profile)
 
 	switch subcommand {
 	case "start":

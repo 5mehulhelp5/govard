@@ -419,7 +419,7 @@ func isComposeMaintenanceCommand(cmd string) bool {
 func proxyServiceToCompose(cmd *cobra.Command, service string, args []string) error {
 	config := loadConfig()
 	cwd, _ := os.Getwd()
-	composePath := engine.ComposeFilePath(cwd, config.ProjectName)
+	composePath := engine.ComposeFilePathWithProfile(cwd, config.ProjectName, config.Profile)
 
 	subcommand := args[0]
 	remainingArgs := args[1:]
