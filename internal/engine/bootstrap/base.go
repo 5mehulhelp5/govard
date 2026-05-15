@@ -10,10 +10,11 @@ type Options struct {
 	Runner   func(command string) error
 
 	// Database credentials for local configuration
-	DBHost string
-	DBUser string
-	DBPass string
-	DBName string
+	DBHost      string
+	DBUser      string
+	DBPass      string
+	DBName      string
+	TablePrefix string
 
 	// Environment configuration
 	Domain      string

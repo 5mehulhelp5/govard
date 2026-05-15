@@ -5,6 +5,7 @@ import (
 	"govard/internal/conventions"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pterm/pterm"
 )
@@ -122,6 +123,7 @@ func (o *OpenMageBootstrap) createLocalXml(projectDir string) error {
 		return fmt.Errorf("failed to generate crypt key: %w", err)
 	}
 
+	tablePrefix := strings.TrimSpace(o.Options.TablePrefix)
 	localXmlContent := fmt.Sprintf(`<?xml version="1.0"?>
 <config>
     <global>
@@ -134,7 +136,7 @@ func (o *OpenMageBootstrap) createLocalXml(projectDir string) error {
         <disable_local_modules>false</disable_local_modules>
         <resources>
             <db>
-                <table_prefix><![CDATA[]]></table_prefix>
+                <table_prefix><![CDATA[%s]]></table_prefix>
             </db>
             <default_setup>
                 <connection>
@@ -163,7 +165,7 @@ func (o *OpenMageBootstrap) createLocalXml(projectDir string) error {
         </routers>
     </admin>
 </config>
-`, cryptKey)
+`, cryptKey, tablePrefix)
 
 	etcPath := filepath.Join(projectDir, "app", "etc")
 	if err := os.MkdirAll(etcPath, conventions.DefaultDirPerm); err != nil {

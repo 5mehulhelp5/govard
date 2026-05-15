@@ -16,11 +16,12 @@ import (
 var magentoVersionPattern = regexp.MustCompile(`\d+\.\d+(?:\.\d+)?(?:-p\d+)?`)
 
 type MagentoDBInfo struct {
-	Host     string
-	Port     int
-	Username string
-	Password string
-	Database string
+	Host        string
+	Port        int
+	Username    string
+	Password    string
+	Database    string
+	TablePrefix string
 }
 
 type Magento2Environment struct {
@@ -89,6 +90,10 @@ func NormalizeMagentoVersion(raw string) string {
 	return normalizeMagentoVersion(raw)
 }
 
+func DecodeMagento2EnvironmentPayloadForTest(encoded string) (Magento2Environment, error) {
+	return decodeMagento2EnvironmentPayload(encoded)
+}
+
 func decodeMagento2EnvironmentPayload(encoded string) (Magento2Environment, error) {
 	trimmed := strings.TrimSpace(encoded)
 	if trimmed == "" {
@@ -101,11 +106,12 @@ func decodeMagento2EnvironmentPayload(encoded string) (Magento2Environment, erro
 	}
 
 	var payload struct {
-		Host     string `json:"host"`
-		Username string `json:"username"`
-		Password string `json:"password"`
-		DBName   string `json:"dbname"`
-		CryptKey string `json:"crypt_key"`
+		Host        string `json:"host"`
+		Username    string `json:"username"`
+		Password    string `json:"password"`
+		DBName      string `json:"dbname"`
+		TablePrefix string `json:"table_prefix"`
+		CryptKey    string `json:"crypt_key"`
 	}
 	if err := json.Unmarshal(decoded, &payload); err != nil {
 		return Magento2Environment{}, fmt.Errorf("parse remote probe payload: %w", err)
@@ -120,11 +126,12 @@ func decodeMagento2EnvironmentPayload(encoded string) (Magento2Environment, erro
 
 	return Magento2Environment{
 		DB: MagentoDBInfo{
-			Host:     host,
-			Port:     port,
-			Username: username,
-			Password: payload.Password,
-			Database: database,
+			Host:        host,
+			Port:        port,
+			Username:    username,
+			Password:    payload.Password,
+			Database:    database,
+			TablePrefix: engine.NormalizeTablePrefix(payload.TablePrefix),
 		},
 		CryptKey: strings.TrimSpace(payload.CryptKey),
 	}, nil
@@ -167,6 +174,6 @@ func normalizeMagentoVersion(raw string) string {
 	return cleaned
 }
 
-const magentoDBProbePHP = `$c=@include "app/etc/env.php"; if(!is_array($c)){fwrite(STDERR,"env.php not found"); exit(2);} $d=$c["db"]["connection"]["default"] ?? null; if(!is_array($d)){fwrite(STDERR,"db.default missing"); exit(3);} $r=["host"=>$d["host"] ?? "", "username"=>$d["username"] ?? "", "password"=>$d["password"] ?? "", "dbname"=>$d["dbname"] ?? "", "crypt_key"=>($c["crypt"]["key"] ?? "")]; echo base64_encode(json_encode($r));`
+const magentoDBProbePHP = `$c=@include "app/etc/env.php"; if(!is_array($c)){fwrite(STDERR,"env.php not found"); exit(2);} $d=$c["db"]["connection"]["default"] ?? null; if(!is_array($d)){fwrite(STDERR,"db.default missing"); exit(3);} $r=["host"=>$d["host"] ?? "", "username"=>$d["username"] ?? "", "password"=>$d["password"] ?? "", "dbname"=>$d["dbname"] ?? "", "table_prefix"=>($c["db"]["table_prefix"] ?? ""), "crypt_key"=>($c["crypt"]["key"] ?? "")]; echo base64_encode(json_encode($r));`
 
 const magentoVersionProbePHP = `$c=@json_decode(@file_get_contents("composer.json"), true); if(!is_array($c)){fwrite(STDERR,"composer.json missing"); exit(2);} $r=$c["require"] ?? []; $v=""; if(isset($r["magento/product-community-edition"])){$v=$r["magento/product-community-edition"]; } elseif(isset($r["magento/product-enterprise-edition"])){$v=$r["magento/product-enterprise-edition"]; } echo (string)$v;`

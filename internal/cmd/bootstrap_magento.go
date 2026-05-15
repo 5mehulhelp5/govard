@@ -46,10 +46,14 @@ func ensureBootstrapMagentoEnvPHP(config engine.Config, opts BootstrapRuntimeOpt
 	}
 	cryptKey := hex.EncodeToString(randomBytes)
 
+	tablePrefix := engine.NormalizeTablePrefix(config.TablePrefix)
 	if remoteCfg, ok := config.Remotes[opts.Source]; ok {
 		if metadata, err := remote.ProbeMagento2Environment(opts.Source, remoteCfg); err == nil {
 			if strings.TrimSpace(metadata.CryptKey) != "" {
 				cryptKey = strings.TrimSpace(metadata.CryptKey)
+			}
+			if tablePrefix == "" {
+				tablePrefix = metadata.DB.TablePrefix
 			}
 		} else {
 			pterm.Warning.Printf("Could not extract crypt/key from remote env.php (%v). Using fallback key.\n", err)
@@ -59,7 +63,7 @@ func ensureBootstrapMagentoEnvPHP(config engine.Config, opts BootstrapRuntimeOpt
 	containerName := fmt.Sprintf("%s%s", config.ProjectName, conventions.DBSuffix)
 	localDB := resolveLocalDBCredentials(config, containerName)
 
-	template := buildBootstrapMagentoEnvPHP(cryptKey, localDB)
+	template := buildBootstrapMagentoEnvPHP(cryptKey, localDB, tablePrefix)
 
 	if err := os.WriteFile(envPath, []byte(template), conventions.DefaultFilePerm); err != nil {
 		return fmt.Errorf("failed to write app/etc/env.php: %w", err)
@@ -69,8 +73,9 @@ func ensureBootstrapMagentoEnvPHP(config engine.Config, opts BootstrapRuntimeOpt
 	return nil
 }
 
-func buildBootstrapMagentoEnvPHP(cryptKey string, localDB dbCredentials) string {
+func buildBootstrapMagentoEnvPHP(cryptKey string, localDB dbCredentials, tablePrefix string) string {
 	localDB = localDB.withDefaults()
+	tablePrefix = engine.NormalizeTablePrefix(tablePrefix)
 
 	return fmt.Sprintf(`<?php
 return [
@@ -81,7 +86,7 @@ return [
         'key' => %q
     ],
     'db' => [
-        'table_prefix' => '',
+        'table_prefix' => %q,
         'connection' => [
             'default' => [
                 'host' => %q,
@@ -115,6 +120,7 @@ return [
 ];
 `, conventions.DefaultAdminPath,
 		cryptKey,
+		tablePrefix,
 		conventions.DefaultMagentoDBHost,
 		localDB.Database, localDB.Username, localDB.Password,
 		conventions.DefaultMagentoDBHost,
@@ -142,5 +148,13 @@ func BuildBootstrapMagentoEnvPHPForTest(cryptKey, database, username, password s
 		Database: database,
 		Username: username,
 		Password: password,
-	})
+	}, "")
+}
+
+func BuildBootstrapMagentoEnvPHPWithPrefixForTest(cryptKey, database, username, password, tablePrefix string) string {
+	return buildBootstrapMagentoEnvPHP(cryptKey, dbCredentials{
+		Database: database,
+		Username: username,
+		Password: password,
+	}, tablePrefix)
 }

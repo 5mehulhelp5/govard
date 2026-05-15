@@ -38,6 +38,9 @@ func ValidateConfig(cfg Config) error {
 	if strings.ContainsAny(cfg.Domain, " \t\r\n") {
 		return fmt.Errorf("domain cannot contain whitespace")
 	}
+	if !ValidateTablePrefix(cfg.TablePrefix) {
+		return fmt.Errorf("table_prefix %q is invalid (allowed: letters, numbers, and underscore)", cfg.TablePrefix)
+	}
 	if err := validateBlueprintRegistryConfig(cfg.BlueprintRegistry); err != nil {
 		return err
 	}

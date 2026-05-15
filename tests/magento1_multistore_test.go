@@ -98,3 +98,37 @@ func TestBuildMagento1CommandsTypedStoreDomains(t *testing.T) {
 		t.Fatal("did not expect store-typed Magento 1 mapping to emit website-scoped SQL")
 	}
 }
+
+func TestBuildMagento1CommandsUseTablePrefix(t *testing.T) {
+	config := engine.Config{
+		ProjectName: "testproject",
+		Framework:   "magento1",
+		Domain:      "main.test",
+		TablePrefix: "magspas_",
+		StoreDomains: engine.StoreDomainMappings{
+			"brand-b.test": {
+				Code: "brand_b",
+				Type: "store",
+			},
+		},
+	}
+
+	commands := engine.MagentoConfigCommandsForTest("testproject", config)
+	all := make([]string, 0, len(commands))
+	for _, cmd := range commands {
+		all = append(all, strings.Join(cmd.Args, " "))
+	}
+	joined := strings.Join(all, "\n")
+
+	for _, expected := range []string{
+		"magspas_core_config_data",
+		"magspas_core_store",
+	} {
+		if !strings.Contains(joined, expected) {
+			t.Fatalf("expected Magento 1 commands to contain %q, got:\n%s", expected, joined)
+		}
+	}
+	if strings.Contains(joined, " core_config_data") || strings.Contains(joined, " core_store") {
+		t.Fatalf("expected Magento 1 commands to use prefixed tables only, got:\n%s", joined)
+	}
+}

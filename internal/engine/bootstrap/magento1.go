@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"govard/internal/conventions"
@@ -93,7 +94,7 @@ func (m *Magento1Bootstrap) CreateAdmin(projectDir string) error {
 	containerName := fmt.Sprintf("%s%s", m.Options.ProjectName, conventions.DBSuffix)
 
 	pterm.Info.Println("Creating Magento 1 admin user...")
-	return RunMagento1AdminUserSQL(containerName, m.Options.DBUser, m.Options.DBPass, m.Options.DBName, "", adminEmail)
+	return RunMagento1AdminUserSQL(containerName, m.Options.DBUser, m.Options.DBPass, m.Options.DBName, strings.TrimSpace(m.Options.TablePrefix), adminEmail)
 }
 
 // createLocalXml generates app/etc/local.xml with a random 32-hex crypt key and
@@ -104,6 +105,7 @@ func (m *Magento1Bootstrap) createLocalXml(projectDir string) error {
 		return fmt.Errorf("failed to generate crypt key: %w", err)
 	}
 
+	tablePrefix := strings.TrimSpace(m.Options.TablePrefix)
 	localXmlContent := fmt.Sprintf(`<?xml version="1.0"?>
 <config>
     <global>
@@ -116,7 +118,7 @@ func (m *Magento1Bootstrap) createLocalXml(projectDir string) error {
         <disable_local_modules>false</disable_local_modules>
         <resources>
             <db>
-                <table_prefix><![CDATA[]]></table_prefix>
+                <table_prefix><![CDATA[%s]]></table_prefix>
             </db>
             <default_setup>
                 <connection>
@@ -153,6 +155,7 @@ func (m *Magento1Bootstrap) createLocalXml(projectDir string) error {
     </admin>
 </config>
 `, cryptKey,
+		tablePrefix,
 		conventions.DefaultDBHost,
 		conventions.DefaultMagentoDBUser,
 		conventions.DefaultMagentoDBPass,

@@ -46,3 +46,35 @@ func TestRunBootstrapMagentoSetupInstallForTestUsesDefaultAdminEmailWhenDomainMi
 		t.Fatalf("expected %q in setup args, got %q", expected, joined)
 	}
 }
+
+func TestRunBootstrapMagentoSetupInstallForTestUsesConfigTablePrefix(t *testing.T) {
+	var capturedArgs [][]string
+	restore := cmd.SetGovardSubcommandRunnerForTest(func(subCmd *cobra.Command, args ...string) error {
+		copied := append([]string(nil), args...)
+		capturedArgs = append(capturedArgs, copied)
+		return nil
+	})
+	defer restore()
+
+	err := cmd.RunBootstrapMagentoSetupInstallForTest(&cobra.Command{}, engine.Config{
+		ProjectName: "sample-project",
+		Framework:   conventions.FrameworkMagento2,
+		TablePrefix: "magspas_",
+	}, "remote", "")
+	if err != nil {
+		t.Fatalf("RunBootstrapMagentoSetupInstallForTest() error = %v", err)
+	}
+
+	joined := strings.Join(flattenArgs(capturedArgs), " ")
+	if !strings.Contains(joined, "--db-prefix=magspas_") {
+		t.Fatalf("expected setup args to contain table prefix, got %q", joined)
+	}
+}
+
+func flattenArgs(groups [][]string) []string {
+	result := make([]string, 0)
+	for _, group := range groups {
+		result = append(result, group...)
+	}
+	return result
+}

@@ -74,6 +74,8 @@ func getConfigValue(config engine.Config, key string) (string, bool) {
 		return config.Domain, true
 	case "framework_version":
 		return config.FrameworkVersion, true
+	case "table_prefix":
+		return config.TablePrefix, true
 	case "php_version", "stack.php_version":
 		return config.Stack.PHPVersion, true
 	case "node_version", "stack.node_version":
@@ -104,6 +106,8 @@ func setConfigValue(config *engine.Config, key string, value string) (bool, erro
 		config.Domain = value
 	case "framework_version":
 		config.FrameworkVersion = value
+	case "table_prefix":
+		config.TablePrefix = value
 	case "php_version", "stack.php_version":
 		config.Stack.PHPVersion = value
 	case "node_version", "stack.node_version":

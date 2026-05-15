@@ -76,7 +76,6 @@ WARDEN_SSH_PATH=/var/www/laravel
 	if result.WebRoot != "public" {
 		t.Errorf("expected WebRoot=public, got %q", result.WebRoot)
 	}
-
 	remote, ok := result.Remotes["production"]
 	if !ok {
 		t.Fatal("expected production remote to be migrated")
@@ -92,5 +91,26 @@ WARDEN_SSH_PATH=/var/www/laravel
 	}
 	if remote.Capabilities != nil {
 		t.Errorf("expected nil Capabilities, got %+v", remote.Capabilities)
+	}
+}
+
+func TestMigrateFromWardenMigratesMagentoTablePrefix(t *testing.T) {
+	tempDir := t.TempDir()
+
+	dotEnv := `WARDEN_ENV_NAME=sample-project
+WARDEN_ENV_TYPE=magento2
+WARDEN_TABLE_PREFIX=magspas_
+`
+	if err := os.WriteFile(filepath.Join(tempDir, ".env"), []byte(dotEnv), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := engine.MigrateFromWarden(tempDir)
+	if err != nil {
+		t.Fatalf("MigrateFromWarden failed: %v", err)
+	}
+
+	if result.TablePrefix != "magspas_" {
+		t.Errorf("expected TablePrefix=magspas_, got %q", result.TablePrefix)
 	}
 }

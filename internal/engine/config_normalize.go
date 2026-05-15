@@ -17,6 +17,10 @@ func NormalizeConfig(config *Config, root string) {
 	if config.Framework == "magento" {
 		config.Framework = "magento2"
 	}
+	config.TablePrefix = NormalizeTablePrefix(config.TablePrefix)
+	if config.TablePrefix == "" && root != "" {
+		config.TablePrefix = DetectMagentoTablePrefix(root, config.Framework)
+	}
 
 	fwConfig, ok := GetFrameworkConfig(config.Framework)
 	profileResult, profileErr := ResolveRuntimeProfile(config.Framework, config.FrameworkVersion)

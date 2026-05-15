@@ -160,6 +160,14 @@ func TestBuildIgnoredTableArgsWithPrefix(t *testing.T) {
 		t.Fatalf("expected prefixed table name, got: %s", joined)
 	}
 }
+
+func TestBuildRemoteMySQLDumpCommandWithPrefixUsesPrefixedIgnoredTables(t *testing.T) {
+	command := cmd.BuildRemoteMySQLDumpCommandWithPrefixForTest("mage", "magspas_", true, false, "magento2")
+
+	if !strings.Contains(command, "--ignore-table=mage.magspas_cron_schedule") {
+		t.Fatalf("expected remote dump command to use prefixed ignored tables, got: %s", command)
+	}
+}
 func TestBuildLocalMySQLQueryCommandScriptInjection(t *testing.T) {
 	cases := []struct {
 		name  string

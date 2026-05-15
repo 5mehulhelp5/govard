@@ -254,6 +254,9 @@ Case Studies:
 		if migrated.WebRoot != "" {
 			config.Stack.WebRoot = migrated.WebRoot
 		}
+		if migrated.TablePrefix != "" && engine.FrameworkSupportsTablePrefix(config.Framework) {
+			config.TablePrefix = migrated.TablePrefix
+		}
 		if migrateFrom != "" {
 			// Search
 			if migrated.SearchService != "" {
@@ -303,6 +306,9 @@ Case Studies:
 			if existingConfig.ProjectName != "" {
 				config.ProjectName = existingConfig.ProjectName
 				config.Domain = existingConfig.Domain
+			}
+			if existingConfig.TablePrefix != "" {
+				config.TablePrefix = existingConfig.TablePrefix
 			}
 			if existingConfig.Stack.PHPVersion != "" {
 				config.Stack.PHPVersion = existingConfig.Stack.PHPVersion

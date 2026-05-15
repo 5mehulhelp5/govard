@@ -58,6 +58,8 @@ govard init --framework custom
 govard init --migrate-from warden
 ```
 
+When migrating from Warden, `govard init --migrate-from warden` maps `WARDEN_TABLE_PREFIX` to Govard's `table_prefix` field for Magento 2, Magento 1, and OpenMage projects.
+
 ### `govard bootstrap`
 
 Run bootstrap flows for clone or fresh-install setups.
@@ -93,6 +95,8 @@ govard bootstrap -e staging --no-pii --no-noise
 | `--no-composer` | Skip `composer install` |
 | `--no-admin` | Skip admin user creation (Magento 2 only) |
 | `--no-stream-db` | Use local temp file for DB transfer |
+
+For Magento projects with `table_prefix` set, DB privacy filters target prefixed table names automatically.
 
 **Magento special flags:**
 
@@ -415,6 +419,7 @@ For node-first frameworks, package-manager commands run in the `web` container a
 ```bash
 govard config get stack.php_version
 govard config set stack.php_version 8.4
+govard config set table_prefix magspas_
 govard config profile
 govard config profile --json
 govard config profile apply --framework laravel --framework-version 11

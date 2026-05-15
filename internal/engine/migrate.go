@@ -28,6 +28,7 @@ type MigrationResult struct {
 	QueueVersion    string
 	VarnishEnabled  bool
 	VarnishVersion  string
+	TablePrefix     string
 	WebRoot         string
 	Remotes         RemoteConfigMap
 }
@@ -93,6 +94,9 @@ func MigrateFromWarden(root string) (MigrationResult, error) {
 	}
 	if result.Framework == "" {
 		result.Framework = mapWardenTypeToFramework(warden.WardenEnvType)
+	}
+	if FrameworkSupportsTablePrefix(result.Framework) {
+		result.TablePrefix = NormalizeTablePrefix(env["WARDEN_TABLE_PREFIX"])
 	}
 
 	if env["MYSQL_DISTRIBUTION"] != "" {

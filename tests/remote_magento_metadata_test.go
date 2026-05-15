@@ -1,6 +1,8 @@
 package tests
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"testing"
 
 	"govard/internal/engine/remote"
@@ -57,4 +59,45 @@ func TestNormalizeMagentoVersion(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDecodeMagento2EnvironmentPayloadIncludesTablePrefix(t *testing.T) {
+	encoded := encodePayloadForTest(map[string]string{
+		"host":         "db.example:3307",
+		"username":     "mage",
+		"password":     "secret",
+		"dbname":       "magento",
+		"table_prefix": "magspas_",
+	})
+
+	metadata, err := remote.DecodeMagento2EnvironmentPayloadForTest(encoded)
+	if err != nil {
+		t.Fatalf("DecodeMagento2EnvironmentPayloadForTest() error = %v", err)
+	}
+	if metadata.DB.TablePrefix != "magspas_" {
+		t.Fatalf("expected table prefix magspas_, got %q", metadata.DB.TablePrefix)
+	}
+}
+
+func TestDecodeMagento1EnvironmentPayloadIncludesTablePrefix(t *testing.T) {
+	encoded := encodePayloadForTest(map[string]string{
+		"host":         "db.example:3307",
+		"username":     "mage",
+		"password":     "secret",
+		"dbname":       "magento",
+		"table_prefix": "magspas_",
+	})
+
+	metadata, err := remote.DecodeMagento1EnvironmentPayloadForTest(encoded)
+	if err != nil {
+		t.Fatalf("DecodeMagento1EnvironmentPayloadForTest() error = %v", err)
+	}
+	if metadata.DB.TablePrefix != "magspas_" {
+		t.Fatalf("expected table prefix magspas_, got %q", metadata.DB.TablePrefix)
+	}
+}
+
+func encodePayloadForTest(payload map[string]string) string {
+	data, _ := json.Marshal(payload)
+	return base64.StdEncoding.EncodeToString(data)
 }

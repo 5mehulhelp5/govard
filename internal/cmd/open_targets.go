@@ -182,6 +182,9 @@ func detectLocalAdminURL(config engine.Config) string {
 
 	projectRoot, _ := os.Getwd()
 	frontName, tablePrefix := detectLocalMagentoAdminMeta(projectRoot)
+	if tablePrefix == "" {
+		tablePrefix = config.TablePrefix
+	}
 	dbValues := readLocalMagentoAdminDBValues(config, tablePrefix)
 	return resolveMagentoAdminURL(baseURL, frontName, dbValues)
 }

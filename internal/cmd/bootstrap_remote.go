@@ -162,6 +162,7 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts Bootstrap
 			DBUser:      localDB.Username,
 			DBPass:      localDB.Password,
 			DBName:      localDB.Database,
+			TablePrefix: config.TablePrefix,
 			ProjectName: config.ProjectName,
 			Domain:      config.Domain,
 		}

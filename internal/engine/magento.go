@@ -352,6 +352,9 @@ func buildMagento2Commands(projectName string, config Config, lockedKeys map[str
 		"--db-user=" + conventions.DefaultMagentoDBUser,
 		"--db-password=" + conventions.DefaultMagentoDBPass,
 	}
+	if tablePrefix := NormalizeTablePrefix(config.TablePrefix); tablePrefix != "" {
+		configSetArgs = append(configSetArgs, "--db-prefix="+tablePrefix)
+	}
 	configSetArgs = append(configSetArgs, "--no-interaction")
 
 	commands := []magentoCommand{{
@@ -547,10 +550,11 @@ func ConfigureMagento1(projectName string, config Config) error {
 func buildMagento1Commands(projectName string, config Config) []magentoCommand {
 	containerName := fmt.Sprintf("%s%s", projectName, conventions.DBSuffix)
 	commands := make([]magentoCommand, 0)
+	tablePrefix := NormalizeTablePrefix(config.TablePrefix)
 
 	if config.Domain != "" {
 		baseURL := fmt.Sprintf("https://%s/", config.Domain)
-		sqlStatements := BuildMagento1SetConfigSQLStatements(baseURL, "")
+		sqlStatements := BuildMagento1SetConfigSQLStatements(baseURL, tablePrefix)
 		for idx, sql := range sqlStatements {
 			commands = append(commands, magentoCommand{
 				Desc: fmt.Sprintf("Setting Magento 1 base configuration (%d/%d)", idx+1, len(sqlStatements)),
@@ -568,11 +572,11 @@ func buildMagento1Commands(projectName string, config Config) []magentoCommand {
 		var sqlStatements []string
 		switch mapping.ScopeType() {
 		case "website":
-			sqlStatements = BuildMagento1WebsiteBaseURLSQLStatements(scopeCode, baseURL, "")
+			sqlStatements = BuildMagento1WebsiteBaseURLSQLStatements(scopeCode, baseURL, tablePrefix)
 		case "store":
-			sqlStatements = BuildMagento1StoreBaseURLSQLStatements(scopeCode, baseURL, "")
+			sqlStatements = BuildMagento1StoreBaseURLSQLStatements(scopeCode, baseURL, tablePrefix)
 		default:
-			sqlStatements = BuildMagento1ScopedBaseURLSQLStatements(scopeCode, baseURL, "")
+			sqlStatements = BuildMagento1ScopedBaseURLSQLStatements(scopeCode, baseURL, tablePrefix)
 		}
 		for idx, sql := range sqlStatements {
 			commands = append(commands, magentoCommand{

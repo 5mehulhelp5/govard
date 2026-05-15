@@ -68,11 +68,11 @@ func detectMagento2Locales(config engine.Config) []string {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	// Query locale codes from core_config_data (covers storefront + admin)
-	query := "SELECT DISTINCT value FROM core_config_data WHERE path IN ('general/locale/code','general/locale/timezone') AND value REGEXP '^[a-z]{2}_[A-Z]{2}$';"
-
 	credentials := resolveLocalDBCredentials(config, containerName)
 	credentials = credentials.withDefaults()
+	configTable := credentials.TablePrefix + "core_config_data"
+	// Query locale codes from core_config_data (covers storefront + admin).
+	query := "SELECT DISTINCT value FROM " + configTable + " WHERE path IN ('general/locale/code','general/locale/timezone') AND value REGEXP '^[a-z]{2}_[A-Z]{2}$';"
 
 	args := []string{"exec", "-i"}
 	if strings.TrimSpace(credentials.Password) != "" {

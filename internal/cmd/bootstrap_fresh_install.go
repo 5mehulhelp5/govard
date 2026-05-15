@@ -234,8 +234,9 @@ func runBootstrapCakePHPFreshInstall(cmd *cobra.Command, config engine.Config, o
 
 func runBootstrapOpenMageFreshInstall(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions, cwd string) error {
 	openmageOpts := bootstrap.Options{
-		Version: opts.MetaVersion,
-		Env:     opts.Source,
+		Version:     opts.MetaVersion,
+		Env:         opts.Source,
+		TablePrefix: config.TablePrefix,
 		Runner: func(command string) error {
 			return runPHPContainerShellCommand(config, command)
 		},

@@ -21,7 +21,7 @@ func NewBaseURLManager(framework string) BaseURLManager {
 	switch strings.ToLower(framework) {
 	case "magento2":
 		return &Magento2Manager{}
-	case "magento1":
+	case "magento1", "openmage":
 		return &Magento1Manager{}
 	case "laravel":
 		return &LaravelManager{}
@@ -196,6 +196,9 @@ func (m *Magento1Manager) Backup(projectRoot string, config engine.Config) error
 func (m *Magento1Manager) Update(projectRoot string, config engine.Config, tunnelURL string) error {
 	containerName := fmt.Sprintf("%s%s", config.ProjectName, conventions.DBSuffix)
 	prefix := m.getPrefix(projectRoot)
+	if prefix == "" {
+		prefix = config.TablePrefix
+	}
 
 	// 1. Update URLs
 	sql := fmt.Sprintf("UPDATE %score_config_data SET value='%s/' WHERE path IN ('web/unsecure/base_url', 'web/secure/base_url')", prefix, tunnelURL)
@@ -210,6 +213,9 @@ func (m *Magento1Manager) Revert(projectRoot string, config engine.Config) error
 	containerName := fmt.Sprintf("%s%s", config.ProjectName, conventions.DBSuffix)
 	localURL := fmt.Sprintf("https://%s/", config.Domain)
 	prefix := m.getPrefix(projectRoot)
+	if prefix == "" {
+		prefix = config.TablePrefix
+	}
 
 	// 1. Restore local URLs
 	sql := fmt.Sprintf("UPDATE %score_config_data SET value='%s' WHERE path IN ('web/unsecure/base_url', 'web/secure/base_url')", prefix, localURL)

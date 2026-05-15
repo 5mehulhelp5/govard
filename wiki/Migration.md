@@ -37,6 +37,7 @@ rm -rf var/cache/* var/page_cache/* generated/code/*
 Run the `govard init` command with the `--migrate-from warden` flag. 
 
 Govard will parse your `.env` (Warden's variables) and `.warden/warden-env.yml` settings to automatically suggest the best runtime profile. 
+For Magento 2, Magento 1, and OpenMage projects, Govard also migrates Warden's `WARDEN_TABLE_PREFIX` value into `.govard.yml` as `table_prefix`.
 
 ```bash
 govard init --migrate-from warden
@@ -45,9 +46,10 @@ govard init --migrate-from warden
 **During this process:**
 1. Govard will generate a `.govard.yml` mapping your Warden settings to Govard stacks.
 2. It will detect your Warden database volume (typically `<project>_dbdata`).
-3. You will be prompted:
+3. If `WARDEN_TABLE_PREFIX` is set, Govard will persist it as `table_prefix` so Magento table names like `magspas_core_config_data` continue to work.
+4. You will be prompted:
    > `Do you want to clone the existing database volume from Warden ('myproject_dbdata') into Govard? [y/N]`
-4. Type **`y` (Yes)**. Govard will automatically clone the SQL raw data to its own isolated docker volume behind the scenes.
+5. Type **`y` (Yes)**. Govard will automatically clone the SQL raw data to its own isolated docker volume behind the scenes.
 
 *(Note: The database cloning uses raw `cp -a` mounted inside Docker, ensuring that file permissions are strictly secured and the process finishes in seconds, bypassing slow mysqldump pipelines).*
 

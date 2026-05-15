@@ -17,7 +17,7 @@ At a glance, these are the areas where Govard delivers stronger day-to-day value
 | :--- | :--- |
 | Core architecture | Native Go binary with direct Docker SDK orchestration (instead of shell-script glue), for more predictable lifecycle behavior. |
 | Framework intelligence | Automatic framework discovery + framework-specific blueprints + custom stack wizard for tailored environments. |
-| Magento depth | First-class Magento 2 workflow (auto `env.php` wiring, optional Varnish/Redis/queue/search, and dedicated `php-debug` routing). |
+| Magento depth | First-class Magento/OpenMage workflow (auto `env.php`/`local.xml` wiring, table prefix support, optional Varnish/Redis/queue/search, and dedicated `php-debug` routing). |
 | Local HTTPS/DNS | Built-in Caddy + `dnsmasq` + Root CA auto-trust flow for `*.test` domains, with automatic HTTP to HTTPS 308 redirection for all services. |
 | Remote safety | `remote`/`sync` protections for sensitive targets (`prod` write blocking, scoped capabilities, audit logs, resumable transfers). |
 | Team reproducibility | `govard lock` + `lock.strict` to detect environment drift and enforce consistency across machines. |
@@ -43,7 +43,7 @@ At a glance, these are the areas where Govard delivers stronger day-to-day value
 - **High Performance**: Built with Go and uses the native Docker SDK for direct container orchestration.
 - **Local Image Fallback**: Automatically builds missing Govard-managed images locally from embedded blueprints if they cannot be pulled from Docker Hub. Disable this retry with `--no-fallback`.
 - **Smart Templating**: Uses Go `text/template` to render dynamic Docker Compose files from framework-specific blueprints.
-- **Magento 2 Optimized**: Deep integration for Magento 2, including automated `env.php` configuration, Varnish 7.x support, and Redis caching.
+- **Magento 2 Optimized**: Deep integration for Magento 2, including automated `env.php` configuration, table prefix propagation, Varnish 7.x support, and Redis caching.
 - **Remote Management (Flagship)**: Manage named remotes for sync/deploy/db workflows with scope-based capabilities (`files,media,db,deploy`) and flexible auth modes (`keychain`, `ssh-agent`, `keyfile`).
 - **Remote Safety Guardrails**: Production remotes are write-protected by default, with policy checks to block risky destination writes and explicit capability enforcement per operation.
 - **Safe Cross-Environment Sync**: Bi-directional file/media/database sync with dry-run planning (`--plan`), privacy filters (`--no-noise`, `--no-pii`), auto-selection of the `staging` remote by default, resumable rsync by default (`--partial --append-verify`), include/exclude filters, and risk warnings for destructive flags.

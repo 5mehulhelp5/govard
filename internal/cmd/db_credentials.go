@@ -13,11 +13,12 @@ import (
 )
 
 type dbCredentials struct {
-	Host     string
-	Port     int
-	Username string
-	Password string
-	Database string
+	Host        string
+	Port        int
+	Username    string
+	Password    string
+	Database    string
+	TablePrefix string
 }
 
 func defaultDBCredentialsForFramework(framework string) dbCredentials {
@@ -74,11 +75,13 @@ func (credentials dbCredentials) withDefaults() dbCredentials {
 	if result.Port < 0 {
 		result.Port = 0
 	}
+	result.TablePrefix = engine.NormalizeTablePrefix(result.TablePrefix)
 	return result
 }
 
 func resolveRemoteDBCredentials(config engine.Config, remoteName string, remoteCfg engine.RemoteConfig) (dbCredentials, error) {
 	fallback := defaultDBCredentialsForFramework(config.Framework)
+	fallback.TablePrefix = engine.NormalizeTablePrefix(config.TablePrefix)
 	switch strings.TrimSpace(config.Framework) {
 	case conventions.FrameworkMagento2:
 		metadata, err := remote.ProbeMagento2Environment(remoteName, remoteCfg)
@@ -87,11 +90,12 @@ func resolveRemoteDBCredentials(config engine.Config, remoteName string, remoteC
 		}
 
 		return dbCredentials{
-			Host:     metadata.DB.Host,
-			Port:     metadata.DB.Port,
-			Username: metadata.DB.Username,
-			Password: metadata.DB.Password,
-			Database: metadata.DB.Database,
+			Host:        metadata.DB.Host,
+			Port:        metadata.DB.Port,
+			Username:    metadata.DB.Username,
+			Password:    metadata.DB.Password,
+			Database:    metadata.DB.Database,
+			TablePrefix: firstNonEmpty(metadata.DB.TablePrefix, config.TablePrefix),
 		}.withDefaults(), nil
 	case conventions.FrameworkMagento1, conventions.FrameworkOpenMage:
 		metadata, err := remote.ProbeMagento1Environment(remoteName, remoteCfg)
@@ -99,11 +103,12 @@ func resolveRemoteDBCredentials(config engine.Config, remoteName string, remoteC
 			return fallback, err
 		}
 		return dbCredentials{
-			Host:     metadata.DB.Host,
-			Port:     metadata.DB.Port,
-			Username: metadata.DB.Username,
-			Password: metadata.DB.Password,
-			Database: metadata.DB.Database,
+			Host:        metadata.DB.Host,
+			Port:        metadata.DB.Port,
+			Username:    metadata.DB.Username,
+			Password:    metadata.DB.Password,
+			Database:    metadata.DB.Database,
+			TablePrefix: firstNonEmpty(metadata.DB.TablePrefix, config.TablePrefix),
 		}.withDefaults(), nil
 	case "wordpress":
 		metadata, err := remote.ProbeWordPressEnvironment(remoteName, remoteCfg)
@@ -173,6 +178,7 @@ func resolveRemoteDBCredentials(config engine.Config, remoteName string, remoteC
 
 func resolveLocalDBCredentials(config engine.Config, containerName string) dbCredentials {
 	credentials := defaultDBCredentialsForFramework(config.Framework)
+	credentials.TablePrefix = engine.NormalizeTablePrefix(config.TablePrefix)
 	inspectCommand := exec.Command("docker", "inspect", "-f", "{{range .Config.Env}}{{println .}}{{end}}", containerName)
 	output, err := inspectCommand.Output()
 	if err != nil {
@@ -209,6 +215,16 @@ func parseEnvMap(raw string) map[string]string {
 	return result
 }
 
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		trimmed := strings.TrimSpace(value)
+		if trimmed != "" {
+			return trimmed
+		}
+	}
+	return ""
+}
+
 func buildRemoteMySQLDumpCommandString(credentials dbCredentials, noNoise bool, noPII bool, framework string, compress bool) string {
 	credentials = credentials.withDefaults()
 
@@ -232,7 +248,7 @@ func buildRemoteMySQLDumpCommandString(credentials dbCredentials, noNoise bool, 
 	// Pass 2: Data (no create info, skip triggers, exclude noise/PII)
 	dataArgs := append([]string{}, commonArgs...)
 	dataArgs = append(dataArgs, "--no-create-info", "--skip-triggers")
-	ignoreArgs := buildIgnoredTableArgs(credentials.Database, "", noNoise, noPII, framework)
+	ignoreArgs := buildIgnoredTableArgs(credentials.Database, credentials.TablePrefix, noNoise, noPII, framework)
 	dataArgs = append(dataArgs, ignoreArgs...)
 	dataArgs = append(dataArgs, engine.ShellQuote(credentials.Database))
 
@@ -321,7 +337,7 @@ func buildLocalMySQLDumpCommandScript(credentials dbCredentials, noNoise bool, n
 	// Pass 2: Data
 	dataArgs := append([]string{}, commonArgs...)
 	dataArgs = append(dataArgs, "--no-create-info", "--skip-triggers")
-	ignoreArgs := buildIgnoredTableArgs(credentials.Database, "", noNoise, noPII, framework)
+	ignoreArgs := buildIgnoredTableArgs(credentials.Database, credentials.TablePrefix, noNoise, noPII, framework)
 	dataArgs = append(dataArgs, ignoreArgs...)
 	dataArgs = append(dataArgs, engine.ShellQuote(credentials.Database))
 	dumpCmd := fmt.Sprintf("{ %s; %s; }", strings.Join(metadataArgs, " "), strings.Join(dataArgs, " "))
@@ -385,6 +401,15 @@ func BuildRemoteMySQLDumpCommandForTest(host string, port int, username string, 
 	}, false, false, "magento2", compress)
 }
 
+func BuildRemoteMySQLDumpCommandWithPrefixForTest(database string, tablePrefix string, noNoise bool, noPII bool, framework string) string {
+	return buildRemoteMySQLDumpCommandString(dbCredentials{
+		Username:    conventions.DefaultMagentoDBUser,
+		Password:    conventions.DefaultMagentoDBPass,
+		Database:    database,
+		TablePrefix: tablePrefix,
+	}, noNoise, noPII, framework, false)
+}
+
 func BuildLocalDBImportCommandForTest(containerName string, username string, password string, database string) []string {
 	command := buildLocalDBImportCommand(containerName, dbCredentials{
 		Username: username,
@@ -438,13 +463,16 @@ func buildRemoteMySQLQueryCommandString(credentials dbCredentials, query string)
 
 	return mysqlPasswordExportPrefix(credentials.Password) + strings.Join(args, " ")
 }
+
 func GetDatabaseSize(config engine.Config, remoteName string, remoteCfg engine.RemoteConfig, credentials dbCredentials, noNoise bool, noPII bool) (int64, error) {
+	credentials = credentials.withDefaults()
 	ignoredTables := getIgnoredTableList(noNoise, noPII, config.Framework)
 	whereClause := fmt.Sprintf("WHERE table_schema = '%s'", strings.ReplaceAll(credentials.Database, "'", "''"))
 	if len(ignoredTables) > 0 {
 		quotedTables := make([]string, len(ignoredTables))
 		for i, t := range ignoredTables {
-			quotedTables[i] = "'" + strings.ReplaceAll(t, "'", "''") + "'"
+			tableName := credentials.TablePrefix + t
+			quotedTables[i] = "'" + strings.ReplaceAll(tableName, "'", "''") + "'"
 		}
 		whereClause += fmt.Sprintf(" AND table_name NOT IN (%s)", strings.Join(quotedTables, ","))
 	}
@@ -452,7 +480,6 @@ func GetDatabaseSize(config engine.Config, remoteName string, remoteCfg engine.R
 	// query the total logical size (data_length is better for estimating dump size than avg_row_length)
 	query := fmt.Sprintf("SELECT SUM(data_length) FROM information_schema.tables %s", whereClause)
 
-	credentials = credentials.withDefaults()
 	mysqlArgs := []string{"\"$DB_CLI\"", "-BN"}
 	if host := strings.TrimSpace(credentials.Host); host != "" {
 		mysqlArgs = append(mysqlArgs, "-h"+engine.ShellQuote(host))

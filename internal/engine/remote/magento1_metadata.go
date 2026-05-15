@@ -26,6 +26,10 @@ func ProbeMagento1Environment(remoteName string, remoteCfg engine.RemoteConfig) 
 	return decodeMagento1EnvironmentPayload(encoded)
 }
 
+func DecodeMagento1EnvironmentPayloadForTest(encoded string) (Magento1Environment, error) {
+	return decodeMagento1EnvironmentPayload(encoded)
+}
+
 func decodeMagento1EnvironmentPayload(encoded string) (Magento1Environment, error) {
 	trimmed := strings.TrimSpace(encoded)
 	if trimmed == "" {
@@ -38,11 +42,12 @@ func decodeMagento1EnvironmentPayload(encoded string) (Magento1Environment, erro
 	}
 
 	var payload struct {
-		Host     string `json:"host"`
-		Username string `json:"username"`
-		Password string `json:"password"`
-		DBName   string `json:"dbname"`
-		CryptKey string `json:"crypt_key"`
+		Host        string `json:"host"`
+		Username    string `json:"username"`
+		Password    string `json:"password"`
+		DBName      string `json:"dbname"`
+		TablePrefix string `json:"table_prefix"`
+		CryptKey    string `json:"crypt_key"`
 	}
 	if err := json.Unmarshal(decoded, &payload); err != nil {
 		return Magento1Environment{}, fmt.Errorf("parse remote probe payload: %w", err)
@@ -57,11 +62,12 @@ func decodeMagento1EnvironmentPayload(encoded string) (Magento1Environment, erro
 
 	return Magento1Environment{
 		DB: MagentoDBInfo{
-			Host:     host,
-			Port:     port,
-			Username: username,
-			Password: payload.Password,
-			Database: database,
+			Host:        host,
+			Port:        port,
+			Username:    username,
+			Password:    payload.Password,
+			Database:    database,
+			TablePrefix: engine.NormalizeTablePrefix(payload.TablePrefix),
 		},
 		CryptKey: strings.TrimSpace(payload.CryptKey),
 	}, nil
@@ -81,6 +87,7 @@ $r=[
   "username"=>(string)$c->username,
   "password"=>(string)$c->password,
   "dbname"  =>(string)$c->dbname,
+  "table_prefix"=>(string)($x->global->resources->db->table_prefix ?? ""),
   "crypt_key"=>(string)($x->global->crypt->key ?? ""),
 ];
 echo base64_encode(json_encode($r));`

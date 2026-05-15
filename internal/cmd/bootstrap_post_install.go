@@ -46,6 +46,7 @@ func runBootstrapHyvaInstall(cmd *cobra.Command, opts BootstrapRuntimeOptions) e
 func runBootstrapPostInstall(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions) error {
 	adminEmail := conventions.AdminEmailForDomain(config.Domain)
 
+	tablePrefix := resolveBootstrapMagentoTablePrefix(config)
 	setupArgs := []string{
 		"setup:install",
 		"--backend-frontname=" + conventions.DefaultAdminPath,
@@ -53,7 +54,7 @@ func runBootstrapPostInstall(cmd *cobra.Command, config engine.Config, opts Boot
 		"--db-name=" + conventions.DefaultMagentoDBName,
 		"--db-user=" + conventions.DefaultMagentoDBUser,
 		"--db-password=" + conventions.DefaultMagentoDBPass,
-		"--db-prefix=" + strings.TrimSpace(os.Getenv("DB_PREFIX")),
+		"--db-prefix=" + tablePrefix,
 		"--search-engine=opensearch",
 		"--opensearch-host=elasticsearch",
 		"--opensearch-port=9200",
@@ -76,7 +77,7 @@ func runBootstrapPostInstall(cmd *cobra.Command, config engine.Config, opts Boot
 				"--db-name=" + conventions.DefaultMagentoDBName,
 				"--db-user=" + conventions.DefaultMagentoDBUser,
 				"--db-password=" + conventions.DefaultMagentoDBPass,
-				"--db-prefix=" + strings.TrimSpace(os.Getenv("DB_PREFIX")),
+				"--db-prefix=" + tablePrefix,
 				"--search-engine=elasticsearch7",
 				"--elasticsearch-host=elasticsearch",
 				"--elasticsearch-port=9200",
@@ -107,6 +108,13 @@ func runBootstrapPostInstall(cmd *cobra.Command, config engine.Config, opts Boot
 		return fmt.Errorf("magento setup:install failed: %w", err)
 	}
 	return nil
+}
+
+func resolveBootstrapMagentoTablePrefix(config engine.Config) string {
+	if prefix := engine.NormalizeTablePrefix(config.TablePrefix); prefix != "" {
+		return prefix
+	}
+	return engine.NormalizeTablePrefix(os.Getenv("TABLE_PREFIX"))
 }
 
 func runBootstrapSampleData(cmd *cobra.Command) error {
