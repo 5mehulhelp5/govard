@@ -226,6 +226,7 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 		DefaultNginxVer:    "1.28",
 		DefaultApacheVer:   "2.4",
 		DefaultCacheVer:    "7.0",
+		DefaultSearchVer:   "1.3",
 		DefaultVarnishVer:  "6.0",
 		DefaultQueueVer:    "4.2",
 		DefaultWebServer:   "nginx",
@@ -236,6 +237,7 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 		Includes: []string{
 			"includes/base.yml",
 			"includes/redis.yml",
+			"includes/elasticsearch.yml",
 			"magento1/services.yml",
 			"includes/rabbitmq.yml",
 		},
@@ -255,6 +257,7 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 		DefaultNginxVer:    "1.28",
 		DefaultApacheVer:   "2.4",
 		DefaultCacheVer:    "7.0",
+		DefaultSearchVer:   "1.3",
 		DefaultVarnishVer:  "6.0",
 		DefaultQueueVer:    "4.2",
 		DefaultWebServer:   "nginx",
@@ -265,6 +268,7 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 		Includes: []string{
 			"includes/base.yml",
 			"includes/redis.yml",
+			"includes/elasticsearch.yml",
 			"magento1/services.yml",
 			"includes/rabbitmq.yml",
 		},
