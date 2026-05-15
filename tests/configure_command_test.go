@@ -57,7 +57,7 @@ func TestConfigureDatabaseSetupDoesNotSetSearchFlags(t *testing.T) {
 
 func TestConfigureDatabaseSetupIncludesTablePrefix(t *testing.T) {
 	config := engine.Config{
-		TablePrefix: "magspas_",
+		TablePrefix: "demo_",
 	}
 
 	cmds := engine.MagentoConfigCommandsForTest("proj", config)
@@ -66,7 +66,7 @@ func TestConfigureDatabaseSetupIncludesTablePrefix(t *testing.T) {
 			continue
 		}
 		joined := strings.Join(cmd.Args, " ")
-		if !strings.Contains(joined, "--db-prefix=magspas_") {
+		if !strings.Contains(joined, "--db-prefix=demo_") {
 			t.Fatalf("expected setup:config:set args to contain table prefix, got: %v", cmd.Args)
 		}
 		return

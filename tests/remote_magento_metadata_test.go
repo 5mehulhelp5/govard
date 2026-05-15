@@ -67,15 +67,15 @@ func TestDecodeMagento2EnvironmentPayloadIncludesTablePrefix(t *testing.T) {
 		"username":     "mage",
 		"password":     "secret",
 		"dbname":       "magento",
-		"table_prefix": "magspas_",
+		"table_prefix": "demo_",
 	})
 
 	metadata, err := remote.DecodeMagento2EnvironmentPayloadForTest(encoded)
 	if err != nil {
 		t.Fatalf("DecodeMagento2EnvironmentPayloadForTest() error = %v", err)
 	}
-	if metadata.DB.TablePrefix != "magspas_" {
-		t.Fatalf("expected table prefix magspas_, got %q", metadata.DB.TablePrefix)
+	if metadata.DB.TablePrefix != "demo_" {
+		t.Fatalf("expected table prefix demo_, got %q", metadata.DB.TablePrefix)
 	}
 }
 
@@ -85,15 +85,15 @@ func TestDecodeMagento1EnvironmentPayloadIncludesTablePrefix(t *testing.T) {
 		"username":     "mage",
 		"password":     "secret",
 		"dbname":       "magento",
-		"table_prefix": "magspas_",
+		"table_prefix": "demo_",
 	})
 
 	metadata, err := remote.DecodeMagento1EnvironmentPayloadForTest(encoded)
 	if err != nil {
 		t.Fatalf("DecodeMagento1EnvironmentPayloadForTest() error = %v", err)
 	}
-	if metadata.DB.TablePrefix != "magspas_" {
-		t.Fatalf("expected table prefix magspas_, got %q", metadata.DB.TablePrefix)
+	if metadata.DB.TablePrefix != "demo_" {
+		t.Fatalf("expected table prefix demo_, got %q", metadata.DB.TablePrefix)
 	}
 }
 

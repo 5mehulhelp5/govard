@@ -419,7 +419,7 @@ For node-first frameworks, package-manager commands run in the `web` container a
 ```bash
 govard config get stack.php_version
 govard config set stack.php_version 8.4
-govard config set table_prefix magspas_
+govard config set table_prefix demo_
 govard config profile
 govard config profile --json
 govard config profile apply --framework laravel --framework-version 11

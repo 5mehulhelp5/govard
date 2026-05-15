@@ -17,7 +17,7 @@ func TestNormalizeConfigDetectsMagento2TablePrefix(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(etcDir, "env.php"), []byte(`<?php
 return [
     'db' => [
-        'table_prefix' => 'magspas_',
+        'table_prefix' => 'demo_',
     ],
 ];
 `), 0o644); err != nil {
@@ -27,8 +27,8 @@ return [
 	config := engine.Config{Framework: "magento2"}
 	engine.NormalizeConfig(&config, root)
 
-	if config.TablePrefix != "magspas_" {
-		t.Fatalf("expected table prefix magspas_, got %q", config.TablePrefix)
+	if config.TablePrefix != "demo_" {
+		t.Fatalf("expected table prefix demo_, got %q", config.TablePrefix)
 	}
 }
 
@@ -43,7 +43,7 @@ func TestNormalizeConfigDetectsMagento1TablePrefix(t *testing.T) {
     <global>
         <resources>
             <db>
-                <table_prefix><![CDATA[magspas_]]></table_prefix>
+                <table_prefix><![CDATA[demo_]]></table_prefix>
             </db>
         </resources>
     </global>
@@ -55,8 +55,8 @@ func TestNormalizeConfigDetectsMagento1TablePrefix(t *testing.T) {
 	config := engine.Config{Framework: "openmage"}
 	engine.NormalizeConfig(&config, root)
 
-	if config.TablePrefix != "magspas_" {
-		t.Fatalf("expected table prefix magspas_, got %q", config.TablePrefix)
+	if config.TablePrefix != "demo_" {
+		t.Fatalf("expected table prefix demo_, got %q", config.TablePrefix)
 	}
 }
 
@@ -65,7 +65,7 @@ func TestValidateConfigRejectsUnsafeTablePrefix(t *testing.T) {
 		ProjectName: "sample-project",
 		Framework:   "magento2",
 		Domain:      "sample.test",
-		TablePrefix: "magspas_;DROP",
+		TablePrefix: "demo_;DROP",
 	}
 	engine.NormalizeConfig(&config, "")
 

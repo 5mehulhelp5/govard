@@ -99,7 +99,7 @@ func TestMigrateFromWardenMigratesMagentoTablePrefix(t *testing.T) {
 
 	dotEnv := `WARDEN_ENV_NAME=sample-project
 WARDEN_ENV_TYPE=magento2
-WARDEN_TABLE_PREFIX=magspas_
+WARDEN_TABLE_PREFIX=demo_
 `
 	if err := os.WriteFile(filepath.Join(tempDir, ".env"), []byte(dotEnv), 0o644); err != nil {
 		t.Fatal(err)
@@ -110,7 +110,7 @@ WARDEN_TABLE_PREFIX=magspas_
 		t.Fatalf("MigrateFromWarden failed: %v", err)
 	}
 
-	if result.TablePrefix != "magspas_" {
-		t.Errorf("expected TablePrefix=magspas_, got %q", result.TablePrefix)
+	if result.TablePrefix != "demo_" {
+		t.Errorf("expected TablePrefix=demo_, got %q", result.TablePrefix)
 	}
 }

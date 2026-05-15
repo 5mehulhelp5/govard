@@ -21,6 +21,14 @@ func ValidateTablePrefix(prefix string) bool {
 	return tablePrefixPattern.MatchString(NormalizeTablePrefix(prefix))
 }
 
+func SafeTablePrefix(prefix string) string {
+	normalized := NormalizeTablePrefix(prefix)
+	if !ValidateTablePrefix(normalized) {
+		return ""
+	}
+	return normalized
+}
+
 func FrameworkSupportsTablePrefix(framework string) bool {
 	switch normalizeFrameworkManifestKey(framework) {
 	case "magento2", "magento1", "openmage":

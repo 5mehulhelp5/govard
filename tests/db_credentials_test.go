@@ -162,9 +162,9 @@ func TestBuildIgnoredTableArgsWithPrefix(t *testing.T) {
 }
 
 func TestBuildRemoteMySQLDumpCommandWithPrefixUsesPrefixedIgnoredTables(t *testing.T) {
-	command := cmd.BuildRemoteMySQLDumpCommandWithPrefixForTest("mage", "magspas_", true, false, "magento2")
+	command := cmd.BuildRemoteMySQLDumpCommandWithPrefixForTest("mage", "demo_", true, false, "magento2")
 
-	if !strings.Contains(command, "--ignore-table=mage.magspas_cron_schedule") {
+	if !strings.Contains(command, "--ignore-table=mage.demo_cron_schedule") {
 		t.Fatalf("expected remote dump command to use prefixed ignored tables, got: %s", command)
 	}
 }

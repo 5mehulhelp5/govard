@@ -131,7 +131,7 @@ func decodeMagento2EnvironmentPayload(encoded string) (Magento2Environment, erro
 			Username:    username,
 			Password:    payload.Password,
 			Database:    database,
-			TablePrefix: engine.NormalizeTablePrefix(payload.TablePrefix),
+			TablePrefix: engine.SafeTablePrefix(payload.TablePrefix),
 		},
 		CryptKey: strings.TrimSpace(payload.CryptKey),
 	}, nil

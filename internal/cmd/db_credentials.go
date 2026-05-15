@@ -75,7 +75,7 @@ func (credentials dbCredentials) withDefaults() dbCredentials {
 	if result.Port < 0 {
 		result.Port = 0
 	}
-	result.TablePrefix = engine.NormalizeTablePrefix(result.TablePrefix)
+	result.TablePrefix = engine.SafeTablePrefix(result.TablePrefix)
 	return result
 }
 
@@ -346,6 +346,7 @@ func buildLocalMySQLDumpCommandScript(credentials dbCredentials, noNoise bool, n
 
 // buildIgnoredTableArgs returns docker exec --ignore-table flags for the given credentials and filter flags.
 func buildIgnoredTableArgs(dbName string, dbPrefix string, noNoise bool, noPII bool, framework string) []string {
+	dbPrefix = engine.SafeTablePrefix(dbPrefix)
 	tables := getIgnoredTableList(noNoise, noPII, framework)
 	if len(tables) == 0 {
 		return nil

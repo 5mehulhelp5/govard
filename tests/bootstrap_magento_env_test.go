@@ -34,9 +34,9 @@ func TestBuildBootstrapMagentoEnvPHPForTestUsesDefaultDBHost(t *testing.T) {
 }
 
 func TestBuildBootstrapMagentoEnvPHPForTestUsesTablePrefix(t *testing.T) {
-	got := cmd.BuildBootstrapMagentoEnvPHPWithPrefixForTest("test-crypt-key", "sample_db", "sample_user", "sample_pass", "magspas_")
+	got := cmd.BuildBootstrapMagentoEnvPHPWithPrefixForTest("test-crypt-key", "sample_db", "sample_user", "sample_pass", "demo_")
 
-	if !strings.Contains(got, "'table_prefix' => \"magspas_\"") {
+	if !strings.Contains(got, "'table_prefix' => \"demo_\"") {
 		t.Fatalf("expected rendered env.php to contain table prefix, got:\n%s", got)
 	}
 }

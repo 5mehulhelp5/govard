@@ -77,7 +77,7 @@ func TestBootstrapPkgOpenMageFreshCommands(t *testing.T) {
 
 func TestBootstrapPkgOpenMagePostCloneWritesTablePrefix(t *testing.T) {
 	projectDir := t.TempDir()
-	openmage := bootstrap.NewOpenMageBootstrap(bootstrap.Options{TablePrefix: "magspas_"})
+	openmage := bootstrap.NewOpenMageBootstrap(bootstrap.Options{TablePrefix: "demo_"})
 
 	if err := openmage.PostClone(projectDir); err != nil {
 		t.Fatalf("PostClone() error = %v", err)
@@ -87,7 +87,7 @@ func TestBootstrapPkgOpenMagePostCloneWritesTablePrefix(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read local.xml: %v", err)
 	}
-	if !strings.Contains(string(content), "<table_prefix><![CDATA[magspas_]]></table_prefix>") {
+	if !strings.Contains(string(content), "<table_prefix><![CDATA[demo_]]></table_prefix>") {
 		t.Fatalf("expected local.xml table prefix, got:\n%s", string(content))
 	}
 }

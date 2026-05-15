@@ -59,14 +59,14 @@ func TestRunBootstrapMagentoSetupInstallForTestUsesConfigTablePrefix(t *testing.
 	err := cmd.RunBootstrapMagentoSetupInstallForTest(&cobra.Command{}, engine.Config{
 		ProjectName: "sample-project",
 		Framework:   conventions.FrameworkMagento2,
-		TablePrefix: "magspas_",
+		TablePrefix: "demo_",
 	}, "remote", "")
 	if err != nil {
 		t.Fatalf("RunBootstrapMagentoSetupInstallForTest() error = %v", err)
 	}
 
 	joined := strings.Join(flattenArgs(capturedArgs), " ")
-	if !strings.Contains(joined, "--db-prefix=magspas_") {
+	if !strings.Contains(joined, "--db-prefix=demo_") {
 		t.Fatalf("expected setup args to contain table prefix, got %q", joined)
 	}
 }

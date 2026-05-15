@@ -46,7 +46,7 @@ govard init --migrate-from warden
 **During this process:**
 1. Govard will generate a `.govard.yml` mapping your Warden settings to Govard stacks.
 2. It will detect your Warden database volume (typically `<project>_dbdata`).
-3. If `WARDEN_TABLE_PREFIX` is set, Govard will persist it as `table_prefix` so Magento table names like `magspas_core_config_data` continue to work.
+3. If `WARDEN_TABLE_PREFIX` is set, Govard will persist it as `table_prefix` so Magento table names like `demo_core_config_data` continue to work.
 4. You will be prompted:
    > `Do you want to clone the existing database volume from Warden ('myproject_dbdata') into Govard? [y/N]`
 5. Type **`y` (Yes)**. Govard will automatically clone the SQL raw data to its own isolated docker volume behind the scenes.

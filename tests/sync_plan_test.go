@@ -115,6 +115,42 @@ func TestSyncPlanScopes(t *testing.T) {
 	}
 }
 
+func TestSyncPlanDatabaseUsesTablePrefixForIgnoredTables(t *testing.T) {
+	config := engine.Config{
+		ProjectName: "test-project",
+		Framework:   "magento2",
+		TablePrefix: "demo_",
+	}
+
+	endpoints := cmd.ResolveSyncEndpointsForTest(
+		cmd.SyncEndpoint{
+			Name:     "staging",
+			IsLocal:  false,
+			RootPath: "/var/www/html",
+			RemoteCfg: engine.RemoteConfig{
+				Host: "staging.example.com",
+				Path: "/var/www/html",
+			},
+		},
+		cmd.SyncEndpoint{Name: "local", IsLocal: true, RootPath: "/home/user/project"},
+	)
+
+	opts := cmd.SyncExecutionOptionsForTest(false, "", true)
+	opts.NoNoise = true
+
+	plan, err := cmd.BuildSyncExecutionPlanForTest(config, endpoints, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(plan.Commands) != 1 {
+		t.Fatalf("expected 1 database command, got %d", len(plan.Commands))
+	}
+	if !strings.Contains(plan.Commands[0], "--ignore-table=magento.demo_cron_schedule") {
+		t.Fatalf("expected sync DB dump to use prefixed ignored table, got: %s", plan.Commands[0])
+	}
+}
+
 func TestSyncPlanAdvancedMediaModes(t *testing.T) {
 	endpoints := cmd.ResolveSyncEndpointsForTest(
 		cmd.SyncEndpoint{Name: "staging", IsLocal: false, RootPath: "/remote", MediaPath: "/remote/media"},

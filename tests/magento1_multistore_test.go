@@ -104,7 +104,7 @@ func TestBuildMagento1CommandsUseTablePrefix(t *testing.T) {
 		ProjectName: "testproject",
 		Framework:   "magento1",
 		Domain:      "main.test",
-		TablePrefix: "magspas_",
+		TablePrefix: "demo_",
 		StoreDomains: engine.StoreDomainMappings{
 			"brand-b.test": {
 				Code: "brand_b",
@@ -121,8 +121,8 @@ func TestBuildMagento1CommandsUseTablePrefix(t *testing.T) {
 	joined := strings.Join(all, "\n")
 
 	for _, expected := range []string{
-		"magspas_core_config_data",
-		"magspas_core_store",
+		"demo_core_config_data",
+		"demo_core_store",
 	} {
 		if !strings.Contains(joined, expected) {
 			t.Fatalf("expected Magento 1 commands to contain %q, got:\n%s", expected, joined)

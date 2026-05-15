@@ -46,7 +46,10 @@ func runBootstrapHyvaInstall(cmd *cobra.Command, opts BootstrapRuntimeOptions) e
 func runBootstrapPostInstall(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions) error {
 	adminEmail := conventions.AdminEmailForDomain(config.Domain)
 
-	tablePrefix := resolveBootstrapMagentoTablePrefix(config)
+	tablePrefix, err := resolveBootstrapMagentoTablePrefix(config)
+	if err != nil {
+		return err
+	}
 	setupArgs := []string{
 		"setup:install",
 		"--backend-frontname=" + conventions.DefaultAdminPath,
@@ -110,11 +113,18 @@ func runBootstrapPostInstall(cmd *cobra.Command, config engine.Config, opts Boot
 	return nil
 }
 
-func resolveBootstrapMagentoTablePrefix(config engine.Config) string {
+func resolveBootstrapMagentoTablePrefix(config engine.Config) (string, error) {
 	if prefix := engine.NormalizeTablePrefix(config.TablePrefix); prefix != "" {
-		return prefix
+		if !engine.ValidateTablePrefix(prefix) {
+			return "", fmt.Errorf("invalid table_prefix %q (allowed: letters, numbers, and underscore)", prefix)
+		}
+		return prefix, nil
 	}
-	return engine.NormalizeTablePrefix(os.Getenv("TABLE_PREFIX"))
+	prefix := engine.NormalizeTablePrefix(os.Getenv("TABLE_PREFIX"))
+	if !engine.ValidateTablePrefix(prefix) {
+		return "", fmt.Errorf("invalid TABLE_PREFIX %q (allowed: letters, numbers, and underscore)", prefix)
+	}
+	return prefix, nil
 }
 
 func runBootstrapSampleData(cmd *cobra.Command) error {
