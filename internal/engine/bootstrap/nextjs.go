@@ -50,18 +50,36 @@ func (n *NextJSBootstrap) CreateProject(projectDir string) error {
 }
 
 func createNextJSProjectInStage(stageDir string) error {
-	pterm.Info.Println("Running npx create-next-app...")
+	var cmd *exec.Cmd
 
-	cmd := exec.Command("npx", "create-next-app@latest", stageDir,
-		"--typescript",
-		"--tailwind",
-		"--eslint",
-		"--app",
-		"--no-src-dir",
-		"--import-alias", "@/*",
-		"--use-npm",
-		"--yes",
-	)
+	if _, err := exec.LookPath("npx"); err == nil {
+		pterm.Info.Println("Running npx create-next-app...")
+		cmd = exec.Command("npx", "create-next-app@latest", stageDir,
+			"--typescript",
+			"--tailwind",
+			"--eslint",
+			"--app",
+			"--no-src-dir",
+			"--import-alias", "@/*",
+			"--use-npm",
+			"--yes",
+		)
+	} else if _, err := exec.LookPath("yarn"); err == nil {
+		pterm.Info.Println("npx not found. Running yarn create next-app...")
+		cmd = exec.Command("yarn", "create", "next-app", stageDir,
+			"--typescript",
+			"--tailwind",
+			"--eslint",
+			"--app",
+			"--no-src-dir",
+			"--import-alias", "@/*",
+			"--use-yarn",
+			"--yes",
+		)
+	} else {
+		return fmt.Errorf("neither npx nor yarn found in PATH, cannot create Next.js project")
+	}
+
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -80,14 +98,23 @@ func (n *NextJSBootstrap) Install(projectDir string) error {
 		return fmt.Errorf("package.json not found, cannot install dependencies")
 	}
 
-	cmd := exec.Command("npm", "install")
+	var cmd *exec.Cmd
+	if _, err := exec.LookPath("npm"); err == nil {
+		cmd = exec.Command("npm", "install")
+	} else if _, err := exec.LookPath("yarn"); err == nil {
+		pterm.Info.Println("npm not found. Running yarn install...")
+		cmd = exec.Command("yarn", "install")
+	} else {
+		return fmt.Errorf("neither npm nor yarn found in PATH, cannot install dependencies")
+	}
+
 	cmd.Dir = projectDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("npm install failed: %w", err)
+		return fmt.Errorf("dependency installation failed: %w", err)
 	}
 
 	pterm.Success.Println("Next.js dependencies installed")
