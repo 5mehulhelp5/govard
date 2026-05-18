@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.51.1] - 2026-05-18
+
+### ✨ New Features
+
+- **Database Table Prefix Support:** Added comprehensive support for custom database table prefixes in Magento 1, Magento 2, and OpenMage environments, including a robust `SafeTablePrefix` helper function and a safe fallback to `demo_`.
+- **Symfony Bootstrap Automation:** Implemented conditional execution of Doctrine commands (database creation and migrations) based on `composer.json` dependency detection, ensuring smoother onboarding for Symfony projects.
+
+### 🛠 Improvements
+
+- **Testing Infrastructure:** Added detailed unit and integration tests covering database table prefix handling, Symfony bootstrap conditional detection, database credentials, remote metadata, and migration synchronization.
+
 ## [1.51.0] - 2026-05-15
 
 ### ✨ New Features
