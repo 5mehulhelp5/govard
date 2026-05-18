@@ -35,8 +35,7 @@ func TestDbNoPIIPrimaryShorthandIsP(t *testing.T) {
 	flag := command.Flags().Lookup("no-pii")
 	if flag == nil {
 		t.Fatal("expected --no-pii flag on db command")
-	}
-	if flag.Shorthand != "P" {
+	} else if flag.Shorthand != "P" {
 		t.Fatalf("expected --no-pii shorthand to be -P, got -%s", flag.Shorthand)
 	}
 	if command.Flags().Lookup("sanitize") == nil {

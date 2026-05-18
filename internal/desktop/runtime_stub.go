@@ -7,10 +7,14 @@ import (
 	"fmt"
 )
 
+var errDesktopNotAvailableFn = func() error {
+	return fmt.Errorf("desktop runtime not available")
+}
+
 func openURL(ctx context.Context, url string) error {
 	_ = ctx
 	_ = url
-	return fmt.Errorf("desktop runtime not available")
+	return errDesktopNotAvailableFn()
 }
 
 func emitEvent(ctx context.Context, name string, data interface{}) {
@@ -23,7 +27,7 @@ func chooseDirectory(ctx context.Context, title string, defaultDir string) (stri
 	_ = ctx
 	_ = title
 	_ = defaultDir
-	return "", fmt.Errorf("desktop runtime not available")
+	return "", errDesktopNotAvailableFn()
 }
 
 func chooseSaveFile(
@@ -36,7 +40,7 @@ func chooseSaveFile(
 	_ = title
 	_ = defaultDir
 	_ = defaultFilename
-	return "", fmt.Errorf("desktop runtime not available")
+	return "", errDesktopNotAvailableFn()
 }
 
 func showApplication(ctx context.Context) {

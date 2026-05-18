@@ -23,7 +23,11 @@ func removeProjectContents(projectDir string) error {
 		}
 		targetPath := filepath.Join(projectDir, entry.Name())
 		if err := os.RemoveAll(targetPath); err != nil {
-			return fmt.Errorf("failed to remove %s: %w", entry.Name(), err)
+			// Fallback: run docker container to remove as root
+			cmd := exec.Command("docker", "run", "--rm", "-v", projectDir+":/workspace", "-w", "/workspace", "alpine", "rm", "-rf", entry.Name())
+			if runErr := cmd.Run(); runErr != nil {
+				return fmt.Errorf("failed to remove %s (fallback failed: %v): %w", entry.Name(), runErr, err)
+			}
 		}
 	}
 

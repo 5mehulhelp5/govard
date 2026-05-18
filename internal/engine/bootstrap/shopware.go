@@ -84,9 +84,19 @@ PROXY_URL=` + siteURL + `
 	if err := s.runBinConsole(projectDir, "system:install", "--basic-setup", "--force", "--drop-database"); err != nil {
 		pterm.Warning.Printf("System install warning: %v\n", err)
 	}
+
+	// Re-apply APP_URL and PROXY_URL to .env as system:install resets them
+	if data, err := os.ReadFile(envPath); err == nil {
+		content := replaceOrAppendEnvAssignment(string(data), "APP_URL", siteURL)
+		content = replaceOrAppendEnvAssignment(content, "PROXY_URL", siteURL)
+		_ = os.WriteFile(envPath, []byte(content), conventions.DefaultFilePerm)
+	}
+
 	if err := s.syncSalesChannelDomain(projectDir, siteURL); err != nil {
 		pterm.Warning.Printf("Sales channel URL warning: %v\n", err)
 	}
+
+	s.ensureShopwareDirsWritable(projectDir)
 
 	pterm.Success.Println("Shopware installation completed")
 	return nil
@@ -111,6 +121,8 @@ func (s *ShopwareBootstrap) Configure(projectDir string) error {
 
 	_ = s.runBinConsole(projectDir, "cache:clear")
 	_ = s.syncSalesChannelDomain(projectDir, siteURL)
+
+	s.ensureShopwareDirsWritable(projectDir)
 
 	pterm.Success.Println("Shopware configured successfully")
 	return nil
@@ -143,6 +155,8 @@ func (s *ShopwareBootstrap) PostClone(projectDir string) error {
 
 	_ = s.runBinConsole(projectDir, "cache:clear")
 	_ = s.syncSalesChannelDomain(projectDir, siteURL)
+
+	s.ensureShopwareDirsWritable(projectDir)
 
 	pterm.Success.Println("Post-clone setup completed")
 	return nil
@@ -196,7 +210,38 @@ func (s *ShopwareBootstrap) syncSalesChannelDomain(projectDir, siteURL string) e
 		return nil
 	}
 
-	return s.runBinConsole(projectDir, "sales-channel:replace:url", "http://127.0.0.1:8000", siteURL)
+	if s.Options.Runner != nil {
+		// Run with redirection to suppress the "No sales channels found" error outputs
+		// from appearing in the user's console output during a fresh bootstrap.
+		_ = s.Options.Runner("php bin/console sales-channel:replace:url http://127.0.0.1:8000 " + conventions.ShellQuote(siteURL) + " >/dev/null 2>&1")
+		_ = s.Options.Runner("php bin/console sales-channel:replace:url http://localhost " + conventions.ShellQuote(siteURL) + " >/dev/null 2>&1")
+		return nil
+	}
+
+	// Local fallback (without runner)
+	_ = s.runBinConsole(projectDir, "sales-channel:replace:url", "http://127.0.0.1:8000", siteURL)
+	_ = s.runBinConsole(projectDir, "sales-channel:replace:url", "http://localhost", siteURL)
+
+	return nil
+}
+
+func (s *ShopwareBootstrap) ensureShopwareDirsWritable(projectDir string) {
+	for _, dir := range []string{"var", "public", "custom", "files"} {
+		dirPath := filepath.Join(projectDir, dir)
+		if _, err := os.Stat(dirPath); err == nil {
+			_ = filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+				if err != nil {
+					return nil
+				}
+				if info.IsDir() {
+					_ = os.Chmod(path, conventions.PublicDirPerm)
+				} else {
+					_ = os.Chmod(path, conventions.PublicFilePerm)
+				}
+				return nil
+			})
+		}
+	}
 }
 
 func replaceOrAppendEnvAssignment(content, key, value string) string {

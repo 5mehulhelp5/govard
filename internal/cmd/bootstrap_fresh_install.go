@@ -182,6 +182,7 @@ func runBootstrapShopwareFreshInstall(cmd *cobra.Command, config engine.Config, 
 	shopwareOpts := bootstrap.Options{
 		Version: opts.MetaVersion,
 		Env:     opts.Source,
+		Domain:  config.Domain,
 		Runner: func(command string) error {
 			return runPHPContainerShellCommand(config, command)
 		},
