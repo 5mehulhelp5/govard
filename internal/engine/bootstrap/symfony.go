@@ -108,14 +108,22 @@ MAILER_DSN=smtp://mailpit:1025
 		pterm.Warning.Printf("Composer install warning: %v\n", err)
 	}
 
-	pterm.Info.Println("Creating database...")
-	if err := s.runSymfonyConsole(projectDir, "doctrine:database:create", "--if-not-exists"); err != nil {
-		pterm.Warning.Printf("Database creation warning: %v\n", err)
+	if s.hasDoctrine(projectDir) {
+		pterm.Info.Println("Creating database...")
+		if err := s.runSymfonyConsole(projectDir, "doctrine:database:create", "--if-not-exists"); err != nil {
+			pterm.Warning.Printf("Database creation warning: %v\n", err)
+		}
+	} else {
+		pterm.Info.Println("Doctrine ORM is not installed, skipping database creation")
 	}
 
-	pterm.Info.Println("Running database migrations...")
-	if err := s.runSymfonyConsole(projectDir, "doctrine:migrations:migrate", "--no-interaction"); err != nil {
-		pterm.Warning.Printf("Migrations warning: %v\n", err)
+	if s.hasMigrations(projectDir) {
+		pterm.Info.Println("Running database migrations...")
+		if err := s.runSymfonyConsole(projectDir, "doctrine:migrations:migrate", "--no-interaction"); err != nil {
+			pterm.Warning.Printf("Migrations warning: %v\n", err)
+		}
+	} else {
+		pterm.Info.Println("Doctrine Migrations are not installed, skipping database migrations")
 	}
 
 	pterm.Success.Println("Symfony installation completed")
@@ -181,7 +189,9 @@ func (s *SymfonyBootstrap) PostClone(projectDir string) error {
 		}
 	}
 
-	_ = s.runSymfonyConsole(projectDir, "doctrine:database:create", "--if-not-exists")
+	if s.hasDoctrine(projectDir) {
+		_ = s.runSymfonyConsole(projectDir, "doctrine:database:create", "--if-not-exists")
+	}
 
 	dumpPath := filepath.Join(projectDir, "dump.sql")
 	if _, err := os.Stat(dumpPath); err == nil {
@@ -227,4 +237,32 @@ func (s *SymfonyBootstrap) runSymfonyConsole(projectDir string, args ...string) 
 	}
 
 	return runPHPProjectScript(projectDir, s.Options.Runner, consolePath, args...)
+}
+
+func (s *SymfonyBootstrap) hasDoctrine(projectDir string) bool {
+	composerPath := filepath.Join(projectDir, "composer.json")
+	data, err := os.ReadFile(composerPath)
+	if err != nil {
+		return false
+	}
+	content := string(data)
+	return strings.Contains(content, `"doctrine/`) || strings.Contains(content, `"symfony/orm-pack"`)
+}
+
+func (s *SymfonyBootstrap) hasMigrations(projectDir string) bool {
+	composerPath := filepath.Join(projectDir, "composer.json")
+	data, err := os.ReadFile(composerPath)
+	if err != nil {
+		return false
+	}
+	content := string(data)
+	return strings.Contains(content, `"doctrine/doctrine-migrations-bundle"`) || strings.Contains(content, `"doctrine/migrations"`)
+}
+
+func (s *SymfonyBootstrap) HasDoctrineForTest(projectDir string) bool {
+	return s.hasDoctrine(projectDir)
+}
+
+func (s *SymfonyBootstrap) HasMigrationsForTest(projectDir string) bool {
+	return s.hasMigrations(projectDir)
 }
