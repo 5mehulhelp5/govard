@@ -82,7 +82,7 @@ func (l *LaravelBootstrap) Install(projectDir string) error {
 		examplePath := filepath.Join(projectDir, ".env.example")
 		if _, err := os.Stat(examplePath); err == nil {
 			data, _ := os.ReadFile(examplePath)
-			_ = os.WriteFile(envPath, data, conventions.SecretFilePerm)
+			_ = os.WriteFile(envPath, data, conventions.DefaultFilePerm)
 		}
 	}
 
@@ -111,7 +111,7 @@ func (l *LaravelBootstrap) Install(projectDir string) error {
 		content = strings.ReplaceAll(content, "DB_DATABASE=laravel", "DB_DATABASE="+dbName)
 		content = strings.ReplaceAll(content, "DB_USERNAME=root", "DB_USERNAME="+dbUser)
 		content = strings.ReplaceAll(content, "DB_PASSWORD=", "DB_PASSWORD="+dbPass)
-		_ = os.WriteFile(envPath, []byte(content), conventions.SecretFilePerm)
+		_ = os.WriteFile(envPath, []byte(content), conventions.DefaultFilePerm)
 	}
 
 	if err := l.runArtisanCommand(projectDir, "key:generate"); err != nil {
@@ -126,6 +126,8 @@ func (l *LaravelBootstrap) Install(projectDir string) error {
 	if err := l.runArtisanCommand(projectDir, "migrate", "--force"); err != nil {
 		pterm.Warning.Printf("Migrations warning: %v\n", err)
 	}
+
+	l.ensureLaravelDirsWritable(projectDir)
 
 	pterm.Success.Println("Laravel installation completed")
 	return nil
@@ -146,7 +148,7 @@ func (l *LaravelBootstrap) Configure(projectDir string) error {
 			if !strings.Contains(updated, "DB_HOST="+dbHost) {
 				updated = strings.ReplaceAll(updated, "DB_HOST=127.0.0.1", "DB_HOST="+dbHost)
 				updated = strings.ReplaceAll(updated, "DB_HOST=localhost", "DB_HOST="+dbHost)
-				_ = os.WriteFile(envPath, []byte(updated), conventions.SecretFilePerm)
+				_ = os.WriteFile(envPath, []byte(updated), conventions.DefaultFilePerm)
 			}
 		}
 	}
@@ -173,7 +175,7 @@ func (l *LaravelBootstrap) PostClone(projectDir string) error {
 			content := string(data)
 			content = strings.ReplaceAll(content, "APP_ENV=production", "APP_ENV=local")
 			content = strings.ReplaceAll(content, "APP_DEBUG=false", "APP_DEBUG=true")
-			_ = os.WriteFile(envPath, []byte(content), conventions.SecretFilePerm)
+			_ = os.WriteFile(envPath, []byte(content), conventions.DefaultFilePerm)
 		}
 	}
 
@@ -186,7 +188,7 @@ func (l *LaravelBootstrap) PostClone(projectDir string) error {
 			content := string(data)
 			content = strings.ReplaceAll(content, "DB_HOST=127.0.0.1", "DB_HOST="+dbHost)
 			content = strings.ReplaceAll(content, "DB_HOST=localhost", "DB_HOST="+dbHost)
-			_ = os.WriteFile(envPath, []byte(content), conventions.SecretFilePerm)
+			_ = os.WriteFile(envPath, []byte(content), conventions.DefaultFilePerm)
 		}
 	}
 
@@ -195,6 +197,8 @@ func (l *LaravelBootstrap) PostClone(projectDir string) error {
 	}
 
 	_ = l.runArtisanCommand(projectDir, "migrate", "--force")
+
+	l.ensureLaravelDirsWritable(projectDir)
 
 	pterm.Success.Println("Post-clone setup completed")
 	return nil
@@ -248,4 +252,23 @@ func (l *LaravelBootstrap) runArtisanCommand(projectDir string, args ...string) 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+func (l *LaravelBootstrap) ensureLaravelDirsWritable(projectDir string) {
+	for _, dir := range []string{"storage", "bootstrap/cache", "database"} {
+		dirPath := filepath.Join(projectDir, dir)
+		if _, err := os.Stat(dirPath); err == nil {
+			_ = filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+				if err != nil {
+					return nil
+				}
+				if info.IsDir() {
+					_ = os.Chmod(path, conventions.PublicDirPerm)
+				} else {
+					_ = os.Chmod(path, conventions.PublicFilePerm)
+				}
+				return nil
+			})
+		}
+	}
 }

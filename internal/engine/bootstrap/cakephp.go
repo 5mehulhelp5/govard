@@ -71,7 +71,7 @@ return [
 ];
 `
 		_ = os.MkdirAll(filepath.Dir(appConfigPath), conventions.DefaultDirPerm)
-		if err := os.WriteFile(appConfigPath, []byte(content), conventions.SecretFilePerm); err != nil {
+		if err := os.WriteFile(appConfigPath, []byte(content), conventions.DefaultFilePerm); err != nil {
 			return fmt.Errorf("failed to create app_local.php: %w", err)
 		}
 		pterm.Success.Println("Created app_local.php")
@@ -96,7 +96,7 @@ func (c *CakePHPBootstrap) Configure(projectDir string) error {
 			if !strings.Contains(updated, "'host' => 'db'") {
 				updated = strings.ReplaceAll(updated, "'host' => 'localhost'", "'host' => 'db'")
 				updated = strings.ReplaceAll(updated, "'host' => '127.0.0.1'", "'host' => 'db'")
-				_ = os.WriteFile(appConfigPath, []byte(updated), conventions.SecretFilePerm)
+				_ = os.WriteFile(appConfigPath, []byte(updated), conventions.DefaultFilePerm)
 			}
 		}
 	}
@@ -120,7 +120,7 @@ func (c *CakePHPBootstrap) PostClone(projectDir string) error {
 			content := string(data)
 			content = strings.ReplaceAll(content, "'host' => 'localhost'", "'host' => 'db'")
 			content = strings.ReplaceAll(content, "'host' => '127.0.0.1'", "'host' => 'db'")
-			_ = os.WriteFile(appConfigPath, []byte(content), conventions.SecretFilePerm)
+			_ = os.WriteFile(appConfigPath, []byte(content), conventions.DefaultFilePerm)
 		}
 	}
 

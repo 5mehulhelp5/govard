@@ -89,7 +89,7 @@ func (d *DrupalBootstrap) Install(projectDir string) error {
 		defaultSettings := filepath.Join(sitePath, "default.settings.php")
 		if _, err := os.Stat(defaultSettings); err == nil {
 			data, _ := os.ReadFile(defaultSettings)
-			_ = os.WriteFile(settingsPath, data, conventions.SecretFilePerm)
+			_ = os.WriteFile(settingsPath, data, conventions.DefaultFilePerm)
 		}
 	}
 
@@ -130,7 +130,7 @@ func (d *DrupalBootstrap) Configure(projectDir string) error {
 			if !strings.Contains(updated, "'host' => 'db'") {
 				updated = strings.ReplaceAll(updated, "'host' => 'localhost'", "'host' => 'db'")
 				updated = strings.ReplaceAll(updated, "'host' => '127.0.0.1'", "'host' => 'db'")
-				_ = os.WriteFile(settingsPath, []byte(updated), conventions.SecretFilePerm)
+				_ = os.WriteFile(settingsPath, []byte(updated), conventions.DefaultFilePerm)
 			}
 		}
 	}
@@ -157,7 +157,7 @@ func (d *DrupalBootstrap) PostClone(projectDir string) error {
 		defaultSettings := filepath.Join(sitePath, "default.settings.php")
 		if _, err := os.Stat(defaultSettings); err == nil {
 			data, _ := os.ReadFile(defaultSettings)
-			_ = os.WriteFile(settingsPath, data, conventions.SecretFilePerm)
+			_ = os.WriteFile(settingsPath, data, conventions.DefaultFilePerm)
 		}
 	}
 
@@ -166,7 +166,7 @@ func (d *DrupalBootstrap) PostClone(projectDir string) error {
 			content := string(data)
 			content = strings.ReplaceAll(content, "'host' => 'localhost'", "'host' => 'db'")
 			content = strings.ReplaceAll(content, "'host' => '127.0.0.1'", "'host' => 'db'")
-			_ = os.WriteFile(settingsPath, []byte(content), conventions.SecretFilePerm)
+			_ = os.WriteFile(settingsPath, []byte(content), conventions.DefaultFilePerm)
 		}
 	}
 

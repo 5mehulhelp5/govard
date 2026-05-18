@@ -173,7 +173,7 @@ func (o *OpenMageBootstrap) createLocalXml(projectDir string) error {
 	}
 
 	localXmlPath := filepath.Join(etcPath, "local.xml")
-	if err := os.WriteFile(localXmlPath, []byte(localXmlContent), conventions.SecretFilePerm); err != nil {
+	if err := os.WriteFile(localXmlPath, []byte(localXmlContent), conventions.DefaultFilePerm); err != nil {
 		return fmt.Errorf("failed to write local.xml: %w", err)
 	}
 
