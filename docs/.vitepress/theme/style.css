@@ -74,10 +74,22 @@
 }
 
 /* ---- Navigation bar ---- */
+/* Use ::before pseudo-element for backdrop-filter so it doesn't create
+   a new containing block for VPNavScreen (position: fixed child).
+   backdrop-filter on the element itself breaks fixed positioning on mobile. */
 .VPNav {
+  border-bottom: 1px solid var(--gov-border) !important;
+  position: relative;
+}
+
+.VPNav::before {
+  content: '';
+  position: absolute;
+  inset: 0;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--gov-border) !important;
+  z-index: -1;
+  pointer-events: none;
 }
 
 .dark .VPNav {
