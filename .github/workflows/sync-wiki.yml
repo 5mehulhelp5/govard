@@ -5,7 +5,11 @@ on:
     branches:
       - master
     paths:
-      - 'wiki/**'
+      - 'docs/**'
+      - '!.gitignore'
+      - '!.vitepress/**'
+      - '!node_modules/**'
+      - '!vi/**'
 
 jobs:
   sync-wiki:
@@ -17,18 +21,98 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Push wiki files to GitHub Wiki
+      - name: Push docs to GitHub Wiki
+        env:
+          WIKI_REPO: "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git"
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
           # Clone wiki repo
-          git clone "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git" /tmp/wiki
+          git clone "$WIKI_REPO" /tmp/wiki
 
-          # Sync: copy all wiki/*.md into wiki repo root
-          cp wiki/*.md /tmp/wiki/
+          # Clear existing wiki content (except .git)
+          find /tmp/wiki -mindepth 1 -not -path '/tmp/wiki/.git*' -delete
+
+          # Flatten docs/ subdirectories into wiki root
+          find docs -name '*.md' -not -path 'docs/vi/*' | while read src; do
+            basename=$(basename "$src")
+            if [ "$basename" = "index.md" ]; then
+              if [ "$(dirname "$src")" = "docs" ]; then
+                cp "$src" /tmp/wiki/Home.md
+              fi
+              continue
+            fi
+
+            # Convert kebab-case filename to Wiki-Case
+            wiki_name=$(echo "$basename" | sed 's/\.md$//' | sed 's/-\([a-z]\)/\u\1/g' | sed 's/^\([a-z]\)/\u\1/').md
+            cp "$src" "/tmp/wiki/$wiki_name"
+          done
+
+          # Generate _Sidebar.md
+          cat > /tmp/wiki/_Sidebar.md << 'SIDEBAR'
+          ## 📚 Govard Wiki
+
+          **[🏠 Home](Home)**
+
+          ---
+
+          ### 🚀 Getting Started
+          - [Installation](Installation)
+          - [Getting Started](Getting-Started)
+          - [Migration Guide](Migration)
+
+          ---
+
+          ### 📖 Reference
+          - [CLI Commands](CLI-Commands)
+          - [Configuration](Configuration)
+          - [Frameworks](Frameworks)
+
+          ---
+
+          ### 🔗 Workflows
+          - [Remotes and Sync](Remotes-and-Sync)
+          - [SSL and Domains](SSL-and-Domains)
+          - [Desktop App](Desktop-App)
+
+          ---
+
+          ### 🏗️ Developer
+          - [Architecture](Architecture)
+          - [Contributing](Contributing)
+
+          ---
+
+          ### ℹ️ More
+          - [FAQ & Troubleshooting](FAQ)
+          - [Changelog](Changelog)
+          SIDEBAR
+
+          # Generate _Footer.md
+          cat > /tmp/wiki/_Footer.md << 'FOOTER'
+          ---
+
+          **Govard** — Go-based Versatile Runtime & Development
+          [GitHub](https://github.com/ddtcorex/govard) · [Releases](https://github.com/ddtcorex/govard/releases) · [Issues](https://github.com/ddtcorex/govard/issues) · [MIT License](https://github.com/ddtcorex/govard/blob/master/LICENSE)
+          FOOTER
 
           cd /tmp/wiki
+
+          # Convert VitePress links back to wiki links
+          sed -i 's|/getting-started/installation|Installation|g' *.md
+          sed -i 's|/getting-started/getting-started|Getting-Started|g' *.md
+          sed -i 's|/getting-started/migration|Migration|g' *.md
+          sed -i 's|/reference/cli-commands|CLI-Commands|g' *.md
+          sed -i 's|/reference/configuration|Configuration|g' *.md
+          sed -i 's|/reference/frameworks|Frameworks|g' *.md
+          sed -i 's|/workflows/remotes-and-sync|Remotes-and-Sync|g' *.md
+          sed -i 's|/workflows/ssl-and-domains|SSL-and-Domains|g' *.md
+          sed -i 's|/workflows/desktop-app|Desktop-App|g' *.md
+          sed -i 's|/developer/architecture|Architecture|g' *.md
+          sed -i 's|/developer/contributing|Contributing|g' *.md
+          sed -i 's|/more/faq|FAQ|g' *.md
+          sed -i 's|/more/changelog|Changelog|g' *.md
 
           # Only commit if there are changes
           if git diff --quiet && git diff --cached --quiet; then
@@ -37,5 +121,5 @@ jobs:
           fi
 
           git add -A
-          git commit -m "docs: sync wiki from main repo [skip ci]"
+          git commit -m "docs: sync wiki from docs/ [skip ci]"
           git push

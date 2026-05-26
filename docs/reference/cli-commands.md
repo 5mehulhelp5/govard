@@ -1,3 +1,7 @@
+---
+title: CLI Commands
+---
+
 # CLI Commands
 
 This is the canonical CLI reference for Govard.
@@ -156,7 +160,7 @@ govard svc sleep
 govard svc wake
 ```
 
-> **Portainer** is accessible at `https://portainer.govard.test`  
+> **Portainer** is accessible at `https://portainer.govard.test`
 > Default login: `admin` / `AdminGovard123$`
 
 ### `govard domain`
@@ -187,7 +191,7 @@ govard desktop --dev
 govard desktop --background
 ```
 
-See [Desktop App](Desktop-App) for details.
+See [Desktop App](/workflows/desktop-app) for details.
 
 ---
 
@@ -251,8 +255,9 @@ govard project delete demo
 govard project delete --yes demo
 ```
 
-> [!CAUTION]
-> `govard project delete` removes persistent database volumes by default. Project source code is **never** deleted.
+::: warning CAUTION
+`govard project delete` removes persistent database volumes by default. Project source code is **never** deleted.
+:::
 
 **Deletion process:**
 1. Runs `pre-delete` lifecycle hooks
@@ -289,7 +294,7 @@ Key features:
 - Production write protection by default
 - Audit logs: `~/.govard/remote.log`
 
-→ Full guide: [Remotes and Sync](Remotes-and-Sync)
+→ Full guide: [Remotes and Sync](/workflows/remotes-and-sync)
 
 ### `govard sync`
 
@@ -381,9 +386,10 @@ govard tunnel status
 govard tunnel stop
 ```
 
-> [!IMPORTANT]
-> The `cloudflared` binary must be installed separately.  
-> Install via the [official Cloudflare repository](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/install-run/install-threads/) or [GitHub releases](https://github.com/cloudflare/cloudflared/releases).
+::: important IMPORTANT
+The `cloudflared` binary must be installed separately.
+Install via the [official Cloudflare repository](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/install-run/install-threads/) or [GitHub releases](https://github.com/cloudflare/cloudflared/releases).
+:::
 
 ---
 
@@ -545,4 +551,4 @@ All commands support:
 
 ---
 
-**[← Getting Started](Getting-Started)** | **[Configuration →](Configuration)**
+[← Getting Started](/getting-started/getting-started) | [Configuration →](/reference/configuration)

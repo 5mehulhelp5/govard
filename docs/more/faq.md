@@ -1,10 +1,14 @@
+---
+title: FAQ & Troubleshooting
+---
+
 # FAQ & Troubleshooting
 
 Common questions, issues, and solutions for Govard.
 
 ---
 
-## 🛠️ Installation Issues
+## Installation Issues
 
 ### Q: The installer fails with a permission error
 
@@ -39,7 +43,7 @@ Or reinstall to a user-local path with `--local`.
 
 ---
 
-## 🐳 Docker Issues
+## Docker Issues
 
 ### Q: `govard env up` fails pulling images
 
@@ -72,7 +76,7 @@ Update `project_name` or `domain` in `.govard.yml` to a unique value.
 
 ---
 
-## 🔒 SSL / HTTPS Issues
+## SSL / HTTPS Issues
 
 ### Q: Browser shows "Your connection is not private"
 
@@ -115,7 +119,7 @@ This exports the Govard Root CA to `~/.govard/ssl/root.crt`, then recreates the 
 
 ---
 
-## 🌐 DNS Issues
+## DNS Issues
 
 ### Q: `myproject.test` doesn't resolve
 
@@ -142,7 +146,7 @@ govard env up        # Restart if needed
 
 ---
 
-## ⚙️ Configuration Issues
+## Configuration Issues
 
 ### Q: My configuration changes are not taking effect
 
@@ -173,7 +177,7 @@ This is correct behavior — skipping optional fixes is reported as `INFO (Skipp
 
 ---
 
-## 🔗 Remote / Sync Issues
+## Remote / Sync Issues
 
 ### Q: `govard remote test` fails with "auth" failure
 
@@ -212,7 +216,7 @@ govard remote add staging --host host.example.com --user deploy --path '~/public
 
 ---
 
-## 💾 Database Issues
+## Database Issues
 
 ### Q: `db import` fails with "table doesn't exist" errors
 
@@ -242,7 +246,7 @@ Then visit `govard open db`.
 
 ---
 
-## 🐛 Xdebug Issues
+## Xdebug Issues
 
 ### Q: Xdebug is not connecting to my IDE
 
@@ -256,7 +260,7 @@ Set a specific Xdebug session name and only trigger it via the cookie/browser ex
 
 ---
 
-## 🖥️ Desktop Issues
+## Desktop Issues
 
 ### Q: Desktop app crashes on Ubuntu 24.04 startup
 
@@ -278,7 +282,7 @@ DISPLAY=:1 govard desktop --dev
 
 ---
 
-## 🔄 Update Issues
+## Update Issues
 
 ### Q: `govard self-update` skips dependency checks in CI
 
@@ -290,7 +294,7 @@ The desktop binary is also updated by `self-update`. If the old version persists
 
 ---
 
-## 📋 General Tips
+## General Tips
 
 ### Check system health
 
@@ -326,4 +330,4 @@ govard config auto      # Re-inject app configuration (Magento 2)
 
 ---
 
-**[← Contributing](Contributing)** | **[Changelog →](Changelog)**
+[Contributing](/developer/contributing) | [Changelog](/more/changelog)

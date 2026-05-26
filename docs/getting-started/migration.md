@@ -34,9 +34,9 @@ rm -rf var/cache/* var/page_cache/* generated/code/*
 
 ### Step 3: Run the Automated Govard Migration
 
-Run the `govard init` command with the `--migrate-from warden` flag. 
+Run the `govard init` command with the `--migrate-from warden` flag.
 
-Govard will parse your `.env` (Warden's variables) and `.warden/warden-env.yml` settings to automatically suggest the best runtime profile. 
+Govard will parse your `.env` (Warden's variables) and `.warden/warden-env.yml` settings to automatically suggest the best runtime profile.
 For Magento 2, Magento 1, and OpenMage projects, Govard also migrates Warden's `WARDEN_TABLE_PREFIX` value into `.govard.yml` as `table_prefix`.
 
 ```bash
@@ -115,4 +115,4 @@ govard db clone-volume ddev-myproject-db
 
 ---
 
-**[← Getting Started](Getting-Started)** | **[Remotes and Sync →](Remotes-and-Sync)**
+**[← Getting Started](/getting-started/getting-started)** | **[Remotes and Sync →](/workflows/remotes-and-sync)**

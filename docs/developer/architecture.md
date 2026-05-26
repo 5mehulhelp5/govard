@@ -1,3 +1,7 @@
+---
+title: Architecture
+---
+
 # Architecture
 
 This document describes the current system shape of Govard at a high level.
@@ -85,7 +89,7 @@ Key design points:
 - Runtime defaults are framework-aware and optionally version-aware
 - Remote definitions, hooks, and project extensions live in `.govard/*`
 
-See [Configuration](Configuration) for the complete contract.
+See [Configuration](/reference/configuration) for the complete contract.
 
 ---
 
@@ -173,4 +177,4 @@ Desktop operations call the CLI command surface directly (e.g., `govard up`, `go
 
 ---
 
-**[← Desktop App](Desktop-App)** | **[Contributing →](Contributing)**
+[Desktop App](/workflows/desktop-app) | [Contributing](/developer/contributing)

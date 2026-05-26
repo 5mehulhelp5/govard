@@ -1,3 +1,7 @@
+---
+title: Desktop App
+---
+
 # Desktop App
 
 Govard Desktop is the Wails-based GUI that reuses the same core engine as the CLI.
@@ -133,8 +137,8 @@ The desktop app is intentionally focused on operational workflows:
 - State: `desktop/frontend/state/store.js`
 - Feature modules: `desktop/frontend/modules/`
 
-For deeper architecture context, see [Architecture](Architecture).
+For deeper architecture context, see [Architecture](/developer/architecture).
 
 ---
 
-**[← SSL and Domains](SSL-and-Domains)** | **[Architecture →](Architecture)**
+[SSL and Domains](/workflows/ssl-and-domains) | [Architecture](/developer/architecture)

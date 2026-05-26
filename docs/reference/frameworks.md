@@ -1,3 +1,7 @@
+---
+title: Frameworks
+---
+
 # Frameworks
 
 Govard detects supported frameworks and applies runtime defaults plus version-aware overrides.
@@ -113,11 +117,13 @@ Govard supports the standard Magento 2 Grunt-based LiveReload workflow.
     ```
 5.  **Browser Setup**: Simply install the [LiveReload Browser Extension](http://livereload.com/extensions/) or rely on the automated script injection above.
 
-> [!TIP]
-> Manual injection via `default.xml` is no longer needed. Everything is handled by Govard's auto-configuration engine via `env.php`.
+::: tip TIP
+Manual injection via `default.xml` is no longer needed. Everything is handled by Govard's auto-configuration engine via `env.php`.
+:::
 
-> [!NOTE]
-> Since port `35729` is mapped directly to your host, you can only run `livereload: true` for one project at a time. If you have multiple projects, ensure only the active one has this feature enabled.
+::: info NOTE
+Since port `35729` is mapped directly to your host, you can only run `livereload: true` for one project at a time. If you have multiple projects, ensure only the active one has this feature enabled.
+:::
 
 ### Native Upgrade Pipeline
 
@@ -352,4 +358,4 @@ Interactive picker for:
 
 ---
 
-**[← Configuration](Configuration)** | **[Remotes and Sync →](Remotes-and-Sync)**
+[← Configuration](/reference/configuration) | [Remotes and Sync →](/workflows/remotes-and-sync)

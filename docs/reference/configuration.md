@@ -1,3 +1,7 @@
+---
+title: Configuration
+---
+
 # Configuration
 
 Govard uses layered project configuration plus framework blueprints.
@@ -119,8 +123,9 @@ linked_projects:
 | `table_prefix` | Magento 2, Magento 1, or OpenMage database table prefix; omit or leave empty for unprefixed schemas |
 | `linked_projects` | List of dependencies (project names or IP:domain) for cross-project connectivity |
 
-> [!IMPORTANT]
-> `project_name` and `domain` must be **unique** across all tracked Govard projects. Govard blocks `init` and `env up` when another project uses the same identity.
+::: important IMPORTANT
+`project_name` and `domain` must be **unique** across all tracked Govard projects. Govard blocks `init` and `env up` when another project uses the same identity.
+:::
 
 #### `store_domains` — Scalar Form (Legacy)
 
@@ -231,8 +236,9 @@ remotes:
       method: ssh-agent
 ```
 
-> [!NOTE]
-> Only remotes whose name normalizes to `prod` (`prod`, `production`, `live`) are **automatically** write-protected. All other remotes — including custom names — default to unprotected. Use `protected: true` to opt in.
+::: info NOTE
+Only remotes whose name normalizes to `prod` (`prod`, `production`, `live`) are **automatically** write-protected. All other remotes — including custom names — default to unprotected. Use `protected: true` to opt in.
+:::
 
 Key subfields:
 
@@ -247,7 +253,7 @@ Key subfields:
 
 Remote fields support `op://...` references resolved through the 1Password CLI.
 
-→ Full guide: [Remotes and Sync](Remotes-and-Sync)
+→ Full guide: [Remotes and Sync](/workflows/remotes-and-sync)
 
 ---
 
@@ -266,10 +272,11 @@ Remote fields support `op://...` references resolved through the 1Password CLI.
 - `pre-deploy` / `post-deploy`
 - `pre-delete` / `post-delete`
 
-> [!TIP]
-> Govard fingerprints `.govard/docker-compose.override.yml`. If it changes, the next `env up` auto-re-renders the compose output.
->
-> When overriding services, prefer additive merges (extra environment variables, labels, ports). Replacing full lists like `services.web.volumes` can discard required Govard-managed mounts.
+::: tip TIP
+Govard fingerprints `.govard/docker-compose.override.yml`. If it changes, the next `env up` auto-re-renders the compose output.
+
+When overriding services, prefer additive merges (extra environment variables, labels, ports). Replacing full lists like `services.web.volumes` can discard required Govard-managed mounts.
+:::
 
 ---
 
@@ -319,4 +326,4 @@ linked_projects:
 
 ---
 
-**[← CLI Commands](CLI-Commands)** | **[Frameworks →](Frameworks)**
+[← CLI Commands](/reference/cli-commands) | [Frameworks →](/reference/frameworks)

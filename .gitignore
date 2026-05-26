@@ -56,3 +56,4 @@
 # Extra
 .planning/
 .worktrees/
+.playwright-mcp/

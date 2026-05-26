@@ -2,8 +2,9 @@
 
 This page covers all methods to install Govard on Linux and macOS.
 
-> [!IMPORTANT]
-> Do not mix install channels on the same machine (e.g., `.deb` + `make install` + `self-update` across different paths). Use **one channel only** to avoid conflicting binaries in `/usr/bin` and `/usr/local/bin`.
+::: warning IMPORTANT
+Do not mix install channels on the same machine (e.g., `.deb` + `make install` + `self-update` across different paths). Use **one channel only** to avoid conflicting binaries in `/usr/bin` and `/usr/local/bin`.
+:::
 
 ---
 
@@ -147,4 +148,4 @@ govard doctor
 
 ---
 
-**[← Home](Home)** | **[Getting Started →](Getting-Started)**
+**[← Home](/)** | **[Getting Started →](/getting-started/getting-started)**

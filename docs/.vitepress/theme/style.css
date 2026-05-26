@@ -1,0 +1,345 @@
+/* ======================================================
+   Govard Docs — Custom Theme
+   Matches Govard Desktop app branding:
+   Emerald/forest-green palette, Inter font, Fira Code
+   ====================================================== */
+
+/* --- Fonts ------------------------------------------------ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Fira+Code:wght@400;500;600&display=swap');
+
+:root {
+  /* Brand colors — emerald green (from Desktop .dark) */
+  --gov-primary:         #10b981;
+  --gov-primary-rgb:    16, 185, 129;
+  --gov-primary-hover:  #059669;
+  --gov-primary-dark:   #0df259;
+  --gov-primary-dark-rgb: 13, 242, 89;
+
+  /* Dark background (Desktop dark mode bg) */
+  --gov-bg:              #0c1810;
+  --gov-bg-secondary:     #102316;
+  --gov-bg-tertiary:     #13261a;
+  --gov-bg-accent:       rgba(13, 242, 89, 0.03);
+
+  /* Text */
+  --gov-text-primary:    #f8fafc;
+  --gov-text-secondary:  #94a3b8;
+  --gov-text-tertiary:   #5d856b;
+
+  /* Borders */
+  --gov-border:          #1a3322;
+  --gov-border-accent:   rgba(13, 242, 89, 0.15);
+
+  /* Surface */
+  --gov-surface:         #112618;
+  --gov-surface-2:       #0c1810;
+}
+
+/* VitePress brand overrides */
+:root {
+  --vp-c-brand-1: #10b981;
+  --vp-c-brand-2: #059669;
+  --vp-c-brand-3: #047857;
+  --vp-c-brand-soft: rgba(16, 185, 129, 0.14);
+
+  /* Font */
+  --vp-font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
+  --vp-font-family-mono: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+}
+
+/* Dark mode — match Govard Desktop dark theme */
+.dark {
+  --vp-c-brand-1: #0df259;
+  --vp-c-brand-2: #0bc448;
+  --vp-c-brand-3: #09b53c;
+  --vp-c-brand-soft: rgba(13, 242, 89, 0.14);
+
+  /* Dark background */
+  --vp-c-bg:        #0c1810;
+  --vp-c-bg-soft:   #102316;
+  --vp-c-bg-mute:   #13261a;
+  --vp-c-bg-elv:    #112618;
+
+  /* Text */
+  --vp-c-text-1: #f8fafc;
+  --vp-c-text-2: #94a3b8;
+  --vp-c-text-3: #5d856b;
+
+  /* Borders */
+  --vp-c-border:  #1a3322;
+  --vp-c-divider: #1a3322;
+
+  /* Navigation */
+  --vp-c-nav-bg: rgba(12, 24, 16, 0.90);
+}
+
+/* ---- Navigation bar ---- */
+.VPNav {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--gov-border) !important;
+}
+
+.dark .VPNav {
+  background: rgba(12, 24, 16, 0.90) !important;
+}
+
+/* ---- Sidebar ---- */
+.dark .VPSidebar {
+  background: var(--vp-c-bg-soft) !important;
+  border-right-color: var(--vp-c-border) !important;
+}
+
+.dark .VPSidebarItem.is-active > .item > .text {
+  color: var(--gov-primary-dark) !important;
+}
+
+.dark .VPSidebarItem .item:hover .text {
+  color: #0df259 !important;
+  background: rgba(13, 242, 89, 0.05) !important;
+}
+
+/* ---- Code blocks ---- */
+.dark .vp-code-group .tabs {
+  background: #0c1810 !important;
+  border-bottom-color: var(--vp-c-border) !important;
+}
+
+.dark .vp-code-group .tab {
+  color: var(--gov-text-secondary) !important;
+}
+
+.dark .vp-code-group .tab.active {
+  color: var(--gov-primary-dark) !important;
+  border-bottom-color: var(--gov-primary-dark) !important;
+}
+
+.dark code {
+  background: rgba(16, 185, 129, 0.08) !important;
+  border: 1px solid rgba(16, 185, 129, 0.15) !important;
+  color: #10b981 !important;
+  border-radius: 4px !important;
+  font-family: var(--vp-font-family-mono) !important;
+  font-size: 0.875em !important;
+}
+
+.dark :not(pre) > code {
+  background: rgba(16, 185, 129, 0.08) !important;
+}
+
+.dark pre code {
+  background: transparent !important;
+  border: none !important;
+  color: inherit !important;
+  font-family: var(--vp-font-family-mono) !important;
+}
+
+.dark pre {
+  background: #0a1410 !important;
+  border: 1px solid #1a3322 !important;
+  box-shadow: 0 0 0 1px rgba(13, 242, 89, 0.08) !important;
+}
+
+/* ---- Buttons ---- */
+.dark .VPNavBarTitle .title {
+  color: var(--gov-primary-dark) !important;
+  font-weight: 700 !important;
+}
+
+.dark .VPNavBarMenu .VPNavBarMenuLink:hover,
+.dark .VPNavBarMenu .VPNavBarMenuLink.active {
+  color: var(--gov-primary-dark) !important;
+}
+
+/* Brand buttons */
+.dark .VPButton.brand {
+  background-color: #0df259 !important;
+  color: #0c1810 !important;
+  font-weight: 600 !important;
+  border: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.dark .VPButton.brand:hover {
+  background-color: #0bc448 !important;
+  box-shadow: 0 0 16px rgba(13, 242, 89, 0.35) !important;
+}
+
+.dark .VPButton.alt {
+  background-color: transparent !important;
+  border-color: #1a3322 !important;
+  color: var(--gov-primary-dark) !important;
+  transition: all 0.2s ease !important;
+}
+
+.dark .VPButton.alt:hover {
+  border-color: rgba(13, 242, 89, 0.5) !important;
+  background: rgba(13, 242, 89, 0.05) !important;
+}
+
+/* ---- Links ---- */
+.dark a {
+  color: var(--gov-primary) !important;
+  transition: color 0.15s ease !important;
+}
+
+.dark a:hover {
+  color: #0df259 !important;
+}
+
+/* ---- Hero section ---- */
+.dark .VPHero .name {
+  background: linear-gradient(135deg, #0df259 0%, #10b981 50%, #059669 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+.dark .VPHero .tagline {
+  color: var(--gov-text-secondary) !important;
+}
+
+.dark .VPHero .action .VPButton {
+  box-shadow: 0 0 20px rgba(13, 242, 89, 0.15) !important;
+}
+
+.dark .VPHero .action .VPButton:first-child {
+  box-shadow: 0 0 24px rgba(13, 242, 89, 0.3) !important;
+}
+
+/* ---- Features ---- */
+.dark .VPFeature {
+  background: var(--vp-c-bg-soft) !important;
+  border: 1px solid var(--vp-c-border) !important;
+  transition: all 0.2s ease !important;
+}
+
+.dark .VPFeature:hover {
+  border-color: rgba(13, 242, 89, 0.3) !important;
+  box-shadow: 0 0 20px rgba(13, 242, 89, 0.08) !important;
+  transform: translateY(-2px) !important;
+}
+
+.dark .VPFeature .title {
+  color: var(--gov-primary-dark) !important;
+}
+
+.dark .VPFeature .details {
+  color: var(--gov-text-secondary) !important;
+}
+
+/* ---- Local search ---- */
+.dark .VPLocalSearchBox {
+  background: rgba(12, 24, 16, 0.95) !important;
+  backdrop-filter: blur(24px) !important;
+}
+
+.dark .VPLocalSearchBox .search-input {
+  background: var(--vp-c-bg-elv) !important;
+  border-color: var(--vp-c-border) !important;
+  color: var(--vp-c-text-1) !important;
+  font-family: var(--vp-font-family-base) !important;
+}
+
+.dark .VPLocalSearchBox .search-input::placeholder {
+  color: var(--gov-text-tertiary) !important;
+}
+
+/* ---- Tables ---- */
+.dark table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+}
+
+.dark th {
+  background: var(--vp-c-bg-mute) !important;
+  border-color: var(--vp-c-border) !important;
+  color: var(--gov-text-secondary) !important;
+}
+
+.dark td {
+  border-color: var(--vp-c-border) !important;
+}
+
+.dark tr:hover {
+  background: rgba(16, 185, 129, 0.04) !important;
+}
+
+/* ---- Blockquotes ---- */
+.dark blockquote {
+  border-left: 3px solid var(--gov-primary) !important;
+  background: rgba(16, 185, 129, 0.05) !important;
+  padding: 12px 20px !important;
+  border-radius: 0 8px 8px 0 !important;
+}
+
+.dark blockquote p {
+  color: var(--gov-text-secondary) !important;
+}
+
+/* ---- Custom containers (tip/warning/danger) ---- */
+.dark .custom-block {
+  border-radius: 8px !important;
+}
+
+.dark .custom-block.tip {
+  background: rgba(16, 185, 129, 0.08) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+.dark .custom-block.tip .custom-block-title {
+  color: #0df259 !important;
+}
+
+/* ---- Scrollbar ---- */
+.dark ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.dark ::-webkit-scrollbar-track {
+  background: var(--vp-c-bg) !important;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #1a3322 !important;
+  border-radius: 3px !important;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(13, 242, 89, 0.4) !important;
+}
+
+/* ---- Footer ---- */
+.dark .VPFooter {
+  background: var(--vp-c-bg-soft) !important;
+  border-top-color: var(--vp-c-border) !important;
+}
+
+/* ---- Outline (table of contents) ---- */
+.dark .VPDocOutlineItem a:hover,
+.dark .VPDocOutlineItem a.active {
+  color: var(--gov-primary-dark) !important;
+  border-left-color: var(--gov-primary-dark) !important;
+}
+
+/* ---- Badge ---- */
+.dark .VPBadge.danger {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  color: #f87171 !important;
+}
+
+.dark .VPBadge.tip {
+  background: rgba(13, 242, 89, 0.12) !important;
+  border: 1px solid rgba(13, 242, 89, 0.25) !important;
+  color: #0df259 !important;
+}
+
+/* ---- Smooth scroll ---- */
+* {
+  scroll-behavior: smooth;
+}
+
+/* ---- Selection ---- */
+.dark ::selection {
+  background: rgba(13, 242, 89, 0.2) !important;
+  color: #0df259 !important;
+}

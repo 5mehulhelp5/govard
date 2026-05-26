@@ -1,3 +1,7 @@
+---
+title: Remotes and Sync
+---
+
 # Remotes and Sync
 
 This is the canonical guide for Govard remote environments, sync operations, and remote-backed database workflows.
@@ -27,11 +31,12 @@ govard remote add staging --host staging.example.com --user deploy --path /var/w
 | `--known-hosts-file` | Custom known_hosts file |
 | `--protected` | Write-protect this remote |
 
-> [!TIP]
-> To use the remote user's home directory, quote the path so the local shell does not expand it:
-> ```bash
-> govard remote add staging --host staging.example.com --user deploy --path '~/public_html'
-> ```
+::: tip TIP
+To use the remote user's home directory, quote the path so the local shell does not expand it:
+```bash
+govard remote add staging --host staging.example.com --user deploy --path '~/public_html'
+```
+:::
 
 ### Validate Connectivity
 
@@ -120,8 +125,9 @@ Bare `--media` defaults to the `optimized` media mode.
 | `--no-noise` | Ephemeral data | `cron_schedule`, `session`, `cache_tag`, `report_event` | `cache`, `sessions`, `failed_jobs` | `redirection_404`, `wflogs` |
 | `--no-pii` | Sensitive data | `customer_entity`, `sales_order`, `quote`, `admin_user` | `users`, `password_resets` | `users`, `usermeta`, `comments` |
 
-> [!NOTE]
-> Database filters are optimized for Magento 2. For other frameworks, safe default patterns are used when available.
+::: info NOTE
+Database filters are optimized for Magento 2. For other frameworks, safe default patterns are used when available.
+:::
 
 ---
 
@@ -138,7 +144,7 @@ govard sync -s staging --file --no-resume  # disable resumable
 
 ### Include and Exclude Filters
 
-`--include` and `--exclude` (or `-I` and `-X`) apply only to `-f, --file` and `-m, --media` scopes — they are ignored for DB-only sync. 
+`--include` and `--exclude` (or `-I` and `-X`) apply only to `-f, --file` and `-m, --media` scopes — they are ignored for DB-only sync.
 
 In `govard bootstrap`, `--exclude` acts as a global ignore list for both the source code clone and the subsequent media sync.
 
@@ -153,15 +159,17 @@ Govard implements automated filtering for Magento media sync to optimize bandwid
 | **Optimized** | Default mode | `catalog/product/` (Magento), `*/cache/*` (WordPress) |
 | **All** | `--media all` | Truly all (includes everything, use with caution) |
 
-> [!NOTE]
-> All modes except **All** automatically exclude framework noise like `tmp/`, `cache/`, and `logs/`.
+::: info NOTE
+All modes except **All** automatically exclude framework noise like `tmp/`, `cache/`, and `logs/`.
+:::
 
 To download everything, use `--media all`. To sync only CSS/JS/Fonts, use `--media minimal`.
 
 ### Protected Destinations
 
-> [!WARNING]
-> `--delete` combined with `--db` surfaces policy warnings. Production remotes are write-protected by default and will block destructive writes.
+::: warning WARNING
+`--delete` combined with `--db` surfaces policy warnings. Production remotes are write-protected by default and will block destructive writes.
+:::
 
 ### Integration with `bootstrap`
 
@@ -389,4 +397,4 @@ govard sync -s staging --media minimal
 
 ---
 
-**[← Frameworks](Frameworks)** | **[SSL and Domains →](SSL-and-Domains)**
+[Framework Reference](/reference/frameworks) | [SSL and Domains](/workflows/ssl-and-domains)

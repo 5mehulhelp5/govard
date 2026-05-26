@@ -1,26 +1,30 @@
+---
+title: Changelog
+---
+
 # Changelog
 
 Govard follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and keeps a detailed changelog in the repository.
 
 ---
 
-## 📋 Full Changelog
+## Full Changelog
 
 The complete release history is maintained in the repository:
 
-**→ [CHANGELOG.md on GitHub](https://github.com/ddtcorex/govard/blob/master/CHANGELOG.md)**
+**[CHANGELOG.md on GitHub](https://github.com/ddtcorex/govard/blob/master/CHANGELOG.md)**
 
 ---
 
-## 🏷️ Latest Releases
+## Latest Releases
 
 For the latest releases, release notes, and download links, visit the:
 
-**→ [GitHub Releases Page](https://github.com/ddtcorex/govard/releases)**
+**[GitHub Releases Page](https://github.com/ddtcorex/govard/releases)**
 
 ---
 
-## 📦 Release Artifacts
+## Release Artifacts
 
 Each tagged release (`vX.Y.Z`) publishes:
 
@@ -36,7 +40,7 @@ Each tagged release (`vX.Y.Z`) publishes:
 
 ---
 
-## 🔄 Stay Up to Date
+## Stay Up to Date
 
 ```bash
 # Check current version
@@ -50,4 +54,4 @@ govard self-update
 
 ---
 
-**[← FAQ](FAQ)** | **[Home →](Home)**
+[FAQ](/more/faq) | [Getting Started](/getting-started/getting-started)

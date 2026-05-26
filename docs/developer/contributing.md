@@ -1,3 +1,7 @@
+---
+title: Contributing
+---
+
 # Contributing
 
 This guide covers the expected workflow for contributors working on Govard.
@@ -239,4 +243,4 @@ Update canonical `docs/*.md` when changes affect:
 
 ---
 
-**[← Architecture](Architecture)** | **[FAQ →](FAQ)**
+[Architecture](/developer/architecture) | [FAQ](/more/faq)

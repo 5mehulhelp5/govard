@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Govard Desktop Icon</title>
+  <desc id="desc">Rounded square icon with a stylized G and terminal prompt motif.</desc>
+  <defs>
+    <linearGradient id="bg" x1="24" y1="20" x2="232" y2="236" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0f2a1b"/>
+      <stop offset="1" stop-color="#09180f"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="64" y1="58" x2="206" y2="196" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2dff8b"/>
+      <stop offset="1" stop-color="#0ddf62"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Removed transform and padding to maximize visual weight on Ubuntu launchers -->
+  <rect x="0" y="0" width="256" height="256" rx="52" fill="url(#bg)"/>
+  <rect x="6" y="6" width="244" height="244" rx="46" fill="none" stroke="#2dff8b" stroke-opacity="0.22" stroke-width="4"/>
+
+  <g transform="translate(128, 128)">
+    <path d="M77,-36 A85,85 0 1 0 85,0 H0"
+          fill="none" stroke="url(#accent)" stroke-linecap="round" stroke-linejoin="round" stroke-width="24"/>
+  </g>
+</svg>

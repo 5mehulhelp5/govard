@@ -1,3 +1,7 @@
+---
+title: SSL and Domains
+---
+
 # SSL and Domains
 
 Govard provides local HTTPS for `.test` domains through the shared Caddy proxy and its internal certificate authority.
@@ -77,11 +81,12 @@ govard svc up --no-trust
 2. Installs into system trust store (Linux/macOS)
 3. Best-effort import into Chromium/Firefox NSS stores when `certutil` is available
 
-> [!TIP]
-> On Linux, install `certutil` from the `libnss3-tools` package so Govard can import into browser NSS stores automatically:
-> ```bash
-> sudo apt-get install libnss3-tools
-> ```
+::: tip TIP
+On Linux, install `certutil` from the `libnss3-tools` package so Govard can import into browser NSS stores automatically:
+```bash
+sudo apt-get install libnss3-tools
+```
+:::
 
 ---
 
@@ -216,4 +221,4 @@ This re-exports the Govard Root CA, then recreates the PHP runtime with the CA m
 
 ---
 
-**[← Remotes and Sync](Remotes-and-Sync)** | **[Desktop App →](Desktop-App)**
+[Remotes and Sync](/workflows/remotes-and-sync) | [Desktop App](/workflows/desktop-app)

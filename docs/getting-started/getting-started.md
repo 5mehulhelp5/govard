@@ -183,13 +183,13 @@ If your browser shows HTTPS trust warnings after setup, run `govard doctor trust
 
 | Topic | Link |
 | :--- | :--- |
-| All CLI commands | [CLI Commands](CLI-Commands) |
-| Configuration options | [Configuration](Configuration) |
-| Framework-specific notes | [Frameworks](Frameworks) |
-| SSL and DNS setup | [SSL and Domains](SSL-and-Domains) |
-| Remote environments | [Remotes and Sync](Remotes-and-Sync) |
-| Desktop app | [Desktop App](Desktop-App) |
+| All CLI commands | [CLI Commands](/reference/cli-commands) |
+| Configuration options | [Configuration](/reference/configuration) |
+| Framework-specific notes | [Frameworks](/reference/frameworks) |
+| SSL and DNS setup | [SSL and Domains](/workflows/ssl-and-domains) |
+| Remote environments | [Remotes and Sync](/workflows/remotes-and-sync) |
+| Desktop app | [Desktop App](/workflows/desktop-app) |
 
 ---
 
-**[← Installation](Installation)** | **[CLI Commands →](CLI-Commands)**
+**[← Installation](/getting-started/installation)** | **[CLI Commands →](/reference/cli-commands)**
