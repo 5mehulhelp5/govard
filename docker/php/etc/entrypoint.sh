@@ -23,12 +23,15 @@ if [ -n "${PUID:-}" ] && [ "${PUID}" != "1000" ]; then
   fi
 fi
 
+UID_REMAP_CHANGED=0
 if [ -n "${PUID:-}" ]; then
   CURRENT_UID=$(id -u www-data)
   if [ "${CURRENT_UID}" != "${PUID}" ]; then
     echo "Updating www-data UID to ${PUID}..."
     if ! sudo usermod -u "${PUID}" www-data; then
       echo "Warning: could not update www-data UID to ${PUID}; continuing with UID ${CURRENT_UID}." >&2
+    else
+      UID_REMAP_CHANGED=1
     fi
   fi
 fi
@@ -134,6 +137,10 @@ if [ -n "${NODE_VERSION:-}" ]; then
       fi
     fi
   fi
+fi
+
+if [ "${UID_REMAP_CHANGED}" = "1" ] && [ "$(id -u)" != "$(id -u www-data)" ]; then
+  exec sudo -E -H -u www-data "$@"
 fi
 
 exec "$@"
