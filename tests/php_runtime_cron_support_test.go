@@ -62,6 +62,16 @@ func TestPHPEntrypointUpdatesGIDBeforeUID(t *testing.T) {
 	}
 }
 
+func TestPHPEntrypointRelaunchesProcessAfterUIDRemap(t *testing.T) {
+	content := readProjectFileForTest(t, filepath.Join("docker", "php", "etc", "entrypoint.sh"))
+	if !strings.Contains(content, "UID_REMAP_CHANGED=1") {
+		t.Fatalf("expected php entrypoint to track successful UID remaps, got:\n%s", content)
+	}
+	if !strings.Contains(content, "exec sudo -E -H -u www-data \"$@\"") {
+		t.Fatalf("expected php entrypoint to launch php-fpm as remapped www-data, got:\n%s", content)
+	}
+}
+
 func TestPHPEntrypointStartsCrondBestEffort(t *testing.T) {
 	content := readProjectFileForTest(t, filepath.Join("docker", "php", "etc", "entrypoint.sh"))
 	if !strings.Contains(content, "sudo crond 2>/dev/null || true") {
