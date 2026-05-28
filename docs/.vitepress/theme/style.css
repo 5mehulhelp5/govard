@@ -165,20 +165,22 @@
 
 .dark .VPNavBarMenuGroup .button,
 .dark .VPNavBarMenuLink {
-  color: var(--vp-c-link-1) !important;
+  color: #10b981 !important;
   transition: color 0.15s ease !important;
 }
 
 .dark .VPNavBarMenuGroup .button:hover,
-.dark .VPNavBarMenuLink:hover {
-  color: var(--vp-c-link-2) !important;
+.dark .VPNavBarMenuGroup .button.active,
+.dark .VPNavBarMenuLink:hover,
+.dark .VPNavBarMenuLink.active {
+  color: #0df259 !important;
 }
 
 .dark .VPNNavBarTranslations .button,
 .dark .VPNavBarTranslations .text,
 .dark button[aria-label*="language"],
 .dark button[aria-label*="Language"] {
-  color: var(--vp-c-link-1) !important;
+  color: #10b981 !important;
   transition: color 0.15s ease !important;
 }
 
@@ -186,31 +188,35 @@
 .dark .VPNNavBarTranslations:hover .button,
 .dark button[aria-label*="language"]:hover,
 .dark button[aria-label*="Language"]:hover {
-  color: var(--vp-c-link-2) !important;
+  color: #0df259 !important;
 }
 
 .dark .VPNavScreen .VPLink,
 .dark .VPNavScreen .VPNavScreenMenuGroupLink,
 .dark .VPNavScreen .VPNavScreenMenuGroup .button {
-  color: var(--vp-c-link-1) !important;
+  color: #10b981 !important;
   transition: color 0.15s ease !important;
 }
 
 .dark .VPNavScreen .VPLink:hover,
+.dark .VPNavScreen .VPLink.active,
 .dark .VPNavScreen .VPNavScreenMenuGroupLink:hover,
+.dark .VPNavScreen .VPNavScreenMenuGroupLink.active,
 .dark .VPNavScreen .VPNavScreenMenuGroup .button:hover {
-  color: var(--vp-c-link-2) !important;
+  color: #0df259 !important;
 }
 
 .dark .VPFlyout .VPMenuLink,
 .dark .VPFlyout .VPNavBarMenuGroupLink {
-  color: var(--vp-c-link-1) !important;
+  color: #10b981 !important;
   transition: color 0.15s ease !important;
 }
 
 .dark .VPFlyout .VPMenuLink:hover,
-.dark .VPFlyout .VPNavBarMenuGroupLink:hover {
-  color: var(--vp-c-link-2) !important;
+.dark .VPFlyout .VPMenuLink.active,
+.dark .VPFlyout .VPNavBarMenuGroupLink:hover,
+.dark .VPFlyout .VPNavBarMenuGroupLink.active {
+  color: #0df259 !important;
 }
 
 /* Brand buttons */
