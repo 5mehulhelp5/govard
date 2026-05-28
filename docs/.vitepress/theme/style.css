@@ -163,6 +163,34 @@
   color: var(--gov-primary-dark) !important;
 }
 
+/* More dropdown button và Language button trong header */
+.dark .VPNavBarMenuGroup .button,
+.dark .VPNavBarMenuLink {
+  color: var(--vp-c-text-1) !important;
+  transition: color 0.15s ease !important;
+}
+
+.dark .VPNavBarMenuGroup .button:hover,
+.dark .VPNavBarMenuLink:hover {
+  color: var(--gov-primary-dark) !important;
+}
+
+/* Language/Translations button */
+.dark .VPNNavBarTranslations .button,
+.dark .VPNavBarTranslations .text,
+.dark button[aria-label*="language"],
+.dark button[aria-label*="Language"] {
+  color: var(--vp-c-text-1) !important;
+  transition: color 0.15s ease !important;
+}
+
+.dark .VPNNavBarTranslations .button:hover,
+.dark .VPNNavBarTranslations:hover .button,
+.dark button[aria-label*="language"]:hover,
+.dark button[aria-label*="Language"]:hover {
+  color: var(--gov-primary-dark) !important;
+}
+
 /* Brand buttons */
 .dark .VPButton.brand {
   background-color: #0df259 !important;
