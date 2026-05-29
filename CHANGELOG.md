@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.52.0] - 2026-05-29
+
+### ✨ New Features
+
+- **GitHub Actions CI/CD:** Added GitHub Actions workflow for deploying documentation to Cloudflare Pages.
+- **Comprehensive Documentation:** Added complete documentation for frameworks, remote management, SSL, and Govard Desktop app.
+- **Next.js Fallback:** Added fallback to yarn when npx/npm is missing for Next.js bootstrap.
+
+### 🐛 Bug Fixes
+
+- **Wiki Sync:** Fixed kebab-case filename preservation for correct GitHub Wiki URL matching.
+- **Header Styling:** Multiple header styling improvements for desktop and mobile.
+- **PHP-FPM:** Fixed Symfony environment by running php-fpm as remapped user.
+- **Shopware:** Resolved directory permissions and correct domain mapping.
+- **Container Security:** Fixed file permission errors for custom host UIDs.
+- **Sitemap:** Updated change frequencies from quarterly to yearly.
+
+### 🛠 Improvements
+
+- **CI/CD:** Updated Cloudflare Pages deployment to use npx instead of wrangler-action.
+- **Bootstrap:** Added best-effort CLI error ignoring and console output silencing.
+
 ## [1.51.1] - 2026-05-18
 
 ### ✨ New Features
