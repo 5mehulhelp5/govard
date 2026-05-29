@@ -182,17 +182,20 @@
   color: inherit !important;
 }
 
-.dark .VPNNavBarTranslations *,
-.dark .VPNNavBarTranslations .button .text {
-  color: inherit !important;
-}
-
-.dark .VPNNavBarTranslations {
+.dark .VPNavBarTranslations button,
+.dark .VPNavBarTranslations button .text,
+.dark .VPNavBarTranslations button span {
   color: #10b981 !important;
 }
 
-.dark .VPNNavBarTranslations:hover {
+.dark .VPNavBarTranslations button:hover,
+.dark .VPNavBarTranslations button:hover .text,
+.dark .VPNavBarTranslations button:hover span {
   color: #0df259 !important;
+}
+
+.dark .VPNNavBarTranslations * {
+  color: inherit !important;
 }
 
 .dark .VPFlyout .title,
