@@ -167,6 +167,7 @@
 .dark .VPNavBarMenuLink {
   color: #10b981 !important;
   transition: color 0.15s ease !important;
+  transition: color 0.15s ease !important;
 }
 
 .dark .VPNavBarMenuGroup .button:hover,
@@ -176,18 +177,20 @@
   color: #0df259 !important;
 }
 
-.dark .VPNNavBarTranslations .button,
-.dark .VPNavBarTranslations .text,
-.dark button[aria-label*="language"],
-.dark button[aria-label*="Language"] {
-  color: #10b981 !important;
-  transition: color 0.15s ease !important;
+.dark .VPNavBarMenuGroup .button .text,
+.dark .VPNavBarMenuGroup .button span:not(.text-icon) {
+  color: inherit !important;
 }
 
-.dark .VPNNavBarTranslations .button:hover,
-.dark .VPNNavBarTranslations:hover .button,
-.dark button[aria-label*="language"]:hover,
-.dark button[aria-label*="Language"]:hover {
+.dark .VPNNavBarTranslations * {
+  color: inherit !important;
+}
+
+.dark .VPNNavBarTranslations {
+  color: #10b981 !important;
+}
+
+.dark .VPNNavBarTranslations:hover {
   color: #0df259 !important;
 }
 
