@@ -83,15 +83,16 @@ blueprint_registry:
 stack:
   php_version: "8.4"
   node_version: "24"
-  db_type: "mariadb"
   db_version: "11.4"
   web_root: "/public"
   cache_version: "7.4"
   search_version: "3.4.0"
   queue_version: "3.13.7"
   xdebug_session: "PHPSTORM"
+  composer_version: "latest"
   services:
     web_server: "nginx"
+    db: "mariadb"
     search: "opensearch"
     cache: "redis"
     queue: "none"
@@ -166,15 +167,15 @@ Govard uses this value for Magento 2 `env.php`, Magento 1/OpenMage `local.xml`, 
 | Field | Options | Description |
 | :--- | :--- | :--- |
 | `stack.services.web_server` | `nginx`, `apache`, `hybrid` | Web server |
+| `stack.services.db` | `mariadb`, `mysql`, `none` | Database service |
 | `stack.services.search` | `opensearch`, `elasticsearch`, `none` | Search engine |
 | `stack.services.cache` | `redis`, `valkey`, `none` | Cache service |
 | `stack.services.queue` | `rabbitmq`, `none` | Queue service |
-| `stack.php_version` | e.g. `8.4` | PHP version |
+| `stack.php_version` | e.g. `8.4`, `none` | PHP version (`none` = no PHP container) |
 | `stack.node_version` | e.g. `24` | Node.js version |
-| `stack.db_type` | `mariadb`, `mysql` | Database engine |
 | `stack.db_version` | e.g. `11.4` | Database version |
 | `stack.web_root` | e.g. `/pub`, `/public` | Web root directory |
-| `stack.composer_version` | `1`, `2`, `2.2`, or any point version | Composer version |
+| `stack.composer_version` | `1`, `2`, `2.2`, `latest`, or any point version | Composer version |
 | `stack.xdebug_session` | e.g. `PHPSTORM` | Xdebug session name |
 | `stack.features.livereload` | `true`, `false` | Enable LiveReload port mapping (35729) |
 | `stack.features.varnish` | `true`, `false` | Enable Varnish cache service |
@@ -186,7 +187,7 @@ Node-first frameworks auto-detect the package manager from `package.json`, `pnpm
 
 #### Composer Versioning Optimization
 Govard provides first-class support for common Composer versions to ensure instant environment startup:
-- **Pre-baked (Instant)**: `1`, `2`, `2.2` (LTS). These versions are bundled in the PHP image and do not require downloading at runtime.
+- **Pre-baked (Instant)**: `1`, `2`, `2.2`, `latest`. These versions are bundled in the PHP image and do not require downloading at runtime.
 - **Dynamic (Auto-Download)**: Any other valid point release (e.g., `2.7.2`) can be specified. Govard will automatically download and verify the binary upon the first `env up`.
 
 ---

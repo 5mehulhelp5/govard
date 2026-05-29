@@ -368,10 +368,11 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 		NGINXPUBLIC:        "",
 		NGINXTemplate:      "default.conf",
 		DatabaseName:       "app",
-		DefaultPHP:         "8.4",
-		DefaultDB:          "mariadb",
-		DefaultDBVer:       "11.4",
-		DefaultMySQLVer:    "8.4",
+		DefaultPHP:         "",
+		DefaultNodeVer:     "",
+		DefaultDB:          "none",
+		DefaultDBVer:       "",
+		DefaultMySQLVer:    "",
 		DefaultNginxVer:    "1.28",
 		DefaultApacheVer:   "2.4",
 		DefaultCacheVer:    "7.4",
@@ -382,7 +383,7 @@ var FrameworkConfigs = map[string]FrameworkConfig{
 		DefaultSearch:      "none",
 		DefaultCache:       "none",
 		DefaultQueue:       "none",
-		DefaultComposerVer: "latest",
+		DefaultComposerVer: "",
 		Includes: []string{
 			"includes/base.yml",
 			"includes/redis.yml",
@@ -422,4 +423,24 @@ func ResolveFrameworkAppWorkdir(name string) string {
 		return config.AppWorkdir
 	}
 	return conventions.DefaultWorkDir
+}
+
+// RequiresPHP returns true if the project requires a PHP container.
+// It checks user config first (php_version), then falls back to framework defaults.
+func RequiresPHP(config Config) bool {
+	phpVersion := strings.TrimSpace(config.Stack.PHPVersion)
+	// User explicitly set php_version to "none" → no PHP needed
+	if phpVersion == "none" {
+		return false
+	}
+	// User explicitly set php_version → requires PHP
+	if phpVersion != "" {
+		return true
+	}
+	// php_version not set → check framework's DefaultPHP
+	fwConfig, ok := GetFrameworkConfig(config.Framework)
+	if ok && fwConfig.DefaultPHP != "" {
+		return true
+	}
+	return false
 }

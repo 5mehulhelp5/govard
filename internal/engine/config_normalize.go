@@ -72,9 +72,9 @@ func NormalizeConfig(config *Config, root string) {
 			config.Stack.PHPVersion = profile.PHPVersion
 		} else if ok && fwConfig.DefaultPHP != "" {
 			config.Stack.PHPVersion = fwConfig.DefaultPHP
-		} else {
-			config.Stack.PHPVersion = "8.4"
 		}
+		// If DefaultPHP is empty (e.g., custom framework with no PHP),
+		// leave PHPVersion empty to indicate no PHP container is needed
 	}
 
 	if config.Stack.NodeVersion == "" {
@@ -118,9 +118,9 @@ func NormalizeConfig(config *Config, root string) {
 			config.Stack.ComposerVersion = profile.ComposerVersion
 		} else if ok && fwConfig.DefaultComposerVer != "" {
 			config.Stack.ComposerVersion = fwConfig.DefaultComposerVer
-		} else {
-			config.Stack.ComposerVersion = "latest"
 		}
+		// If DefaultComposerVer is empty (e.g., custom framework with no PHP),
+		// leave ComposerVersion empty
 	}
 
 	// Safety override: Composer 2.3+ requires PHP >= 7.2.5.

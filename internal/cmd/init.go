@@ -186,8 +186,12 @@ Case Studies:
 				dbVersion = ""
 			}
 
-			phpVersion = textInput("PHP version", phpVersion)
-			composerVersion = textInput("Composer version", composerVersion)
+			phpVersion = selectOption("PHP version", []string{"none", "8.4", "8.3", "8.2", "8.1"}, phpVersion)
+			if phpVersion != "none" {
+				composerVersion = textInput("Composer version", composerVersion)
+			} else {
+				composerVersion = ""
+			}
 			nodeVersion = textInput("Node.js version", nodeVersion)
 			webRoot = textInput("Web root (e.g. /public, leave empty for project root)", webRoot)
 			xdebugSession = textInput("Xdebug session cookie value", xdebugSession)

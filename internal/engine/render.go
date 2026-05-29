@@ -30,6 +30,7 @@ func renderTemplateFuncMap() template.FuncMap {
 // RenderData holds all data needed for template rendering
 type RenderData struct {
 	Config                 Config
+	RequiresPHP            bool
 	NGINXPublic            string
 	NGINXTemplate          string
 	NginxConfigPath        string
@@ -360,6 +361,7 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 	// Prepare render data
 	renderData := RenderData{
 		Config:               config,
+		RequiresPHP:          RequiresPHP(config),
 		NGINXPublic:          fwConfig.NGINXPUBLIC,
 		NGINXTemplate:        fwConfig.NGINXTemplate,
 		DatabaseName:         fwConfig.DatabaseName,

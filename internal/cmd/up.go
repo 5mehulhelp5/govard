@@ -425,8 +425,8 @@ func buildUpReadinessChecks(config engine.Config) []upReadinessCheck {
 		return nil
 	}
 
-	frameworkConfig, ok := engine.GetFrameworkConfig(config.Framework)
-	if !ok || frameworkConfig.Runtime != "php" {
+	// Skip PHP readiness checks if PHP is not required (e.g., custom without PHP, node-based frameworks)
+	if !engine.RequiresPHP(config) {
 		return nil
 	}
 

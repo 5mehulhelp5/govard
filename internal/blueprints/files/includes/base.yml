@@ -24,11 +24,15 @@ services:
     networks:
       - govard-net
       - govard-proxy
+    {{ if or .RequiresPHP $isHybrid }}
     depends_on:
+      {{ if .RequiresPHP }}
       - php
+      {{ end }}
       {{ if $isHybrid }}
       - apache
       {{ end }}
+    {{ end }}
     environment:
       {{ if $isApache }}
       - APACHE_DOCUMENT_ROOT={{ .WorkDir }}{{ .NGINXPublic }}
@@ -57,7 +61,9 @@ services:
     networks:
       - govard-net
     depends_on:
+      {{ if .RequiresPHP }}
       - php
+      {{ end }}
     environment:
       - APACHE_DOCUMENT_ROOT={{ .WorkDir }}{{ .NGINXPublic }}
       - APACHE_XDEBUG_SESSION={{ .XdebugSessionPattern }}
@@ -66,6 +72,7 @@ services:
       - CHOWN_DIR_LIST="{{ range $i, $dir := .Config.Stack.ChownDirList }}{{ if $i }} {{ end }}{{ $dir }}{{ end }}"
   {{ end }}
 
+  {{ if .RequiresPHP }}
   php:
     hostname: {{ .Config.ProjectName }}-php-fpm
     image: {{ if eq .Config.Framework "magento2" }}{{ $.ImageRepository }}php-magento2:{{ .Config.Stack.PHPVersion }}{{ else if or (eq .Config.Framework "magento1") (eq .Config.Framework "openmage") }}{{ $.ImageRepository }}php-magento1:{{ .Config.Stack.PHPVersion }}{{ else }}{{ $.ImageRepository }}php:{{ .Config.Stack.PHPVersion }}{{ end }}
@@ -120,8 +127,9 @@ services:
     ports:
       - "35729:35729"
     {{ end }}
+  {{ end }}
 
-  {{ if .Config.Stack.Features.Xdebug }}
+  {{ if and .RequiresPHP .Config.Stack.Features.Xdebug }}
   php-debug:
     hostname: {{ .Config.ProjectName }}-php-debug
     image: {{ if eq .Config.Framework "magento2" }}{{ $.ImageRepository }}php-magento2:{{ .Config.Stack.PHPVersion }}-debug{{ else if or (eq .Config.Framework "magento1") (eq .Config.Framework "openmage") }}{{ $.ImageRepository }}php-magento1:{{ .Config.Stack.PHPVersion }}-debug{{ else }}{{ $.ImageRepository }}php:{{ .Config.Stack.PHPVersion }}-debug{{ end }}
