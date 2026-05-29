@@ -182,7 +182,8 @@
   color: inherit !important;
 }
 
-.dark .VPNNavBarTranslations * {
+.dark .VPNNavBarTranslations *,
+.dark .VPNNavBarTranslations .button .text {
   color: inherit !important;
 }
 
@@ -191,6 +192,35 @@
 }
 
 .dark .VPNNavBarTranslations:hover {
+  color: #0df259 !important;
+}
+
+.dark .VPFlyout .title,
+.dark .VPNavBarMenuGroup .VPFlyout .title {
+  color: #10b981 !important;
+}
+
+.dark .VPFlyout:hover .title {
+  color: #0df259 !important;
+}
+
+.dark .VPNavBarMenuLink,
+.dark .VPNNavBarMenuLink {
+  color: #10b981 !important;
+}
+
+.dark .VPNavBarMenuLink:hover,
+.dark .VPNNavBarMenuLink:hover {
+  color: #0df259 !important;
+}
+
+.dark .vpi-sun,
+.dark .vpi-moon {
+  color: #10b981 !important;
+}
+
+.dark .vpi-sun:hover,
+.dark .vpi-moon:hover {
   color: #0df259 !important;
 }
 
