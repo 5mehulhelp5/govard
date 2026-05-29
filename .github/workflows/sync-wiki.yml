@@ -43,8 +43,10 @@ jobs:
               continue
             fi
 
-            # Convert kebab-case filename to Wiki-Case
-            wiki_name=$(echo "$basename" | sed 's/\.md$//' | sed 's/-\([a-z]\)/\u\1/g' | sed 's/^\([a-z]\)/\u\1/').md
+            # Capitalize first letter of filename, keep rest as-is (kebab-case preserved)
+            # e.g. cli-commands.md -> Cli-commands.md
+            # GitHub Wiki URLs are case-insensitive, so Cli-commands matches CLI-Commands sidebar link
+            wiki_name=$(echo "$basename" | sed 's/\.md$//' | sed 's/^\([a-z]\)/\u\1/').md
             cp "$src" "/tmp/wiki/$wiki_name"
           done
 
