@@ -35,18 +35,153 @@ jobs:
           find /tmp/wiki -mindepth 1 -not -path '/tmp/wiki/.git*' -delete
 
           # Flatten docs/ subdirectories into wiki root
-          find docs -name '*.md' -not -path 'docs/vi/*' | while read src; do
+          # Exclude vi/ (translations), node_modules/, and .vitepress/ build artifacts
+          find docs -name '*.md' -not -path 'docs/vi/*' -not -path 'docs/node_modules/*' -not -path 'docs/.vitepress/*' | while read src; do
             basename=$(basename "$src")
+            # Skip index.md - generate a wiki-compatible Home.md instead (VitePress index.md uses layout: home)
             if [ "$basename" = "index.md" ]; then
-              if [ "$(dirname "$src")" = "docs" ]; then
-                cp "$src" /tmp/wiki/Home.md
-              fi
               continue
             fi
 
             # Convert kebab-case filename to Wiki-Case
             wiki_name=$(echo "$basename" | sed 's/\.md$//' | sed 's/-\([a-z]\)/\u\1/g' | sed 's/^\([a-z]\)/\u\1/').md
             cp "$src" "/tmp/wiki/$wiki_name"
+          done
+
+          # Generate wiki-compatible Home.md from VitePress index.md
+          # Note: Using printf to avoid YAML parsing issues with ** and --- in heredoc
+          if [ -f "docs/index.md" ]; then
+            printf '# Govard\n\n**Go-based Versatile Runtime & Development**\n\nProfessional-grade local development orchestrator engineered in Go — replaces legacy bash-based tools with a high-performance native binary that manages complex containerized environments.\n\n## Key Features\n\n- **Docker SDK Orchestration** — Direct Docker SDK integration for predictable lifecycle behavior\n- **Framework Auto-Detection** — Automatically detects Magento, Laravel, Next.js, Drupal, and more\n- **Local HTTPS & DNS** — Built-in Caddy proxy + dnsmasq + Root CA auto-trust for *.test domains\n- **Remote Management** — Named remotes with scoped capabilities, SSH, sync, and audit logs\n- **Database Tools** — Dump, import, query, live monitoring, and privacy filters\n- **CLI + Desktop Parity** — Same core engine in both CLI and Wails Desktop app\n\n## Getting Started\n\n- [Installation](Installation) — Install Govard on Linux or macOS\n- [Getting Started](Getting-Started) — Create your first project\n- [CLI Commands](CLI-Commands) — Full CLI reference\n\n## Resources\n\n- [Configuration](Configuration) — Project configuration guide\n- [Remotes and Sync](Remotes-and-Sync) — Remote environments and sync workflows\n- [Changelog](Changelog) — Release history\n\n---\n\n[GitHub](https://github.com/ddtcorex/govard) · [Releases](https://github.com/ddtcorex/govard/releases) · [MIT License](https://github.com/ddtcorex/govard/blob/master/LICENSE)\n' > /tmp/wiki/Home.md
+          fi
+
+          # Convert VitePress links back to wiki links (run before pre-processing)
+          for f in /tmp/wiki/*.md; do
+            sed -i \
+              -e 's|/getting-started/installation|Installation|g' \
+              -e 's|/getting-started/getting-started|Getting-Started|g' \
+              -e 's|/getting-started/migration|Migration|g' \
+              -e 's|/reference/cli-commands|CLI-Commands|g' \
+              -e 's|/reference/configuration|Configuration|g' \
+              -e 's|/reference/frameworks|Frameworks|g' \
+              -e 's|/workflows/remotes-and-sync|Remotes-and-Sync|g' \
+              -e 's|/workflows/ssl-and-domains|SSL-and-Domains|g' \
+              -e 's|/workflows/desktop-app|Desktop-App|g' \
+              -e 's|/developer/architecture|Architecture|g' \
+              -e 's|/developer/contributing|Contributing|g' \
+              -e 's|/more/faq|FAQ|g' \
+              -e 's|/more/changelog|Changelog|g' \
+              -e 's|(\[Home\])|[Home]|g' \
+              "$f"
+          done
+
+          # Pre-process wiki markdown: convert VitePress containers to GitHub callouts
+          # GitHub supports > [!NOTE], > [!WARNING], > [!TIP], > [!IMPORTANT], > [!CAUTION]
+          for f in /tmp/wiki/*.md; do
+            # Skip generated files
+            [ "$f" = "/tmp/wiki/_Sidebar.md" ] && continue
+            [ "$f" = "/tmp/wiki/_Footer.md" ] && continue
+
+            # Convert VitePress ::: containers to GitHub callouts using awk
+            # Compatible with mawk (Ubuntu default)
+            awk '
+            BEGIN { in_container = 0; container_type = ""; container_label = ""; }
+
+            /^:::/ {
+              # Distinguish opening (has $2) vs closing (just :::) tag
+              if ($2 == "") {
+                # Closing tag :::
+                if (in_container) {
+                  in_container = 0
+                }
+                next
+              }
+
+              # Opening tag ::: type [label]
+              type = tolower($2)
+              label = ""
+              for (i = 3; i <= NF; i++) {
+                label = label (label ? " " : "") $i
+              }
+              label = toupper(label)
+
+              if (type == "warning") {
+                container_type = "WARNING"
+                container_label = (label ? label : "WARNING")
+              } else if (type == "tip") {
+                container_type = "TIP"
+                container_label = (label ? label : "TIP")
+              } else if (type == "info") {
+                container_type = "NOTE"
+                container_label = (label ? label : "NOTE")
+              } else if (type == "danger") {
+                container_type = "CAUTION"
+                container_label = (label ? label : "CAUTION")
+              } else if (type == "important") {
+                container_type = "IMPORTANT"
+                container_label = (label ? label : "IMPORTANT")
+              } else {
+                container_type = "NOTE"
+                container_label = (label ? label : "NOTE")
+              }
+
+              in_container = 1
+              print "> [" container_type "] " container_label
+              next
+            }
+
+            in_container == 1 {
+              if (/^:::$/) {
+                in_container = 0
+                next
+              }
+              # Skip empty lines (would create "> " on blank line)
+              if ($0 == "") { next }
+              # Add blockquote prefix
+              gsub(/^/, "> ")
+              print
+              next
+            }
+
+            { print }
+            END { if (in_container) print "" }
+            ' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+
+            # Remove YAML frontmatter (first --- block at start of file only)
+            awk '
+            BEGIN { state = "start"; }
+
+            state == "start" && /^---$/ {
+              state = "in_frontmatter"
+              next
+            }
+
+            state == "start" { state = "body"; print; next }
+
+            state == "in_frontmatter" && /^---$/ {
+              state = "body"
+              next
+            }
+
+            state == "in_frontmatter" { next }
+
+            state == "body" { print }
+            ' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+
+            # Remove VitePress-specific frontmatter keys
+            sed -i '/^layout:/d' "$f"
+            sed -i '/^hero:/d' "$f"
+            sed -i '/^tagline:/d' "$f"
+            sed -i '/^actions:/d' "$f"
+            sed -i '/^- theme:/d' "$f"
+            sed -i '/^  text:/d' "$f"
+            sed -i '/^  link:/d' "$f"
+            sed -i '/^features:/d' "$f"
+            sed -i '/^- title:/d' "$f"
+            sed -i '/^  details:/d' "$f"
+
+            # Clean up trailing whitespace and multiple blank lines
+            sed -i 's/[[:space:]]*$//' "$f"
+            sed -i '/^$/N;/^\n$/d' "$f"
           done
 
           # Generate _Sidebar.md
@@ -98,21 +233,6 @@ jobs:
           FOOTER
 
           cd /tmp/wiki
-
-          # Convert VitePress links back to wiki links
-          sed -i 's|/getting-started/installation|Installation|g' *.md
-          sed -i 's|/getting-started/getting-started|Getting-Started|g' *.md
-          sed -i 's|/getting-started/migration|Migration|g' *.md
-          sed -i 's|/reference/cli-commands|CLI-Commands|g' *.md
-          sed -i 's|/reference/configuration|Configuration|g' *.md
-          sed -i 's|/reference/frameworks|Frameworks|g' *.md
-          sed -i 's|/workflows/remotes-and-sync|Remotes-and-Sync|g' *.md
-          sed -i 's|/workflows/ssl-and-domains|SSL-and-Domains|g' *.md
-          sed -i 's|/workflows/desktop-app|Desktop-App|g' *.md
-          sed -i 's|/developer/architecture|Architecture|g' *.md
-          sed -i 's|/developer/contributing|Contributing|g' *.md
-          sed -i 's|/more/faq|FAQ|g' *.md
-          sed -i 's|/more/changelog|Changelog|g' *.md
 
           # Only commit if there are changes
           if git diff --quiet && git diff --cached --quiet; then
