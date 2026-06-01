@@ -94,7 +94,11 @@ Case Studies:
 
 func proxyEnvToCompose(cmd *cobra.Command, args []string) error {
 	subcommand := args[0]
-	config := loadConfig()
+
+	// Read --profile from parent command if present
+	profile, _ := cmd.Flags().GetString("profile")
+
+	config := loadConfigWithProfile(profile)
 	cwd, _ := os.Getwd()
 	composePath := engine.ComposeFilePathWithProfile(cwd, config.ProjectName, config.Profile)
 
