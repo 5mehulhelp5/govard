@@ -10,7 +10,7 @@ func ApplyRuntimeProfileToConfig(config *Config, profile RuntimeProfile) {
 	config.FrameworkVersion = profile.FrameworkVersion
 	config.Stack.PHPVersion = profile.PHPVersion
 	config.Stack.NodeVersion = profile.NodeVersion
-	config.Stack.DBType = profile.DBType
+	config.Stack.Services.DB = profile.DB
 	config.Stack.DBVersion = profile.DBVersion
 	config.Stack.WebRoot = profile.WebRoot
 	config.Stack.XdebugSession = profile.XdebugSession

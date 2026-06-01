@@ -54,6 +54,7 @@
 /desktop/frontend/package.json.md5
 
 # Extra
+!CLAUDE.md
 .planning/
 .worktrees/
 .playwright-mcp/

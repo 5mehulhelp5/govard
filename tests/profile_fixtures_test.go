@@ -71,8 +71,8 @@ func profileFieldValue(profile engine.RuntimeProfile, key string) (string, bool)
 		return profile.PHPVersion, true
 	case "node_version":
 		return profile.NodeVersion, true
-	case "db_type":
-		return profile.DBType, true
+	case "db":
+		return profile.DB, true
 	case "db_version":
 		return profile.DBVersion, true
 	case "web_root":

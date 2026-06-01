@@ -33,7 +33,6 @@ type Stack struct {
 	PHPVersion      string   `yaml:"php_version,omitempty"`
 	NodeVersion     string   `yaml:"node_version,omitempty"`
 	ComposerVersion string   `yaml:"composer_version,omitempty"`
-	DBType          string   `yaml:"-"`
 	VarnishVersion  string   `yaml:"varnish_version,omitempty"`
 	DBVersion       string   `yaml:"db_version,omitempty"`
 	CacheVersion    string   `yaml:"cache_version,omitempty"`

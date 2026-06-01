@@ -16,9 +16,9 @@ func testLockStrictConfig() engine.Config {
 		Framework:   "magento2",
 		Domain:      "demo.test",
 		Stack: engine.Stack{
-			PHPVersion:    "8.4",
-			NodeVersion:   "24",
-			DBType:        "mariadb",
+			PHPVersion:  "8.4",
+			NodeVersion: "24",
+
 			DBVersion:     "11.4",
 			CacheVersion:  "8.0.0",
 			SearchVersion: "2.19.0",

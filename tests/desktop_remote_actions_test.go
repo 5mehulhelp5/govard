@@ -19,7 +19,7 @@ framework: laravel
 domain: bridge-remote.test
 stack:
   php_version: "8.3"
-  db_type: mariadb
+  db: mariadb
   db_version: "10.6"
   services:
     web_server: nginx
@@ -77,7 +77,7 @@ framework: laravel
 domain: bridge-remote.test
 stack:
   php_version: "8.3"
-  db_type: mariadb
+  db: mariadb
   db_version: "10.6"
   services:
     web_server: nginx
@@ -116,7 +116,7 @@ framework: laravel
 domain: bridge-remote.test
 stack:
   php_version: "8.3"
-  db_type: mariadb
+  db: mariadb
   db_version: "10.6"
   services:
     web_server: nginx

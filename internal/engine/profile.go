@@ -12,7 +12,7 @@ type RuntimeProfile struct {
 	FrameworkVersion string
 	PHPVersion       string
 	NodeVersion      string
-	DBType           string
+	DB               string
 	DBVersion        string
 	WebRoot          string
 	WebServer        string
@@ -39,7 +39,7 @@ type RuntimeProfileResult struct {
 type runtimeProfileOverride struct {
 	PHPVersion      string
 	NodeVersion     string
-	DBType          string
+	DB              string
 	DBVersion       string
 	WebRoot         string
 	WebServer       string
@@ -80,7 +80,7 @@ func ResolveRuntimeProfile(framework string, version string) (RuntimeProfileResu
 			FrameworkVersion: version,
 			PHPVersion:       fwConfig.DefaultPHP,
 			NodeVersion:      fwConfig.DefaultNodeVer,
-			DBType:           normalizeProfileValue(fwConfig.DefaultDB, "none"),
+			DB:               normalizeProfileValue(fwConfig.DefaultDB, "none"),
 			DBVersion:        fwConfig.DefaultDBVer,
 			WebRoot:          fwConfig.NGINXPUBLIC,
 			WebServer:        normalizeProfileValue(fwConfig.DefaultWebServer, "nginx"),
@@ -100,7 +100,7 @@ func ResolveRuntimeProfile(framework string, version string) (RuntimeProfileResu
 	}
 
 	normalizeProfile(&result.Profile)
-	if result.Profile.DBType == "mysql" && result.Profile.DBVersion == "" && fwConfig.DefaultMySQLVer != "" {
+	if result.Profile.DB == "mysql" && result.Profile.DBVersion == "" && fwConfig.DefaultMySQLVer != "" {
 		result.Profile.DBVersion = fwConfig.DefaultMySQLVer
 	}
 
@@ -160,8 +160,8 @@ func applyRuntimeProfileOverride(profile *RuntimeProfile, override runtimeProfil
 	if override.NodeVersion != "" {
 		profile.NodeVersion = override.NodeVersion
 	}
-	if override.DBType != "" {
-		profile.DBType = override.DBType
+	if override.DB != "" {
+		profile.DB = override.DB
 	}
 	if override.DBVersion != "" {
 		profile.DBVersion = override.DBVersion
@@ -209,13 +209,13 @@ func normalizeProfile(profile *RuntimeProfile) {
 		return
 	}
 
-	profile.DBType = normalizeProfileValue(profile.DBType, "none")
+	profile.DB = normalizeProfileValue(profile.DB, "none")
 	profile.Cache = normalizeProfileValue(profile.Cache, "none")
 	profile.Search = normalizeProfileValue(profile.Search, "none")
 	profile.Queue = normalizeProfileValue(profile.Queue, "none")
 	profile.WebServer = normalizeProfileValue(profile.WebServer, "nginx")
 
-	if profile.DBType == "none" {
+	if profile.DB == "none" {
 		profile.DBVersion = ""
 	}
 	if profile.Cache == "none" {

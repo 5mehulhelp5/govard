@@ -41,8 +41,8 @@ func TestResolveRuntimeProfileNextjsNoDatabase(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve profile: %v", err)
 	}
-	if result.Profile.DBType != "none" {
-		t.Fatalf("expected nextjs db_type none, got %s", result.Profile.DBType)
+	if result.Profile.DB != "none" {
+		t.Fatalf("expected nextjs db none, got %s", result.Profile.DB)
 	}
 	if result.Profile.DBVersion != "" {
 		t.Fatalf("expected nextjs empty db version, got %s", result.Profile.DBVersion)
@@ -57,8 +57,8 @@ func TestResolveRuntimeProfileEmdashUsesNodeAndNoDatabase(t *testing.T) {
 	if result.Profile.NodeVersion != "22" {
 		t.Fatalf("expected emdash node version 22, got %s", result.Profile.NodeVersion)
 	}
-	if result.Profile.DBType != "none" {
-		t.Fatalf("expected emdash db_type none, got %s", result.Profile.DBType)
+	if result.Profile.DB != "none" {
+		t.Fatalf("expected emdash db none, got %s", result.Profile.DB)
 	}
 	if result.Profile.WebServer != "none" {
 		t.Fatalf("expected emdash web_server none, got %s", result.Profile.WebServer)

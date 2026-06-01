@@ -561,9 +561,9 @@ func TestRenderBlueprintWithFeatures(t *testing.T) {
 		Domain:      "magento.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
-			DBType:     "mariadb",
-			DBVersion:  "10.6",
-			WebServer:  "nginx",
+
+			DBVersion: "10.6",
+			WebServer: "nginx",
 			Services: engine.Services{
 				DB:     "mariadb",
 				Cache:  "redis",
@@ -626,8 +626,8 @@ func TestRenderMagento2BlueprintHybridWebServer(t *testing.T) {
 		Domain:      "magento-hybrid.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.4",
-			DBType:     "mariadb",
-			DBVersion:  "11.4",
+
+			DBVersion: "11.4",
 			Services: engine.Services{
 				WebServer: "hybrid",
 				DB:        "mariadb",
@@ -1165,9 +1165,9 @@ func testBlueprintRender(t *testing.T, framework string, expectedStrings []strin
 		Stack: engine.Stack{
 			PHPVersion:  "8.3",
 			NodeVersion: "24",
-			DBType:      "mariadb",
-			DBVersion:   "10.6",
-			WebServer:   "nginx",
+
+			DBVersion: "10.6",
+			WebServer: "nginx",
 			Services: engine.Services{
 				DB: "mariadb",
 			},

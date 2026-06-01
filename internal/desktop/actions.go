@@ -113,10 +113,10 @@ func openDBClient(ctx context.Context, project string) (string, error) {
 	scheme := "mysql"
 	internalPort := strconv.Itoa(conventions.MySQLPort)
 	if info.configLoaded {
-		dbType := strings.ToLower(info.config.Stack.DBType)
+		dbType := strings.ToLower(info.config.Stack.Services.DB)
 		if strings.Contains(dbType, conventions.ServicePostgreSQL) {
 			scheme = "postgresql"
-			internalPort = defaultDatabasePortForType(info.config.Stack.DBType)
+			internalPort = defaultDatabasePortForType(info.config.Stack.Services.DB)
 		}
 	}
 

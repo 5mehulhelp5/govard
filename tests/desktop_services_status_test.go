@@ -12,9 +12,9 @@ func TestDesktopPkgBuildDerivedServicesForTestUsesServiceState(t *testing.T) {
 	config := engine.Config{
 		Stack: engine.Stack{
 			PHPVersion: "8.2",
-			DBType:     "mariadb",
 			Services: engine.Services{
 				WebServer: "nginx",
+				DB:        "mariadb",
 				Cache:     "redis",
 				Search:    "elasticsearch",
 				Queue:     "rabbitmq",
@@ -53,9 +53,9 @@ func TestDesktopPkgBuildDerivedServicesForTestUsesServiceState(t *testing.T) {
 func TestDesktopPkgBuildDerivedServicesForTestUsesPostgreSQLPort(t *testing.T) {
 	config := engine.Config{
 		Stack: engine.Stack{
-			DBType: "postgres",
 			Services: engine.Services{
 				WebServer: "nginx",
+				DB:        "postgres",
 			},
 		},
 	}

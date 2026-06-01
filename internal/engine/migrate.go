@@ -18,7 +18,7 @@ type MigrationResult struct {
 	PHPVersion      string
 	NodeVersion     string
 	ComposerVersion string
-	DBType          string
+	DB              string
 	DBVersion       string
 	SearchService   string
 	SearchVersion   string
@@ -58,7 +58,7 @@ func MigrateFromDDEV(root string) (MigrationResult, error) {
 		ProjectName: ddev.Name,
 		Framework:   mapDDEVTypeToFramework(ddev.Type),
 		PHPVersion:  ddev.PHPVersion,
-		DBType:      ddev.Database.Type,
+		DB:          ddev.Database.Type,
 		DBVersion:   ddev.Database.Version,
 	}
 
@@ -100,10 +100,10 @@ func MigrateFromWarden(root string) (MigrationResult, error) {
 	}
 
 	if env["MYSQL_DISTRIBUTION"] != "" {
-		result.DBType = strings.ToLower(env["MYSQL_DISTRIBUTION"])
+		result.DB = strings.ToLower(env["MYSQL_DISTRIBUTION"])
 	}
 	if env["WARDEN_DB"] == "0" {
-		result.DBType = "none"
+		result.DB = "none"
 	}
 
 	if env["WARDEN_REDIS"] == "1" {

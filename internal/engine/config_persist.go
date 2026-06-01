@@ -56,7 +56,6 @@ func PrepareConfigForWrite(config Config) Config {
 	}
 
 	// Double-ensure redundant fields are zeroed for serialization (though they are yaml:"-")
-	writable.Stack.DBType = ""
 	writable.Stack.Features.Cache = false
 	writable.Stack.Features.Search = false
 	writable.Stack.Features.Queue = false

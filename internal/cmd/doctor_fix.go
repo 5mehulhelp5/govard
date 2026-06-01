@@ -252,7 +252,7 @@ func tuneProjectProfileCore(check engine.DoctorCheck, forceTune bool, forceOverr
 	existingComposerVersion := strings.TrimSpace(config.Stack.ComposerVersion)
 	existingNginxVersion := strings.TrimSpace(config.Stack.NginxVersion)
 	existingApacheVersion := strings.TrimSpace(config.Stack.ApacheVersion)
-	existingDBType := strings.TrimSpace(config.Stack.DBType)
+	existingDB := strings.TrimSpace(config.Stack.Services.DB)
 	existingDBVersion := strings.TrimSpace(config.Stack.DBVersion)
 	existingCacheService := strings.TrimSpace(config.Stack.Services.Cache)
 	existingCacheVersion := strings.TrimSpace(config.Stack.CacheVersion)
@@ -281,8 +281,8 @@ func tuneProjectProfileCore(check engine.DoctorCheck, forceTune bool, forceOverr
 	if existingDBVersion != "" && existingDBVersion != profileResult.Profile.DBVersion {
 		overrides = append(overrides, manualOverride{"DB version", existingDBVersion, profileResult.Profile.DBVersion})
 	}
-	if existingDBType != "" && existingDBType != profileResult.Profile.DBType {
-		overrides = append(overrides, manualOverride{"DB type", existingDBType, profileResult.Profile.DBType})
+	if existingDB != "" && existingDB != profileResult.Profile.DB {
+		overrides = append(overrides, manualOverride{"DB", existingDB, profileResult.Profile.DB})
 	}
 	if existingSearchService != "" && existingSearchService != profileResult.Profile.Search {
 		overrides = append(overrides, manualOverride{"Search service", existingSearchService, profileResult.Profile.Search})
@@ -548,13 +548,13 @@ func fixLegacyConfig(check engine.DoctorCheck) DoctorFixResult {
 		stackRaw["services"] = servicesRaw
 	}
 
-	// 1. Move stack.db_type to services.db
-	if dbType, ok := stackRaw["db_type"]; ok {
+	// 1. Move stack.db to services.db
+	if dbType, ok := stackRaw["db"]; ok {
 		if servicesRaw["db"] == nil || servicesRaw["db"] == "" {
 			servicesRaw["db"] = dbType
-			result.Actions = append(result.Actions, fmt.Sprintf("Moved db_type '%v' to services.db", dbType))
+			result.Actions = append(result.Actions, fmt.Sprintf("Moved db '%v' to services.db", dbType))
 		}
-		delete(stackRaw, "db_type")
+		delete(stackRaw, "db")
 	}
 
 	// 2. Handle legacy features (redis, elasticsearch, rabbitmq)

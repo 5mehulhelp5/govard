@@ -187,10 +187,10 @@ services:
       {{ end }}
   {{ end }}
 
-  {{ if ne .Config.Stack.DBType "none" }}
+  {{ if ne .Config.Stack.Services.DB "none" }}
   db:
     hostname: {{ .Config.ProjectName }}-db
-    image: {{ $.ImageRepository }}{{ .Config.Stack.DBType }}:{{ .Config.Stack.DBVersion }}
+    image: {{ $.ImageRepository }}{{ .Config.Stack.Services.DB }}:{{ .Config.Stack.DBVersion }}
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: {{ .DatabaseName }}
@@ -212,7 +212,7 @@ networks:
   govard-proxy:
     external: true
 
-{{ if and .Config.Stack.DBType (ne .Config.Stack.DBType "none") }}
+{{ if and .Config.Stack.Services.DB (ne .Config.Stack.Services.DB "none") }}
 volumes:
   db-data{{ if .Config.Profile }}-{{ .Config.Profile }}{{ end }}:
 {{ end }}

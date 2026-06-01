@@ -23,8 +23,8 @@ func TestNormalizeConfigDefaultsMagento2(t *testing.T) {
 
 	engine.NormalizeConfig(&config, "")
 
-	if config.Stack.DBType != "none" {
-		t.Fatalf("Expected DBType none, got %s", config.Stack.DBType)
+	if config.Stack.Services.DB != "none" {
+		t.Fatalf("Expected DB none, got %s", config.Stack.Services.DB)
 	}
 	if config.Stack.DBVersion != "" {
 		t.Fatalf("Expected DBVersion empty, got %s", config.Stack.DBVersion)
@@ -106,8 +106,8 @@ func TestNormalizeConfigVersionAwareDefaultsMagento2(t *testing.T) {
 	if config.Stack.PHPVersion != "8.3" {
 		t.Fatalf("Expected PHPVersion 8.3, got %s", config.Stack.PHPVersion)
 	}
-	if config.Stack.DBType != "mariadb" {
-		t.Fatalf("Expected DBType mariadb, got %s", config.Stack.DBType)
+	if config.Stack.Services.DB != "mariadb" {
+		t.Fatalf("Expected DB mariadb, got %s", config.Stack.Services.DB)
 	}
 	if config.Stack.DBVersion != "10.6" {
 		t.Fatalf("Expected DBVersion 10.6, got %s", config.Stack.DBVersion)
@@ -238,9 +238,9 @@ func TestPrepareConfigForWriteKeepsRuntimeProfileDefaults(t *testing.T) {
 		FrameworkVersion: "2.4.7-p3",
 		Domain:           "demo.test",
 		Stack: engine.Stack{
-			PHPVersion:    profile.PHPVersion,
-			NodeVersion:   profile.NodeVersion,
-			DBType:        profile.DBType,
+			PHPVersion:  profile.PHPVersion,
+			NodeVersion: profile.NodeVersion,
+
 			DBVersion:     profile.DBVersion,
 			WebRoot:       profile.WebRoot,
 			CacheVersion:  profile.CacheVersion,
@@ -253,7 +253,7 @@ func TestPrepareConfigForWriteKeepsRuntimeProfileDefaults(t *testing.T) {
 				Search:    profile.Search,
 				Cache:     profile.Cache,
 				Queue:     profile.Queue,
-				DB:        profile.DBType,
+				DB:        profile.DB,
 			},
 			Features: engine.Features{
 				Xdebug: true,
@@ -474,9 +474,9 @@ func TestPrepareConfigForWriteOmitsEmptyFrameworkVersion(t *testing.T) {
 		Stack: engine.Stack{
 			PHPVersion:  "8.3",
 			NodeVersion: "24",
-			DBType:      "mariadb",
-			DBVersion:   "10.6",
-			WebRoot:     "/pub",
+
+			DBVersion: "10.6",
+			WebRoot:   "/pub",
 			Services: engine.Services{
 				WebServer: "nginx",
 				Search:    "opensearch",
@@ -512,9 +512,9 @@ func TestPrepareConfigForWriteKeepsNonEmptyFrameworkVersion(t *testing.T) {
 		Stack: engine.Stack{
 			PHPVersion:  "8.3",
 			NodeVersion: "24",
-			DBType:      "mariadb",
-			DBVersion:   "10.6",
-			WebRoot:     "/pub",
+
+			DBVersion: "10.6",
+			WebRoot:   "/pub",
 			Services: engine.Services{
 				WebServer: "nginx",
 				Search:    "opensearch",
@@ -549,9 +549,9 @@ func TestPrepareConfigForWritePreservesNoneServicesRoundTrip(t *testing.T) {
 		FrameworkVersion: "2.4.7-p3",
 		Domain:           "demo.test",
 		Stack: engine.Stack{
-			PHPVersion:    "8.3",
-			NodeVersion:   "20",
-			DBType:        "mariadb",
+			PHPVersion:  "8.3",
+			NodeVersion: "20",
+
 			DBVersion:     "10.6",
 			WebRoot:       "/pub",
 			CacheVersion:  "7.2",

@@ -47,18 +47,17 @@ func NormalizeConfig(config *Config, root string) {
 	}
 
 	config.Stack.Services.DB = strings.ToLower(config.Stack.Services.DB)
-	config.Stack.DBType = config.Stack.Services.DB
 
 	if config.Stack.DBVersion == "" {
-		if config.Stack.DBType == "none" {
+		if config.Stack.Services.DB == "none" {
 			config.Stack.DBVersion = ""
 		} else if profileAvailable &&
-			strings.EqualFold(config.Stack.DBType, profile.DBType) &&
+			strings.EqualFold(config.Stack.Services.DB, profile.DB) &&
 			profile.DBVersion != "" {
 			config.Stack.DBVersion = profile.DBVersion
-		} else if config.Stack.DBType == "mysql" && ok && fwConfig.DefaultMySQLVer != "" {
+		} else if config.Stack.Services.DB == "mysql" && ok && fwConfig.DefaultMySQLVer != "" {
 			config.Stack.DBVersion = fwConfig.DefaultMySQLVer
-		} else if config.Stack.DBType == "mysql" {
+		} else if config.Stack.Services.DB == "mysql" {
 			config.Stack.DBVersion = "8.4"
 		} else if ok && fwConfig.DefaultDBVer != "" {
 			config.Stack.DBVersion = fwConfig.DefaultDBVer

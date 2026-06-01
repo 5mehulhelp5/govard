@@ -639,9 +639,9 @@ func CollectProfileSyncWarnings(rawConfig Config, metadata ProjectMetadata) []st
 		}
 	}
 
-	if p.DBType != "" {
-		if rawConfig.Stack.DBType != "" && rawConfig.Stack.DBType != p.DBType {
-			mismatches = append(mismatches, fmt.Sprintf("DB %s [Explicit] (expected %s)", rawConfig.Stack.DBType, p.DBType))
+	if p.DB != "" {
+		if rawConfig.Stack.Services.DB != "" && rawConfig.Stack.Services.DB != p.DB {
+			mismatches = append(mismatches, fmt.Sprintf("DB %s [Explicit] (expected %s)", rawConfig.Stack.Services.DB, p.DB))
 		} else if p.DBVersion != "" {
 			normalized := rawConfig
 			NormalizeConfig(&normalized, "")
@@ -743,7 +743,7 @@ func CheckLegacyConfig() error {
 
 	foundLegacy := []string{}
 	legacyKeys := map[string]bool{
-		"db_type":       true,
+
 		"redis":         true,
 		"elasticsearch": true,
 		"rabbitmq":      true,

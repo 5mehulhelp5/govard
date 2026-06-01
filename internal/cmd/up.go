@@ -810,7 +810,7 @@ func ensureUpProfileResourceSync(context *upRuntimeContext) error {
 		return nil
 	}
 
-	if context.Config.Stack.DBType == "" || context.Config.Stack.DBType == "none" {
+	if context.Config.Stack.Services.DB == "" || context.Config.Stack.Services.DB == "none" {
 		return nil
 	}
 

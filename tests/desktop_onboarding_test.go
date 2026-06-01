@@ -380,7 +380,7 @@ domain: shop.test
 stack:
   php_version: "8.3"
   node_version: "22"
-  db_type: mariadb
+  db: mariadb
   db_version: "10.6"
   web_root: /public
   services:

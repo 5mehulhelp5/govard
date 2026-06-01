@@ -195,7 +195,7 @@ func buildDashboardInternal() (Dashboard, error) {
 					env.Domain = info.config.Domain
 					env.Framework = displayFramework(info.config.Framework)
 					env.PHP = info.config.Stack.PHPVersion
-					env.Database = formatDatabase(info.config.Stack.DBType, info.config.Stack.DBVersion)
+					env.Database = formatDatabase(info.config.Stack.Services.DB, info.config.Stack.DBVersion)
 					env.Services = deriveServices(info.config, info.serviceState)
 					env.ServiceTargets = collectServiceTargetsFromServices(info, env.Services)
 					env.GitBranch = getGitBranch(ent.Path)
@@ -463,7 +463,7 @@ func buildEnvironment(info *projectInfo) Environment {
 		env.ExtraDomains = info.config.ExtraDomains
 		env.Framework = displayFramework(info.config.Framework)
 		env.PHP = info.config.Stack.PHPVersion
-		env.Database = formatDatabase(info.config.Stack.DBType, info.config.Stack.DBVersion)
+		env.Database = formatDatabase(info.config.Stack.Services.DB, info.config.Stack.DBVersion)
 		env.Services = deriveServices(info.config, info.serviceState)
 		env.ServiceTargets = collectServiceTargetsFromServices(info, env.Services)
 		if info.workingDir != "" {

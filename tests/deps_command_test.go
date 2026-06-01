@@ -10,8 +10,8 @@ func TestRequiredRuntimeImagesMagento(t *testing.T) {
 	images := engine.RequiredRuntimeImages(engine.Config{
 		Framework: "magento2",
 		Stack: engine.Stack{
-			PHPVersion:    "8.3",
-			DBType:        "mariadb",
+			PHPVersion: "8.3",
+
 			DBVersion:     "10.6",
 			CacheVersion:  "7.4",
 			SearchVersion: "2.12.0",
@@ -116,8 +116,8 @@ func TestRequiredRuntimeImagesMagentoHybrid(t *testing.T) {
 		Framework: "magento2",
 		Stack: engine.Stack{
 			PHPVersion: "8.3",
-			DBType:     "mariadb",
-			DBVersion:  "10.6",
+
+			DBVersion: "10.6",
 			Services: engine.Services{
 				WebServer: "hybrid",
 				DB:        "mariadb",

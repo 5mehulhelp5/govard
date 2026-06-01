@@ -72,7 +72,7 @@ type frameworkRule struct {
 	Major           int    `json:"major"`
 	MinorMin        *int   `json:"minor_min,omitempty"`
 	PHPVersion      string `json:"php_version"`
-	DBType          string `json:"db_type"`
+	DB              string `json:"db"`
 	DBVersion       string `json:"db_version"`
 	ComposerVersion string `json:"composer_version,omitempty"`
 }
@@ -117,7 +117,7 @@ func resolveFrameworkProfileFromRegistry(framework string, major int, minor int)
 
 		override := runtimeProfileOverride{
 			PHPVersion:      rule.PHPVersion,
-			DBType:          rule.DBType,
+			DB:              rule.DB,
 			DBVersion:       rule.DBVersion,
 			ComposerVersion: rule.ComposerVersion,
 		}
@@ -155,7 +155,7 @@ func resolveMagentoProfileFromRegistry(major, minor, patch, pPatch int) (runtime
 
 			// Found the specific patch group (e.g., 2.4.7)
 			override := runtimeProfileOverride{
-				DBType:     group.Defaults["db_type"],
+				DB:         group.Defaults["db"],
 				Cache:      group.Defaults["cache"],
 				Search:     group.Defaults["search"],
 				Queue:      group.Defaults["queue"],

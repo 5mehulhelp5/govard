@@ -44,8 +44,8 @@ func TestRenderBlueprintMergesProjectComposeOverride(t *testing.T) {
 		Domain:      "demo.test",
 		Stack: engine.Stack{
 			PHPVersion: "8.4",
-			DBType:     "mariadb",
-			DBVersion:  "11.4",
+
+			DBVersion: "11.4",
 			Services: engine.Services{
 				WebServer: "nginx",
 				Search:    "opensearch",

@@ -99,7 +99,7 @@ govard config auto
 
 ```bash
 govard config get php_version
-govard config get stack.db_type
+govard config get stack.services.db
 ```
 
 ---

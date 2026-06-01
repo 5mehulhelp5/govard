@@ -62,7 +62,7 @@ type LockProjectInfo struct {
 type LockStackInfo struct {
 	PHPVersion    string `yaml:"php_version,omitempty"`
 	NodeVersion   string `yaml:"node_version,omitempty"`
-	DBType        string `yaml:"db_type,omitempty"`
+	DB            string `yaml:"db,omitempty"`
 	DBVersion     string `yaml:"db_version,omitempty"`
 	CacheVersion  string `yaml:"cache_version,omitempty"`
 	SearchVersion string `yaml:"search_version,omitempty"`
@@ -134,7 +134,7 @@ func BuildLockFileFromConfig(cwd string, config Config, govardVersion string, de
 		Stack: LockStackInfo{
 			PHPVersion:    strings.TrimSpace(config.Stack.PHPVersion),
 			NodeVersion:   strings.TrimSpace(config.Stack.NodeVersion),
-			DBType:        strings.TrimSpace(config.Stack.DBType),
+			DB:            strings.TrimSpace(config.Stack.Services.DB),
 			DBVersion:     strings.TrimSpace(config.Stack.DBVersion),
 			CacheVersion:  strings.TrimSpace(config.Stack.CacheVersion),
 			SearchVersion: strings.TrimSpace(config.Stack.SearchVersion),
@@ -262,7 +262,7 @@ func CompareLockFile(expected LockFile, current LockFile, ignoreFields []string)
 	appendMismatch("project.framework_version", expected.Project.FrameworkVersion, current.Project.FrameworkVersion)
 	appendMismatch("stack.php_version", expected.Stack.PHPVersion, current.Stack.PHPVersion)
 	appendMismatch("stack.node_version", expected.Stack.NodeVersion, current.Stack.NodeVersion)
-	appendMismatch("stack.db_type", expected.Stack.DBType, current.Stack.DBType)
+	appendMismatch("stack.db", expected.Stack.DB, current.Stack.DB)
 	appendMismatch("stack.db_version", expected.Stack.DBVersion, current.Stack.DBVersion)
 	appendMismatch("stack.cache_version", expected.Stack.CacheVersion, current.Stack.CacheVersion)
 	appendMismatch("stack.search_version", expected.Stack.SearchVersion, current.Stack.SearchVersion)

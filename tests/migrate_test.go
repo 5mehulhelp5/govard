@@ -40,8 +40,8 @@ database:
 	if result.PHPVersion != "8.2" {
 		t.Errorf("expected PHPVersion=8.2, got %q", result.PHPVersion)
 	}
-	if result.DBType != "mariadb" {
-		t.Errorf("expected DBType=mariadb, got %q", result.DBType)
+	if result.DB != "mariadb" {
+		t.Errorf("expected DB=mariadb, got %q", result.DB)
 	}
 	if result.DBVersion != "10.6" {
 		t.Errorf("expected DBVersion=10.6, got %q", result.DBVersion)

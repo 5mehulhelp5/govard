@@ -28,9 +28,9 @@ func TestBuildLockFileFromConfigWithDependencies(t *testing.T) {
 		Framework:        "magento2",
 		FrameworkVersion: "2.4.8-p3",
 		Stack: engine.Stack{
-			PHPVersion:    "8.4",
-			NodeVersion:   "22",
-			DBType:        "mariadb",
+			PHPVersion:  "8.4",
+			NodeVersion: "22",
+
 			DBVersion:     "11.4",
 			CacheVersion:  "8.0.0",
 			SearchVersion: "3.4.0",

@@ -230,8 +230,8 @@ func deriveServices(config engine.Config, states map[string]string) []Service {
 			Target: conventions.TargetWeb,
 		})
 	}
-	if config.Stack.DBType != "" && config.Stack.DBType != "none" {
-		label := titleCase(config.Stack.DBType)
+	if config.Stack.Services.DB != "" && config.Stack.Services.DB != "none" {
+		label := titleCase(config.Stack.Services.DB)
 		lower := strings.ToLower(label)
 		switch lower {
 		case "mariadb":
@@ -244,7 +244,7 @@ func deriveServices(config engine.Config, states map[string]string) []Service {
 		services = append(services, Service{
 			Name:   label,
 			Status: serviceStatus(states, conventions.TargetDB, "stopped"),
-			Port:   defaultDatabasePortForType(config.Stack.DBType),
+			Port:   defaultDatabasePortForType(config.Stack.Services.DB),
 			Target: conventions.TargetDB,
 		})
 	}

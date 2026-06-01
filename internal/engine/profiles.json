@@ -28,7 +28,7 @@
         "major": 2,
         "minor": 4,
         "defaults": {
-          "db_type": "mariadb",
+          "db": "mariadb",
           "cache": "redis",
           "search": "opensearch",
           "queue": "rabbitmq",
@@ -260,7 +260,7 @@
         "major": 2,
         "minor": 3,
         "defaults": {
-          "db_type": "mariadb",
+          "db": "mariadb",
           "cache": "redis",
           "search": "elasticsearch",
           "queue": "rabbitmq",
@@ -326,7 +326,7 @@
         "major": 2,
         "minor": 2,
         "defaults": {
-          "db_type": "mariadb",
+          "db": "mariadb",
           "cache": "redis",
           "search": "elasticsearch",
           "queue": "rabbitmq",
@@ -359,7 +359,7 @@
         "major": 2,
         "minor": 1,
         "defaults": {
-          "db_type": "mariadb",
+          "db": "mariadb",
           "cache": "redis",
           "search": "elasticsearch",
           "queue": "rabbitmq",
@@ -382,7 +382,7 @@
         "major": 2,
         "minor": 0,
         "defaults": {
-          "db_type": "mariadb",
+          "db": "mariadb",
           "cache": "redis",
           "search": "elasticsearch",
           "queue": "rabbitmq",
@@ -408,63 +408,63 @@
       {
         "major": 12,
         "php_version": "8.4",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "11.4"
       },
       {
         "major": 11,
         "php_version": "8.3",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "10.11"
       },
       {
         "major": 10,
         "php_version": "8.1",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "10.11"
       },
       {
         "major": 9,
         "php_version": "8.0",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "10.6"
       },
       {
         "major": 8,
         "php_version": "7.4",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "10.4"
       },
       {
         "major": 7,
         "php_version": "7.4",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "10.4"
       },
       {
         "major": 6,
         "php_version": "7.4",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "10.3"
       },
       {
         "major": 5,
         "minor_min": 5,
         "php_version": "7.1",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "10.2"
       },
       {
         "major": 5,
         "minor_min": 0,
         "php_version": "5.6",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "10.1"
       },
       {
         "major": 4,
         "php_version": "5.6",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "10.1"
       }
     ],
@@ -473,49 +473,49 @@
         "major": 7,
         "minor_min": 2,
         "php_version": "8.3",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "10.11"
       },
       {
         "major": 7,
         "minor_min": 0,
         "php_version": "8.2",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "10.11"
       },
       {
         "major": 6,
         "minor_min": 4,
         "php_version": "8.2",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "10.6"
       },
       {
         "major": 6,
         "minor_min": 0,
         "php_version": "8.1",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "10.6"
       },
       {
         "major": 5,
         "minor_min": 4,
         "php_version": "7.4",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "10.4"
       },
       {
         "major": 5,
         "minor_min": 0,
         "php_version": "7.4",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "10.4"
       },
       {
         "major": 4,
         "minor_min": 4,
         "php_version": "7.2",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "10.3"
       }
     ],
@@ -523,42 +523,42 @@
       {
         "major": 7,
         "php_version": "8.4",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "11.4"
       },
       {
         "major": 6,
         "minor_min": 6,
         "php_version": "8.3",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "10.11"
       },
       {
         "major": 6,
         "minor_min": 4,
         "php_version": "8.2",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "10.11"
       },
       {
         "major": 6,
         "minor_min": 3,
         "php_version": "8.1",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "10.6"
       },
       {
         "major": 6,
         "minor_min": 0,
         "php_version": "8.0",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "10.6"
       },
       {
         "major": 5,
         "minor_min": 0,
         "php_version": "7.4",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "10.4"
       }
     ],
@@ -566,33 +566,33 @@
       {
         "major": 11,
         "php_version": "8.4",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "11.4"
       },
       {
         "major": 10,
         "php_version": "8.3",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "10.11"
       },
       {
         "major": 9,
         "php_version": "8.0",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "10.6"
       },
       {
         "major": 7,
         "minor_min": 94,
         "php_version": "7.4",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "10.4"
       },
       {
         "major": 7,
         "minor_min": 0,
         "php_version": "5.6",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "db_version": "10.1"
       }
     ]
@@ -695,7 +695,7 @@
       "source_prefix": "version-specific:laravel@11",
       "expected": {
         "php_version": "8.3",
-        "db_type": "mariadb",
+        "db": "mariadb",
         "web_server": "nginx",
         "cache": "none",
         "search": "none",
@@ -711,7 +711,7 @@
       "warning_contains": "No version-specific profile for laravel major 99",
       "expected": {
         "php_version": "8.4",
-        "db_type": "mariadb"
+        "db": "mariadb"
       }
     },
     {
@@ -730,7 +730,7 @@
       "version": "14",
       "source": "framework-defaults",
       "expected": {
-        "db_type": "none",
+        "db": "none",
         "db_version": "",
         "cache": "none",
         "search": "none"
@@ -743,7 +743,7 @@
       "source": "framework-defaults",
       "expected": {
         "node_version": "22",
-        "db_type": "none",
+        "db": "none",
         "web_server": "none",
         "cache": "none",
         "search": "none",

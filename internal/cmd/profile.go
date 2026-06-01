@@ -28,7 +28,7 @@ type profileSelectedPayload struct {
 	FrameworkVersion string `json:"framework_version"`
 	PHPVersion       string `json:"php_version"`
 	NodeVersion      string `json:"node_version"`
-	DBType           string `json:"db_type"`
+	DB               string `json:"db"`
 	DBVersion        string `json:"db_version"`
 	WebRoot          string `json:"web_root"`
 	WebServer        string `json:"web_server"`
@@ -83,7 +83,7 @@ var profileCmd = &cobra.Command{
 		if result.Profile.NodeVersion != "" {
 			fmt.Fprintf(out, "  stack.node_version: %s\n", result.Profile.NodeVersion)
 		}
-		fmt.Fprintf(out, "  stack.db_type: %s\n", result.Profile.DBType)
+		fmt.Fprintf(out, "  stack.services.db: %s\n", result.Profile.DB)
 		if result.Profile.DBVersion != "" {
 			fmt.Fprintf(out, "  stack.db_version: %s\n", result.Profile.DBVersion)
 		}
@@ -204,7 +204,7 @@ func buildProfileOutputPayload(metadata engine.ProjectMetadata, result engine.Ru
 			FrameworkVersion: result.Profile.FrameworkVersion,
 			PHPVersion:       result.Profile.PHPVersion,
 			NodeVersion:      result.Profile.NodeVersion,
-			DBType:           result.Profile.DBType,
+			DB:               result.Profile.DB,
 			DBVersion:        result.Profile.DBVersion,
 			WebRoot:          result.Profile.WebRoot,
 			WebServer:        result.Profile.WebServer,

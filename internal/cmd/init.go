@@ -157,7 +157,7 @@ Case Studies:
 		search := profileResult.Profile.Search
 		cache := profileResult.Profile.Cache
 		queue := profileResult.Profile.Queue
-		dbType := profileResult.Profile.DBType
+		dbType := profileResult.Profile.DB
 		dbVersion := profileResult.Profile.DBVersion
 		phpVersion := profileResult.Profile.PHPVersion
 		nodeVersion := profileResult.Profile.NodeVersion
@@ -211,7 +211,6 @@ Case Studies:
 				PHPVersion:      phpVersion,
 				NodeVersion:     nodeVersion,
 				ComposerVersion: composerVersion,
-				DBType:          dbType,
 				DBVersion:       dbVersion,
 				WebRoot:         webRoot,
 				XdebugSession:   xdebugSession,
@@ -249,8 +248,8 @@ Case Studies:
 		if migrated.ComposerVersion != "" {
 			config.Stack.ComposerVersion = migrated.ComposerVersion
 		}
-		if migrated.DBType != "" {
-			config.Stack.DBType = migrated.DBType
+		if migrated.DB != "" {
+			config.Stack.Services.DB = migrated.DB
 		}
 		if migrated.DBVersion != "" {
 			config.Stack.DBVersion = migrated.DBVersion
@@ -303,7 +302,7 @@ Case Studies:
 			config.Remotes = migrated.Remotes
 		}
 
-		if config.Stack.DBType == "none" {
+		if config.Stack.Services.DB == "none" {
 			config.Stack.DBVersion = ""
 		}
 		if hasExistingConfig {
@@ -323,8 +322,8 @@ Case Studies:
 			if existingConfig.Stack.ComposerVersion != "" {
 				config.Stack.ComposerVersion = existingConfig.Stack.ComposerVersion
 			}
-			if existingConfig.Stack.DBType != "" {
-				config.Stack.DBType = existingConfig.Stack.DBType
+			if existingConfig.Stack.Services.DB != "" {
+				config.Stack.Services.DB = existingConfig.Stack.Services.DB
 			}
 			if existingConfig.Stack.DBVersion != "" {
 				config.Stack.DBVersion = existingConfig.Stack.DBVersion
@@ -407,7 +406,7 @@ Case Studies:
 				assumedSourceVolume = "ddev-" + migrated.ProjectName + "-db"
 			}
 
-			if assumedSourceVolume != "" && config.Stack.DBType != "none" && config.Stack.DBType != "" {
+			if assumedSourceVolume != "" && config.Stack.Services.DB != "none" && config.Stack.Services.DB != "" {
 				if !initAssumeYes {
 					proceed, err := pterm.DefaultInteractiveConfirm.
 						WithDefaultValue(false).

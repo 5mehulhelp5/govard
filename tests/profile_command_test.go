@@ -67,7 +67,7 @@ func TestProfileJSONOutput(t *testing.T) {
 	if _, ok := selected["php_version"]; !ok {
 		t.Fatal("missing selected.php_version field")
 	}
-	if _, ok := selected["db_type"]; !ok {
-		t.Fatal("missing selected.db_type field")
+	if _, ok := selected["db"]; !ok {
+		t.Fatal("missing selected.db field")
 	}
 }

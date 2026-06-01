@@ -52,8 +52,8 @@ func RequiredRuntimeImages(config Config, root string) []string {
 		}
 	}
 
-	if config.Stack.DBType != "" && config.Stack.DBType != "none" && !FrameworkUsesNodeRuntime(config.Framework) {
-		push(fmt.Sprintf("%s%s:%s", imageRepo, config.Stack.DBType, config.Stack.DBVersion))
+	if config.Stack.Services.DB != "" && config.Stack.Services.DB != "none" && !FrameworkUsesNodeRuntime(config.Framework) {
+		push(fmt.Sprintf("%s%s:%s", imageRepo, config.Stack.Services.DB, config.Stack.DBVersion))
 	}
 
 	switch config.Stack.Services.Cache {

@@ -80,8 +80,8 @@ func getConfigValue(config engine.Config, key string) (string, bool) {
 		return config.Stack.PHPVersion, true
 	case "node_version", "stack.node_version":
 		return config.Stack.NodeVersion, true
-	case "db_type", "stack.db_type":
-		return config.Stack.DBType, true
+	case "db", "services.db", "stack.services.db":
+		return config.Stack.Services.DB, true
 	case "db_version", "stack.db_version":
 		return config.Stack.DBVersion, true
 	case "services.web_server", "web_server", "stack.services.web_server":
@@ -112,8 +112,8 @@ func setConfigValue(config *engine.Config, key string, value string) (bool, erro
 		config.Stack.PHPVersion = value
 	case "node_version", "stack.node_version":
 		config.Stack.NodeVersion = value
-	case "db_type", "stack.db_type":
-		config.Stack.DBType = value
+	case "db", "services.db", "stack.services.db":
+		config.Stack.Services.DB = value
 	case "db_version", "stack.db_version":
 		config.Stack.DBVersion = value
 	case "services.web_server", "web_server", "stack.services.web_server":
