@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.53.0] - 2026-06-01
+
+### ✨ New Features
+
+- **Custom Projects Without PHP:** Added ability to create custom framework projects without requiring a PHP container. Users can now select "none" as the PHP version during init, allowing for stacks that don't need PHP (e.g., pure Node.js projects).
+
+### 🔄 Refactors
+
+- **Database Configuration:** Replaced `DBType` with `Services.DB` in the configuration structure to streamline database service management. Updated all internal functions, methods, and tests to use the new `Services.DB` field.
+- **CLAUDE.md Creation:** Created a comprehensive project documentation file (CLAUDE.md) to replace AGENTS.md, providing clear instructions for AI coding agents working in the govard codebase.
+
 ## [1.52.0] - 2026-05-29
 
 ### ✨ New Features
