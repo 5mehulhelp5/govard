@@ -287,36 +287,56 @@ func runProfileSwitch(cmd *cobra.Command, args []string) error {
 	var profileName string
 	if len(args) > 0 {
 		profileName = args[0]
+		// Handle "default" as empty profile
+		if profileName == "default" {
+			profileName = ""
+		}
 	} else {
-		// Interactive mode
+		// Interactive mode - add "None (default)" option
 		profiles := detectAvailableProfiles(cwd)
 		if len(profiles) == 0 {
 			pterm.Warning.Println("No profile files (.govard.<name>.yml) found in this project.")
+			pterm.Info.Println("Use 'govard config profile clear' to reset to default.")
 			return nil
 		}
 
+		// Add "None (default)" option at the beginning
+		options := append([]string{"None (default)"}, profiles...)
+
 		selected, err := pterm.DefaultInteractiveSelect.
-			WithOptions(profiles).
+			WithOptions(options).
 			Show("Select a profile to switch to")
 		if err != nil || selected == "" {
 			return fmt.Errorf("profile selection cancelled")
 		}
-		profileName = selected
+		if selected == "None (default)" {
+			profileName = ""
+		} else {
+			profileName = selected
+		}
 	}
 
-	// Validate profile exists (or is empty for default)
+	// Validate profile exists (empty for default is allowed)
 	if profileName != "" {
 		profilePath := fmt.Sprintf("%s/.govard.%s.yml", cwd, profileName)
 		if _, err := os.Stat(profilePath); os.IsNotExist(err) {
 			return fmt.Errorf("profile %q not found (expected file: %s)", profileName, profilePath)
 		}
+	} else {
+		pterm.Info.Println("Switching to default profile (no profile)")
 	}
 
 	// 2. Update project registry with new profile
 	// Empty profileName means "use default" - clear the saved profile
+	// Save current profile as previous_profile for shift detection
+	var previousProfile string
+	if existingEntry, ok := engine.GetProjectRegistryEntry(cwd); ok {
+		previousProfile = existingEntry.Profile
+	}
 	entry := engine.ProjectRegistryEntry{
-		Path:    cwd,
-		Profile: profileName,
+		Path:            cwd,
+		Profile:         profileName,
+		PreviousProfile: previousProfile, // Store old profile for shift detection
 	}
 	if err := engine.UpsertProjectRegistryEntry(entry); err != nil {
 		return fmt.Errorf("save profile to registry: %w", err)
@@ -405,22 +425,26 @@ func askProfileTuning(cwd, profileName string, out, errOut io.Writer) bool {
 func runProfileClear(cmd *cobra.Command, args []string) error {
 	cwd, _ := os.Getwd()
 
-	// Clear profile from project registry
+	// Save current profile as previous_profile for shift detection
+	var previousProfile string
+	if existingEntry, ok := engine.GetProjectRegistryEntry(cwd); ok {
+		previousProfile = existingEntry.Profile
+	}
+
+	// Clear profile from project registry (including previous_profile)
 	entry := engine.ProjectRegistryEntry{
-		Path:    cwd,
-		Profile: "",
+		Path:            cwd,
+		Profile:         "",              // Empty = default profile
+		PreviousProfile: previousProfile, // Store old profile for shift detection
 	}
 	if err := engine.UpsertProjectRegistryEntry(entry); err != nil {
 		return fmt.Errorf("clear profile from registry: %w", err)
 	}
 
-	// Clear profile from lock file
-	lockPath := engine.LockFilePath(cwd)
-	if existingLock, err := engine.ReadLockFile(lockPath); err == nil {
-		existingLock.Project.Profile = ""
-		if err := engine.WriteLockFile(lockPath, existingLock); err != nil {
-			pterm.Warning.Printf("Could not update .govard.lock: %v\n", err)
-		}
+	// Optionally run profile tuning (same logic as profile switch)
+	tuningTriggered := askProfileTuning(cwd, "", cmd.OutOrStdout(), cmd.ErrOrStderr())
+	if tuningTriggered {
+		return nil // Success message printed by askProfileTuning
 	}
 
 	pterm.Success.Println("Profile reset to default")

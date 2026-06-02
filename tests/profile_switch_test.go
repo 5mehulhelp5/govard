@@ -179,6 +179,310 @@ func TestResolveEffectiveProfile(t *testing.T) {
 	}
 }
 
+func TestProfileSwitchSavesPreviousProfile(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// Create base config file
+	baseConfig := `project_name: test-project
+domain: test.test
+`
+	if err := os.WriteFile(filepath.Join(tempDir, ".govard.yml"), []byte(baseConfig), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create profile config files
+	upgradeConfig := `profile: upgrade
+stack:
+  php_version: "8.2"
+`
+	if err := os.WriteFile(filepath.Join(tempDir, ".govard.upgrade.yml"), []byte(upgradeConfig), 0644); err != nil {
+		t.Fatal(err)
+	}
+	stagingConfig := `profile: staging
+stack:
+  php_version: "8.3"
+`
+	if err := os.WriteFile(filepath.Join(tempDir, ".govard.staging.yml"), []byte(stagingConfig), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Set registry path for test
+	registryPath := filepath.Join(t.TempDir(), "projects.json")
+	t.Setenv(engine.ProjectRegistryPathEnvVar, registryPath)
+
+	cwd, _ := os.Getwd()
+	defer func() { _ = os.Chdir(cwd) }()
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatal(err)
+	}
+
+	// First switch to upgrade (no previous profile)
+	root := cmd.RootCommandForTest()
+	buf := &bytes.Buffer{}
+	root.SetOut(buf)
+	root.SetErr(io.Discard)
+	root.SetArgs([]string{"config", "profile", "switch", "upgrade"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("first profile switch: %v", err)
+	}
+
+	entry, ok := engine.GetProjectRegistryEntry(tempDir)
+	if !ok {
+		t.Fatal("expected project registry entry")
+	}
+	if entry.Profile != "upgrade" {
+		t.Fatalf("expected profile 'upgrade', got %q", entry.Profile)
+	}
+	if entry.PreviousProfile != "" {
+		t.Fatalf("expected previous_profile '', got %q", entry.PreviousProfile)
+	}
+
+	// Second switch to staging (previous should be 'upgrade')
+	buf.Reset()
+	root.SetArgs([]string{"config", "profile", "switch", "staging"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("second profile switch: %v", err)
+	}
+
+	entry, ok = engine.GetProjectRegistryEntry(tempDir)
+	if !ok {
+		t.Fatal("expected project registry entry after second switch")
+	}
+	if entry.Profile != "staging" {
+		t.Fatalf("expected profile 'staging', got %q", entry.Profile)
+	}
+	if entry.PreviousProfile != "upgrade" {
+		t.Fatalf("expected previous_profile 'upgrade', got %q", entry.PreviousProfile)
+	}
+}
+
+func TestProfileShiftDetectionWithPreviousProfile(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// Create base config with profile
+	baseConfig := `project_name: test-project
+domain: test.test
+profile: staging
+stack:
+  php_version: "8.3"
+`
+	if err := os.WriteFile(filepath.Join(tempDir, ".govard.yml"), []byte(baseConfig), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create profile config files
+	upgradeConfig := `profile: upgrade
+stack:
+  php_version: "8.2"
+`
+	if err := os.WriteFile(filepath.Join(tempDir, ".govard.upgrade.yml"), []byte(upgradeConfig), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Set registry path for test
+	registryPath := filepath.Join(t.TempDir(), "projects.json")
+	t.Setenv(engine.ProjectRegistryPathEnvVar, registryPath)
+
+	cwd, _ := os.Getwd()
+	defer func() { _ = os.Chdir(cwd) }()
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatal(err)
+	}
+
+	// Set up registry with previous_profile
+	entry := engine.ProjectRegistryEntry{
+		Path:            tempDir,
+		Profile:         "staging",
+		PreviousProfile: "upgrade",
+		PHPVersion:      "8.3",
+	}
+	if err := engine.UpsertProjectRegistryEntry(entry); err != nil {
+		t.Fatal(err)
+	}
+
+	// Now simulate config load with new profile (upgrade)
+	config := engine.Config{
+		ProjectName: "test-project",
+		Profile:     "upgrade",
+		Stack: engine.Stack{
+			PHPVersion: "8.2",
+		},
+	}
+
+	// DetectProfileShift should use previous_profile from registry
+	shiftInfo := engine.DetectProfileShift(config)
+	if !shiftInfo.Shifted {
+		t.Fatal("expected profile shift to be detected")
+	}
+	if shiftInfo.PreviousProfile != "upgrade" {
+		t.Fatalf("expected previous_profile 'upgrade', got %q", shiftInfo.PreviousProfile)
+	}
+	if shiftInfo.CurrentProfile != "upgrade" {
+		t.Fatalf("expected current_profile 'upgrade', got %q", shiftInfo.CurrentProfile)
+	}
+}
+
+func TestClearPreviousProfile(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// Set registry path for test
+	registryPath := filepath.Join(t.TempDir(), "projects.json")
+	t.Setenv(engine.ProjectRegistryPathEnvVar, registryPath)
+
+	cwd, _ := os.Getwd()
+	defer func() { _ = os.Chdir(cwd) }()
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create entry with previous_profile
+	entry := engine.ProjectRegistryEntry{
+		Path:            tempDir,
+		Profile:         "staging",
+		PreviousProfile: "upgrade",
+	}
+	if err := engine.UpsertProjectRegistryEntry(entry); err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify previous_profile exists
+	entry, ok := engine.GetProjectRegistryEntry(tempDir)
+	if !ok {
+		t.Fatal("expected project registry entry")
+	}
+	if entry.PreviousProfile != "upgrade" {
+		t.Fatalf("expected previous_profile 'upgrade', got %q", entry.PreviousProfile)
+	}
+
+	// Clear previous_profile
+	if err := engine.ClearPreviousProfile(tempDir); err != nil {
+		t.Fatalf("ClearPreviousProfile failed: %v", err)
+	}
+
+	// Verify previous_profile is cleared
+	entry, ok = engine.GetProjectRegistryEntry(tempDir)
+	if !ok {
+		t.Fatal("expected project registry entry after clear")
+	}
+	if entry.PreviousProfile != "" {
+		t.Fatalf("expected previous_profile '', got %q", entry.PreviousProfile)
+	}
+}
+
+func TestProfileSwitchClearCommand(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// Create base config file
+	baseConfig := `project_name: test-project
+domain: test.test
+`
+	if err := os.WriteFile(filepath.Join(tempDir, ".govard.yml"), []byte(baseConfig), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Set registry path for test
+	registryPath := filepath.Join(t.TempDir(), "projects.json")
+	t.Setenv(engine.ProjectRegistryPathEnvVar, registryPath)
+
+	cwd, _ := os.Getwd()
+	defer func() { _ = os.Chdir(cwd) }()
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatal(err)
+	}
+
+	// First set a profile
+	entry := engine.ProjectRegistryEntry{
+		Path:            tempDir,
+		Profile:         "upgrade",
+		PreviousProfile: "staging",
+	}
+	if err := engine.UpsertProjectRegistryEntry(entry); err != nil {
+		t.Fatal(err)
+	}
+
+	// Execute profile clear
+	root := cmd.RootCommandForTest()
+	buf := &bytes.Buffer{}
+	root.SetOut(buf)
+	root.SetErr(io.Discard)
+	root.SetArgs([]string{"config", "profile", "clear"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("execute profile clear: %v", err)
+	}
+
+	// Verify profile is cleared but previous_profile is saved for shift detection
+	entry, ok := engine.GetProjectRegistryEntry(tempDir)
+	if !ok {
+		t.Fatal("expected project registry entry")
+	}
+	if entry.Profile != "" {
+		t.Fatalf("expected profile '', got %q", entry.Profile)
+	}
+	if entry.PreviousProfile != "upgrade" {
+		t.Fatalf("expected previous_profile 'upgrade', got %q", entry.PreviousProfile)
+	}
+}
+
+func TestProfileSwitchToDefault(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// Create base config file
+	baseConfig := `project_name: test-project
+domain: test.test
+`
+	if err := os.WriteFile(filepath.Join(tempDir, ".govard.yml"), []byte(baseConfig), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create profile config file
+	upgradeConfig := `profile: upgrade
+stack:
+  php_version: "8.2"
+`
+	if err := os.WriteFile(filepath.Join(tempDir, ".govard.upgrade.yml"), []byte(upgradeConfig), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Set registry path for test
+	registryPath := filepath.Join(t.TempDir(), "projects.json")
+	t.Setenv(engine.ProjectRegistryPathEnvVar, registryPath)
+
+	cwd, _ := os.Getwd()
+	defer func() { _ = os.Chdir(cwd) }()
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatal(err)
+	}
+
+	// First switch to upgrade
+	root := cmd.RootCommandForTest()
+	buf := &bytes.Buffer{}
+	root.SetOut(buf)
+	root.SetErr(io.Discard)
+	root.SetArgs([]string{"config", "profile", "switch", "upgrade"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("first profile switch: %v", err)
+	}
+
+	// Now switch to default using "default" argument
+	buf.Reset()
+	root.SetArgs([]string{"config", "profile", "switch", "default"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("switch to default: %v", err)
+	}
+
+	// Verify profile is empty
+	entry, ok := engine.GetProjectRegistryEntry(tempDir)
+	if !ok {
+		t.Fatal("expected project registry entry")
+	}
+	if entry.Profile != "" {
+		t.Fatalf("expected profile '', got %q", entry.Profile)
+	}
+	if entry.PreviousProfile != "upgrade" {
+		t.Fatalf("expected previous_profile 'upgrade', got %q", entry.PreviousProfile)
+	}
+}
+
 // Helper to detect profiles for testing
 func detectProfilesForTest(dir string) []string {
 	entries, _ := os.ReadDir(dir)

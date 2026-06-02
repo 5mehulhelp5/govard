@@ -37,19 +37,41 @@ func DetectProfileShift(config Config) ProfileShiftInfo {
 	previousPHP, previousProfile, previousVersion := "", "", ""
 	isInitial := false
 
-	// Check lock file first
-	lockFile, err := ReadLockFile(LockFilePath(cwd))
-	if err == nil {
-		previousPHP = strings.TrimSpace(lockFile.Stack.PHPVersion)
-		previousProfile = strings.TrimSpace(lockFile.Project.Profile)
-		previousVersion = strings.TrimSpace(lockFile.Project.FrameworkVersion)
-	} else if entry, ok := GetProjectRegistryEntry(cwd); ok {
-		// Fallback to project registry
-		previousPHP = strings.TrimSpace(entry.PHPVersion)
-		previousProfile = strings.TrimSpace(entry.Profile)
-		previousVersion = strings.TrimSpace(entry.FrameworkVersion)
-	} else {
-		isInitial = true
+	// Check registry first for previous_profile (set during profile switch)
+	if entry, ok := GetProjectRegistryEntry(cwd); ok {
+		prevProfile := strings.TrimSpace(entry.PreviousProfile)
+		if prevProfile != "" {
+			// Previous profile was saved during switch - use it
+			previousProfile = prevProfile
+			previousPHP = strings.TrimSpace(entry.PHPVersion)
+			previousVersion = strings.TrimSpace(entry.FrameworkVersion)
+		} else {
+			// No previous_profile, check current profile in registry
+			// for potential PHP version or profile change
+			currentRegProfile := strings.TrimSpace(entry.Profile)
+			configProfile := strings.TrimSpace(config.Profile)
+			if currentRegProfile != "" {
+				if currentRegProfile != configProfile {
+					// Profile changed
+					previousProfile = currentRegProfile
+				}
+				// Always capture PHP version from registry for comparison
+				previousPHP = strings.TrimSpace(entry.PHPVersion)
+				previousVersion = strings.TrimSpace(entry.FrameworkVersion)
+			}
+		}
+	}
+
+	// Fallback to lock file only if registry doesn't have previous info
+	if previousPHP == "" && previousProfile == "" {
+		lockFile, err := ReadLockFile(LockFilePath(cwd))
+		if err == nil {
+			previousPHP = strings.TrimSpace(lockFile.Stack.PHPVersion)
+			previousProfile = strings.TrimSpace(lockFile.Project.Profile)
+			previousVersion = strings.TrimSpace(lockFile.Project.FrameworkVersion)
+		} else {
+			isInitial = true
+		}
 	}
 
 	return ProfileShiftInfo{

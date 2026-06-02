@@ -28,6 +28,7 @@ type ProjectRegistryEntry struct {
 	LastCommand      string    `json:"last_command,omitempty"`
 	PHPVersion       string    `json:"php_version,omitempty"`
 	Profile          string    `json:"profile,omitempty"`
+	PreviousProfile  string    `json:"previous_profile,omitempty"`
 	FrameworkVersion string    `json:"framework_version,omitempty"`
 }
 
@@ -123,6 +124,22 @@ func GetProjectRegistryEntry(path string) (ProjectRegistryEntry, bool) {
 	}
 
 	return ProjectRegistryEntry{}, false
+}
+
+// ClearPreviousProfile clears the previous_profile field for a project in the registry.
+func ClearPreviousProfile(path string) error {
+	path = filepath.Clean(strings.TrimSpace(path))
+	if path == "" {
+		return fmt.Errorf("project path is required")
+	}
+
+	entry, ok := GetProjectRegistryEntry(path)
+	if !ok {
+		return nil // Nothing to clear
+	}
+
+	entry.PreviousProfile = ""
+	return UpsertProjectRegistryEntry(entry)
 }
 
 func DeleteProjectRegistryEntry(path string) error {

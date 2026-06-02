@@ -212,6 +212,12 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 					return nil
 				}
 
+				// Clear previous_profile from registry after detection
+				// This ensures shift is only processed once
+				if err := engine.ClearPreviousProfile(context.Cwd); err != nil {
+					pterm.Warning.Printf("Could not clear previous profile: %v\n", err)
+				}
+
 				// Prompt user for confirmation when the shift is implicit
 				// (no --profile flag, not initial config, and TTY is available)
 				explicitProfile := context.Profile != ""
