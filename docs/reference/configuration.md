@@ -33,11 +33,18 @@ Govard loads config in this order (later layers override earlier ones):
 Use profiles when a team needs multiple runtime shapes for the same project.
 
 ```bash
-govard env up --profile upgrade
+govard config profile switch upgrade   # Switch to upgrade profile
+govard env up --profile upgrade       # Or use --profile flag directly
 govard db dump --profile perf
+govard config profile clear            # Reset to default (no profile)
 ```
 
 Govard loads `.govard.<profile>.yml` and creates an isolated compose file + separate data volumes, so profile switching does not contaminate existing data.
+
+**Profile commands:**
+- `govard config profile` - Show recommended profile for detected framework
+- `govard config profile switch <name>` - Switch to a profile (persisted per-project)
+- `govard config profile clear` - Reset to default profile
 
 ---
 
@@ -315,7 +322,7 @@ By default, Govard projects are isolated. To allow a project to communicate with
 ### Key Behaviors
 
 - **Opt-in Visibility**: Hostnames for other projects are only injected into `/etc/hosts` if the project is explicitly listed in `linked_projects`.
-- **Automatic Domain Resolution**: Listing a project name (e.g., `bebe9`) will automatically map its primary domain and all extra domains to the shared proxy IP.
+- **Automatic Domain Resolution**: Listing a project name will automatically map its primary domain and all extra domains to the shared proxy IP.
 - **Targeted Container Refresh**: When you start a project, Govard identifies which other running projects depend on it and restarts **only** those specific projects to update their host mappings.
 - **Manual Mappings**: You can also provide raw mappings in the format `hostname:ip`.
 

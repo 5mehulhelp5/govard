@@ -37,12 +37,14 @@ func DetectProfileShift(config Config) ProfileShiftInfo {
 	previousPHP, previousProfile, previousVersion := "", "", ""
 	isInitial := false
 
+	// Check lock file first
 	lockFile, err := ReadLockFile(LockFilePath(cwd))
 	if err == nil {
 		previousPHP = strings.TrimSpace(lockFile.Stack.PHPVersion)
 		previousProfile = strings.TrimSpace(lockFile.Project.Profile)
 		previousVersion = strings.TrimSpace(lockFile.Project.FrameworkVersion)
 	} else if entry, ok := GetProjectRegistryEntry(cwd); ok {
+		// Fallback to project registry
 		previousPHP = strings.TrimSpace(entry.PHPVersion)
 		previousProfile = strings.TrimSpace(entry.Profile)
 		previousVersion = strings.TrimSpace(entry.FrameworkVersion)
@@ -73,6 +75,24 @@ func PrepareInfraForShift(projectName string, config Config) {
 		pterm.Info.Println("Removing stale cache container for clean profile start...")
 		_ = exec.Command("docker", "rm", "-f", redisContainer).Run()
 	}
+}
+
+// ResolveEffectiveProfile resolves the effective profile for a project.
+// Priority: 1. explicit profile (--profile flag), 2. project registry (last-used), 3. empty (default)
+func ResolveEffectiveProfile(projectPath, explicitProfile string) string {
+	if explicitProfile != "" {
+		return explicitProfile
+	}
+
+	// Fall back to last-used profile from project registry
+	if entry, ok := GetProjectRegistryEntry(projectPath); ok {
+		profile := strings.TrimSpace(entry.Profile)
+		if profile != "" {
+			return profile
+		}
+	}
+
+	return ""
 }
 
 func checkProfileShiftCleanup(config Config) (bool, string) {

@@ -426,10 +426,41 @@ For node-first frameworks, package-manager commands run in the `web` container a
 govard config get stack.php_version
 govard config set stack.php_version 8.4
 govard config set table_prefix demo_
+govard config profile              # Show recommended profile for current framework
+govard config profile --json      # Output profile as JSON
+govard config profile apply       # Apply recommended profile to .govard.yml
+govard config auto                # Magento 2: inject settings into env.php
+```
+
+### `govard config profile`
+
+Display the recommended runtime profile for the detected framework.
+
+```bash
 govard config profile
 govard config profile --json
-govard config profile apply --framework laravel --framework-version 11
-govard config auto   # Magento 2: inject settings into env.php
+```
+
+Output includes detected framework, recommended PHP version, database, cache, search, and other service configurations.
+
+### `govard config profile switch`
+
+Switch to a different environment profile. Profiles allow running the same project with different runtime configurations (e.g., PHP 8.2 for production testing, PHP 8.3 for development).
+
+```bash
+govard config profile switch upgrade
+govard config profile switch staging
+govard config profile switch          # Interactive selection
+```
+
+Profile files are stored as `.govard.<name>.yml` in the project root. The selected profile is persisted per-project in `~/.govard/projects.json`.
+
+### `govard config profile clear`
+
+Reset to the default profile (no profile active).
+
+```bash
+govard config profile clear
 ```
 
 ### `govard extensions`

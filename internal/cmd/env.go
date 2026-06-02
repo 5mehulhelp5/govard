@@ -107,6 +107,9 @@ func proxyEnvToCompose(cmd *cobra.Command, args []string) error {
 		fmt.Println()
 		pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Println(" Starting Govard Project ")
 		fmt.Println()
+		if config.Profile != "" {
+			pterm.Info.Printf("Using profile: %s\n", config.Profile)
+		}
 		if err := startProjectEnvironment(cmd, config, cwd, composePath, args[1:]); err != nil {
 			return err
 		}
@@ -116,6 +119,9 @@ func proxyEnvToCompose(cmd *cobra.Command, args []string) error {
 		fmt.Println()
 		pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Println(" Restarting Govard Project ")
 		fmt.Println()
+		if config.Profile != "" {
+			pterm.Info.Printf("Using profile: %s\n", config.Profile)
+		}
 		if err := proxyEnvToCompose(cmd, []string{"stop"}); err != nil {
 			return err
 		}

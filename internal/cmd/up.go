@@ -46,6 +46,8 @@ Case Studies:
 	RunE: runUpCommand,
 }
 
+var upCmdSkipSuccessMessage bool // Set by profile switch to suppress duplicate success
+
 const defaultUpReadinessTimeout = 90 * time.Second
 
 var upReadinessProbeInterval = 1500 * time.Millisecond
@@ -165,6 +167,9 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 				}
 				context.Compose = engine.ComposeFilePathWithProfile(context.Cwd, context.Config.ProjectName, context.Profile)
 				pterm.Info.Printf("Loaded config layers: %d\n", len(context.Loaded))
+				if context.Profile != "" {
+					pterm.Info.Printf("Using profile: %s\n", context.Profile)
+				}
 				lockWarnings, lockErr := evaluateUpLockPolicy(context.Cwd, context.Config, context.UpdateLock)
 				for _, warning := range lockWarnings {
 					pterm.Warning.Println(warning)
@@ -756,13 +761,15 @@ func runUpCommand(cmd *cobra.Command, args []string) (err error) {
 	startedAt := time.Now()
 
 	quickstart, _ := cmd.Flags().GetBool("quickstart")
-	profile, _ := cmd.Flags().GetString("profile")
+	explicitProfile, _ := cmd.Flags().GetString("profile")
 	pull, _ := cmd.Flags().GetBool("pull")
 	fallbackLocalBuild := boolFlagOrDefault(cmd, "fallback-local-build", true)
 	removeOrphans, _ := cmd.Flags().GetBool("remove-orphans")
 	forceRecreate, _ := cmd.Flags().GetBool("force-recreate")
 	updateLock, _ := cmd.Flags().GetBool("update-lock")
 	cwd, _ := os.Getwd()
+	// Resolve profile: explicit flag > project registry (last-used) > empty (default)
+	profile := engine.ResolveEffectiveProfile(cwd, explicitProfile)
 	context := upRuntimeContext{
 		Cwd:           cwd,
 		Profile:       profile,
@@ -801,7 +808,11 @@ func runUpCommand(cmd *cobra.Command, args []string) (err error) {
 	if refreshErr := refreshCrossProjectRuntimeHosts(cmd.Context(), cwd, context.Config, context.Out, context.Err); refreshErr != nil {
 		pterm.Warning.Printf("Could not refresh cross-project runtime hosts: %v\n", refreshErr)
 	}
-	pterm.Success.Printf("Environment is up and running at https://%s\n", context.Config.Domain)
+	// Only print success if not called from profile switch (it handles its own message)
+	if !upCmdSkipSuccessMessage {
+		pterm.Success.Printf("Environment is up and running at https://%s\n", context.Config.Domain)
+	}
+	upCmdSkipSuccessMessage = false // Reset for next run
 	return nil
 }
 

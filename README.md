@@ -474,7 +474,7 @@ Common command aliases:
 | `govard sync`        | Synchronize files, media, and databases between environments       |
 | `govard status`      | List running project environments across workspace                 |
 | `govard doctor`      | Run system diagnostics (including compose directory saturation) and remediation helpers |
-| `govard config`      | Manage `.govard.yml` configuration from CLI                        |
+| `govard config`      | Manage `.govard.yml` configuration from CLI (`auto`, `profile`)      |
 | `govard deploy`      | Run deploy lifecycle hooks (pre/post deploy)                      |
 | `govard snapshot`    | Manage local snapshots for database and media                      |
 | `govard lock`        | Generate and validate `govard.lock` snapshots                      |

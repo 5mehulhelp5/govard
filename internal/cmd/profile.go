@@ -3,7 +3,9 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
+	"os/exec"
 	"strings"
 
 	"govard/internal/engine"
@@ -16,6 +18,7 @@ var (
 	profileFrameworkOverride string
 	profileVersionOverride   string
 	profileJSONOutput        bool
+	profileSkipTuningPrompt  bool // Prevents re-entry during nested up calls
 )
 
 type profileDetectedPayload struct {
@@ -51,7 +54,7 @@ type profileOutputPayload struct {
 
 var profileCmd = &cobra.Command{
 	Use:   "profile",
-	Short: "Show recommended runtime profile for the detected framework",
+	Short: "Manage environment profiles (show, switch, apply, clear)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		metadata, result, err := resolveProfileForCurrentProject()
 		if err != nil {
@@ -146,9 +149,36 @@ var profileApplyCmd = &cobra.Command{
 	},
 }
 
+var profileSwitchCmd = &cobra.Command{
+	Use:   "switch [profile_name]",
+	Short: "Switch to a different environment profile",
+	Long: `Switches the active environment profile for the current project.
+The profile name is persisted per-project in ~/.govard/projects.json.
+
+When called without an argument, shows an interactive profile selector.
+When called with a profile name, switches directly.
+
+Use "govard config profile clear" to reset to default profile.`,
+	Example: `  # Interactive profile selection
+  govard config profile switch
+
+  # Switch directly to a profile
+  govard config profile switch upgrade`,
+	RunE: runProfileSwitch,
+}
+
+var profileClearCmd = &cobra.Command{
+	Use:   "clear",
+	Short: "Reset to default profile (clears saved profile)",
+	Long:  `Clears the saved profile, reverting to the default (no profile) behavior.`,
+	RunE:  runProfileClear,
+}
+
 func init() {
 	registerProfileFlags(profileCmd)
 	profileCmd.AddCommand(profileApplyCmd)
+	profileCmd.AddCommand(profileSwitchCmd)
+	profileCmd.AddCommand(profileClearCmd)
 	configCmd.AddCommand(profileCmd)
 }
 
@@ -220,4 +250,185 @@ func buildProfileOutputPayload(metadata engine.ProjectMetadata, result engine.Ru
 		Notes:    notes,
 		Warnings: warnings,
 	}
+}
+
+// detectAvailableProfiles finds all .govard.<name>.yml files in the project root.
+func detectAvailableProfiles(projectRoot string) []string {
+	entries, err := os.ReadDir(projectRoot)
+	if err != nil {
+		return nil
+	}
+
+	var profiles []string
+	prefix := ".govard."
+	suffix := ".yml"
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if strings.HasPrefix(name, prefix) && strings.HasSuffix(name, suffix) && len(name) > len(prefix+suffix) {
+			profile := strings.TrimSuffix(strings.TrimPrefix(name, prefix), suffix)
+			// Skip special files
+			if profile == "local" || profile == "project.local" || profile == "compose" {
+				continue
+			}
+			profiles = append(profiles, profile)
+		}
+	}
+	return profiles
+}
+
+// runProfileSwitch handles the profile switch command.
+func runProfileSwitch(cmd *cobra.Command, args []string) error {
+	cwd, _ := os.Getwd()
+
+	// 1. Determine profile name
+	var profileName string
+	if len(args) > 0 {
+		profileName = args[0]
+	} else {
+		// Interactive mode
+		profiles := detectAvailableProfiles(cwd)
+		if len(profiles) == 0 {
+			pterm.Warning.Println("No profile files (.govard.<name>.yml) found in this project.")
+			return nil
+		}
+
+		selected, err := pterm.DefaultInteractiveSelect.
+			WithOptions(profiles).
+			Show("Select a profile to switch to")
+		if err != nil || selected == "" {
+			return fmt.Errorf("profile selection cancelled")
+		}
+		profileName = selected
+	}
+
+	// Validate profile exists (or is empty for default)
+	if profileName != "" {
+		profilePath := fmt.Sprintf("%s/.govard.%s.yml", cwd, profileName)
+		if _, err := os.Stat(profilePath); os.IsNotExist(err) {
+			return fmt.Errorf("profile %q not found (expected file: %s)", profileName, profilePath)
+		}
+	}
+
+	// 2. Update project registry with new profile
+	// Empty profileName means "use default" - clear the saved profile
+	entry := engine.ProjectRegistryEntry{
+		Path:    cwd,
+		Profile: profileName,
+	}
+	if err := engine.UpsertProjectRegistryEntry(entry); err != nil {
+		return fmt.Errorf("save profile to registry: %w", err)
+	}
+
+	// 3. Update .govard.lock with new profile (preserve other fields)
+	lockPath := engine.LockFilePath(cwd)
+	if existingLock, err := engine.ReadLockFile(lockPath); err == nil {
+		existingLock.Project.Profile = profileName
+		if err := engine.WriteLockFile(lockPath, existingLock); err != nil {
+			pterm.Warning.Printf("Could not update .govard.lock: %v\n", err)
+		}
+	}
+
+	// 4. Optionally run profile tuning
+	tuningTriggered := askProfileTuning(cwd, profileName, cmd.OutOrStdout(), cmd.ErrOrStderr())
+	if tuningTriggered {
+		return nil // Success message printed by askProfileTuning
+	}
+
+	// Print success if tuning wasn't triggered
+	pterm.Success.Printf("Switched to profile %q\n", profileName)
+	return nil
+}
+
+// askProfileTuning prompts user to run framework profile tuning if needed.
+// Returns true if environment was started, false otherwise.
+func askProfileTuning(cwd, profileName string, out, errOut io.Writer) bool {
+	// Skip if already in a nested call (e.g., from up command)
+	if profileSkipTuningPrompt {
+		return false
+	}
+
+	config, _, err := engine.LoadConfigFromDirWithProfile(cwd, false, "")
+	if err != nil || config.Framework == "" || config.Framework == "generic" {
+		return false
+	}
+
+	metadata := engine.DetectFramework(cwd)
+	version := strings.TrimSpace(metadata.Version)
+	if version == "" {
+		version = strings.TrimSpace(config.FrameworkVersion)
+	}
+
+	profileResult, err := engine.ResolveRuntimeProfile(config.Framework, version)
+	if err != nil {
+		return false
+	}
+
+	// Check if tuning is needed
+	normalized := config
+	engine.NormalizeConfig(&normalized, cwd)
+	needsTuning := (profileResult.Profile.PHPVersion != "" && normalized.Stack.PHPVersion != profileResult.Profile.PHPVersion) ||
+		(profileResult.Profile.DBVersion != "" && normalized.Stack.DBVersion != profileResult.Profile.DBVersion)
+
+	if needsTuning {
+		fmt.Println()
+		pterm.Warning.Println("Detected profile mismatch with framework recommendations.")
+		fmt.Println("Profile tuning will run automatically when the environment starts.")
+		proceed, _ := pterm.DefaultInteractiveConfirm.
+			WithDefaultValue(false).
+			WithDefaultText("Do you want to start the environment now?").
+			Show("Start environment with the new profile?")
+		if proceed {
+			// Set flag to prevent re-entry during up command
+			profileSkipTuningPrompt = true
+			// Skip up command's success message since we print our own
+			upCmdSkipSuccessMessage = true
+
+			// Run env up to start the environment (tuning happens via ConfigureMagento)
+			// Use subprocess to get full output like running "govard env up"
+			executablePath, _ := os.Executable()
+			command := exec.Command(executablePath, "env", "up")
+			command.Dir = cwd
+			command.Stdin = os.Stdin
+			command.Stdout = out
+			command.Stderr = errOut
+			if err := command.Run(); err != nil {
+				fmt.Fprintf(errOut, "Warning: env up returned error: %v\n", err)
+			}
+
+			// Reset flags after up completes
+			profileSkipTuningPrompt = false
+			upCmdSkipSuccessMessage = false
+
+			return true
+		}
+	}
+	return false
+}
+
+func runProfileClear(cmd *cobra.Command, args []string) error {
+	cwd, _ := os.Getwd()
+
+	// Clear profile from project registry
+	entry := engine.ProjectRegistryEntry{
+		Path:    cwd,
+		Profile: "",
+	}
+	if err := engine.UpsertProjectRegistryEntry(entry); err != nil {
+		return fmt.Errorf("clear profile from registry: %w", err)
+	}
+
+	// Clear profile from lock file
+	lockPath := engine.LockFilePath(cwd)
+	if existingLock, err := engine.ReadLockFile(lockPath); err == nil {
+		existingLock.Project.Profile = ""
+		if err := engine.WriteLockFile(lockPath, existingLock); err != nil {
+			pterm.Warning.Printf("Could not update .govard.lock: %v\n", err)
+		}
+	}
+
+	pterm.Success.Println("Profile reset to default")
+	return nil
 }
