@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.53.1] - 2026-06-02
+
+### ✨ New Features
+
+- **Profile Switch Command:** `govard config profile switch <name>` to switch between environment profiles. Profiles are persisted per-project in `~/.govard/projects.json`.
+- **Profile Clear Command:** `govard config profile clear` to reset to default profile.
+- **Profile Display:** Shows active profile when running `env up/start/restart`.
+
+### 🔄 Refactors
+
+- **Profile Resolution:** Profile priority: `--profile` flag > project registry (last-used) > empty (default).
+- **Subprocess Output:** Profile switch now runs `govard env up` as subprocess to show full startup output.
+
+### 🐛 Bug Fixes
+
+- **Duplicate Success Message:** Fixed duplicate success message when profile switch starts environment.
+- **Profile Tuning Prompts:** Fixed profile tuning prompts not showing proper output.
+
+### 📚 Documentation
+
+- Updated CLI commands documentation with profile switch/clear commands.
+- Updated configuration reference with profile commands.
+- Updated design spec.
+
 ## [1.53.0] - 2026-06-01
 
 ### ✨ New Features
