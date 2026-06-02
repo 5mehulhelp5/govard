@@ -322,16 +322,10 @@ func runProfileSwitch(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("save profile to registry: %w", err)
 	}
 
-	// 3. Update .govard.lock with new profile (preserve other fields)
-	lockPath := engine.LockFilePath(cwd)
-	if existingLock, err := engine.ReadLockFile(lockPath); err == nil {
-		existingLock.Project.Profile = profileName
-		if err := engine.WriteLockFile(lockPath, existingLock); err != nil {
-			pterm.Warning.Printf("Could not update .govard.lock: %v\n", err)
-		}
-	}
+	// Note: Don't update .govard.lock here - let env up handle it after detecting shift
+	// This ensures DetectProfileShift can compare old vs new profile correctly
 
-	// 4. Optionally run profile tuning
+	// 3. Optionally run profile tuning
 	tuningTriggered := askProfileTuning(cwd, profileName, cmd.OutOrStdout(), cmd.ErrOrStderr())
 	if tuningTriggered {
 		return nil // Success message printed by askProfileTuning
