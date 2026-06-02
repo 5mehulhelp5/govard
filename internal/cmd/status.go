@@ -30,14 +30,20 @@ var statusCmd = &cobra.Command{
 		fmt.Println()
 
 		tableData := pterm.TableData{
-			{"Project", "Status", "Domain"},
+			{"Project", "Status", "Domain", "Profile"},
 		}
 
 		for _, project := range running {
 			domain := project + ".test"
+			profile := "-"
 			for _, entry := range entries {
-				if entry.ProjectName == project && entry.Domain != "" {
-					domain = entry.Domain
+				if entry.ProjectName == project {
+					if entry.Domain != "" {
+						domain = entry.Domain
+					}
+					if entry.Profile != "" {
+						profile = entry.Profile
+					}
 					break
 				}
 			}
@@ -46,6 +52,7 @@ var statusCmd = &cobra.Command{
 				pterm.Magenta(project),
 				pterm.Green("Running"),
 				domain,
+				pterm.Cyan(profile),
 			})
 		}
 

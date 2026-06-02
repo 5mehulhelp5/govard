@@ -56,6 +56,23 @@ var profileCmd = &cobra.Command{
 	Use:   "profile",
 	Short: "Manage environment profiles (show, switch, apply, clear)",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		cwd, _ := os.Getwd()
+		out := cmd.OutOrStdout()
+
+		// Header with active profile
+		fmt.Println()
+		pterm.NewStyle(pterm.BgLightBlue, pterm.FgBlack, pterm.Bold).Println(" Profile Status ")
+		fmt.Println()
+
+		// Show current active profile from registry
+		if entry, ok := engine.GetProjectRegistryEntry(cwd); ok {
+			if entry.Profile != "" {
+				fmt.Fprintf(out, "Active: %s\n", pterm.Cyan(entry.Profile))
+			} else {
+				fmt.Fprintf(out, "Active: %s\n", pterm.Gray("(default)"))
+			}
+		}
+
 		metadata, result, err := resolveProfileForCurrentProject()
 		if err != nil {
 			return err
@@ -68,44 +85,52 @@ var profileCmd = &cobra.Command{
 			return encoder.Encode(payload)
 		}
 
-		out := cmd.OutOrStdout()
-		fmt.Fprintf(out, "Detected framework: %s\n", metadata.Framework)
+		fmt.Fprintf(out, "Framework: %s", pterm.Magenta(metadata.Framework))
 		if metadata.Version != "" {
-			fmt.Fprintf(out, "Detected framework version: %s\n", metadata.Version)
-		} else {
-			fmt.Fprintln(out, "Detected framework version: (not detected)")
+			fmt.Fprintf(out, " (%s)", metadata.Version)
 		}
-		fmt.Fprintf(out, "Profile source: %s\n", result.Source)
 		fmt.Fprintln(out, "")
-		fmt.Fprintln(out, "Recommended Govard profile:")
-		fmt.Fprintf(out, "  framework: %s\n", result.Profile.Framework)
+
+		pterm.DefaultSection.WithLevel(2).Println("Recommended Profile")
+
+		tableData := pterm.TableData{
+			{"Setting", "Value"},
+		}
+
+		addRow := func(label, value string) {
+			tableData = append(tableData, []string{label, value})
+		}
+
+		addRow("Framework", result.Profile.Framework)
 		if result.Profile.FrameworkVersion != "" {
-			fmt.Fprintf(out, "  framework_version: %s\n", result.Profile.FrameworkVersion)
+			addRow("Framework Version", result.Profile.FrameworkVersion)
 		}
-		fmt.Fprintf(out, "  stack.php_version: %s\n", result.Profile.PHPVersion)
+		addRow("PHP Version", result.Profile.PHPVersion)
 		if result.Profile.NodeVersion != "" {
-			fmt.Fprintf(out, "  stack.node_version: %s\n", result.Profile.NodeVersion)
+			addRow("Node Version", result.Profile.NodeVersion)
 		}
-		fmt.Fprintf(out, "  stack.services.db: %s\n", result.Profile.DB)
+		addRow("Database", result.Profile.DB)
 		if result.Profile.DBVersion != "" {
-			fmt.Fprintf(out, "  stack.db_version: %s\n", result.Profile.DBVersion)
+			addRow("DB Version", result.Profile.DBVersion)
 		}
 		if result.Profile.WebRoot != "" {
-			fmt.Fprintf(out, "  stack.web_root: %s\n", result.Profile.WebRoot)
+			addRow("Web Root", result.Profile.WebRoot)
 		}
-		fmt.Fprintf(out, "  stack.services.web_server: %s\n", result.Profile.WebServer)
-		fmt.Fprintf(out, "  stack.services.cache: %s\n", result.Profile.Cache)
+		addRow("Web Server", result.Profile.WebServer)
+		addRow("Cache", result.Profile.Cache)
 		if result.Profile.CacheVersion != "" {
-			fmt.Fprintf(out, "  stack.cache_version: %s\n", result.Profile.CacheVersion)
+			addRow("Cache Version", result.Profile.CacheVersion)
 		}
-		fmt.Fprintf(out, "  stack.services.search: %s\n", result.Profile.Search)
+		addRow("Search", result.Profile.Search)
 		if result.Profile.SearchVersion != "" {
-			fmt.Fprintf(out, "  stack.search_version: %s\n", result.Profile.SearchVersion)
+			addRow("Search Version", result.Profile.SearchVersion)
 		}
-		fmt.Fprintf(out, "  stack.services.queue: %s\n", result.Profile.Queue)
+		addRow("Queue", result.Profile.Queue)
 		if result.Profile.QueueVersion != "" {
-			fmt.Fprintf(out, "  stack.queue_version: %s\n", result.Profile.QueueVersion)
+			addRow("Queue Version", result.Profile.QueueVersion)
 		}
+
+		_ = pterm.DefaultTable.WithHasHeader().WithData(tableData).Render()
 
 		if len(result.Notes) > 0 {
 			fmt.Fprintln(out, "")
