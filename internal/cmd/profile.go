@@ -352,7 +352,11 @@ func runProfileSwitch(cmd *cobra.Command, args []string) error {
 	}
 
 	// Print success if tuning wasn't triggered
-	pterm.Success.Printf("Switched to profile %q\n", profileName)
+	if profileName == "" {
+		pterm.Success.Println("Switched to default profile (no profile)")
+	} else {
+		pterm.Success.Printf("Switched to profile %q\n", profileName)
+	}
 	return nil
 }
 
