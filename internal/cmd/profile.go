@@ -134,16 +134,16 @@ var profileCmd = &cobra.Command{
 
 		if len(result.Notes) > 0 {
 			fmt.Fprintln(out, "")
-			fmt.Fprintln(out, "Notes:")
+			pterm.Warning.Println("Notes:")
 			for _, note := range result.Notes {
-				fmt.Fprintf(out, "  - %s\n", note)
+				fmt.Fprintf(out, "  • %s\n", note)
 			}
 		}
 		if len(result.Warnings) > 0 {
 			fmt.Fprintln(out, "")
-			fmt.Fprintln(out, "Warnings:")
+			pterm.Warning.Println("Warnings:")
 			for _, warning := range result.Warnings {
-				fmt.Fprintf(out, "  - %s\n", warning)
+				fmt.Fprintf(out, "  • %s\n", warning)
 			}
 		}
 
