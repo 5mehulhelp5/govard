@@ -74,6 +74,12 @@ func runBootstrapRemote(cmd *cobra.Command, config engine.Config, opts Bootstrap
 				pterm.Warning.Printf("Could not verify/fix composer compatibility: %v\n", err)
 			}
 
+			if config.Framework == "wordpress" {
+				if err := FixWordPressCompatibility(config); err != nil {
+					pterm.Warning.Printf("Could not verify/fix WordPress compatibility: %v\n", err)
+				}
+			}
+
 			if err := ensureBootstrapAuthJSON(config, opts); err != nil {
 				return err
 			}

@@ -321,6 +321,12 @@ func runBootstrapFreshInstall(cmd *cobra.Command, config engine.Config, opts Boo
 		return err
 	}
 
+	if config.Framework == "wordpress" {
+		if err := FixWordPressCompatibility(config); err != nil {
+			return err
+		}
+	}
+
 	if err := runBootstrapFreshCreateProject(cmd, config, opts); err != nil {
 		return err
 	}
