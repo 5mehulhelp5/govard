@@ -413,6 +413,20 @@ _Note: Once trusted, all `*.test` domains managed by Govard will show a "Green L
 
 ---
 
+## 🌍 Global Services
+
+Built-in services shared across all projects:
+
+| Service | URL | Credentials |
+| :--- | :--- | :--- |
+| **Mailpit** | `https://mail.govard.test` | No auth; SMTP: `mail:1025` |
+| **PHPMyAdmin** | `https://pma.govard.test` | Project DB credentials |
+| **Portainer** | `https://portainer.govard.test` | `admin` / `AdminGovard123$` |
+
+CLI shortcuts: `govard open mail`, `govard open db`, `govard open portainer`
+
+---
+
 ## Project Structure
 
 ```text

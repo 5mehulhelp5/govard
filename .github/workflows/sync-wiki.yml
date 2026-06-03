@@ -66,6 +66,7 @@ jobs:
               -e 's|/reference/configuration|Configuration|g' \
               -e 's|/reference/frameworks|Frameworks|g' \
               -e 's|/workflows/remotes-and-sync|Remotes-and-Sync|g' \
+              -e 's|/workflows/global-services|Global-Services|g' \
               -e 's|/workflows/ssl-and-domains|SSL-and-Domains|g' \
               -e 's|/workflows/desktop-app|Desktop-App|g' \
               -e 's|/developer/architecture|Architecture|g' \
@@ -210,6 +211,7 @@ jobs:
 
           ### 🔗 Workflows
           - [Remotes and Sync](Remotes-and-Sync)
+          - [Global Services](Global-Services)
           - [SSL and Domains](SSL-and-Domains)
           - [Desktop App](Desktop-App)
 
