@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.54.0] - 2026-06-03
+
+### ✨ New Features
+
+- **Global Services Section:** Added comprehensive documentation for built-in services (Mailpit, PHPMyAdmin, Portainer) with CLI shortcuts (`govard open mail`, `govard open db`, `govard open portainer`).
+- **WordPress Support:** Added WordPress compatibility checks and WP-CLI installation during bootstrap.
+- **Vietnamese Documentation:** Complete Vietnamese translations for getting started, reference guides, workflows, and FAQ sections.
+- **Enhanced Profile Display:** Profile information is now shown in `profile` and `status` commands with improved formatting and feedback.
+- **Previous Profile Handling:** Profile switching now tracks and handles previous profile state for better environment transitions.
+
+### 🛠 Improvements
+
+- **Profile Switch Feedback:** Improved feedback when switching to the default profile.
+- **Lock File Update:** Deferred lock file updates to allow proper profile shift detection.
+- **Documentation Sync:** Updated workflow documentation and wiki sync automation.
+
+### 🐛 Bug Fixes
+
+- **Profile Shift Detection:** Fixed issue where profile shift was not detected due to premature lock file updates.
+
+### 📚 Documentation
+
+- Added Global Services documentation section to README.md.
+- Complete Vietnamese documentation across 10+ files.
+- Updated CLI commands reference with Global Services section.
+- Enhanced workflow documentation for remotes, sync, SSL, and desktop app.
+
 ## [1.53.1] - 2026-06-02
 
 ### ✨ New Features
