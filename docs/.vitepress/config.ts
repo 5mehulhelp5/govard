@@ -164,6 +164,7 @@ function sidebarEn() {
         items: [
           { text: 'Remotes & Sync', link: '/workflows/remotes-and-sync' },
           { text: 'SSL & Domains', link: '/workflows/ssl-and-domains' },
+          { text: 'Global Services', link: '/workflows/global-services' },
           { text: 'Desktop App', link: '/workflows/desktop-app' },
         ],
       },
@@ -217,6 +218,7 @@ function sidebarVi() {
         items: [
           { text: 'Remote & Đồng bộ', link: '/vi/workflows/remotes-and-sync' },
           { text: 'SSL & Tên miền', link: '/vi/workflows/ssl-and-domains' },
+          { text: 'Dịch vụ toàn cục', link: '/vi/workflows/global-services' },
           { text: 'Ứng dụng Desktop', link: '/vi/workflows/desktop-app' },
         ],
       },

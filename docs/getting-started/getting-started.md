@@ -115,17 +115,41 @@ govard shell
 
 ---
 
-## 5. Open Your App
+## 5. Access Your App and Global Services
 
-Govard routes project domains through the shared Caddy proxy:
+Govard routes project domains through the shared Caddy proxy and provides built-in services for development:
 
-| Target | Command |
-| :--- | :--- |
-| App URL | `https://<project>.test` in browser |
-| Admin panel | `govard open admin` |
-| Mail (Mailpit) | `govard open mail` |
-| Database (PHPMyAdmin) | `govard open db` |
-| Database client URL | `govard open db --client` |
+### Project URLs
+
+| Target | URL | Command |
+| :--- | :--- | :--- |
+| App URL | `https://<project>.test` | Open in browser |
+| Admin panel | `https://<project>.test/admin` | `govard open admin` |
+| Mail testing | `https://mail.govard.test` | `govard open mail` |
+| Database admin | `https://pma.govard.test` | `govard open db` |
+| Docker management | `https://portainer.govard.test` | `govard open portainer` |
+
+### Global Services Credentials
+
+| Service | URL | Credentials |
+| :--- | :--- | :--- |
+| Portainer | `https://portainer.govard.test` | `admin` / `AdminGovard123$` |
+| PHPMyAdmin | `https://pma.govard.test` | Use project's DB credentials |
+| Mailpit | `https://mail.govard.test` | No login required |
+
+### Quick Commands
+
+```bash
+# Open services
+govard open mail     # Mailpit
+govard open db       # PHPMyAdmin
+govard open admin    # Project admin panel
+
+# Manage global services
+govard svc up        # Start all global services
+govard svc down      # Stop all global services
+govard svc ps        # View service status
+```
 
 ---
 
