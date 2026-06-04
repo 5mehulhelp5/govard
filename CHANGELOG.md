@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.54.1] - 2026-06-04
+
+### ✨ New Features
+
+- **Magento Tuning Prompt:** Added interactive prompt asking user before running Magento auto-configuration during `env up`. Users can now choose whether to run tuning or skip it.
+- **Profile Switch Warning:** Added warning message after profile switch to remind users to restart the environment.
+
+### 🛠 Improvements
+
+- **Simplified Profile Switch:** Profile switch now only switches the profile without auto-starting the environment. Users run `govard env up` manually after switching.
+- **Framework-Agnostic Tuning Flag:** Renamed `--skip-magento-tuning` to `--no-tuning` to be framework-agnostic.
+- **Profile Shift Detection:** Fixed false profile shift detection when config file doesn't have a `profile:` field. Now uses registry's Profile instead.
+
+### 🐛 Bug Fixes
+
+- **Missing Warning on Default Profile Switch:** Fixed issue where warning was not shown when switching from default (empty) profile to a named profile.
+
+### 📚 Documentation
+
+- Updated CLI commands documentation with `--no-tuning` flag.
+- Updated Vietnamese CLI commands documentation.
+
 ## [1.54.0] - 2026-06-03
 
 ### ✨ New Features
