@@ -28,13 +28,11 @@ type ProfileShiftInfo struct {
 // profile change compared to the last known state (lock file or registry).
 // This is intended to be called early in the pipeline, before containers start.
 func DetectProfileShift(config Config) ProfileShiftInfo {
-	shifted, reason := checkProfileShiftCleanup(config)
-	if !shifted {
-		return ProfileShiftInfo{}
-	}
-
 	cwd, _ := os.Getwd()
 	previousPHP, previousProfile, previousVersion := "", "", ""
+	// currentProfile will be set from registry when PreviousProfile exists,
+	// otherwise from config at the end. Default to "default" for empty profile.
+	currentProfile := ""
 	isInitial := false
 
 	// Check registry first for previous_profile (set during profile switch)
@@ -45,6 +43,15 @@ func DetectProfileShift(config Config) ProfileShiftInfo {
 			previousProfile = prevProfile
 			previousPHP = strings.TrimSpace(entry.PHPVersion)
 			previousVersion = strings.TrimSpace(entry.FrameworkVersion)
+			// When using PreviousProfile, currentProfile should come from registry
+			// (config file may not have profile field, causing false shift detection)
+			currentProfile = strings.TrimSpace(entry.Profile)
+			if currentProfile == "" {
+				currentProfile = "default"
+			}
+			if previousProfile == "" {
+				previousProfile = "default"
+			}
 		} else {
 			// No previous_profile, check current profile in registry
 			// for potential PHP version or profile change
@@ -74,15 +81,46 @@ func DetectProfileShift(config Config) ProfileShiftInfo {
 		}
 	}
 
+	currentPHP := strings.TrimSpace(config.Stack.PHPVersion)
+	// Only override currentProfile from config if not already set from registry
+	if currentProfile == "" {
+		currentProfile = strings.TrimSpace(config.Profile)
+	}
+	currentVersion := strings.TrimSpace(config.FrameworkVersion)
+
+	// Check for any change: profile, PHP version, or framework version
+	reason := ""
+	shifted := false
+
+	noPreviousInfo := previousPHP == "" && previousProfile == ""
+	if !noPreviousInfo {
+		if previousPHP != "" && currentPHP != "" && previousPHP != currentPHP {
+			shifted = true
+			reason = fmt.Sprintf("PHP version changed: %s -> %s", previousPHP, currentPHP)
+		}
+		if previousProfile != "" && previousProfile != currentProfile {
+			shifted = true
+			reason = fmt.Sprintf("Profile changed: %q -> %q", previousProfile, currentProfile)
+		}
+		if previousVersion != "" && currentVersion != "" && previousVersion != currentVersion {
+			shifted = true
+			reason = fmt.Sprintf("Version changed: %s -> %s", previousVersion, currentVersion)
+		}
+	} else {
+		// Initial configuration
+		shifted = true
+		reason = "Initial configuration"
+	}
+
 	return ProfileShiftInfo{
-		Shifted:         true,
+		Shifted:         shifted,
 		Reason:          reason,
 		PreviousPHP:     previousPHP,
-		CurrentPHP:      strings.TrimSpace(config.Stack.PHPVersion),
+		CurrentPHP:      currentPHP,
 		PreviousProfile: previousProfile,
-		CurrentProfile:  strings.TrimSpace(config.Profile),
+		CurrentProfile:  currentProfile,
 		PreviousVersion: previousVersion,
-		CurrentVersion:  strings.TrimSpace(config.FrameworkVersion),
+		CurrentVersion:  currentVersion,
 		IsInitial:       isInitial,
 	}
 }

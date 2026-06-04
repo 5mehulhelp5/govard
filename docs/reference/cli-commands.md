@@ -137,6 +137,7 @@ govard env cleanup
 | `--remove-orphans` | Remove orphaned containers |
 | `--quickstart` | Fastest startup path |
 | `--update-lock` | Auto-update `govard.lock` on mismatches |
+| `--no-tuning` | Skip framework auto-configuration prompts |
 
 **Files re-rendered on `env up`:**
 - `~/.govard/compose/<project-hash>.yml`
@@ -454,6 +455,8 @@ govard config profile switch          # Interactive selection
 ```
 
 Profile files are stored as `.govard.<name>.yml` in the project root. The selected profile is persisted per-project in `~/.govard/projects.json`.
+
+After switching, run `govard env up` to apply the new environment. You'll be prompted for confirmation when a profile change requires restarting containers.
 
 ### `govard config profile clear`
 

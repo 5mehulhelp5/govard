@@ -37,16 +37,18 @@ The startup process follows these stages:
 Case Studies:
 - Standard Startup: Simply run 'govard env up' to get your full stack running.
 - Low Resource Mode: Use --quickstart if you have limited RAM or only need PHP/Web server.
-- Fresh Install Recovery: If containers are broken, 'govard env up' re-renders and restarts them.`,
+- Fresh Install Recovery: If containers are broken, 'govard env up' re-renders and restarts them.
+- Skip Auto-Configuration: Use --no-tuning to skip framework auto-configuration (Magento, etc.)`,
 	Example: `  # Start the environment normally
   govard env up
 
   # Fast startup: skip heavy services like Elasticsearch, Varnish, Redis
-  govard env up --quickstart`,
+  govard env up --quickstart
+
+  # Start without framework auto-configuration
+  govard env up --no-tuning`,
 	RunE: runUpCommand,
 }
-
-var upCmdSkipSuccessMessage bool // Set by profile switch to suppress duplicate success
 
 const defaultUpReadinessTimeout = 90 * time.Second
 
@@ -123,6 +125,7 @@ type upRuntimeContext struct {
 	RemoveOrphans bool
 	ForceRecreate bool
 	UpdateLock    bool
+	SkipTuning    bool
 	ShiftInfo     *engine.ProfileShiftInfo
 	Out           io.Writer
 	Err           io.Writer
@@ -428,8 +431,26 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 				}
 
 				if context.Config.Framework == "magento2" {
-					if err := engine.ConfigureMagento(context.Config.ProjectName, context.Config, false, context.ShiftInfo); err != nil {
-						pterm.Warning.Printf("Magento auto-configuration failed: %v\n", err)
+					if context.SkipTuning {
+						pterm.Info.Println("Skipping framework auto-configuration (--no-tuning)")
+					} else if context.ShiftInfo != nil && context.ShiftInfo.Shifted && stdinIsTerminal() {
+						// Prompt user for Magento tuning when shift is detected
+						pterm.Info.Println("Magento 2 environment detected.")
+						proceed, _ := pterm.DefaultInteractiveConfirm.
+							WithDefaultValue(true).
+							WithDefaultText("Y = tune now, N = skip tuning").
+							Show("Run Magento auto-configuration?")
+						if proceed {
+							if err := engine.ConfigureMagento(context.Config.ProjectName, context.Config, false, context.ShiftInfo); err != nil {
+								pterm.Warning.Printf("Magento auto-configuration failed: %v\n", err)
+							}
+						} else {
+							pterm.Info.Println("Magento tuning skipped. Run 'govard config auto' to configure later.")
+						}
+					} else {
+						if err := engine.ConfigureMagento(context.Config.ProjectName, context.Config, false, context.ShiftInfo); err != nil {
+							pterm.Warning.Printf("Magento auto-configuration failed: %v\n", err)
+						}
 					}
 				}
 
@@ -781,6 +802,7 @@ func runUpCommand(cmd *cobra.Command, args []string) (err error) {
 	removeOrphans, _ := cmd.Flags().GetBool("remove-orphans")
 	forceRecreate, _ := cmd.Flags().GetBool("force-recreate")
 	updateLock, _ := cmd.Flags().GetBool("update-lock")
+	skipTuning, _ := cmd.Flags().GetBool("no-tuning")
 	cwd, _ := os.Getwd()
 	// Resolve profile: explicit flag > project registry (last-used) > empty (default)
 	profile := engine.ResolveEffectiveProfile(cwd, explicitProfile)
@@ -793,6 +815,7 @@ func runUpCommand(cmd *cobra.Command, args []string) (err error) {
 		RemoveOrphans: removeOrphans,
 		ForceRecreate: forceRecreate,
 		UpdateLock:    updateLock,
+		SkipTuning:    skipTuning,
 		Out:           cmd.OutOrStdout(),
 		Err:           cmd.ErrOrStderr(),
 	}
@@ -822,11 +845,7 @@ func runUpCommand(cmd *cobra.Command, args []string) (err error) {
 	if refreshErr := refreshCrossProjectRuntimeHosts(cmd.Context(), cwd, context.Config, context.Out, context.Err); refreshErr != nil {
 		pterm.Warning.Printf("Could not refresh cross-project runtime hosts: %v\n", refreshErr)
 	}
-	// Only print success if not called from profile switch (it handles its own message)
-	if !upCmdSkipSuccessMessage {
-		pterm.Success.Printf("Environment is up and running at https://%s\n", context.Config.Domain)
-	}
-	upCmdSkipSuccessMessage = false // Reset for next run
+	pterm.Success.Printf("Environment is up and running at https://%s\n", context.Config.Domain)
 	return nil
 }
 
@@ -897,6 +916,7 @@ func addUpFlags(command *cobra.Command) {
 	command.Flags().Bool("remove-orphans", false, "Remove containers for services not defined in the compose file")
 	command.Flags().Bool("force-recreate", false, "Recreate containers even if their configuration and image haven't changed")
 	command.Flags().Bool("update-lock", false, "Automatically update govard.lock if mismatches are found")
+	command.Flags().Bool("no-tuning", false, "Skip framework auto-configuration after environment starts")
 }
 
 func init() {

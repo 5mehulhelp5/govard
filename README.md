@@ -217,10 +217,26 @@ Common root shortcuts are also available for day-to-day lifecycle work:
 
 ### 3. Configure the Stack
 
-Specifically for Magento 2, you can auto-inject the container settings into your application:
+After switching profiles, restart the environment to apply changes:
 
 ```bash
-govard config auto
+govard config profile switch upgrade
+govard env up
+```
+
+When starting the environment after a profile change, you'll be prompted:
+
+```
+Profile shift detected: PHP version changed: 8.2 -> 8.3
+Continue with profile switch? [Y/n]
+...
+Run Magento auto-configuration? [Y/n]
+```
+
+**Control tuning behavior:**
+```bash
+govard env up --no-tuning  # Skip auto-configuration prompts
+govard config auto         # Run manually after environment is up
 ```
 
 ### 4. Enter the Workspace

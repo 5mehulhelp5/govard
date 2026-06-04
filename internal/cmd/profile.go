@@ -3,9 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
-	"os/exec"
 	"strings"
 
 	"govard/internal/engine"
@@ -18,7 +16,6 @@ var (
 	profileFrameworkOverride string
 	profileVersionOverride   string
 	profileJSONOutput        bool
-	profileSkipTuningPrompt  bool // Prevents re-entry during nested up calls
 )
 
 type profileDetectedPayload struct {
@@ -183,7 +180,8 @@ The profile name is persisted per-project in ~/.govard/projects.json.
 When called without an argument, shows an interactive profile selector.
 When called with a profile name, switches directly.
 
-Use "govard config profile clear" to reset to default profile.`,
+Note: After switching, run 'govard env up' to apply the new environment.
+Use 'govard config profile clear' to reset to default profile.`,
 	Example: `  # Interactive profile selection
   govard config profile switch
 
@@ -370,85 +368,20 @@ func runProfileSwitch(cmd *cobra.Command, args []string) error {
 	// Note: Don't update .govard.lock here - let env up handle it after detecting shift
 	// This ensures DetectProfileShift can compare old vs new profile correctly
 
-	// 3. Optionally run profile tuning
-	tuningTriggered := askProfileTuning(cwd, profileName, cmd.OutOrStdout(), cmd.ErrOrStderr())
-	if tuningTriggered {
-		return nil // Success message printed by askProfileTuning
-	}
-
-	// Print success if tuning wasn't triggered
+	// Print success message
 	if profileName == "" {
 		pterm.Success.Println("Switched to default profile (no profile)")
 	} else {
 		pterm.Success.Printf("Switched to profile %q\n", profileName)
 	}
-	return nil
-}
 
-// askProfileTuning prompts user to run framework profile tuning if needed.
-// Returns true if environment was started, false otherwise.
-func askProfileTuning(cwd, profileName string, out, errOut io.Writer) bool {
-	// Skip if already in a nested call (e.g., from up command)
-	if profileSkipTuningPrompt {
-		return false
-	}
-
-	config, _, err := engine.LoadConfigFromDirWithProfile(cwd, false, "")
-	if err != nil || config.Framework == "" || config.Framework == "generic" {
-		return false
-	}
-
-	metadata := engine.DetectFramework(cwd)
-	version := strings.TrimSpace(metadata.Version)
-	if version == "" {
-		version = strings.TrimSpace(config.FrameworkVersion)
-	}
-
-	profileResult, err := engine.ResolveRuntimeProfile(config.Framework, version)
-	if err != nil {
-		return false
-	}
-
-	// Check if tuning is needed
-	normalized := config
-	engine.NormalizeConfig(&normalized, cwd)
-	needsTuning := (profileResult.Profile.PHPVersion != "" && normalized.Stack.PHPVersion != profileResult.Profile.PHPVersion) ||
-		(profileResult.Profile.DBVersion != "" && normalized.Stack.DBVersion != profileResult.Profile.DBVersion)
-
-	if needsTuning {
+	// Warn user to restart environment if profile actually changed
+	// Show warning when switching to/from default (empty) profile, or between profiles
+	if previousProfile != profileName {
 		fmt.Println()
-		pterm.Warning.Println("Detected profile mismatch with framework recommendations.")
-		fmt.Println("Profile tuning will run automatically when the environment starts.")
-		proceed, _ := pterm.DefaultInteractiveConfirm.
-			WithDefaultValue(false).
-			WithDefaultText("Do you want to start the environment now?").
-			Show("Start environment with the new profile?")
-		if proceed {
-			// Set flag to prevent re-entry during up command
-			profileSkipTuningPrompt = true
-			// Skip up command's success message since we print our own
-			upCmdSkipSuccessMessage = true
-
-			// Run env up to start the environment (tuning happens via ConfigureMagento)
-			// Use subprocess to get full output like running "govard env up"
-			executablePath, _ := os.Executable()
-			command := exec.Command(executablePath, "env", "up")
-			command.Dir = cwd
-			command.Stdin = os.Stdin
-			command.Stdout = out
-			command.Stderr = errOut
-			if err := command.Run(); err != nil {
-				fmt.Fprintf(errOut, "Warning: env up returned error: %v\n", err)
-			}
-
-			// Reset flags after up completes
-			profileSkipTuningPrompt = false
-			upCmdSkipSuccessMessage = false
-
-			return true
-		}
+		pterm.Warning.Println("Profile changed. Run 'govard env up' to apply the new environment.")
 	}
-	return false
+	return nil
 }
 
 func runProfileClear(cmd *cobra.Command, args []string) error {
@@ -470,12 +403,10 @@ func runProfileClear(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("clear profile from registry: %w", err)
 	}
 
-	// Optionally run profile tuning (same logic as profile switch)
-	tuningTriggered := askProfileTuning(cwd, "", cmd.OutOrStdout(), cmd.ErrOrStderr())
-	if tuningTriggered {
-		return nil // Success message printed by askProfileTuning
-	}
-
 	pterm.Success.Println("Profile reset to default")
+
+	// Warn user to restart environment
+	fmt.Println()
+	pterm.Warning.Println("Profile changed. Run 'govard env up' to apply the new environment.")
 	return nil
 }

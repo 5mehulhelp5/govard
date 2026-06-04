@@ -289,12 +289,13 @@ stack:
 		t.Fatal(err)
 	}
 
-	// Set up registry with previous_profile
+	// Set up registry simulating switch FROM staging TO upgrade
+	// After switch: Profile=upgrade (new), PreviousProfile=staging (old)
 	entry := engine.ProjectRegistryEntry{
 		Path:            tempDir,
-		Profile:         "staging",
-		PreviousProfile: "upgrade",
-		PHPVersion:      "8.3",
+		Profile:         "upgrade", // Switched TO this
+		PreviousProfile: "staging", // Switched FROM this
+		PHPVersion:      "8.2",
 	}
 	if err := engine.UpsertProjectRegistryEntry(entry); err != nil {
 		t.Fatal(err)
@@ -314,11 +315,73 @@ stack:
 	if !shiftInfo.Shifted {
 		t.Fatal("expected profile shift to be detected")
 	}
-	if shiftInfo.PreviousProfile != "upgrade" {
-		t.Fatalf("expected previous_profile 'upgrade', got %q", shiftInfo.PreviousProfile)
+	if shiftInfo.PreviousProfile != "staging" {
+		t.Fatalf("expected previous_profile 'staging', got %q", shiftInfo.PreviousProfile)
 	}
 	if shiftInfo.CurrentProfile != "upgrade" {
 		t.Fatalf("expected current_profile 'upgrade', got %q", shiftInfo.CurrentProfile)
+	}
+}
+
+func TestDetectProfileShiftWhenOnlyPHPVersionChanges(t *testing.T) {
+	// This test verifies that profile shift is detected when PHP version changes
+	// even if the profile name stays the same (the bug we fixed)
+	tempDir := t.TempDir()
+
+	// Create base config with same profile but different PHP version
+	baseConfig := `project_name: test-project
+domain: test.test
+profile: staging
+stack:
+  php_version: "8.3"
+`
+	if err := os.WriteFile(filepath.Join(tempDir, ".govard.yml"), []byte(baseConfig), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Set registry path for test
+	registryPath := filepath.Join(tempDir, "projects.json")
+	t.Setenv(engine.ProjectRegistryPathEnvVar, registryPath)
+
+	cwd, _ := os.Getwd()
+	defer func() { _ = os.Chdir(cwd) }()
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatal(err)
+	}
+
+	// Set up registry with previous PHP version
+	entry := engine.ProjectRegistryEntry{
+		Path:            tempDir,
+		Profile:         "staging", // Same profile name
+		PreviousProfile: "",        // No previous_profile set
+		PHPVersion:      "8.2",     // Old PHP version
+	}
+	if err := engine.UpsertProjectRegistryEntry(entry); err != nil {
+		t.Fatal(err)
+	}
+
+	// Now simulate config load with new PHP version but same profile
+	config := engine.Config{
+		ProjectName: "test-project",
+		Profile:     "staging", // Same profile
+		Stack: engine.Stack{
+			PHPVersion: "8.3", // New PHP version
+		},
+	}
+
+	// DetectProfileShift should detect PHP version change
+	shiftInfo := engine.DetectProfileShift(config)
+	if !shiftInfo.Shifted {
+		t.Fatal("expected profile shift to be detected when PHP version changes")
+	}
+	if shiftInfo.PreviousPHP != "8.2" {
+		t.Fatalf("expected previous_php '8.2', got %q", shiftInfo.PreviousPHP)
+	}
+	if shiftInfo.CurrentPHP != "8.3" {
+		t.Fatalf("expected current_php '8.3', got %q", shiftInfo.CurrentPHP)
+	}
+	if shiftInfo.Reason != "PHP version changed: 8.2 -> 8.3" {
+		t.Fatalf("expected reason 'PHP version changed: 8.2 -> 8.3', got %q", shiftInfo.Reason)
 	}
 }
 

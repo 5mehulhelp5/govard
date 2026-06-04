@@ -135,6 +135,7 @@ govard env cleanup
 | `--remove-orphans` | Xóa các container không còn trong cấu hình (orphaned) |
 | `--quickstart` | Đường dẫn khởi động nhanh nhất |
 | `--update-lock` | Tự động cập nhật `govard.lock` nếu phát hiện sai lệch |
+| `--no-tuning` | Bỏ qua các prompt cấu hình tự động cho framework |
 
 **Các file được render lại khi chạy `env up`:**
 - `~/.govard/compose/<project-hash>.yml`
@@ -452,6 +453,8 @@ govard config profile switch          # Lựa chọn dạng tương tác trực 
 ```
 
 Các file profile được lưu trữ dưới dạng `.govard.<name>.yml` trong thư mục gốc dự án. Profile đang được chọn sẽ được ghi nhớ trên từng dự án tại đường dẫn `~/.govard/projects.json`.
+
+Sau khi chuyển đổi, chạy `govard env up` để áp dụng môi trường mới. Bạn sẽ được nhắc xác nhận khi profile thay đổi yêu cầu khởi động lại container.
 
 ### `govard config profile clear`
 
