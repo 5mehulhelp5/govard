@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.54.2] - 2026-06-15
+
+### 🛠 Improvements
+
+- **Profile Shift Detection:** Improved detection logic to treat empty configuration values as "use profile default" rather than triggering a false shift. This prevents unnecessary reconfiguration when partial or default configs are used.
+- **Base Version Comparison:** Profile shift now compares base versions (ignoring patch suffixes like `-p9` vs `-p10`), preventing false positives between Magento security patches.
+
+### 🐛 Bug Fixes
+
+- **Non-Interactive Mode:** Fixed issue where `ConfigureMagento` was called unnecessarily in non-interactive mode even when no profile shift was detected.
+
+### 🔧 Maintenance
+
+- **Dead Code Removal:** Removed the `patchMagentoElasticsearchSchemaForLibxml` function that was never called in production.
+- **Enhanced Test Coverage:** Added tests for empty value handling in profile shift detection.
+
 ## [1.54.1] - 2026-06-04
 
 ### ✨ New Features
