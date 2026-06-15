@@ -85,6 +85,31 @@ func TestMagentoProfileShiftDetection(t *testing.T) {
 	if !shifted || reason != "Version changed: 2.4.6-p3 -> 2.4.8-p4" {
 		t.Errorf("Expected Version shift, got shifted=%v, reason=%s", shifted, reason)
 	}
+
+	// Case 5: Empty current PHP should NOT trigger shift (user wants profile default)
+	// This is the fix: empty PHP version means "use profile default", not "change"
+	config.Stack.PHPVersion = ""
+	config.FrameworkVersion = "2.4.6-p3"
+	shifted, reason = engine.CheckProfileShiftCleanupForTest(config)
+	if shifted {
+		t.Errorf("Expected no shift when current PHP is empty, got shifted=%v: %s", shifted, reason)
+	}
+
+	// Case 6: Empty current profile should NOT trigger shift
+	config.Stack.PHPVersion = "8.2"
+	config.Profile = ""
+	shifted, reason = engine.CheckProfileShiftCleanupForTest(config)
+	if shifted {
+		t.Errorf("Expected no shift when current profile is empty, got shifted=%v: %s", shifted, reason)
+	}
+
+	// Case 7: Empty current version should NOT trigger shift
+	config.Profile = "default"
+	config.FrameworkVersion = ""
+	shifted, reason = engine.CheckProfileShiftCleanupForTest(config)
+	if shifted {
+		t.Errorf("Expected no shift when current version is empty, got shifted=%v: %s", shifted, reason)
+	}
 }
 
 func TestDetectMagentoProfileShiftInfo(t *testing.T) {
@@ -166,7 +191,7 @@ func TestDetectMagentoProfileShiftInfo(t *testing.T) {
 		}
 	})
 
-	t.Run("InitialShiftDetected", func(t *testing.T) {
+	t.Run("NoPreviousInfoDoesNotTriggerShift", func(t *testing.T) {
 		// Use a different dir with no registry entry
 		noRegDir, err := os.MkdirTemp("", "govard-test-initial-*")
 		if err != nil {
@@ -183,11 +208,8 @@ func TestDetectMagentoProfileShiftInfo(t *testing.T) {
 		config.FrameworkVersion = "2.4.8-p4"
 
 		info := engine.DetectProfileShiftForTest(config)
-		if !info.Shifted {
-			t.Fatal("Expected initial shift to be detected")
-		}
-		if !info.IsInitial {
-			t.Error("Expected IsInitial=true for fresh project")
+		if info.Shifted {
+			t.Fatal("Expected NO shift when there's no previous info (user runs `govard config auto` manually)")
 		}
 	})
 }

@@ -57,12 +57,6 @@ func ConfigureMagento(projectName string, config Config, force bool, shiftInfo *
 
 	pterm.Info.Printf("Configuring Magento 2 environment (%s)...\n", reason)
 
-	if patched, err := patchMagentoElasticsearchSchemaForLibxml(); err != nil {
-		pterm.Warning.Printf("Could not apply Magento XML schema compatibility patch (continuing): %v\n", err)
-	} else if patched {
-		pterm.Info.Println("Applied Magento XML schema compatibility patch for newer libxml2.")
-	}
-
 	if err := FixProjectPermissions(projectName, config); err != nil {
 		pterm.Warning.Printf("Could not fix project permissions (continuing): %v\n", err)
 	}
@@ -89,7 +83,7 @@ func ConfigureMagento(projectName string, config Config, force bool, shiftInfo *
 	// Proactively unblock search index (safe via curl, not a DB query)
 	if config.Stack.Features.Search || config.Stack.Services.Search != "none" {
 		if err := FixElasticsearchIndexBlock(projectName, config); err != nil {
-			pterm.Warning.Printf("Could not unblock search index proactively (continuing): %v\n", err)
+			pterm.Warning.Printf("Could not unblock search index proactively (continuing): %v", err)
 		} else {
 			pterm.Success.Println("Proactively unblocked search index via curl.")
 		}
@@ -685,52 +679,6 @@ func isMagentoElasticsuiteProject() bool {
 	return false
 }
 
-func patchMagentoElasticsearchSchemaForLibxml() (bool, error) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return false, err
-	}
-
-	schemaPath := filepath.Join(cwd, "vendor", "magento", "module-elasticsearch", "etc", "esconfig.xsd")
-	data, err := os.ReadFile(schemaPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
-		}
-		return false, err
-	}
-
-	content := string(data)
-	legacyBlock := `<xs:complexType name="mixedDataType">
-    <xs:choice maxOccurs="unbounded" minOccurs="1">
-        <xs:element type="xs:string" name="default" minOccurs="1" maxOccurs="1" />
-        <xs:any processContents="lax" minOccurs="0" maxOccurs="unbounded" />
-    </xs:choice>
-</xs:complexType>`
-
-	replacementBlock := `<xs:complexType name="mixedDataType">
-    <xs:sequence>
-        <xs:element type="xs:string" name="type" minOccurs="0" maxOccurs="1" />
-        <xs:element type="xs:string" name="default" minOccurs="1" maxOccurs="1" />
-        <xs:any processContents="lax" minOccurs="0" maxOccurs="unbounded" />
-    </xs:sequence>
-</xs:complexType>`
-
-	if !strings.Contains(content, legacyBlock) {
-		return false, nil
-	}
-
-	updated := strings.Replace(content, legacyBlock, replacementBlock, 1)
-	if updated == content {
-		return false, nil
-	}
-
-	if err := os.WriteFile(schemaPath, []byte(updated), conventions.DefaultFilePerm); err != nil {
-		return false, err
-	}
-	return true, nil
-}
-
 func isMagentoVersionAtLeast(raw string, minimum string) bool {
 	return IsNumericDotVersionAtLeast(raw, minimum)
 }
@@ -918,7 +866,6 @@ func runMagentoComposerInstall(projectName string, config Config, stdout, stderr
 	// This avoids loading stale plugin classes that would conflict with newly downloaded versions.
 	phase1Script := strings.Join([]string{
 		"rm -rf vendor/composer",
-		"composer config platform-check false 2>/dev/null",
 		"composer install --no-interaction --no-progress --no-plugins --no-scripts --ignore-platform-reqs",
 	}, " && ")
 	phase1Args := magentoDockerExecArgs(containerName, config, "sh", "-c", phase1Script)

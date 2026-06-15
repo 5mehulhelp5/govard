@@ -436,6 +436,7 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 					} else if context.ShiftInfo != nil && context.ShiftInfo.Shifted && stdinIsTerminal() {
 						// Prompt user for Magento tuning when shift is detected
 						pterm.Info.Println("Magento 2 environment detected.")
+						pterm.Info.Printf("Reason: %s\n", context.ShiftInfo.Reason)
 						proceed, _ := pterm.DefaultInteractiveConfirm.
 							WithDefaultValue(true).
 							WithDefaultText("Y = tune now, N = skip tuning").
@@ -447,11 +448,13 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 						} else {
 							pterm.Info.Println("Magento tuning skipped. Run 'govard config auto' to configure later.")
 						}
-					} else {
+					} else if context.ShiftInfo != nil && context.ShiftInfo.Shifted {
+						// Non-interactive mode: run without prompt if shift detected
 						if err := engine.ConfigureMagento(context.Config.ProjectName, context.Config, false, context.ShiftInfo); err != nil {
 							pterm.Warning.Printf("Magento auto-configuration failed: %v\n", err)
 						}
 					}
+					// No shift detected: skip ConfigureMagento entirely
 				}
 
 				return nil

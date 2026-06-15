@@ -58,14 +58,17 @@ func DetectProfileShift(config Config) ProfileShiftInfo {
 			currentRegProfile := strings.TrimSpace(entry.Profile)
 			configProfile := strings.TrimSpace(config.Profile)
 			if currentRegProfile != "" {
-				if currentRegProfile != configProfile {
+				// Only detect a profile change if config has a non-empty profile.
+				// Empty profile means "use profile default" → NOT a change.
+				if configProfile != "" && currentRegProfile != configProfile {
 					// Profile changed
 					previousProfile = currentRegProfile
 				}
-				// Always capture PHP version from registry for comparison
-				previousPHP = strings.TrimSpace(entry.PHPVersion)
-				previousVersion = strings.TrimSpace(entry.FrameworkVersion)
 			}
+			// Always capture PHP version and framework version from registry for comparison.
+			// This ensures we can detect PHP/version changes even when there's no profile in registry.
+			previousPHP = strings.TrimSpace(entry.PHPVersion)
+			previousVersion = strings.TrimSpace(entry.FrameworkVersion)
 		}
 	}
 
@@ -88,29 +91,30 @@ func DetectProfileShift(config Config) ProfileShiftInfo {
 	}
 	currentVersion := strings.TrimSpace(config.FrameworkVersion)
 
-	// Check for any change: profile, PHP version, or framework version
+	// Check for any change: profile, PHP version, or framework version.
+	// Empty current values mean "use profile default" → NOT a shift.
+	// For framework version, only compare base version (major.minor.patch),
+	// ignore patch suffix (e.g., p9 vs p10 are the same base version).
+	// Note: "Initial configuration" (no previous info) does NOT trigger shift.
+	// User can run `govard config auto` manually if needed.
 	reason := ""
 	shifted := false
 
-	noPreviousInfo := previousPHP == "" && previousProfile == ""
-	if !noPreviousInfo {
+	if previousPHP != "" || previousProfile != "" {
 		if previousPHP != "" && currentPHP != "" && previousPHP != currentPHP {
 			shifted = true
 			reason = fmt.Sprintf("PHP version changed: %s -> %s", previousPHP, currentPHP)
 		}
-		if previousProfile != "" && previousProfile != currentProfile {
+		if previousProfile != "" && currentProfile != "" && previousProfile != currentProfile {
 			shifted = true
 			reason = fmt.Sprintf("Profile changed: %q -> %q", previousProfile, currentProfile)
 		}
-		if previousVersion != "" && currentVersion != "" && previousVersion != currentVersion {
+		if previousVersion != "" && currentVersion != "" && baseVersion(previousVersion) != baseVersion(currentVersion) {
 			shifted = true
 			reason = fmt.Sprintf("Version changed: %s -> %s", previousVersion, currentVersion)
 		}
-	} else {
-		// Initial configuration
-		shifted = true
-		reason = "Initial configuration"
 	}
+	// No previous info = no shift detected. User runs `govard config auto` manually if needed.
 
 	return ProfileShiftInfo{
 		Shifted:         shifted,
@@ -123,6 +127,15 @@ func DetectProfileShift(config Config) ProfileShiftInfo {
 		CurrentVersion:  currentVersion,
 		IsInitial:       isInitial,
 	}
+}
+
+// baseVersion extracts the base version without patch suffix.
+// e.g., "2.4.7-p9" -> "2.4.7", "2.4.8" -> "2.4.8"
+func baseVersion(version string) string {
+	if idx := strings.Index(version, "-"); idx > 0 {
+		return version[:idx]
+	}
+	return version
 }
 
 // PrepareInfraForShift handles infrastructure cleanup BEFORE containers
@@ -164,42 +177,41 @@ func checkProfileShiftCleanup(config Config) (bool, string) {
 	previousPHP := ""
 	previousProfile := ""
 	previousVersion := ""
-	foundPrevious := false
 
 	lockFile, err := ReadLockFile(LockFilePath(cwd))
 	if err == nil {
 		previousPHP = strings.TrimSpace(lockFile.Stack.PHPVersion)
 		previousProfile = strings.TrimSpace(lockFile.Project.Profile)
 		previousVersion = strings.TrimSpace(lockFile.Project.FrameworkVersion)
-		foundPrevious = true
 	} else {
 		// Fallback to project registry
 		if entry, ok := GetProjectRegistryEntry(cwd); ok {
 			previousPHP = strings.TrimSpace(entry.PHPVersion)
 			previousProfile = strings.TrimSpace(entry.Profile)
 			previousVersion = strings.TrimSpace(entry.FrameworkVersion)
-			foundPrevious = true
 		}
 	}
 
+	// Normalize: treat empty strings as "unset" (use profile default).
+	// When current is empty but previous exists, user likely wants the
+	// default PHP version for the profile → NOT a shift.
 	currentPHP := strings.TrimSpace(config.Stack.PHPVersion)
 	currentProfile := strings.TrimSpace(config.Profile)
 	currentVersion := strings.TrimSpace(config.FrameworkVersion)
 
-	if !foundPrevious {
-		return true, "Initial configuration"
+	prevPHP := strings.TrimSpace(previousPHP)
+	if prevPHP != "" && currentPHP != "" && prevPHP != currentPHP {
+		return true, fmt.Sprintf("PHP version changed: %s -> %s", prevPHP, currentPHP)
 	}
 
-	if previousPHP != "" && currentPHP != "" && previousPHP != currentPHP {
-		return true, fmt.Sprintf("PHP version changed: %s -> %s", previousPHP, currentPHP)
+	prevProfile := strings.TrimSpace(previousProfile)
+	if prevProfile != "" && currentProfile != "" && prevProfile != currentProfile {
+		return true, fmt.Sprintf("Profile changed: %q -> %q", prevProfile, currentProfile)
 	}
 
-	if previousProfile != currentProfile {
-		return true, fmt.Sprintf("Profile changed: %q -> %q", previousProfile, currentProfile)
-	}
-
-	if previousVersion != "" && currentVersion != "" && previousVersion != currentVersion {
-		return true, fmt.Sprintf("Version changed: %s -> %s", previousVersion, currentVersion)
+	prevVersion := strings.TrimSpace(previousVersion)
+	if prevVersion != "" && currentVersion != "" && baseVersion(prevVersion) != baseVersion(currentVersion) {
+		return true, fmt.Sprintf("Version changed: %s -> %s", prevVersion, currentVersion)
 	}
 
 	return false, ""
