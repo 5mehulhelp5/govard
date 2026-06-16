@@ -50,11 +50,6 @@ func ensureComposerConfig(config Config) error {
 	globalScript := "composer config -g allow-plugins true && composer config -g audit.block-insecure false 2>/dev/null || true"
 	_ = exec.Command("docker", "exec", containerName, "sh", "-c", globalScript).Run()
 
-	// Fix: Also ensure project-level audit bypass if possible.
-	// This is important because global config might be mounted as read-only.
-	projectScript := "composer config audit.block-insecure false 2>/dev/null || true"
-	_ = exec.Command("docker", "exec", "-w", conventions.DefaultWorkDir, containerName, "sh", "-c", projectScript).Run()
-
 	return nil
 }
 
