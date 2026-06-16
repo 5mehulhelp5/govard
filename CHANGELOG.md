@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.54.3] - 2026-06-16
+
+### 🛠 Improvements
+
+- **Composer Compatibility:** Removed redundant project-level audit bypass configuration. Global composer config already handles this setting, and project-level config may fail when mounted as read-only.
+
 ## [1.54.2] - 2026-06-15
 
 ### 🛠 Improvements
