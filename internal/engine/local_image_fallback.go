@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -38,6 +39,15 @@ type localImageBuildSpec struct {
 	Dependencies  []string
 }
 
+type localImageInspection struct {
+	Architecture string
+}
+
+type localImageBuildOptions struct {
+	BuildMissing      bool
+	BuildIncompatible bool
+}
+
 // LocalBuildSpecForTest exposes resolved local build spec details for tests.
 type LocalBuildSpecForTest struct {
 	ContextRel    string
@@ -46,12 +56,27 @@ type LocalBuildSpecForTest struct {
 	Dependencies  []string
 }
 
-// FallbackBuildMissingGovardImagesFromCompose builds Govard-managed images locally if pulling fails.
+// FallbackBuildMissingGovardImagesFromCompose builds Govard-managed images locally if
+// pulling fails or if an existing local Govard image should be rebuilt for the host.
 func FallbackBuildMissingGovardImagesFromCompose(composePath string, out io.Writer, errOut io.Writer) ([]string, error) {
-	return fallbackBuildMissingGovardImagesFromCompose(composePath, out, errOut)
+	return buildGovardImagesFromCompose(composePath, out, errOut, localImageBuildOptions{
+		BuildMissing:      true,
+		BuildIncompatible: true,
+	})
 }
 
-func fallbackBuildMissingGovardImagesFromCompose(composePath string, out io.Writer, errOut io.Writer) ([]string, error) {
+// RebuildIncompatibleGovardImagesFromCompose rebuilds existing Govard-managed
+// images that are incompatible with the current host architecture.
+func RebuildIncompatibleGovardImagesFromCompose(composePath string, out io.Writer, errOut io.Writer) ([]string, error) {
+	return buildGovardImagesFromCompose(composePath, out, errOut, localImageBuildOptions{
+		BuildIncompatible: true,
+	})
+}
+
+func buildGovardImagesFromCompose(composePath string, out io.Writer, errOut io.Writer, options localImageBuildOptions) ([]string, error) {
+	out = normalizeWriter(out)
+	errOut = normalizeWriter(errOut)
+
 	serviceImages, err := ReadServiceImagesFromCompose(composePath)
 	if err != nil {
 		return nil, fmt.Errorf("read compose service images: %w", err)
@@ -75,6 +100,7 @@ func fallbackBuildMissingGovardImagesFromCompose(composePath string, out io.Writ
 	buildSpecs := make(map[string]localImageBuildSpec)
 	nonBuildableMissing := make([]string, 0)
 	resolved := make(map[string]struct{})
+	dependencyImages := make(map[string]struct{})
 
 	for len(queue) > 0 {
 		image := queue[0]
@@ -83,14 +109,35 @@ func fallbackBuildMissingGovardImagesFromCompose(composePath string, out io.Writ
 		if _, exists := resolved[image]; exists {
 			continue
 		}
-		if imageExistsLocally(image) {
+
+		inspection, inspectErr := inspectLocalImage(image)
+		imageExists := inspectErr == nil
+
+		repoPrefix, service, tag, ok := parseGovardImageReference(image)
+		if !ok {
+			_, isDependency := dependencyImages[image]
+			if (options.BuildMissing || isDependency) && !imageExists {
+				nonBuildableMissing = append(nonBuildableMissing, image)
+			}
 			resolved[image] = struct{}{}
 			continue
 		}
 
-		repoPrefix, service, tag, ok := parseGovardImageReference(image)
-		if !ok {
-			nonBuildableMissing = append(nonBuildableMissing, image)
+		_, isDependency := dependencyImages[image]
+		if imageExists {
+			if !options.BuildIncompatible || !shouldRebuildGovardImageForHost(inspection.Architecture) {
+				resolved[image] = struct{}{}
+				continue
+			}
+			fmt.Fprintf(
+				errOut,
+				"WARNING: rebuilding %s locally because the existing image architecture is %s on %s/%s\n",
+				image,
+				inspection.Architecture,
+				runtime.GOOS,
+				runtime.GOARCH,
+			)
+		} else if !options.BuildMissing && !isDependency {
 			resolved[image] = struct{}{}
 			continue
 		}
@@ -103,7 +150,10 @@ func fallbackBuildMissingGovardImagesFromCompose(composePath string, out io.Writ
 		}
 
 		buildSpecs[image] = spec
-		queue = append(queue, spec.Dependencies...)
+		for _, dependency := range spec.Dependencies {
+			dependencyImages[dependency] = struct{}{}
+			queue = append(queue, dependency)
+		}
 		resolved[image] = struct{}{}
 	}
 
@@ -473,8 +523,29 @@ func resolveOpensearchBuildVersion(tag string) string {
 }
 
 func imageExistsLocally(image string) bool {
-	command := exec.Command("docker", "image", "inspect", image)
-	return command.Run() == nil
+	_, err := inspectLocalImage(image)
+	return err == nil
+}
+
+func inspectLocalImage(image string) (localImageInspection, error) {
+	command := exec.Command("docker", "image", "inspect", image, "--format", "{{.Architecture}}")
+	output, err := command.Output()
+	if err != nil {
+		return localImageInspection{}, err
+	}
+	return localImageInspection{
+		Architecture: strings.TrimSpace(string(output)),
+	}, nil
+}
+
+func shouldRebuildGovardImageForHost(imageArchitecture string) bool {
+	return shouldRebuildGovardImageForHostWithRuntime(imageArchitecture, runtime.GOOS, runtime.GOARCH)
+}
+
+func shouldRebuildGovardImageForHostWithRuntime(imageArchitecture string, goos string, goarch string) bool {
+	return strings.TrimSpace(goos) == "darwin" &&
+		strings.TrimSpace(goarch) == "arm64" &&
+		strings.TrimSpace(imageArchitecture) == "amd64"
 }
 
 func ensureDockerAssetsRoot(startDir string) (string, error) {
@@ -624,4 +695,9 @@ func ResolveLocalBuildSpecForTest(service string, tag string, repositoryPrefix s
 		BuildArgs:     buildArgs,
 		Dependencies:  spec.Dependencies,
 	}, nil
+}
+
+// ShouldRebuildGovardImageForHostForTest exposes host/image architecture policy for tests.
+func ShouldRebuildGovardImageForHostForTest(imageArchitecture string, goos string, goarch string) bool {
+	return shouldRebuildGovardImageForHostWithRuntime(imageArchitecture, goos, goarch)
 }

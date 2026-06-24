@@ -475,8 +475,32 @@ func pullRuntimeImages(check engine.DoctorCheck) DoctorFixResult {
 		}
 	}
 
+	composePath := engine.ComposeFilePathWithProfile(wd, config.ProjectName, config.Profile)
+	rebuildIncompatible := func() bool {
+		if _, statErr := os.Stat(composePath); statErr != nil {
+			return false
+		}
+		built, rebuildErr := engine.RebuildIncompatibleGovardImagesFromCompose(composePath, os.Stdout, os.Stderr)
+		if rebuildErr != nil {
+			result.Status = DoctorFixStatusFailed
+			result.Message = fmt.Sprintf("failed to rebuild incompatible local images: %v", rebuildErr)
+			return true
+		}
+		if len(built) > 0 {
+			result.Actions = append(result.Actions, fmt.Sprintf("Rebuilt incompatible local images: %s", strings.Join(built, ", ")))
+		}
+		return false
+	}
+
 	if len(missing) == 0 {
-		result.Message = "All required images are already present."
+		if failed := rebuildIncompatible(); failed {
+			return result
+		}
+		if len(result.Actions) > 1 {
+			result.Message = "Required images are present; incompatible local images were rebuilt."
+		} else {
+			result.Message = "All required images are already present."
+		}
 		return result
 	}
 
@@ -487,7 +511,6 @@ func pullRuntimeImages(check engine.DoctorCheck) DoctorFixResult {
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {
 			pterm.Warning.Printf("Failed to pull %s. Attempting local build fallback...\n", image)
-			composePath := engine.ComposeFilePathWithProfile(wd, config.ProjectName, config.Profile)
 			built, fallbackErr := engine.FallbackBuildMissingGovardImagesFromCompose(composePath, os.Stdout, os.Stderr)
 			if fallbackErr != nil {
 				result.Status = DoctorFixStatusFailed
@@ -506,6 +529,9 @@ func pullRuntimeImages(check engine.DoctorCheck) DoctorFixResult {
 		} else {
 			result.Actions = append(result.Actions, fmt.Sprintf("Pulled %s", image))
 		}
+	}
+	if failed := rebuildIncompatible(); failed {
+		return result
 	}
 
 	return result

@@ -94,3 +94,21 @@ func TestLocalBuildSpecPHPMagento2Debug(t *testing.T) {
 		t.Fatalf("expected dependency on base image, got %v", spec.Dependencies)
 	}
 }
+
+func TestShouldRebuildGovardImageForHostOnDarwinArm64(t *testing.T) {
+	if !engine.ShouldRebuildGovardImageForHostForTest("amd64", "darwin", "arm64") {
+		t.Fatal("expected darwin/arm64 host to rebuild amd64 Govard image")
+	}
+}
+
+func TestShouldNotRebuildGovardImageForHostWhenAlreadyArm64(t *testing.T) {
+	if engine.ShouldRebuildGovardImageForHostForTest("arm64", "darwin", "arm64") {
+		t.Fatal("did not expect darwin/arm64 host to rebuild arm64 Govard image")
+	}
+}
+
+func TestShouldNotRebuildGovardImageForHostOnLinux(t *testing.T) {
+	if engine.ShouldRebuildGovardImageForHostForTest("amd64", "linux", "arm64") {
+		t.Fatal("did not expect linux host to rebuild existing amd64 Govard image")
+	}
+}

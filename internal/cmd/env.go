@@ -239,6 +239,13 @@ func proxyEnvToCompose(cmd *cobra.Command, args []string) error {
 				pterm.Info.Println("No missing Govard-managed images required local build.")
 			}
 		}
+		built, rebuildErr := engine.RebuildIncompatibleGovardImagesFromCompose(composePath, cmd.OutOrStdout(), cmd.ErrOrStderr())
+		if rebuildErr != nil {
+			return fmt.Errorf("rebuild incompatible local Govard images: %w", rebuildErr)
+		}
+		if len(built) > 0 {
+			pterm.Success.Printf("Rebuilt %d incompatible local image(s): %v\n", len(built), built)
+		}
 		pterm.Success.Println("✅ Images pulled.")
 		return nil
 	case "cleanup":
