@@ -25,13 +25,6 @@ import (
 const remoteMagentoAdminProbeScript = `$c=@include "app/etc/env.php"; if(!is_array($c)){fwrite(STDERR,"env.php not found"); exit(2);} echo (string)($c["backend"]["frontName"] ?? "` + conventions.DefaultAdminPath + `");`
 const remoteLastSyncReadLimit = 5000
 
-type SyncInput struct {
-	Project    string          `json:"project"`
-	RemoteName string          `json:"remoteName"`
-	Preset     string          `json:"preset"`
-	Options    map[string]bool `json:"options"`
-}
-
 var defaultRunGovardCommandForDesktop = func(root string, args []string) (string, error) {
 	return runGovardCommandForDesktopWithTimeout(root, args, 2*time.Minute)
 }

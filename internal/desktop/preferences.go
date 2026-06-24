@@ -24,10 +24,6 @@ func getSettingsInternal() (DesktopSettings, error) {
 	return normalizeSettings(prefs.Settings), nil
 }
 
-func ReadDesktopSettings() (DesktopSettings, error) {
-	return getSettingsInternal()
-}
-
 func setSettingsInternal(settings DesktopSettings) error {
 	prefs, err := loadPreferences()
 	if err != nil {

@@ -91,19 +91,6 @@ func TestBuildSnapshotImportCommandUsesEnvPassword(t *testing.T) {
 	}
 }
 
-func TestSnapshotCreatesGzippedDB(t *testing.T) {
-	// This test normally requires a running DB container.
-	// We'll test the logic that constructs the file path and handles the writer.
-	// Since we can't easily mock the docker exec bit without refactoring,
-	// we'll focus on the engine's public interface and expected file outcomes.
-	t.Skip("Skipping as it requires a running Docker container with 'mysql-db-1'")
-}
-
-func TestSnapshotRestoreFromGzip(t *testing.T) {
-	// Tests that RestoreSnapshot can handle a .sql.gz file.
-	t.Skip("Skipping as it requires a running Docker container")
-}
-
 func TestSnapshotListShowsSize(t *testing.T) {
 	root := t.TempDir()
 	snapshotRoot := filepath.Join(root, ".govard", "snapshots")
