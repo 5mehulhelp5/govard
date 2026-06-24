@@ -42,6 +42,14 @@ desktop_build_tags() {
     echo "$tags"
 }
 
+desktop_build_env() {
+    if [[ "$OS" == "darwin" ]]; then
+        # Wails' macOS desktop frontend references UTType; make the framework
+        # explicit so source installs link reliably across Xcode/macOS SDKs.
+        echo "CGO_LDFLAGS=${CGO_LDFLAGS:-} -framework UniformTypeIdentifiers"
+    fi
+}
+
 # Banner
 show_banner() {
     echo -e "${BLUE}"
@@ -563,7 +571,11 @@ install_source() {
     TMP_BUILD_DIR=$(mktemp -d)
     go build -ldflags "$LDFLAGS" -o "${TMP_BUILD_DIR}/${CLI_BINARY_NAME}" cmd/govard/main.go
     DESKTOP_BUILD_TAGS="$(desktop_build_tags)"
-    go build -tags "$DESKTOP_BUILD_TAGS" -ldflags "$LDFLAGS" -o "${TMP_BUILD_DIR}/${DESKTOP_BINARY_NAME}" cmd/govard-desktop/main.go
+    if desktop_env="$(desktop_build_env)" && [[ -n "$desktop_env" ]]; then
+        env "$desktop_env" go build -tags "$DESKTOP_BUILD_TAGS" -ldflags "$LDFLAGS" -o "${TMP_BUILD_DIR}/${DESKTOP_BINARY_NAME}" cmd/govard-desktop/main.go
+    else
+        go build -tags "$DESKTOP_BUILD_TAGS" -ldflags "$LDFLAGS" -o "${TMP_BUILD_DIR}/${DESKTOP_BINARY_NAME}" cmd/govard-desktop/main.go
+    fi
 
     install_binary_file "${TMP_BUILD_DIR}/${CLI_BINARY_NAME}" "$CLI_BINARY_NAME"
     install_binary_file "${TMP_BUILD_DIR}/${DESKTOP_BINARY_NAME}" "$DESKTOP_BINARY_NAME"
