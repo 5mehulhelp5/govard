@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.54.4] - 2026-06-24
+
+### 🐛 Bug Fixes
+
+- **macOS Source Builds:** Fixed macOS source desktop builds by explicitly linking the `UniformTypeIdentifiers` framework.
+
+### 🔧 Maintenance
+
+- **Dead Code Removal:** Removed unused types and functions in desktop preferences (`ReadDesktopSettings`) and remote sync helpers (`SyncInput`).
+- **Tests Cleanup:** Removed skipped integration tests for database snapshots that required running Docker containers.
+
 ## [1.54.3] - 2026-06-16
 
 ### 🛠 Improvements
