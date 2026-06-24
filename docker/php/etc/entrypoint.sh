@@ -36,6 +36,12 @@ if [ -n "${PUID:-}" ]; then
   fi
 fi
 
+# After rewriting www-data's UID, the current process may still run with the
+# old numeric UID. Re-enter as www-data before any later sudo calls.
+if [ "${UID_REMAP_CHANGED}" = "1" ] && [ "$(id -u)" != "$(id -u www-data)" ]; then
+  exec sudo -E -H -u www-data /usr/local/bin/entrypoint.sh "$@"
+fi
+
 # Apply recursive chown if requested
 if [ -n "${CHOWN_DIR_LIST:-}" ]; then
   for dir in ${CHOWN_DIR_LIST}; do
@@ -137,10 +143,6 @@ if [ -n "${NODE_VERSION:-}" ]; then
       fi
     fi
   fi
-fi
-
-if [ "${UID_REMAP_CHANGED}" = "1" ] && [ "$(id -u)" != "$(id -u www-data)" ]; then
-  exec sudo -E -H -u www-data "$@"
 fi
 
 exec "$@"

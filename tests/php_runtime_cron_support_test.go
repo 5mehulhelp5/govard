@@ -67,8 +67,16 @@ func TestPHPEntrypointRelaunchesProcessAfterUIDRemap(t *testing.T) {
 	if !strings.Contains(content, "UID_REMAP_CHANGED=1") {
 		t.Fatalf("expected php entrypoint to track successful UID remaps, got:\n%s", content)
 	}
-	if !strings.Contains(content, "exec sudo -E -H -u www-data \"$@\"") {
-		t.Fatalf("expected php entrypoint to launch php-fpm as remapped www-data, got:\n%s", content)
+	reenterIndex := strings.Index(content, "exec sudo -E -H -u www-data /usr/local/bin/entrypoint.sh \"$@\"")
+	chownIndex := strings.Index(content, "if [ -n \"${CHOWN_DIR_LIST:-}\" ]; then")
+	if reenterIndex == -1 {
+		t.Fatalf("expected php entrypoint to re-enter as remapped www-data, got:\n%s", content)
+	}
+	if chownIndex == -1 {
+		t.Fatalf("expected php entrypoint to contain CHOWN_DIR_LIST handling, got:\n%s", content)
+	}
+	if reenterIndex > chownIndex {
+		t.Fatalf("expected php entrypoint to re-enter before recursive chown, got:\n%s", content)
 	}
 }
 
