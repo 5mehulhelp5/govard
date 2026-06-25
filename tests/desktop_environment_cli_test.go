@@ -61,7 +61,7 @@ func TestDesktopStartEnvironmentUsesGovardUpForProjectForTest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("StartEnvironment failed: %v", err)
 	}
-	if gotDir != root {
+	if !sameTestFile(t, gotDir, root) {
 		t.Fatalf("expected govard dir %q, got %q", root, gotDir)
 	}
 	if !reflect.DeepEqual(gotArgs, []string{"up", "--force-recreate", "--remove-orphans"}) {
@@ -93,7 +93,7 @@ func TestDesktopStopEnvironmentUsesGovardEnvStopForProjectForTest(t *testing.T) 
 	if err != nil {
 		t.Fatalf("StopEnvironment failed: %v", err)
 	}
-	if gotDir != root {
+	if !sameTestFile(t, gotDir, root) {
 		t.Fatalf("expected govard dir %q, got %q", root, gotDir)
 	}
 	if !reflect.DeepEqual(gotArgs, []string{"env", "stop"}) {
@@ -125,7 +125,7 @@ func TestDesktopPullEnvironmentUsesGovardEnvPullForProjectForTest(t *testing.T) 
 	if err != nil {
 		t.Fatalf("PullEnvironment failed: %v", err)
 	}
-	if gotDir != root {
+	if !sameTestFile(t, gotDir, root) {
 		t.Fatalf("expected govard dir %q, got %q", root, gotDir)
 	}
 	if !reflect.DeepEqual(gotArgs, []string{"env", "pull"}) {

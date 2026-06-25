@@ -212,7 +212,7 @@ func TestDesktopResolveGovardBinaryForUpdatePrefersSibling(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve govard binary for desktop update failed: %v", err)
 	}
-	if resolved != siblingGovard {
+	if !sameTestFile(t, resolved, siblingGovard) {
 		t.Fatalf("expected sibling govard binary %q, got %q", siblingGovard, resolved)
 	}
 }
@@ -240,7 +240,7 @@ func TestDesktopResolveGovardBinaryForUpdateFallsBackToPATH(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve govard binary for desktop update failed: %v", err)
 	}
-	if resolved != pathGovard {
+	if !sameTestFile(t, resolved, pathGovard) {
 		t.Fatalf("expected PATH govard binary %q, got %q", pathGovard, resolved)
 	}
 }
@@ -261,7 +261,7 @@ func TestDesktopResolveDesktopBinaryForSelfUpdateTarget(t *testing.T) {
 	defer restoreExec()
 
 	target := desktop.ResolveDesktopBinaryForSelfUpdateTargetForTest()
-	if target != runningDesktop {
+	if !sameTestFile(t, target, runningDesktop) {
 		t.Fatalf("expected desktop target %q, got %q", runningDesktop, target)
 	}
 }
@@ -301,7 +301,7 @@ func TestDesktopRestartDesktopAppStartsBinary(t *testing.T) {
 	if !strings.Contains(message, "Restarting Govard Desktop") {
 		t.Fatalf("unexpected restart message: %q", message)
 	}
-	if called != binaryPath {
+	if !sameTestFile(t, called, binaryPath) {
 		t.Fatalf("expected restart command to target %q, got %q", binaryPath, called)
 	}
 }

@@ -62,7 +62,7 @@ domain: demo.test
 	if len(entries) != 1 {
 		t.Fatalf("expected one registry entry, got %d", len(entries))
 	}
-	if entries[0].Path != root {
+	if !sameTestFile(t, entries[0].Path, root) {
 		t.Fatalf("expected registry path %s, got %s", root, entries[0].Path)
 	}
 	if entries[0].ProjectName != "demo" {

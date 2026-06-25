@@ -522,11 +522,6 @@ func resolveOpensearchBuildVersion(tag string) string {
 	}
 }
 
-func imageExistsLocally(image string) bool {
-	_, err := inspectLocalImage(image)
-	return err == nil
-}
-
 func inspectLocalImage(image string) (localImageInspection, error) {
 	command := exec.Command("docker", "image", "inspect", image, "--format", "{{.Architecture}}")
 	output, err := command.Output()

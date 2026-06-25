@@ -34,6 +34,9 @@ func ComposeFilePathWithProfile(projectRoot string, projectName string, profile 
 	if abs, err := filepath.Abs(root); err == nil {
 		root = abs
 	}
+	if resolved, err := filepath.EvalSymlinks(root); err == nil {
+		root = filepath.Clean(resolved)
+	}
 
 	name := sanitizeComposeProjectName(projectName)
 	if name == "" {

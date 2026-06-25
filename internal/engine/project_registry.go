@@ -107,7 +107,7 @@ func UpsertProjectRegistryEntry(entry ProjectRegistryEntry) error {
 }
 
 func GetProjectRegistryEntry(path string) (ProjectRegistryEntry, bool) {
-	path = filepath.Clean(strings.TrimSpace(path))
+	path = normalizeProjectRegistryPath(path)
 	if path == "" {
 		return ProjectRegistryEntry{}, false
 	}
@@ -128,7 +128,7 @@ func GetProjectRegistryEntry(path string) (ProjectRegistryEntry, bool) {
 
 // ClearPreviousProfile clears the previous_profile field for a project in the registry.
 func ClearPreviousProfile(path string) error {
-	path = filepath.Clean(strings.TrimSpace(path))
+	path = normalizeProjectRegistryPath(path)
 	if path == "" {
 		return fmt.Errorf("project path is required")
 	}
@@ -143,7 +143,7 @@ func ClearPreviousProfile(path string) error {
 }
 
 func DeleteProjectRegistryEntry(path string) error {
-	path = filepath.Clean(strings.TrimSpace(path))
+	path = normalizeProjectRegistryPath(path)
 	if path == "" {
 		return fmt.Errorf("project path is required")
 	}
@@ -176,7 +176,7 @@ func ValidateProjectIdentityUniqueness(projectPath string, config Config) error 
 		return fmt.Errorf("read project registry: %w", err)
 	}
 
-	cleanPath := filepath.Clean(strings.TrimSpace(projectPath))
+	cleanPath := normalizeProjectRegistryPath(projectPath)
 	projectName := strings.TrimSpace(strings.ToLower(config.ProjectName))
 	if projectName == "" && cleanPath != "." && cleanPath != "" {
 		projectName = NormalizeProjectName(filepath.Base(cleanPath))
@@ -222,14 +222,14 @@ func ValidateProjectIdentityUniqueness(projectPath string, config Config) error 
 }
 
 func normalizeProjectRegistryEntry(entry ProjectRegistryEntry) (ProjectRegistryEntry, bool) {
-	entry.Path = strings.TrimSpace(entry.Path)
+	entry.Path = normalizeProjectRegistryPath(entry.Path)
 	if entry.Path == "" {
 		return ProjectRegistryEntry{}, false
 	}
-	entry.Path = filepath.Clean(entry.Path)
 
 	if os.Getenv(ProjectRegistryPathEnvVar) == "" {
-		if strings.HasPrefix(entry.Path, "/tmp/") || strings.HasPrefix(entry.Path, filepath.Clean(os.TempDir())) || strings.Contains(entry.Path, "govard/tests") {
+		tempDir := normalizeProjectRegistryPath(os.TempDir())
+		if strings.HasPrefix(entry.Path, "/tmp/") || strings.HasPrefix(entry.Path, tempDir) || strings.Contains(entry.Path, "govard/tests") {
 			return ProjectRegistryEntry{}, false
 		}
 	}
@@ -253,6 +253,21 @@ func normalizeProjectRegistryEntry(entry ProjectRegistryEntry) (ProjectRegistryE
 		entry.ProjectName = filepath.Base(entry.Path)
 	}
 	return entry, true
+}
+
+func normalizeProjectRegistryPath(path string) string {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return ""
+	}
+	path = filepath.Clean(path)
+	if path == "." {
+		return path
+	}
+	if resolved, err := filepath.EvalSymlinks(path); err == nil {
+		return filepath.Clean(resolved)
+	}
+	return path
 }
 
 func sortProjectRegistryEntries(entries []ProjectRegistryEntry) {
