@@ -1,6 +1,7 @@
 DOCKER_ORG ?= ddtcorex/govard-
 HOST_OS := $(shell uname -s)
 DOCKER_MULTIARCH_PLATFORMS ?= linux/amd64,linux/arm64
+DOCKER_BAKE ?= ./scripts/docker-buildx-bake.sh
 ifeq ($(HOST_OS),Darwin)
 DOCKER_PLATFORMS ?= $(DOCKER_MULTIARCH_PLATFORMS)
 else
@@ -103,8 +104,8 @@ clean: ## Remove build artifacts and clean test cache
 
 images: ## Build Govard Docker images
 	@echo "Building Govard Docker Images..."
-	DOCKER_ORG=$(DOCKER_ORG) docker buildx bake -f docker/docker-bake.hcl $(DOCKER_PLATFORM_FLAGS)
+	DOCKER_ORG=$(DOCKER_ORG) DOCKER_PLATFORMS="$(DOCKER_PLATFORMS)" $(DOCKER_BAKE) -f docker/docker-bake.hcl $(DOCKER_PLATFORM_FLAGS)
 
 push: ## Push Govard Docker images as multi-arch manifests
 	@echo "Pushing Govard Docker Images for $(DOCKER_PLATFORMS)..."
-	DOCKER_ORG=$(DOCKER_ORG) docker buildx bake -f docker/docker-bake.hcl $(DOCKER_PLATFORM_FLAGS) --push
+	DOCKER_ORG=$(DOCKER_ORG) DOCKER_PLATFORMS="$(DOCKER_PLATFORMS)" $(DOCKER_BAKE) -f docker/docker-bake.hcl $(DOCKER_PLATFORM_FLAGS) --push

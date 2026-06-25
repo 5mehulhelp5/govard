@@ -62,21 +62,36 @@ func TestPHPEntrypointUpdatesGIDBeforeUID(t *testing.T) {
 	}
 }
 
-func TestPHPEntrypointRelaunchesProcessAfterUIDRemap(t *testing.T) {
+func TestPHPEntrypointReentersAsRootBeforeUIDRemap(t *testing.T) {
 	content := readProjectFileForTest(t, filepath.Join("docker", "php", "etc", "entrypoint.sh"))
 	if !strings.Contains(content, "UID_REMAP_CHANGED=1") {
 		t.Fatalf("expected php entrypoint to track successful UID remaps, got:\n%s", content)
 	}
-	reenterIndex := strings.Index(content, "exec sudo -E -H -u www-data /usr/local/bin/entrypoint.sh \"$@\"")
+	rootReenterIndex := strings.Index(content, "exec sudo -E -H env GOVARD_ENTRYPOINT_ROOT=1 /usr/local/bin/entrypoint.sh \"$@\"")
+	gidIndex := strings.Index(content, "CURRENT_GID=$(id -g www-data)")
+	uidIndex := strings.Index(content, "CURRENT_UID=$(id -u www-data)")
 	chownIndex := strings.Index(content, "if [ -n \"${CHOWN_DIR_LIST:-}\" ]; then")
-	if reenterIndex == -1 {
-		t.Fatalf("expected php entrypoint to re-enter as remapped www-data, got:\n%s", content)
+	dropIndex := strings.LastIndex(content, "exec sudo -E -H -u www-data \"$@\"")
+	if rootReenterIndex == -1 {
+		t.Fatalf("expected php entrypoint to re-enter as root before UID/GID remap, got:\n%s", content)
+	}
+	if gidIndex == -1 || uidIndex == -1 {
+		t.Fatalf("expected php entrypoint to contain UID/GID remap blocks, got:\n%s", content)
+	}
+	if rootReenterIndex > gidIndex || rootReenterIndex > uidIndex {
+		t.Fatalf("expected php entrypoint to re-enter as root before modifying www-data, got:\n%s", content)
 	}
 	if chownIndex == -1 {
 		t.Fatalf("expected php entrypoint to contain CHOWN_DIR_LIST handling, got:\n%s", content)
 	}
-	if reenterIndex > chownIndex {
+	if rootReenterIndex > chownIndex {
 		t.Fatalf("expected php entrypoint to re-enter before recursive chown, got:\n%s", content)
+	}
+	if dropIndex == -1 {
+		t.Fatalf("expected php entrypoint to drop back to www-data before the final command, got:\n%s", content)
+	}
+	if dropIndex < uidIndex {
+		t.Fatalf("expected php entrypoint to drop to www-data after UID remap, got:\n%s", content)
 	}
 }
 

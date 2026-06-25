@@ -1,6 +1,12 @@
 #!/usr/bin/env sh
 set -e
 
+# UID/GID remaps change the passwd entry for www-data. Do the remap from a
+# root re-entry while the original www-data UID still resolves for sudo.
+if [ "${GOVARD_ENTRYPOINT_ROOT:-}" != "1" ] && [ "$(id -u)" != "0" ] && { [ -n "${PUID:-}" ] || [ -n "${PGID:-}" ]; }; then
+  exec sudo -E -H env GOVARD_ENTRYPOINT_ROOT=1 /usr/local/bin/entrypoint.sh "$@"
+fi
+
 # ─── Synchronization ───────────────────────────────────────────────────────
 
 # Ensure www-data group changes happen before UID changes. Once the current
@@ -34,12 +40,6 @@ if [ -n "${PUID:-}" ]; then
       UID_REMAP_CHANGED=1
     fi
   fi
-fi
-
-# After rewriting www-data's UID, the current process may still run with the
-# old numeric UID. Re-enter as www-data before any later sudo calls.
-if [ "${UID_REMAP_CHANGED}" = "1" ] && [ "$(id -u)" != "$(id -u www-data)" ]; then
-  exec sudo -E -H -u www-data /usr/local/bin/entrypoint.sh "$@"
 fi
 
 # Apply recursive chown if requested
@@ -145,4 +145,10 @@ if [ -n "${NODE_VERSION:-}" ]; then
   fi
 fi
 
+if [ "$(id -u)" = "0" ]; then
+  unset GOVARD_ENTRYPOINT_ROOT
+  exec sudo -E -H -u www-data "$@"
+fi
+
+unset GOVARD_ENTRYPOINT_ROOT
 exec "$@"
