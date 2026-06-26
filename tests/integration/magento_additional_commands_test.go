@@ -272,7 +272,8 @@ func TestOpenAndShortcutBrowserCommands(t *testing.T) {
 	env := NewTestEnvironment(t)
 	projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "open-shortcuts-m2")
 	shim := env.SetupRuntimeShims(t, map[string]int{"docker": 0, "ssh": 0, "rsync": 0})
-	installRuntimeCommandShim(t, shim, "xdg-open", 0)
+	browserCommand := browserOpenCommandNameForTest(t)
+	installRuntimeCommandShim(t, shim, browserCommand, 0)
 
 	commands := [][]string{
 		{"open", "admin"},
@@ -290,20 +291,20 @@ func TestOpenAndShortcutBrowserCommands(t *testing.T) {
 
 	ok := WaitForCondition(t, 2*time.Second, 20*time.Millisecond, func() bool {
 		logs := shim.ReadLog(t)
-		return strings.Count(logs, "xdg-open|") >= len(commands)
+		return strings.Count(logs, browserCommand+"|") >= len(commands)
 	})
 	if !ok {
-		t.Fatalf("expected %d xdg-open invocations, got logs:\n%s", len(commands), shim.ReadLog(t))
+		t.Fatalf("expected %d %s invocations, got logs:\n%s", len(commands), browserCommand, shim.ReadLog(t))
 	}
 
 	logs := shim.ReadLog(t)
-	assertContains(t, logs, "xdg-open|https://m2-clone-basic.test/admin")
+	assertContains(t, logs, browserCommand+"|https://m2-clone-basic.test/admin")
 	assertContains(t, logs, "project=m2-clone-basic")
 	assertContains(t, logs, "db=magento")
-	assertContains(t, logs, "xdg-open|mysql://magento:magento@127.0.0.1:3306/magento")
-	assertContains(t, logs, "xdg-open|https://elasticsearch.govard.test")
-	assertContains(t, logs, "xdg-open|https://opensearch.govard.test")
-	assertContains(t, logs, "xdg-open|https://mail.govard.test")
+	assertContains(t, logs, browserCommand+"|mysql://magento:magento@127.0.0.1:3306/magento")
+	assertContains(t, logs, browserCommand+"|https://elasticsearch.govard.test")
+	assertContains(t, logs, browserCommand+"|https://opensearch.govard.test")
+	assertContains(t, logs, browserCommand+"|https://mail.govard.test")
 	if strings.Contains(logs, "ssh|") {
 		t.Fatalf("did not expect ssh tunnel for default open targets, got logs:\n%s", logs)
 	}
@@ -313,7 +314,8 @@ func TestOpenDBEnvironmentSelection(t *testing.T) {
 	env := NewTestEnvironment(t)
 	projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "open-db-env-selection-m2")
 	shim := env.SetupRuntimeShims(t, map[string]int{"docker": 0, "ssh": 0, "rsync": 0})
-	installRuntimeCommandShim(t, shim, "xdg-open", 0)
+	browserCommand := browserOpenCommandNameForTest(t)
+	installRuntimeCommandShim(t, shim, browserCommand, 0)
 
 	localResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "open", "db", "-e", "local")
 	localResult.AssertSuccess(t)
@@ -328,7 +330,7 @@ func TestOpenDBEnvironmentSelection(t *testing.T) {
 	clientResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "open", "db", "-e", "local", "--client")
 	clientResult.AssertSuccess(t)
 	updatedLogs := shim.ReadLog(t)
-	assertContains(t, updatedLogs, "xdg-open|mysql://magento:magento@127.0.0.1:3306/magento")
+	assertContains(t, updatedLogs, browserCommand+"|mysql://magento:magento@127.0.0.1:3306/magento")
 	if strings.Contains(updatedLogs, "ssh|") {
 		t.Fatalf("did not expect ssh tunnel for local db client open, got logs:\n%s", updatedLogs)
 	}
@@ -351,7 +353,8 @@ func TestOpenTargetsRemoteEnvironment(t *testing.T) {
 	env := NewTestEnvironment(t)
 	projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "open-remote-targets-m2")
 	shim := env.SetupRuntimeShims(t, map[string]int{"docker": 0, "ssh": 0, "rsync": 0})
-	installRuntimeCommandShim(t, shim, "xdg-open", 0)
+	browserCommand := browserOpenCommandNameForTest(t)
+	installRuntimeCommandShim(t, shim, browserCommand, 0)
 
 	adminResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "open", "admin", "-e", "dev")
 	adminResult.AssertSuccess(t)
@@ -367,8 +370,8 @@ func TestOpenTargetsRemoteEnvironment(t *testing.T) {
 	assertContains(t, strings.ToLower(searchResult.Stdout+searchResult.Stderr), "not supported yet")
 
 	logs := shim.ReadLog(t)
-	assertContains(t, logs, "xdg-open|https://dev.example.com/")
-	assertContains(t, logs, "xdg-open|sftp://deploy@dev.example.com:22/var/www/html")
+	assertContains(t, logs, browserCommand+"|https://dev.example.com/")
+	assertContains(t, logs, browserCommand+"|sftp://deploy@dev.example.com:22/var/www/html")
 	assertContains(t, logs, "ssh|")
 }
 

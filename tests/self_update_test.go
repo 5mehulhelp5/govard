@@ -221,8 +221,9 @@ func TestResolveDesktopUpdateTargetsForTestPrefersSiblingTargetWhenCLIBinaryPath
 	if len(got) != 1 {
 		t.Fatalf("expected 1 desktop target, got %d: %v", len(got), got)
 	}
-	if got[0] != siblingDesktop {
-		t.Fatalf("expected sibling desktop target %q, got %v", siblingDesktop, got)
+	expectedSiblingDesktop := canonicalTestPath(t, siblingDesktop)
+	if got[0] != expectedSiblingDesktop {
+		t.Fatalf("expected sibling desktop target %q, got %v", expectedSiblingDesktop, got)
 	}
 }
 
@@ -250,8 +251,9 @@ func TestResolveDesktopUpdateTargetsForTestDeduplicatesTargets(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("expected deduplicated desktop target, got %d: %v", len(got), got)
 	}
-	if got[0] != desktopBinary {
-		t.Fatalf("unexpected desktop target %q, want %q", got[0], desktopBinary)
+	expectedDesktopBinary := canonicalTestPath(t, desktopBinary)
+	if got[0] != expectedDesktopBinary {
+		t.Fatalf("unexpected desktop target %q, want %q", got[0], expectedDesktopBinary)
 	}
 }
 
@@ -283,8 +285,9 @@ func TestResolveDesktopUpdateTargetsForTestFallsBackToPATHWhenSiblingIsMissing(t
 	if len(got) != 1 {
 		t.Fatalf("expected path fallback target, got %d: %v", len(got), got)
 	}
-	if got[0] != pathDesktop {
-		t.Fatalf("expected PATH target %q, got %v", pathDesktop, got)
+	expectedPathDesktop := canonicalTestPath(t, pathDesktop)
+	if got[0] != expectedPathDesktop {
+		t.Fatalf("expected PATH target %q, got %v", expectedPathDesktop, got)
 	}
 }
 
@@ -309,9 +312,20 @@ func TestResolveDesktopUpdateTargetsForTestUsesExplicitDesktopTargetEnv(t *testi
 	if len(got) != 1 {
 		t.Fatalf("expected explicit desktop target, got %d: %v", len(got), got)
 	}
-	if !slices.Contains(got, customDesktop) {
-		t.Fatalf("expected explicit target %q in %v", customDesktop, got)
+	expectedCustomDesktop := canonicalTestPath(t, customDesktop)
+	if !slices.Contains(got, expectedCustomDesktop) {
+		t.Fatalf("expected explicit target %q in %v", expectedCustomDesktop, got)
 	}
+}
+
+func canonicalTestPath(t *testing.T, path string) string {
+	t.Helper()
+
+	resolved, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		t.Fatalf("resolve test path %s: %v", path, err)
+	}
+	return resolved
 }
 
 func TestDetectMixedInstallChannelPairsForTestIncludesConflictingCopies(t *testing.T) {

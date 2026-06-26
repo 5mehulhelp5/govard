@@ -313,6 +313,23 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 			},
 		},
 		{
+			Name:         "LocalImages",
+			OnFailureTip: "govard doctor --fix",
+			Run: func() error {
+				if !context.FallbackLocal {
+					return nil
+				}
+				built, err := engine.RebuildIncompatibleGovardImagesFromCompose(context.Compose, context.Out, context.Err)
+				if err != nil {
+					return fmt.Errorf("rebuild incompatible local Govard images: %w", err)
+				}
+				if len(built) > 0 {
+					pterm.Success.Printf("Rebuilt %d incompatible local image(s): %s\n", len(built), strings.Join(built, ", "))
+				}
+				return nil
+			},
+		},
+		{
 			Name:         "Start",
 			OnFailureTip: "govard doctor",
 			Run: func() error {

@@ -63,7 +63,7 @@ func TestDesktopProjectResolution(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to resolve %q: %v", tt.query, err)
 			}
-			if filepath.Clean(got) != filepath.Clean(tt.want) {
+			if !sameTestFile(t, got, tt.want) {
 				t.Errorf("ResolveProjectRootForRemotes(%q) = %q, want %q", tt.query, got, tt.want)
 			}
 		})

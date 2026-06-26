@@ -590,3 +590,29 @@ func LoadComposeServices(t *testing.T, composePath string) map[string]interface{
 
 	return services
 }
+
+func canonicalPathForTest(t *testing.T, path string) string {
+	t.Helper()
+
+	resolved, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		t.Fatalf("resolve test path %s: %v", path, err)
+	}
+	return resolved
+}
+
+func browserOpenCommandNameForTest(t *testing.T) string {
+	t.Helper()
+
+	switch runtime.GOOS {
+	case "darwin":
+		return "open"
+	case "linux":
+		return "xdg-open"
+	case "windows":
+		return "rundll32"
+	default:
+		t.Fatalf("unsupported platform %q", runtime.GOOS)
+		return ""
+	}
+}

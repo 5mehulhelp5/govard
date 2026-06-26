@@ -49,8 +49,15 @@ func TestTrustCommandWithShims(t *testing.T) {
 
 	logs := shim.ReadLog(t)
 	assertContains(t, logs, "docker|cp govard-proxy-caddy:/data/caddy/pki/authorities/local/root.crt "+certPath)
-	assertContains(t, logs, "sudo|cp "+certPath+" /usr/local/share/ca-certificates/govard.crt")
-	assertContains(t, logs, "sudo|update-ca-certificates")
+	switch runtime.GOOS {
+	case "darwin":
+		assertContains(t, logs, "sudo|security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "+certPath)
+	case "linux":
+		assertContains(t, logs, "sudo|cp "+certPath+" /usr/local/share/ca-certificates/govard.crt")
+		assertContains(t, logs, "sudo|update-ca-certificates")
+	default:
+		t.Fatalf("unsupported trust command integration platform %q", runtime.GOOS)
+	}
 }
 
 func TestDesktopCommandRuntimePaths(t *testing.T) {
@@ -248,7 +255,7 @@ func TestSelfUpdateAutoConfirmSuccessWithMockRelease(t *testing.T) {
 	assertContains(t, output, "Auto-confirmed via GOVARD_SELF_UPDATE_CONFIRM.")
 	assertContains(t, output, "Checksum verified for "+archiveName+".")
 	assertContains(t, output, "Checksum verified for "+desktopArchiveName+".")
-	assertContains(t, output, "Updated govard-desktop at "+isolatedDesktopBinary)
+	assertContains(t, output, "Updated govard-desktop at "+canonicalPathForTest(t, isolatedDesktopBinary))
 	assertContains(t, output, "Successfully updated Govard to "+releaseTag)
 }
 

@@ -1,4 +1,14 @@
 DOCKER_ORG ?= ddtcorex/govard-
+HOST_OS := $(shell uname -s)
+DOCKER_MULTIARCH_PLATFORMS ?= linux/amd64,linux/arm64
+DOCKER_BAKE ?= ./scripts/docker-buildx-bake.sh
+ifeq ($(HOST_OS),Darwin)
+DOCKER_PLATFORMS ?= $(DOCKER_MULTIARCH_PLATFORMS)
+else
+DOCKER_PLATFORMS ?=
+endif
+comma := ,
+DOCKER_PLATFORM_FLAGS := $(foreach platform,$(subst $(comma), ,$(DOCKER_PLATFORMS)),--set "*.platform=$(platform)")
 BINARY_NAME=govard
 BUILD_DIR=bin
 TEST_BINARY=$(BUILD_DIR)/govard-test
@@ -10,7 +20,7 @@ GOLANGCI_LINT_VERSION ?= v2.11.3
 GOLANGCI_LINT_BIN ?= $(shell go env GOPATH)/bin/golangci-lint
 LDFLAGS ?= -s -w -X govard/internal/cmd.Version=$(VERSION) -X govard/internal/desktop.Version=$(VERSION)
 
-.PHONY: help install install-release build-test-binary build clean test test-unit test-coverage test-integration test-integration-ci test-frontend lint lint-install fmt fmt-check vet push
+.PHONY: help install install-release build-test-binary build clean test test-unit test-coverage test-integration test-integration-ci test-frontend lint lint-install fmt fmt-check vet images push
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
@@ -92,10 +102,10 @@ clean: ## Remove build artifacts and clean test cache
 	rm -rf $(BUILD_DIR)
 	go clean -testcache
 
-images:
+images: ## Build Govard Docker images
 	@echo "Building Govard Docker Images..."
-	DOCKER_ORG=$(DOCKER_ORG) docker buildx bake -f docker/docker-bake.hcl
+	DOCKER_ORG=$(DOCKER_ORG) DOCKER_PLATFORMS="$(DOCKER_PLATFORMS)" $(DOCKER_BAKE) -f docker/docker-bake.hcl $(DOCKER_PLATFORM_FLAGS)
 
-push:
-	@echo "Pushing Govard Docker Images..."
-	DOCKER_ORG=$(DOCKER_ORG) docker buildx bake -f docker/docker-bake.hcl --push
+push: ## Push Govard Docker images as multi-arch manifests
+	@echo "Pushing Govard Docker Images for $(DOCKER_PLATFORMS)..."
+	DOCKER_ORG=$(DOCKER_ORG) DOCKER_PLATFORMS="$(DOCKER_PLATFORMS)" $(DOCKER_BAKE) -f docker/docker-bake.hcl $(DOCKER_PLATFORM_FLAGS) --push

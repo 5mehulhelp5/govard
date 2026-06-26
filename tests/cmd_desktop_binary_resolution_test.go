@@ -43,7 +43,7 @@ func TestFindDesktopBinaryForTestPrefersSiblingOfCurrentGovardBinary(t *testing.
 	if err != nil {
 		t.Fatalf("FindDesktopBinaryForTest() error = %v", err)
 	}
-	if got != siblingDesktop {
+	if !sameTestFile(t, got, siblingDesktop) {
 		t.Fatalf("FindDesktopBinaryForTest() = %q, want sibling %q", got, siblingDesktop)
 	}
 }
@@ -82,7 +82,7 @@ func TestFindDesktopBinaryForTestFallsBackToLookPathWhenSiblingMissing(t *testin
 	if err != nil {
 		t.Fatalf("FindDesktopBinaryForTest() error = %v", err)
 	}
-	if got != pathDesktop {
+	if !sameTestFile(t, got, pathDesktop) {
 		t.Fatalf("FindDesktopBinaryForTest() = %q, want PATH binary %q", got, pathDesktop)
 	}
 }
@@ -122,4 +122,18 @@ func TestFindDesktopBinaryForTestReturnsErrorWhenNoSiblingAndNoLookPathMatch(t *
 	if _, err := cmdpkg.FindDesktopBinaryForTest(); err == nil {
 		t.Fatal("FindDesktopBinaryForTest() expected error, got nil")
 	}
+}
+
+func sameTestFile(t *testing.T, left string, right string) bool {
+	t.Helper()
+
+	leftInfo, err := os.Stat(left)
+	if err != nil {
+		t.Fatalf("stat %s: %v", left, err)
+	}
+	rightInfo, err := os.Stat(right)
+	if err != nil {
+		t.Fatalf("stat %s: %v", right, err)
+	}
+	return os.SameFile(leftInfo, rightInfo)
 }
