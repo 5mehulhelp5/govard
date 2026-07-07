@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.54.5] - 2026-07-07
+
+### 🛠 Improvements
+
+- **Multi-Arch Docker Images:** `make images`/`make push` now build through a Buildx Bake wrapper that provisions a multi-platform builder and targets `linux/amd64,linux/arm64` on macOS hosts, fixing Govard image builds on Apple Silicon.
+- **Local Image Architecture Fallback:** `govard doctor --fix`, `govard env images pull`, and `govard up` now detect locally cached Govard images built for the wrong architecture (e.g. an amd64 image on a Darwin/arm64 host) and rebuild them locally instead of failing at container start.
+
+### 🐛 Bug Fixes
+
+- **PHP Entrypoint UID Remap:** Fixed the PHP container entrypoint to re-enter as root before remapping the `www-data` UID/GID, preventing sudo failures once the original `www-data` UID no longer resolves.
+- **Project Path Resolution:** Compose file paths and project registry lookups now resolve symlinks before comparison, preventing duplicate or mismatched project entries when a project path is accessed via a symlinked directory.
+
+### 🔧 Maintenance
+
+- **Dependabot Removal:** Removed the unused Dependabot configuration file.
+
 ## [1.54.4] - 2026-06-24
 
 ### 🐛 Bug Fixes
