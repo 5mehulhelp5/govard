@@ -190,6 +190,22 @@ Govard uses this value for Magento 2 `env.php`, Magento 1/OpenMage `local.xml`, 
 | `stack.features.isolated` | `true`, `false` | Isolate network from external access |
 | `stack.features.mftf` | `true`, `false` | Enable Magento Functional Testing Framework |
 
+#### Connecting to Elasticsearch/OpenSearch from the Host
+
+When `stack.services.search` is `elasticsearch` or `opensearch`, Govard automatically exposes the search engine's REST API on the host at:
+
+```
+http://<your-domain>:9200
+```
+
+For example, if your project's domain is `myshop.test`, run:
+
+```bash
+curl http://myshop.test:9200/_cluster/health
+```
+
+This works for every project simultaneously — Govard's shared proxy routes port `9200` by hostname, the same way it already routes `443`. If your project was created before this feature shipped, run `govard env up` once to re-render its compose file and recreate the `elasticsearch`/`opensearch` container on the `govard-proxy` network before `:9200` becomes reachable. There is no authentication or TLS on this port (matching the engine's own local-dev configuration), so treat it as local-development-only and do not expose it beyond your machine.
+
 Node-first frameworks auto-detect the package manager from `package.json`, `pnpm-workspace.yaml`, or lockfiles.
 
 #### Composer Versioning Optimization

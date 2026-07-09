@@ -26,6 +26,7 @@ services:
       govard-net:
         aliases:
           - opensearch
+      govard-proxy: {}
     volumes:
       - search-data{{ if .Config.Profile }}-{{ .Config.Profile }}{{ end }}:{{ if eq $search "elasticsearch" }}/usr/share/elasticsearch/data{{ else }}/usr/share/opensearch/data{{ end }}
 

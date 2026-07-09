@@ -77,6 +77,62 @@ framework: wordpress
 	}
 }
 
+func TestEnvRestartRegistersAndUnregistersSearchDomainWhenSearchEnabled(t *testing.T) {
+	tempDir := t.TempDir()
+	chdirForTest(t, tempDir)
+	writeRuntimeConfig(t, tempDir, `project_name: search-demo
+domain: search-demo.test
+framework: wordpress
+stack:
+  services:
+    search: opensearch
+`)
+
+	var registeredSearchDomains []string
+	var registeredSearchTarget string
+	var unregisteredSearchDomains []string
+
+	restore := cmd.SetEnvDependenciesForTest(cmd.EnvDependenciesForTest{
+		RunCompose: func(_ context.Context, opts engine.ComposeOptions) error {
+			return nil
+		},
+		RegisterDomains:  func([]string, string) error { return nil },
+		UnregisterDomain: func(string) error { return nil },
+		RegisterSearchDomains: func(domains []string, target string) error {
+			registeredSearchDomains = append([]string{}, domains...)
+			registeredSearchTarget = target
+			return nil
+		},
+		UnregisterSearchDomain: func(domain string) error {
+			unregisteredSearchDomains = append(unregisteredSearchDomains, domain)
+			return nil
+		},
+		AddHostsEntry:             func(string) error { return nil },
+		RemoveHostsEntry:          func(string) error { return nil },
+		IsDomainResolvableLocally: func(string) bool { return false },
+		RunHooks:                  func(engine.Config, string, io.Writer, io.Writer) error { return nil },
+		RefreshPMAActiveProjects:  func() error { return nil },
+	})
+	defer restore()
+
+	command := &cobra.Command{}
+	command.SetOut(io.Discard)
+	command.SetErr(io.Discard)
+	if err := cmd.ProxyEnvToComposeForTest(command, []string{"restart"}); err != nil {
+		t.Fatalf("execute env restart: %v", err)
+	}
+
+	if !reflect.DeepEqual(registeredSearchDomains, []string{"search-demo.test"}) {
+		t.Fatalf("registered search domains = %#v, want %#v", registeredSearchDomains, []string{"search-demo.test"})
+	}
+	if registeredSearchTarget != "search-demo-elasticsearch-1" {
+		t.Fatalf("registered search target = %q, want %q", registeredSearchTarget, "search-demo-elasticsearch-1")
+	}
+	if !reflect.DeepEqual(unregisteredSearchDomains, []string{"search-demo.test"}) {
+		t.Fatalf("unregistered search domains = %#v, want %#v", unregisteredSearchDomains, []string{"search-demo.test"})
+	}
+}
+
 func TestInitRejectsDuplicateProjectIdentity(t *testing.T) {
 	registryPath := filepath.Join(t.TempDir(), "projects.json")
 	t.Setenv(engine.ProjectRegistryPathEnvVar, registryPath)

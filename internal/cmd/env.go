@@ -20,6 +20,8 @@ type EnvDependenciesForTest struct {
 	RunCompose                func(context.Context, engine.ComposeOptions) error
 	RegisterDomains           func([]string, string) error
 	UnregisterDomain          func(string) error
+	RegisterSearchDomains     func([]string, string) error
+	UnregisterSearchDomain    func(string) error
 	AddHostsEntry             func(string) error
 	RemoveHostsEntry          func(string) error
 	IsDomainResolvableLocally func(string) bool
@@ -31,6 +33,8 @@ var envDeps = EnvDependenciesForTest{
 	RunCompose:                engine.RunCompose,
 	RegisterDomains:           proxy.RegisterDomains,
 	UnregisterDomain:          proxy.UnregisterDomain,
+	RegisterSearchDomains:     proxy.RegisterSearchDomains,
+	UnregisterSearchDomain:    proxy.UnregisterSearchDomain,
 	AddHostsEntry:             engine.AddHostsEntry,
 	RemoveHostsEntry:          engine.RemoveHostsEntry,
 	IsDomainResolvableLocally: engine.IsDomainResolvableLocally,
@@ -159,6 +163,13 @@ func proxyEnvToCompose(cmd *cobra.Command, args []string) error {
 		for _, domain := range config.AllDomains() {
 			if err := envDeps.UnregisterDomain(domain); err != nil {
 				pterm.Warning.Printf("Could not remove proxy route for %s: %v\n", domain, err)
+			}
+			// Unregister unconditionally (not gated on Stack.Features.Search): if search
+			// was previously enabled and later disabled, a stale srv_search route could
+			// otherwise linger. UnregisterSearchDomain is a safe no-op when no matching
+			// route exists.
+			if err := envDeps.UnregisterSearchDomain(domain); err != nil {
+				pterm.Warning.Printf("Could not remove search proxy route for %s: %v\n", domain, err)
 			}
 			if err := envDeps.RemoveHostsEntry(domain); err != nil {
 				pterm.Warning.Printf("Could not remove hosts entry for %s: %v\n", domain, err)
@@ -299,6 +310,13 @@ func ensureProjectDomainsAvailable(config engine.Config) {
 		proxyErr = envDeps.RegisterDomains(allDomains, target)
 	}
 
+	if config.Stack.Features.Search && len(allDomains) > 0 {
+		searchTarget := ResolveUpSearchProxyTarget(config)
+		if searchErr := envDeps.RegisterSearchDomains(allDomains, searchTarget); searchErr != nil {
+			pterm.Warning.Printf("Could not register search proxy route: %v\n", searchErr)
+		}
+	}
+
 	for _, domain := range allDomains {
 		if envDeps.IsDomainResolvableLocally(domain) {
 			pterm.Success.Printf("Domain %s already resolves locally\n", domain)
@@ -338,6 +356,16 @@ func SetEnvDependenciesForTest(deps EnvDependenciesForTest) func() {
 		envDeps.UnregisterDomain = deps.UnregisterDomain
 	} else {
 		envDeps.UnregisterDomain = proxy.UnregisterDomain
+	}
+	if deps.RegisterSearchDomains != nil {
+		envDeps.RegisterSearchDomains = deps.RegisterSearchDomains
+	} else {
+		envDeps.RegisterSearchDomains = proxy.RegisterSearchDomains
+	}
+	if deps.UnregisterSearchDomain != nil {
+		envDeps.UnregisterSearchDomain = deps.UnregisterSearchDomain
+	} else {
+		envDeps.UnregisterSearchDomain = proxy.UnregisterSearchDomain
 	}
 	if deps.AddHostsEntry != nil {
 		envDeps.AddHostsEntry = deps.AddHostsEntry

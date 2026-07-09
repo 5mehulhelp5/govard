@@ -42,7 +42,7 @@ internal/updater/               # Self-update
 tests/                          # Unit tests
 tests/integration/              # Integration tests
 tests/frontend/                 # Frontend JS tests
-wiki/                          # Documentation
+docs/                           # Documentation (VitePress)
 ```
 
 ## Build & Test
@@ -136,14 +136,14 @@ Compiles backend and serves frontend at `http://localhost:34115`
 
 Update `README.md` for: installation, upgrade flow, command/flag changes, release consumption
 
-Update `wiki/*.md` for: command names/aliases/flags, config behavior, remote/sync/db workflows, framework support, desktop behavior
+Update `docs/*.md` for: command names/aliases/flags, config behavior, remote/sync/db workflows, framework support, desktop behavior. `docs/**/*.md` auto-syncs to the GitHub Wiki on every push to `master` (`.github/workflows/sync-wiki.yml`) — no separate wiki edit needed.
 
-**Treat stale wiki as incomplete work.**
+**Treat stale docs as incomplete work.**
 
 ## Pre-Completion Checklist
 
 1. `go test` on affected scope passes
 2. `gofmt -s -l .` shows no drift on changed files
 3. Command help/flags still coherent
-4. `README.md` and relevant `wiki/*.md` updated for user-visible changes
+4. `README.md` and relevant `docs/*.md` updated for user-visible changes
 5. `git status` reviewed for unintended file changes

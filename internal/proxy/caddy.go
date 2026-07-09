@@ -3,6 +3,7 @@ package proxy
 import (
 	"encoding/json"
 	"fmt"
+	"govard/internal/conventions"
 	"os/exec"
 	"reflect"
 	"strings"
@@ -134,6 +135,45 @@ func UnregisterDomain(domain string) error {
 	return loadCaddyConfig(proxyContainer, config)
 }
 
+func RegisterSearchDomains(domains []string, targetContainer string) error {
+	proxyContainer := "govard-proxy-caddy"
+	config, err := fetchCaddyConfig(proxyContainer)
+	if err != nil || len(config) == 0 {
+		if err := initCaddy(proxyContainer); err != nil {
+			return err
+		}
+		config, err = fetchCaddyConfig(proxyContainer)
+		if err != nil {
+			return err
+		}
+	}
+
+	changed := ensureSearchServerConfig(config)
+	for _, domain := range domains {
+		if upsertSearchRoute(config, domain, targetContainer) {
+			changed = true
+		}
+	}
+
+	if !changed {
+		return nil
+	}
+	return loadCaddyConfig(proxyContainer, config)
+}
+
+func UnregisterSearchDomain(domain string) error {
+	proxyContainer := "govard-proxy-caddy"
+	config, err := fetchCaddyConfig(proxyContainer)
+	if err != nil {
+		return nil
+	}
+
+	if !removeSearchRoute(config, domain) {
+		return nil
+	}
+	return loadCaddyConfig(proxyContainer, config)
+}
+
 func EnsureTLS() error {
 	proxyContainer := "govard-proxy-caddy"
 
@@ -184,19 +224,19 @@ func loadCaddyConfig(container string, config map[string]interface{}) error {
 	return nil
 }
 
-func upsertDomainRoute(config map[string]interface{}, domain string, targetContainer string) bool {
+func upsertRoute(config map[string]interface{}, serverName string, domain string, targetContainer string, defaultPort int, idPrefix string) bool {
 	changed := false
 	apps := getOrCreateMap(config, "apps", &changed)
 	http := getOrCreateMap(apps, "http", &changed)
 	servers := getOrCreateMap(http, "servers", &changed)
-	srv0 := getOrCreateMap(servers, "srv0", &changed)
+	server := getOrCreateMap(servers, serverName, &changed)
 
 	dial := targetContainer
 	if !strings.Contains(dial, ":") {
-		dial = fmt.Sprintf("%s:80", dial)
+		dial = fmt.Sprintf("%s:%d", dial, defaultPort)
 	}
 
-	routeID := routeIDForDomain(domain)
+	routeID := routeIDForDomain(domain, idPrefix)
 	desiredRoute := map[string]interface{}{
 		"@id": routeID,
 		"match": []interface{}{
@@ -215,7 +255,7 @@ func upsertDomainRoute(config map[string]interface{}, domain string, targetConta
 		"terminal": true,
 	}
 
-	routes, _ := srv0["routes"].([]interface{})
+	routes, _ := server["routes"].([]interface{})
 	if routes == nil {
 		routes = []interface{}{}
 		changed = true
@@ -250,15 +290,23 @@ func upsertDomainRoute(config map[string]interface{}, domain string, targetConta
 		changed = true
 	}
 
-	srv0["routes"] = newRoutes
-	servers["srv0"] = srv0
+	server["routes"] = newRoutes
+	servers[serverName] = server
 	http["servers"] = servers
 	apps["http"] = http
 	config["apps"] = apps
 	return changed
 }
 
-func removeDomainRoute(config map[string]interface{}, domain string) bool {
+func upsertDomainRoute(config map[string]interface{}, domain string, targetContainer string) bool {
+	return upsertRoute(config, "srv0", domain, targetContainer, 80, "govard_route_")
+}
+
+func upsertSearchRoute(config map[string]interface{}, domain string, targetContainer string) bool {
+	return upsertRoute(config, "srv_search", domain, targetContainer, conventions.SearchPort, "govard_search_route_")
+}
+
+func removeRoute(config map[string]interface{}, serverName string, domain string, idPrefix string) bool {
 	apps, ok := config["apps"].(map[string]interface{})
 	if !ok {
 		return false
@@ -271,17 +319,17 @@ func removeDomainRoute(config map[string]interface{}, domain string) bool {
 	if !ok {
 		return false
 	}
-	srv0, ok := servers["srv0"].(map[string]interface{})
+	server, ok := servers[serverName].(map[string]interface{})
 	if !ok {
 		return false
 	}
 
-	routes, ok := srv0["routes"].([]interface{})
+	routes, ok := server["routes"].([]interface{})
 	if !ok {
 		return false
 	}
 
-	routeID := routeIDForDomain(domain)
+	routeID := routeIDForDomain(domain, idPrefix)
 	filtered := make([]interface{}, 0, len(routes))
 	changed := false
 	for _, route := range routes {
@@ -300,17 +348,25 @@ func removeDomainRoute(config map[string]interface{}, domain string) bool {
 		return false
 	}
 
-	srv0["routes"] = filtered
-	servers["srv0"] = srv0
+	server["routes"] = filtered
+	servers[serverName] = server
 	http["servers"] = servers
 	apps["http"] = http
 	config["apps"] = apps
 	return true
 }
 
-func routeIDForDomain(domain string) string {
+func removeDomainRoute(config map[string]interface{}, domain string) bool {
+	return removeRoute(config, "srv0", domain, "govard_route_")
+}
+
+func removeSearchRoute(config map[string]interface{}, domain string) bool {
+	return removeRoute(config, "srv_search", domain, "govard_search_route_")
+}
+
+func routeIDForDomain(domain string, idPrefix string) string {
 	safe := strings.NewReplacer(".", "_", "-", "_", ":", "_").Replace(domain)
-	return "govard_route_" + safe
+	return idPrefix + safe
 }
 
 func routeMatchesDomain(route map[string]interface{}, domain string, routeID string) bool {
@@ -423,6 +479,52 @@ func ensureTLSConfig(config map[string]interface{}) bool {
 	return changed
 }
 
+func ensureSearchServerConfig(config map[string]interface{}) bool {
+	changed := false
+
+	apps := getOrCreateMap(config, "apps", &changed)
+	http := getOrCreateMap(apps, "http", &changed)
+	servers := getOrCreateMap(http, "servers", &changed)
+	srvSearch := getOrCreateMap(servers, "srv_search", &changed)
+
+	listenAddr := fmt.Sprintf(":%d", conventions.SearchPort)
+	listenVal, ok := srvSearch["listen"]
+	var listen []interface{}
+	if ok {
+		if l, ok := listenVal.([]interface{}); ok {
+			for _, v := range l {
+				if s, ok := v.(string); ok && s == listenAddr {
+					listen = append(listen, v)
+				} else if ok {
+					changed = true
+				}
+			}
+		}
+	}
+	if len(listen) == 0 {
+		listen = []interface{}{listenAddr}
+		changed = true
+	}
+	srvSearch["listen"] = listen
+
+	// srv_search matches routes by Host header on project domains that also
+	// qualify for the *.test automatic-TLS policy configured for srv0. Without
+	// explicitly disabling automatic HTTPS here, Caddy would silently wrap this
+	// plain HTTP listener in TLS, breaking host-side access to the search API.
+	wantAutoHTTPS := map[string]interface{}{"disable": true}
+	if autoHTTPS, ok := srvSearch["automatic_https"].(map[string]interface{}); !ok || !reflect.DeepEqual(autoHTTPS, wantAutoHTTPS) {
+		srvSearch["automatic_https"] = wantAutoHTTPS
+		changed = true
+	}
+
+	servers["srv_search"] = srvSearch
+	http["servers"] = servers
+	apps["http"] = http
+	config["apps"] = apps
+
+	return changed
+}
+
 func getOrCreateMap(parent map[string]interface{}, key string, changed *bool) map[string]interface{} {
 	val, ok := parent[key]
 	if ok {
@@ -503,6 +605,21 @@ func UpsertDomainRouteForTest(config map[string]interface{}, domain string, targ
 // RemoveDomainRouteForTest exposes domain route removal behavior for tests.
 func RemoveDomainRouteForTest(config map[string]interface{}, domain string) bool {
 	return removeDomainRoute(config, domain)
+}
+
+// EnsureSearchServerConfigForTest exposes search server config normalization for tests.
+func EnsureSearchServerConfigForTest(config map[string]interface{}) bool {
+	return ensureSearchServerConfig(config)
+}
+
+// UpsertSearchRouteForTest exposes search route upsert behavior for tests.
+func UpsertSearchRouteForTest(config map[string]interface{}, domain string, targetContainer string) bool {
+	return upsertSearchRoute(config, domain, targetContainer)
+}
+
+// RemoveSearchRouteForTest exposes search route removal behavior for tests.
+func RemoveSearchRouteForTest(config map[string]interface{}, domain string) bool {
+	return removeSearchRoute(config, domain)
 }
 
 func isDefaultFileServerRoute(route interface{}) bool {

@@ -416,6 +416,13 @@ func buildUpPipelineStages(cmd *cobra.Command, context *upRuntimeContext) []upPi
 					proxyErr = proxy.RegisterDomains(allDomains, target)
 				}
 
+				if context.Config.Stack.Features.Search && len(allDomains) > 0 {
+					searchTarget := ResolveUpSearchProxyTarget(context.Config)
+					if searchErr := proxy.RegisterSearchDomains(allDomains, searchTarget); searchErr != nil {
+						pterm.Warning.Printf("Could not register search proxy route: %v\n", searchErr)
+					}
+				}
+
 				var wg sync.WaitGroup
 				for _, domain := range allDomains {
 					wg.Add(1)
@@ -756,6 +763,11 @@ func ResolveUpProxyTarget(config engine.Config) string {
 		target = config.ProjectName + conventions.VarnishSuffix
 	}
 	return target
+}
+
+// ResolveUpSearchProxyTarget resolves the upstream container for the search-engine proxy route.
+func ResolveUpSearchProxyTarget(config engine.Config) string {
+	return config.ProjectName + conventions.ElasticsearchSuffix
 }
 
 // ApplyQuickstartProfile trims optional runtime services for faster first startup.

@@ -96,6 +96,16 @@ func TestResolveUpProxyTargetWithVarnish(t *testing.T) {
 	}
 }
 
+func TestResolveUpSearchProxyTargetUsesElasticsearchSuffix(t *testing.T) {
+	config := engine.Config{ProjectName: "demo"}
+
+	got := cmd.ResolveUpSearchProxyTarget(config)
+	want := "demo-elasticsearch-1"
+	if got != want {
+		t.Fatalf("ResolveUpSearchProxyTarget() = %q, want %q", got, want)
+	}
+}
+
 func TestBuildUpReadinessChecksForPHPRuntime(t *testing.T) {
 	checks := cmd.BuildUpReadinessChecksForTest(engine.Config{
 		ProjectName: "demo",

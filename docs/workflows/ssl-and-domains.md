@@ -116,6 +116,10 @@ govard domain list
 
 Govard routes these domains through the same proxy and CA flow as the primary project domain.
 
+### Elasticsearch/OpenSearch Host Access
+
+When a project's `stack.services.search` is `elasticsearch` or `opensearch`, the shared Caddy proxy also routes `http://<your-domain>:9200` to that project's search container by hostname — the same Host-header routing used for the primary domain on `443`, just on a second, plain-HTTP port. This is automatic; no `linked_projects` or extra domain configuration is required. See [Configuration](/reference/configuration) for details, including the no-auth/no-TLS caveat.
+
 ### Inter-Project Access From PHP Runtimes
 
 By default, Govard projects are isolated. To allow one local PHP project to call another through the shared Caddy proxy, you must explicitly declare the dependency in your `.govard.yml` using the `linked_projects` field:
