@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.54.6] - 2026-07-09
+
+### ✨ New Features
+
+- **Elasticsearch/OpenSearch Host Access:** Projects with `stack.services.search` set to `elasticsearch` or `opensearch` are now automatically reachable from the host at `http://<project-domain>:9200`. Reuses the same Caddy Host-header routing that already serves each project's HTTPS domain, so no extra configuration or per-project port is needed.
+
+### 📚 Documentation
+
+- Documented the new `:9200` host-access behavior and the one-time `govard env up` re-render required for pre-existing projects (`docs/reference/configuration.md`, `docs/workflows/ssl-and-domains.md`).
+
 ## [1.54.5] - 2026-07-07
 
 ### 🛠 Improvements
