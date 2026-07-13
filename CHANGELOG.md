@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.54.7] - 2026-07-13
+
+### ✨ New Features
+
+- **Framework-Agnostic Container Skip Flag:** Renamed `bootstrap`'s `--skip-up` flag to `--no-up` for consistency with the other `--no-*` scope flags (`--no-db`, `--no-media`, `--no-composer`, `--no-admin`, etc). `--skip-up` is no longer accepted.
+
+### 📚 Documentation
+
+- Documented `--no-up` in the CLI commands reference (English and Vietnamese).
+
 ## [1.54.6] - 2026-07-09
 
 ### ✨ New Features
