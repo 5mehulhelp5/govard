@@ -36,7 +36,7 @@ framework: magento2
 
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
-	root.SetArgs([]string{"bootstrap", "--yes", "--skip-up", "--no-db", "--no-media", "--no-composer"})
+	root.SetArgs([]string{"bootstrap", "--yes", "--no-up", "--no-db", "--no-media", "--no-composer"})
 
 	// IMPORTANT: Mock the subcommand runner to prevent recursion/fork-bomb during tests
 	defer cmd.SetGovardSubcommandRunnerForTest(func(subCmd *cobra.Command, args ...string) error {
@@ -71,7 +71,7 @@ remotes: {}
 
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
-	root.SetArgs([]string{"bootstrap", "--clone", "--environment", "dev", "--skip-up", "--yes"})
+	root.SetArgs([]string{"bootstrap", "--clone", "--environment", "dev", "--no-up", "--yes"})
 
 	defer cmd.SetGovardSubcommandRunnerForTest(func(subCmd *cobra.Command, args ...string) error {
 		return nil
@@ -108,7 +108,7 @@ framework: magento2
 
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
-	root.SetArgs([]string{"bootstrap", "--fresh", "--clone", "--skip-up"})
+	root.SetArgs([]string{"bootstrap", "--fresh", "--clone", "--no-up"})
 
 	defer cmd.SetGovardSubcommandRunnerForTest(func(subCmd *cobra.Command, args ...string) error {
 		return nil
@@ -172,7 +172,7 @@ framework: custom
 
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
-	root.SetArgs([]string{"bootstrap", "--clone=false", "--skip-up", "--yes"})
+	root.SetArgs([]string{"bootstrap", "--clone=false", "--no-up", "--yes"})
 
 	defer cmd.SetGovardSubcommandRunnerForTest(func(subCmd *cobra.Command, args ...string) error {
 		return nil

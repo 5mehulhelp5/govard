@@ -39,7 +39,7 @@ func TestBootstrapInitAutoTune(t *testing.T) {
 			"bootstrap",
 			"--yes",
 			"--fresh",
-			"--skip-up",
+			"--no-up",
 			"--no-pii", // Dummy flag to bypass some logic, or just don't use non-existent flags
 		)
 

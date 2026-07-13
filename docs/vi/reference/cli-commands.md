@@ -95,6 +95,7 @@ govard bootstrap -e staging --no-pii --no-noise
 | `--no-composer` | Bỏ qua việc chạy `composer install` |
 | `--no-admin` | Bỏ qua bước tạo tài khoản admin (chỉ áp dụng cho Magento 2) |
 | `--no-stream-db` | Sử dụng một file tạm local để truyền DB thay vì stream trực tiếp |
+| `--no-up` | Bỏ qua bước khởi động container local trước khi chạy bootstrap |
 
 Đối với các dự án Magento có thiết lập `table_prefix`, các bộ lọc bảo mật DB sẽ tự động áp dụng chính xác cho các bảng có tiền tố tương ứng.
 

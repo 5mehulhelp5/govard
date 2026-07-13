@@ -1286,7 +1286,7 @@ func buildPresetSyncOptionDefs(project, preset string) presetSyncOptions {
 			presetOptionDef{Key: "noStreamDb", Label: "Disable Stream DB", Description: "Do not stream database via pipe", DefaultValue: false},
 
 			// 4. UX & Execution
-			presetOptionDef{Key: "skipUp", Label: "Skip Govard Up", Description: "Do not run govard up before bootstrap", DefaultValue: false},
+			presetOptionDef{Key: "noUp", Label: "Skip Govard Up", Description: "Do not run govard up before bootstrap", DefaultValue: false},
 		)
 
 		return presetSyncOptions{
@@ -1328,8 +1328,8 @@ func buildBootstrapArgsWithOptions(remoteName string, options map[string]bool, p
 	if options["noAdmin"] {
 		args = append(args, "--no-admin")
 	}
-	if options["skipUp"] {
-		args = append(args, "--skip-up")
+	if options["noUp"] {
+		args = append(args, "--no-up")
 	}
 	if options["noStreamDb"] {
 		args = append(args, "--no-stream-db")

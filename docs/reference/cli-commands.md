@@ -99,6 +99,7 @@ govard bootstrap -e staging --no-pii --no-noise
 | `--no-composer` | Skip `composer install` |
 | `--no-admin` | Skip admin user creation (Magento 2 only) |
 | `--no-stream-db` | Use local temp file for DB transfer |
+| `--no-up` | Skip starting local containers before bootstrap steps |
 
 For Magento projects with `table_prefix` set, DB privacy filters target prefixed table names automatically.
 

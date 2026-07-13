@@ -13,19 +13,19 @@ func TestBootstrapValidationMatrix(t *testing.T) {
 
 	t.Run("FreshAndCloneMutuallyExclusive", func(t *testing.T) {
 		projectDir := env.CreateProjectFromFixture(t, "magento2/options-dev", "bootstrap-validate-fresh-clone")
-		result := env.RunGovard(t, projectDir, "bootstrap", "--fresh", "--clone", "--skip-up", "--yes")
+		result := env.RunGovard(t, projectDir, "bootstrap", "--fresh", "--clone", "--no-up", "--yes")
 		assertBootstrapContains(t, result.Stdout+result.Stderr, "--fresh and --clone cannot be used together")
 	})
 
 	t.Run("CodeOnlyRequiresClone", func(t *testing.T) {
 		projectDir := env.CreateProjectFromFixture(t, "magento2/options-dev", "bootstrap-validate-code-only")
-		result := env.RunGovard(t, projectDir, "bootstrap", "--code-only", "--skip-up", "--yes")
+		result := env.RunGovard(t, projectDir, "bootstrap", "--code-only", "--no-up", "--yes")
 		assertBootstrapContains(t, result.Stdout+result.Stderr, "--code-only requires --clone")
 	})
 
 	t.Run("InvalidVersionRejected", func(t *testing.T) {
 		projectDir := env.CreateProjectFromFixture(t, "magento2/options-dev", "bootstrap-validate-version")
-		result := env.RunGovard(t, projectDir, "bootstrap", "--fresh", "--framework-version", "1.0.0", "--skip-up", "--yes")
+		result := env.RunGovard(t, projectDir, "bootstrap", "--fresh", "--framework-version", "1.0.0", "--no-up", "--yes")
 		assertBootstrapContains(t, result.Stdout+result.Stderr, "invalid --framework-version value")
 	})
 }
@@ -34,7 +34,7 @@ func TestBootstrapCloneRequiresConfiguredRemote(t *testing.T) {
 	env := NewTestEnvironment(t)
 	projectDir := env.CreateProjectFromFixture(t, "magento2/options-dev", "bootstrap-no-remote")
 
-	result := env.RunGovard(t, projectDir, "bootstrap", "--clone", "--environment", "dev", "--skip-up", "--yes")
+	result := env.RunGovard(t, projectDir, "bootstrap", "--clone", "--environment", "dev", "--no-up", "--yes")
 	assertBootstrapContains(t, result.Stdout+result.Stderr, "remote 'dev' is not configured")
 }
 
@@ -55,7 +55,7 @@ func TestBootstrapCloneOrchestrationWithShims(t *testing.T) {
 		"--clone", "--yes",
 
 		"--environment", "dev",
-		"--skip-up",
+		"--no-up",
 		"--no-composer",
 		"--no-db",
 		"--no-media",
@@ -85,7 +85,7 @@ func TestBootstrapFreshOrchestrationWithShims(t *testing.T) {
 		shim.Env(),
 		"bootstrap",
 		"--fresh", "--yes",
-		"--skip-up",
+		"--no-up",
 
 		"--no-admin",
 	)
@@ -115,7 +115,7 @@ func TestBootstrapCloneMediaSyncExcludesProductByDefault(t *testing.T) {
 		"--clone", "--yes",
 
 		"--environment", "dev",
-		"--skip-up",
+		"--no-up",
 		"--no-composer",
 		"--no-db",
 		"--no-admin",
@@ -144,7 +144,7 @@ func TestBootstrapCloneMediaSyncAllMode(t *testing.T) {
 
 		"--environment", "dev",
 		"--media", "all",
-		"--skip-up",
+		"--no-up",
 		"--no-composer",
 		"--no-db",
 		"--no-admin",

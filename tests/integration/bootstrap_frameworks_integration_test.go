@@ -30,7 +30,7 @@ func TestBootstrapSymfonyFreshIntegration(t *testing.T) {
 		shim.Env(),
 		"bootstrap",
 		"--fresh", "--yes",
-		"--skip-up",
+		"--no-up",
 	)
 	result.AssertSuccess(t)
 
@@ -62,7 +62,7 @@ func TestBootstrapLaravelFreshIntegration(t *testing.T) {
 		shim.Env(),
 		"bootstrap",
 		"--fresh", "--yes",
-		"--skip-up",
+		"--no-up",
 	)
 	result.AssertSuccess(t)
 

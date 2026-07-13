@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func TestBootstrapCommandRuntimePlanSkipUpDoesNotRunSubcommands(t *testing.T) {
+func TestBootstrapCommandRuntimePlanNoUpDoesNotRunSubcommands(t *testing.T) {
 	resetBootstrapFlagsForRuntimeTest(t)
 
 	tempDir := t.TempDir()
@@ -35,13 +35,32 @@ framework: laravel
 	root := cmd.RootCommandForTest()
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
-	root.SetArgs([]string{"bootstrap", "--plan", "--skip-up"})
+	root.SetArgs([]string{"bootstrap", "--plan", "--no-up"})
 	if err := root.Execute(); err != nil {
 		t.Fatalf("bootstrap --plan failed: %v", err)
 	}
 
 	if len(calls) != 0 {
-		t.Fatalf("expected no subcommand calls for --plan --skip-up, got %#v", calls)
+		t.Fatalf("expected no subcommand calls for --plan --no-up, got %#v", calls)
+	}
+}
+
+func TestBootstrapCommandRuntimeSkipUpFlagIsRejected(t *testing.T) {
+	resetBootstrapFlagsForRuntimeTest(t)
+
+	tempDir := t.TempDir()
+	chdirForTest(t, tempDir)
+	writeRuntimeConfig(t, tempDir, `project_name: sample-project
+domain: sample.test
+framework: laravel
+`)
+
+	root := cmd.RootCommandForTest()
+	root.SetOut(io.Discard)
+	root.SetErr(io.Discard)
+	root.SetArgs([]string{"bootstrap", "--plan", "--skip-up"})
+	if err := root.Execute(); err == nil {
+		t.Fatal("expected --skip-up to be rejected as an unknown flag")
 	}
 }
 
@@ -81,7 +100,7 @@ remotes:
 	root := cmd.RootCommandForTest()
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
-	root.SetArgs([]string{"bootstrap", "--environment", "staging", "--yes", "--skip-up"})
+	root.SetArgs([]string{"bootstrap", "--environment", "staging", "--yes", "--no-up"})
 	if err := root.Execute(); err != nil {
 		t.Fatalf("bootstrap remote flow failed: %v", err)
 	}
@@ -139,7 +158,7 @@ remotes:
 	root := cmd.RootCommandForTest()
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
-	root.SetArgs([]string{"bootstrap", "--media", "-e", "dev", "--yes", "--skip-up"})
+	root.SetArgs([]string{"bootstrap", "--media", "-e", "dev", "--yes", "--no-up"})
 	if err := root.Execute(); err != nil {
 		t.Fatalf("bootstrap bare --media flow failed: %v", err)
 	}
@@ -197,7 +216,7 @@ remotes:
 	root := cmd.RootCommandForTest()
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
-	root.SetArgs([]string{"bootstrap", "--media", "all", "-e", "dev", "--yes", "--skip-up"})
+	root.SetArgs([]string{"bootstrap", "--media", "all", "-e", "dev", "--yes", "--no-up"})
 	if err := root.Execute(); err != nil {
 		t.Fatalf("bootstrap explicit --media all flow failed: %v", err)
 	}
@@ -274,7 +293,7 @@ framework: openmage
 	root := cmd.RootCommandForTest()
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
-	root.SetArgs([]string{"bootstrap", "--yes", "--clone=false", "--skip-up", "--no-db", "--no-media"})
+	root.SetArgs([]string{"bootstrap", "--yes", "--clone=false", "--no-up", "--no-db", "--no-media"})
 	if err := root.Execute(); err != nil {
 		t.Fatalf("bootstrap OpenMage post-clone flow failed: %v", err)
 	}
@@ -378,7 +397,7 @@ remotes:
 	root := cmd.RootCommandForTest()
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
-	root.SetArgs([]string{"bootstrap", "--clone", "--code-only", "--environment", "dev", "--yes", "--skip-up"})
+	root.SetArgs([]string{"bootstrap", "--clone", "--code-only", "--environment", "dev", "--yes", "--no-up"})
 	if err := root.Execute(); err != nil {
 		t.Fatalf("bootstrap --clone --code-only failed: %v", err)
 	}
@@ -442,7 +461,7 @@ framework: laravel
 		"bootstrap",
 		"--yes",
 		"--clone=false",
-		"--skip-up",
+		"--no-up",
 		"--no-media",
 		"--no-composer",
 		"--db-dump", dumpPath,
@@ -493,7 +512,7 @@ remotes:
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
 	// Test with both --no-noise and --no-pii
-	root.SetArgs([]string{"bootstrap", "--environment", "staging", "--yes", "--no-noise", "--no-pii", "--skip-up", "--no-media", "--no-composer"})
+	root.SetArgs([]string{"bootstrap", "--environment", "staging", "--yes", "--no-noise", "--no-pii", "--no-up", "--no-media", "--no-composer"})
 	if err := root.Execute(); err != nil {
 		t.Fatalf("bootstrap failed: %v", err)
 	}

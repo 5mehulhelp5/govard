@@ -516,7 +516,7 @@ func init() {
 
 	// 7. UX & Execution Control
 	bootstrapCmd.Flags().BoolVar(&bootstrapFixDeps, "fix-deps", false, "Run project custom fix-deps command before bootstrap")
-	bootstrapCmd.Flags().BoolVar(&bootstrapSkipUp, "skip-up", false, "Skip starting local containers before bootstrap steps")
+	bootstrapCmd.Flags().BoolVar(&bootstrapSkipUp, "no-up", false, "Skip starting local containers before bootstrap steps")
 	bootstrapCmd.Flags().BoolVar(&bootstrapPlan, "plan", false, "Print the bootstrap plan and exit")
 }
 
