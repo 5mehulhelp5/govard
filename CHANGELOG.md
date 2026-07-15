@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.55.0] - 2026-07-15
+
+### ✨ New Features
+
+- **Custom Xdebug Version:** Added `stack.xdebug_version` to `.govard.yml`, letting projects override the PECL Xdebug version installed in the `php-debug` service instead of Govard's recommended default. Setting it forces a local image build (the version is baked into the image), since the override doesn't match any published `-debug` tag.
+
+### 🐛 Bug Fixes
+
+- **Xdebug Segfaults on Alpine:** Added a `ulimits.stack` override (8MB) to the `php-debug` service. Alpine/musl's default ~80KB thread stack, combined with Xdebug's native stack usage per call and `xdebug.start_with_request=yes`, could overflow and segfault on ordinary recursive PHP calls instead of raising a normal PHP error.
+- **PHP 8.x Xdebug Compatibility:** `docker/php/debug/Dockerfile` now pins Xdebug to `3.5.3` for all PHP 8.x builds (previously installed whatever `pecl install xdebug` resolved to as "latest," which was not reproducible and could resolve to a build untested against a newer PHP release).
+
+### 🔧 Maintenance
+
+- **Blueprint Lifecycle:** Incremented internal `BlueprintVersion` to **1.46**, triggering automatic environment re-renders so existing `php-debug` services pick up the new stack ulimit.
+
+### 📚 Documentation
+
+- Documented `stack.xdebug_version` in the configuration reference (English and Vietnamese).
+- Documented when to bump `BlueprintVersion` in `CLAUDE.md`.
+
 ## [1.54.7] - 2026-07-13
 
 ### ✨ New Features
