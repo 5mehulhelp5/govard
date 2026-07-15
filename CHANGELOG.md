@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.55.1] - 2026-07-15
+
+### 🐛 Bug Fixes
+
+- **Xdebug Crashes on PHP 8.1-8.4:** `docker/php/debug/Dockerfile` now installs Xdebug `3.4.5` for PHP 8.1-8.4 instead of `3.5.3`. The 3.5.x line has a crash bug in its rewritten debugger.c: a real debug client connection combined with internal-function-call breakpoint checks (e.g. exception breakpoints) segfaults in `zend_get_executed_lineno()`. PHP 8.5 has no 3.4.x release, so it stays on `3.5.3` and remains exposed until Xdebug ships a fix.
+
+### 📚 Documentation
+
+- Overhauled SEO for the docs site (govard.ddtcorex.com): unique title/description frontmatter on all EN/VI pages, an auto-generated sitemap.xml covering every resolved route, canonical/hreflang links between EN/VI page pairs, and Open Graph/Twitter Card/JSON-LD tags with an on-brand social preview image.
+
 ## [1.55.0] - 2026-07-15
 
 ### ✨ New Features
