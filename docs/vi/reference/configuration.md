@@ -92,6 +92,7 @@ stack:
   search_version: "3.4.0"
   queue_version: "3.13.7"
   xdebug_session: "PHPSTORM"
+  xdebug_version: "3.5.3"
   composer_version: "latest"
   services:
     web_server: "nginx"
@@ -180,6 +181,7 @@ Govard sử dụng giá trị này cho Magento 2 `env.php`, Magento 1/OpenMage `
 | `stack.web_root` | ví dụ: `/pub`, `/public` | Thư mục web root |
 | `stack.composer_version` | `1`, `2`, `2.2`, `latest`, hoặc bất kỳ phiên bản nào | Phiên bản Composer |
 | `stack.xdebug_session` | ví dụ: `PHPSTORM` | Tên session Xdebug |
+| `stack.xdebug_version` | ví dụ: `3.5.3` | Ghi đè phiên bản PECL Xdebug được cài trong container `php-debug` (mặc định: phiên bản Govard khuyến nghị theo PHP major version, hiện là `3.5.3` cho PHP 8.x). Việc này sẽ buộc build image cục bộ vì phiên bản cụ thể được đóng gói sẵn trong image. |
 | `stack.features.livereload` | `true`, `false` | Bật map port LiveReload (35729) |
 | `stack.features.varnish` | `true`, `false` | Bật dịch vụ cache Varnish |
 | `stack.features.xdebug` | `true`, `false` | Bật Xdebug và dịch vụ php-debug |

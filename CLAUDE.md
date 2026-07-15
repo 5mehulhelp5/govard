@@ -95,6 +95,14 @@ When adding/modifying commands:
 5. Add tests in `tests/`
 6. Update docs for user-visible changes
 
+## Blueprint Versioning
+
+`internal/engine/render.go`'s `BlueprintVersion` const forces existing projects to re-render (`govard env up`) by invalidating a stored content hash.
+
+- Editing files under `internal/blueprints/files/**` (base.yml, framework yml, nginx templates) already busts that hash automatically via content fingerprinting — **no bump needed**.
+- Bump `BlueprintVersion` only when Go rendering logic changes (`render.go`, `config_normalize.go`, `framework_config.go`, `profile.go`, etc.) in a way that changes rendered output *without* changing blueprint file bytes — those changes aren't hash-detected.
+- When bumped, note it in `CHANGELOG.md` under a "Blueprint Lifecycle" bullet (see prior entries for wording).
+
 ## Release Checklist
 
 Update version in:

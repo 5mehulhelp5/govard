@@ -39,6 +39,7 @@ type Stack struct {
 	SearchVersion   string   `yaml:"search_version,omitempty"`
 	QueueVersion    string   `yaml:"queue_version,omitempty"`
 	XdebugSession   string   `yaml:"xdebug_session,omitempty"`
+	XdebugVersion   string   `yaml:"xdebug_version,omitempty"`
 	WebServer       string   `yaml:"web_server,omitempty"`
 	UserID          int      `yaml:"user_id,omitempty"`
 	GroupID         int      `yaml:"group_id,omitempty"`

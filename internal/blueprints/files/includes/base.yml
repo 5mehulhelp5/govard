@@ -130,9 +130,11 @@ services:
   {{ end }}
 
   {{ if and .RequiresPHP .Config.Stack.Features.Xdebug }}
+  {{ $xdebugVersionSuffix := "" }}
+  {{ if .Config.Stack.XdebugVersion }}{{ $xdebugVersionSuffix = printf "-xdebug-%s" .Config.Stack.XdebugVersion }}{{ end }}
   php-debug:
     hostname: {{ .Config.ProjectName }}-php-debug
-    image: {{ if eq .Config.Framework "magento2" }}{{ $.ImageRepository }}php-magento2:{{ .Config.Stack.PHPVersion }}-debug{{ else if or (eq .Config.Framework "magento1") (eq .Config.Framework "openmage") }}{{ $.ImageRepository }}php-magento1:{{ .Config.Stack.PHPVersion }}-debug{{ else }}{{ $.ImageRepository }}php:{{ .Config.Stack.PHPVersion }}-debug{{ end }}
+    image: {{ if eq .Config.Framework "magento2" }}{{ $.ImageRepository }}php-magento2:{{ .Config.Stack.PHPVersion }}-debug{{ $xdebugVersionSuffix }}{{ else if or (eq .Config.Framework "magento1") (eq .Config.Framework "openmage") }}{{ $.ImageRepository }}php-magento1:{{ .Config.Stack.PHPVersion }}-debug{{ $xdebugVersionSuffix }}{{ else }}{{ $.ImageRepository }}php:{{ .Config.Stack.PHPVersion }}-debug{{ $xdebugVersionSuffix }}{{ end }}
     volumes:
       - .:{{ .WorkDir }}
       {{ if (lt .Config.Stack.PHPVersion "7.3") }}

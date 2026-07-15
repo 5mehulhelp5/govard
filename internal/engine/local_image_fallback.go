@@ -269,8 +269,7 @@ func localBuildSpecForGovardService(service string, tag string, repoPrefix strin
 		repoPrefix = defaultGovardImageRepository
 	}
 
-	isDebug := strings.HasSuffix(tag, "-debug")
-	baseTag := strings.TrimSuffix(tag, "-debug")
+	baseTag, isDebug, xdebugVersionOverride := splitDebugTag(tag)
 
 	switch service {
 	case "apache":
@@ -292,10 +291,8 @@ func localBuildSpecForGovardService(service string, tag string, repoPrefix strin
 			return localImageBuildSpec{
 				ContextRel:    "php",
 				DockerfileRel: filepath.Join("php", "debug", "Dockerfile"),
-				BuildArgs: []localImageBuildArg{
-					{Name: "BASE_IMAGE", Value: repoPrefix + "php:" + baseTag},
-				},
-				Dependencies: []string{repoPrefix + "php:" + baseTag},
+				BuildArgs:     debugBuildArgs(repoPrefix+"php:"+baseTag, xdebugVersionOverride),
+				Dependencies:  []string{repoPrefix + "php:" + baseTag},
 			}, nil
 		}
 		return localImageBuildSpec{
@@ -309,10 +306,8 @@ func localBuildSpecForGovardService(service string, tag string, repoPrefix strin
 			return localImageBuildSpec{
 				ContextRel:    "php",
 				DockerfileRel: filepath.Join("php", "debug", "Dockerfile"),
-				BuildArgs: []localImageBuildArg{
-					{Name: "BASE_IMAGE", Value: repoPrefix + "php-magento1:" + baseTag},
-				},
-				Dependencies: []string{repoPrefix + "php-magento1:" + baseTag},
+				BuildArgs:     debugBuildArgs(repoPrefix+"php-magento1:"+baseTag, xdebugVersionOverride),
+				Dependencies:  []string{repoPrefix + "php-magento1:" + baseTag},
 			}, nil
 		}
 		return localImageBuildSpec{
@@ -329,10 +324,8 @@ func localBuildSpecForGovardService(service string, tag string, repoPrefix strin
 			return localImageBuildSpec{
 				ContextRel:    "php",
 				DockerfileRel: filepath.Join("php", "debug", "Dockerfile"),
-				BuildArgs: []localImageBuildArg{
-					{Name: "BASE_IMAGE", Value: repoPrefix + "php-magento2:" + baseTag},
-				},
-				Dependencies: []string{repoPrefix + "php-magento2:" + baseTag},
+				BuildArgs:     debugBuildArgs(repoPrefix+"php-magento2:"+baseTag, xdebugVersionOverride),
+				Dependencies:  []string{repoPrefix + "php-magento2:" + baseTag},
 			}, nil
 		}
 		return localImageBuildSpec{
@@ -416,6 +409,37 @@ func localBuildSpecForGovardService(service string, tag string, repoPrefix strin
 	default:
 		return localImageBuildSpec{}, fmt.Errorf("unsupported Govard image service %q", service)
 	}
+}
+
+// splitDebugTag splits a Govard image tag into its base (non-debug) version,
+// whether it targets the debug variant, and an optional Xdebug version
+// override encoded as a "-xdebug-<version>" suffix (see base.yml, which
+// appends this suffix when stack.xdebug_version is set).
+func splitDebugTag(tag string) (baseTag string, isDebug bool, xdebugVersionOverride string) {
+	const debugMarker = "-debug"
+	const xdebugVersionMarker = "-xdebug-"
+
+	idx := strings.Index(tag, debugMarker)
+	if idx < 0 {
+		return tag, false, ""
+	}
+
+	baseTag = tag[:idx]
+	rest := tag[idx+len(debugMarker):]
+	if strings.HasPrefix(rest, xdebugVersionMarker) {
+		xdebugVersionOverride = strings.TrimPrefix(rest, xdebugVersionMarker)
+	}
+	return baseTag, true, xdebugVersionOverride
+}
+
+func debugBuildArgs(baseImage string, xdebugVersionOverride string) []localImageBuildArg {
+	args := []localImageBuildArg{
+		{Name: "BASE_IMAGE", Value: baseImage},
+	}
+	if xdebugVersionOverride != "" {
+		args = append(args, localImageBuildArg{Name: "XDEBUG_VERSION_OVERRIDE", Value: xdebugVersionOverride})
+	}
+	return args
 }
 
 func parseGovardImageReference(image string) (repoPrefix string, service string, tag string, ok bool) {

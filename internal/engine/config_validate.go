@@ -44,6 +44,9 @@ func ValidateConfig(cfg Config) error {
 	if err := validateBlueprintRegistryConfig(cfg.BlueprintRegistry); err != nil {
 		return err
 	}
+	if cfg.Stack.XdebugVersion != "" && !ValidateXdebugVersion(cfg.Stack.XdebugVersion) {
+		return fmt.Errorf("stack.xdebug_version %q is invalid (use a PECL Xdebug version, e.g. 3.5.3)", cfg.Stack.XdebugVersion)
+	}
 
 	for host, mapping := range cfg.StoreDomains {
 		trimmedHost := strings.TrimSpace(host)

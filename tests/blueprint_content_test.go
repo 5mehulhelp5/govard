@@ -222,6 +222,75 @@ func TestPHPDebugServiceHasStackUlimitToPreventXdebugSegfault(t *testing.T) {
 	}
 }
 
+func TestPHPDebugServiceImageEncodesXdebugVersionOverride(t *testing.T) {
+	content := renderComposeWithConfig(t, engine.Config{
+		ProjectName: "project-a",
+		Framework:   "laravel",
+		Domain:      "project-a.test",
+		Stack: engine.Stack{
+			PHPVersion:    "8.4",
+			XdebugVersion: "3.4.0",
+			Features: engine.Features{
+				Xdebug: true,
+			},
+		},
+	})
+
+	var composeStruct struct {
+		Services map[string]struct {
+			Image string `yaml:"image"`
+		} `yaml:"services"`
+	}
+	if err := yaml.Unmarshal([]byte(content), &composeStruct); err != nil {
+		t.Fatalf("failed to parse yaml: %v", err)
+	}
+
+	debugSvc, ok := composeStruct.Services["php-debug"]
+	if !ok {
+		t.Fatal("php-debug service not found in parsed compose file")
+	}
+
+	const wantSuffix = "8.4-debug-xdebug-3.4.0"
+	if !strings.HasSuffix(debugSvc.Image, wantSuffix) {
+		t.Fatalf("expected php-debug image to end with %q, got %q", wantSuffix, debugSvc.Image)
+	}
+}
+
+func TestPHPDebugServiceImageOmitsXdebugVersionSuffixWhenUnset(t *testing.T) {
+	content := renderComposeWithConfig(t, engine.Config{
+		ProjectName: "project-a",
+		Framework:   "laravel",
+		Domain:      "project-a.test",
+		Stack: engine.Stack{
+			PHPVersion: "8.4",
+			Features: engine.Features{
+				Xdebug: true,
+			},
+		},
+	})
+
+	var composeStruct struct {
+		Services map[string]struct {
+			Image string `yaml:"image"`
+		} `yaml:"services"`
+	}
+	if err := yaml.Unmarshal([]byte(content), &composeStruct); err != nil {
+		t.Fatalf("failed to parse yaml: %v", err)
+	}
+
+	debugSvc, ok := composeStruct.Services["php-debug"]
+	if !ok {
+		t.Fatal("php-debug service not found in parsed compose file")
+	}
+
+	if !strings.HasSuffix(debugSvc.Image, "8.4-debug") {
+		t.Fatalf("expected php-debug image to end with '8.4-debug', got %q", debugSvc.Image)
+	}
+	if strings.Contains(debugSvc.Image, "-xdebug-") {
+		t.Fatalf("expected no xdebug version suffix when unset, got %q", debugSvc.Image)
+	}
+}
+
 func TestRenderBlueprintReRendersWhenKnownProjectDomainsChange(t *testing.T) {
 	tempDir := t.TempDir()
 	setTestGovardHome(t, tempDir)

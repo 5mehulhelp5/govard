@@ -119,6 +119,44 @@ func TestEnginePkgValidateConfigAllowsNoneWebServer(t *testing.T) {
 	}
 }
 
+func TestEnginePkgValidateConfigRejectsInvalidXdebugVersion(t *testing.T) {
+	cfg := engine.Config{
+		ProjectName: "demo",
+		Domain:      "demo.test",
+		Stack: engine.Stack{
+			XdebugVersion: "3.5.3; rm -rf /",
+			Services: engine.Services{
+				WebServer: "nginx",
+				Search:    "none",
+				Cache:     "none",
+				Queue:     "none",
+			},
+		},
+	}
+	if err := engine.ValidateConfig(cfg); err == nil {
+		t.Fatal("expected invalid xdebug_version error")
+	}
+}
+
+func TestEnginePkgValidateConfigAllowsWellFormedXdebugVersion(t *testing.T) {
+	cfg := engine.Config{
+		ProjectName: "demo",
+		Domain:      "demo.test",
+		Stack: engine.Stack{
+			XdebugVersion: "3.5.3",
+			Services: engine.Services{
+				WebServer: "nginx",
+				Search:    "none",
+				Cache:     "none",
+				Queue:     "none",
+			},
+		},
+	}
+	if err := engine.ValidateConfig(cfg); err != nil {
+		t.Fatalf("expected well-formed xdebug_version to be valid, got %v", err)
+	}
+}
+
 func TestEnginePkgNormalizeAndFrameworkDefaults(t *testing.T) {
 	cfg := engine.Config{
 		Framework: "magento2",

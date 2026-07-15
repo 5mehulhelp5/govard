@@ -95,6 +95,40 @@ func TestLocalBuildSpecPHPMagento2Debug(t *testing.T) {
 	}
 }
 
+func TestLocalBuildSpecPHPDebugWithXdebugVersionOverride(t *testing.T) {
+	spec, err := engine.ResolveLocalBuildSpecForTest("php", "8.4-debug-xdebug-3.4.0", "ddtcorex/govard-")
+	if err != nil {
+		t.Fatalf("local build spec: %v", err)
+	}
+
+	if spec.DockerfileRel != "php/debug/Dockerfile" {
+		t.Fatalf("unexpected dockerfile %q, expected php/debug/Dockerfile", spec.DockerfileRel)
+	}
+	if spec.BuildArgs["BASE_IMAGE"] != "ddtcorex/govard-php:8.4" {
+		t.Fatalf("expected BASE_IMAGE=ddtcorex/govard-php:8.4, got %q", spec.BuildArgs["BASE_IMAGE"])
+	}
+	if spec.BuildArgs["XDEBUG_VERSION_OVERRIDE"] != "3.4.0" {
+		t.Fatalf("expected XDEBUG_VERSION_OVERRIDE=3.4.0, got %q", spec.BuildArgs["XDEBUG_VERSION_OVERRIDE"])
+	}
+	if len(spec.Dependencies) == 0 || spec.Dependencies[0] != "ddtcorex/govard-php:8.4" {
+		t.Fatalf("expected dependency on base image, got %v", spec.Dependencies)
+	}
+}
+
+func TestLocalBuildSpecPHPDebugWithoutXdebugVersionOverride(t *testing.T) {
+	spec, err := engine.ResolveLocalBuildSpecForTest("php", "8.4-debug", "ddtcorex/govard-")
+	if err != nil {
+		t.Fatalf("local build spec: %v", err)
+	}
+
+	if spec.BuildArgs["BASE_IMAGE"] != "ddtcorex/govard-php:8.4" {
+		t.Fatalf("expected BASE_IMAGE=ddtcorex/govard-php:8.4, got %q", spec.BuildArgs["BASE_IMAGE"])
+	}
+	if _, ok := spec.BuildArgs["XDEBUG_VERSION_OVERRIDE"]; ok {
+		t.Fatalf("expected no XDEBUG_VERSION_OVERRIDE build arg when tag has no override, got %q", spec.BuildArgs["XDEBUG_VERSION_OVERRIDE"])
+	}
+}
+
 func TestShouldRebuildGovardImageForHostOnDarwinArm64(t *testing.T) {
 	if !engine.ShouldRebuildGovardImageForHostForTest("amd64", "darwin", "arm64") {
 		t.Fatal("expected darwin/arm64 host to rebuild amd64 Govard image")
