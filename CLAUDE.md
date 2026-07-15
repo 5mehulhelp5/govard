@@ -148,6 +148,11 @@ Update `docs/*.md` for: command names/aliases/flags, config behavior, remote/syn
 
 **Treat stale docs as incomplete work.**
 
+## Superpowers Workflow Preferences
+
+- `docs/superpowers/**` (specs, plans) are local-only working artifacts — gitignored (see `.gitignore`). Never `git add`/commit them; keep them on disk for reference within the session.
+- When a task executed via superpowers (subagent-driven-development, executing-plans, or any multi-commit implementation) is complete, proactively squash all commits made for that task into a single commit before considering the work done — don't leave the per-step/per-task commit history in place unless the user asks to keep it granular.
+
 ## Pre-Completion Checklist
 
 1. `go test` on affected scope passes
