@@ -519,6 +519,7 @@ Common command aliases:
 | `govard version`     | Print the version number of Govard                                 |
 | `govard redis`       | Smart shortcut for project Redis Management                        |
 | `govard varnish`     | Smart shortcut for project Varnish Management                      |
+| `govard rabbitmq`    | Smart shortcut for project RabbitMQ Management                     |
 
 ---
 

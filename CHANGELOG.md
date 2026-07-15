@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.56.0] - 2026-07-15
+
+### ✨ New Features
+
+- **RabbitMQ CLI Shortcut:** Added `govard rabbitmq` (aliased under `govard env rabbitmq`), mirroring the existing `redis`/`varnish` command shape: `status` and `queues` run against `rabbitmqctl` inside the container, `cli` passes through arbitrary `rabbitmqctl` commands, and standard Docker Compose maintenance commands (`ps`, `logs`, `stop`, `start`, etc.) are supported.
+- **Automatic Magento 2 AMQP Configuration:** `govard config auto` now configures Magento 2's AMQP connection (`setup:config:set --amqp-*`) automatically when `stack.services.queue: rabbitmq` is set, the same way it already auto-configures Redis cache/session backends.
+
+### 🐛 Bug Fixes
+
+- **RabbitMQ Guest-User Loopback Restriction:** RabbitMQ refuses `guest`/`guest` AMQP logins from anywhere but loopback by default. Since the PHP container reaches `rabbitmq` over the `govard-net` Docker network (not loopback), this previously meant any AMQP connection attempt failed with `ACCESS_REFUSED`. Fixed by mounting a `rabbitmq.conf` with `loopback_users.guest = false`, staged the same way as the existing Varnish VCL.
+
 ## [1.55.1] - 2026-07-15
 
 ### 🐛 Bug Fixes
