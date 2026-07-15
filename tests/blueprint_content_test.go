@@ -171,6 +171,57 @@ func TestRenderBlueprintMountsGovardRootCAIntoPHPRuntimes(t *testing.T) {
 	}
 }
 
+func TestPHPDebugServiceHasStackUlimitToPreventXdebugSegfault(t *testing.T) {
+	// Alpine/musl allocates an ~80KB default thread stack (vs several MB on glibc).
+	// Xdebug's own bug tracker (bugs.xdebug.org #2342) confirms that combined with
+	// xdebug.start_with_request=yes, this overflows on ordinary recursive PHP calls
+	// and crashes with SIGSEGV rather than a clean PHP error.
+	content := renderComposeWithConfig(t, engine.Config{
+		ProjectName: "project-a",
+		Framework:   "laravel",
+		Domain:      "project-a.test",
+		Stack: engine.Stack{
+			Features: engine.Features{
+				Xdebug: true,
+			},
+		},
+	})
+
+	var composeStruct struct {
+		Services map[string]struct {
+			Ulimits map[string]interface{} `yaml:"ulimits"`
+		} `yaml:"services"`
+	}
+	if err := yaml.Unmarshal([]byte(content), &composeStruct); err != nil {
+		t.Fatalf("failed to parse yaml: %v", err)
+	}
+
+	debugSvc, ok := composeStruct.Services["php-debug"]
+	if !ok {
+		t.Fatal("php-debug service not found in parsed compose file")
+	}
+
+	stack, ok := debugSvc.Ulimits["stack"]
+	if !ok {
+		t.Fatalf("expected php-debug service to raise the stack ulimit; got ulimits: %v", debugSvc.Ulimits)
+	}
+
+	var stackBytes int64
+	switch v := stack.(type) {
+	case int:
+		stackBytes = int64(v)
+	case int64:
+		stackBytes = v
+	default:
+		t.Fatalf("unexpected type for stack ulimit: %T (%v)", stack, stack)
+	}
+
+	const minStackBytes = 8 * 1024 * 1024
+	if stackBytes < minStackBytes {
+		t.Fatalf("expected php-debug stack ulimit >= %d bytes, got %d", minStackBytes, stackBytes)
+	}
+}
+
 func TestRenderBlueprintReRendersWhenKnownProjectDomainsChange(t *testing.T) {
 	tempDir := t.TempDir()
 	setTestGovardHome(t, tempDir)

@@ -161,6 +161,13 @@ services:
       {{ end }}
     networks:
       - govard-net
+    ulimits:
+      # Alpine/musl defaults to an ~80KB thread stack (vs several MB on glibc).
+      # Xdebug's tracing hooks add native stack usage per PHP call, so ordinary
+      # recursive code can overflow that tiny stack and segfault instead of
+      # raising a PHP error (see bugs.xdebug.org #2342). Raise it to a size
+      # comparable to glibc's default so Xdebug behaves the same as on non-Alpine.
+      stack: 8388608
     environment:
       {{ if (ge .Config.Stack.PHPVersion "7.2") }}
       XDEBUG_MODE: debug
