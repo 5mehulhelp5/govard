@@ -5,6 +5,8 @@ services:
   rabbitmq:
     hostname: {{ .Config.ProjectName }}-rabbitmq
     image: {{ $.ImageRepository }}rabbitmq:{{ $queueVersion }}
+    volumes:
+      - '{{ .RabbitMQConfPath }}:/etc/rabbitmq/rabbitmq.conf:ro'
     networks:
       - govard-net
 {{ end }}

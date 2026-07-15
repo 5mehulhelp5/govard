@@ -50,6 +50,7 @@ type RenderData struct {
 	HostComposerAuthPath   string
 	HostComposerConfigPath string
 	VarnishVclPath         string
+	RabbitMQConfPath       string
 	PackageManager         string
 	ComposerVersion        string
 	RuntimeDomainHosts     []string
@@ -368,6 +369,7 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 		ImageRepository:      imageRepo,
 		XdebugSessionPattern: buildXdebugSessionPattern(config.Stack.XdebugSession),
 		VarnishVclPath:       filepath.Join(GovardHomeDir(), "varnish", config.ProjectName, "default.vcl"),
+		RabbitMQConfPath:     filepath.Join(GovardHomeDir(), "rabbitmq", config.ProjectName, "rabbitmq.conf"),
 		PackageManager:       packageManager,
 		ComposerVersion:      config.Stack.ComposerVersion,
 		RuntimeDomainHosts:   runtimeDomainHosts,
@@ -448,6 +450,20 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 		}
 		if err := os.WriteFile(vclDest, []byte(rendered), conventions.DefaultFilePerm); err != nil {
 			return fmt.Errorf("failed to write varnish vcl: %w", err)
+		}
+	}
+
+	if config.Stack.Services.Queue == conventions.ServiceRabbitMQ {
+		confData, err := fs.ReadFile(blueprintsFS, "includes/rabbitmq/rabbitmq.conf")
+		if err != nil {
+			return fmt.Errorf("failed to read rabbitmq conf: %w", err)
+		}
+		confDest := renderData.RabbitMQConfPath
+		if err := os.MkdirAll(filepath.Dir(confDest), conventions.DefaultDirPerm); err != nil {
+			return fmt.Errorf("failed to create rabbitmq dir: %w", err)
+		}
+		if err := os.WriteFile(confDest, confData, conventions.DefaultFilePerm); err != nil {
+			return fmt.Errorf("failed to write rabbitmq conf: %w", err)
 		}
 	}
 

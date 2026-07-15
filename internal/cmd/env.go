@@ -414,6 +414,7 @@ func init() {
 	envCmd.AddCommand(elasticsearchCmd)
 	envCmd.AddCommand(opensearchCmd)
 	envCmd.AddCommand(varnishCmd)
+	envCmd.AddCommand(rabbitmqCmd)
 
 	envCmd.AddCommand(envCleanupCmd)
 }

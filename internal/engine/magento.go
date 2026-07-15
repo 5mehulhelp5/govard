@@ -391,6 +391,20 @@ func buildMagento2Commands(projectName string, config Config, lockedKeys map[str
 		})
 	}
 
+	if config.Stack.Services.Queue == conventions.ServiceRabbitMQ {
+		commands = append(commands, magentoCommand{
+			Desc: "Configuring RabbitMQ Message Queue",
+			Args: magentoDockerExecArgs(containerName, config, conventions.BinMagento, "setup:config:set",
+				"--amqp-host=rabbitmq",
+				"--amqp-port="+strconv.Itoa(conventions.RabbitMQPort),
+				"--amqp-user=guest",
+				"--amqp-password=guest",
+				"--amqp-virtualhost=/",
+				"--no-interaction"),
+			Optional: true,
+		})
+	}
+
 	if config.Stack.Features.Varnish {
 		commands = append(commands, magentoCommand{
 			Desc: "Configuring Varnish Page Cache",

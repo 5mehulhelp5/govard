@@ -119,3 +119,46 @@ func TestConfigureEnablesWebServerRewrites(t *testing.T) {
 		t.Fatalf("expected web/seo/use_rewrites to be set to 1, got:\n%s", all)
 	}
 }
+
+func TestConfigureRabbitMQAmqpCommands(t *testing.T) {
+	config := engine.Config{
+		Stack: engine.Stack{
+			Services: engine.Services{
+				Queue: "rabbitmq",
+			},
+		},
+	}
+
+	cmds := engine.MagentoConfigCommandsForTest("proj", config)
+	joined := make([]string, 0, len(cmds))
+	for _, cmd := range cmds {
+		joined = append(joined, strings.Join(cmd.Args, " "))
+	}
+	all := strings.Join(joined, "\n")
+
+	if !strings.Contains(all, "--amqp-host=rabbitmq") {
+		t.Fatalf("expected --amqp-host=rabbitmq config:set command, got:\n%s", all)
+	}
+	if !strings.Contains(all, "--amqp-port=5672") {
+		t.Fatalf("expected --amqp-port=5672 config:set command, got:\n%s", all)
+	}
+}
+
+func TestConfigureWithoutRabbitMQSkipsAmqpCommands(t *testing.T) {
+	config := engine.Config{
+		Stack: engine.Stack{
+			Services: engine.Services{
+				Queue: "none",
+			},
+		},
+	}
+
+	cmds := engine.MagentoConfigCommandsForTest("proj", config)
+	for _, cmd := range cmds {
+		for _, arg := range cmd.Args {
+			if strings.HasPrefix(arg, "--amqp-") {
+				t.Fatalf("did not expect --amqp- flags when queue is disabled, got: %v", cmd.Args)
+			}
+		}
+	}
+}

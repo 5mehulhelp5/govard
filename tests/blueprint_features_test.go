@@ -31,6 +31,12 @@ func TestRenderBlueprintWithRabbitMQ(t *testing.T) {
 	if !strings.Contains(content, "ddtcorex/govard-rabbitmq:4.2") {
 		t.Fatalf("Expected rabbitmq image to use default version")
 	}
+	if !strings.Contains(content, "/etc/rabbitmq/rabbitmq.conf:ro") {
+		t.Fatalf("Expected rabbitmq.conf to be mounted read-only, got:\n%s", content)
+	}
+	if !strings.Contains(content, filepath.Join("rabbitmq", "rabbitmq-test", "rabbitmq.conf")) {
+		t.Fatalf("Expected rabbitmq.conf staged under GovardHomeDir()/rabbitmq/<project>/, got:\n%s", content)
+	}
 }
 
 func TestRenderBlueprintWithValkey(t *testing.T) {

@@ -12,4 +12,5 @@ const (
 	ReplicaSuffix       = "-1"
 	PHPDebugSuffix      = "-php-debug-1"
 	ElasticsearchSuffix = "-elasticsearch-1"
+	RabbitMQSuffix      = "-rabbitmq-1"
 )

@@ -577,6 +577,16 @@ govard varnish purge
 govard varnish status
 ```
 
+### `govard rabbitmq`
+
+Smart shortcut for RabbitMQ management.
+
+```bash
+govard rabbitmq status
+govard rabbitmq queues
+govard rabbitmq cli list_exchanges
+```
+
 ---
 
 ## 🌐 Global Flags

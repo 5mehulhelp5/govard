@@ -95,6 +95,7 @@ func init() {
 	rootCmd.AddCommand(elasticsearchCmd)
 	rootCmd.AddCommand(opensearchCmd)
 	rootCmd.AddCommand(varnishCmd)
+	rootCmd.AddCommand(rabbitmqCmd)
 	rootCmd.AddCommand(shellCmd)
 	rootCmd.AddCommand(statusCmd)
 	rootCmd.AddCommand(doctorCmd)

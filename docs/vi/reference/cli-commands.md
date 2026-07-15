@@ -576,6 +576,16 @@ govard varnish purge
 govard varnish status
 ```
 
+### `govard rabbitmq`
+
+Tiện ích thao tác nhanh với RabbitMQ.
+
+```bash
+govard rabbitmq status
+govard rabbitmq queues
+govard rabbitmq cli list_exchanges
+```
+
 ---
 
 ## 🌐 Các cờ toàn cục (Global Flags)
