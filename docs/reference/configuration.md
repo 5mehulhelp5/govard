@@ -97,7 +97,7 @@ stack:
   search_version: "3.4.0"
   queue_version: "3.13.7"
   xdebug_session: "PHPSTORM"
-  xdebug_version: "3.5.3"
+  xdebug_version: "3.4.5"
   composer_version: "latest"
   services:
     web_server: "nginx"
@@ -186,7 +186,7 @@ Govard uses this value for Magento 2 `env.php`, Magento 1/OpenMage `local.xml`, 
 | `stack.web_root` | e.g. `/pub`, `/public` | Web root directory |
 | `stack.composer_version` | `1`, `2`, `2.2`, `latest`, or any point version | Composer version |
 | `stack.xdebug_session` | e.g. `PHPSTORM` | Xdebug session name |
-| `stack.xdebug_version` | e.g. `3.5.3` | Override the PECL Xdebug version installed in `php-debug` (default: Govard's recommended version per PHP major version, currently `3.5.3` for PHP 8.x). Forces a local image build since the exact version is baked into the image. |
+| `stack.xdebug_version` | e.g. `3.4.5` | Override the PECL Xdebug version installed in `php-debug` (default: Govard's recommended version per PHP version — currently `3.4.5` for PHP 8.1-8.4, `3.5.3` for PHP 8.5 since it has no 3.4.x option). Forces a local image build since the exact version is baked into the image. |
 | `stack.features.livereload` | `true`, `false` | Enable LiveReload port mapping (35729) |
 | `stack.features.varnish` | `true`, `false` | Enable Varnish cache service |
 | `stack.features.xdebug` | `true`, `false` | Enable Xdebug and php-debug service |
