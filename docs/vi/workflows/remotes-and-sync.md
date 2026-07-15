@@ -1,3 +1,8 @@
+---
+title: Môi trường Remote & Đồng bộ dữ liệu
+description: Quản lý remote có tên với quyền hạn giới hạn, chặn ghi lên production an toàn, và đồng bộ file/media/database hai chiều có dry-run.
+---
+
 # Remote và Đồng bộ (Remotes and Sync)
 
 Đây là tài liệu hướng dẫn chính thức về môi trường remote của Govard, các hoạt động đồng bộ và quy trình xử lý database từ xa.

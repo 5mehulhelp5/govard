@@ -1,3 +1,8 @@
+---
+title: HTTPS cục bộ & tên miền .test
+description: Caddy proxy tích hợp sẵn và Root CA tự tin cậy của Govard cung cấp HTTPS an toàn cho mỗi dự án local trên tên miền *.test mà không cần cấu hình.
+---
+
 # SSL và Tên miền (SSL and Domains)
 
 Govard cung cấp kết nối HTTPS local cho các tên miền `.test` thông qua proxy Caddy dùng chung và certificate authority (CA) nội bộ của nó.

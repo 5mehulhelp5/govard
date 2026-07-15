@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitepress'
+import { SITE_HOSTNAME, transformSitemapItems, transformPageDataSeo, transformHeadSeo } from './seo'
 
 export default defineConfig({
   title: 'Govard',
@@ -9,6 +10,17 @@ export default defineConfig({
   cleanUrls: true,
   lastUpdated: true,
   appearance: 'dark',
+
+  // sitemap.xml is generated at build time from the resolved page list
+  // (siteConfig.pages) plus git-based lastUpdated timestamps — do not
+  // hand-edit docs/public/sitemap.xml, it no longer exists as a static file.
+  sitemap: {
+    hostname: SITE_HOSTNAME,
+    transformItems: transformSitemapItems,
+  },
+
+  transformPageData: transformPageDataSeo,
+  transformHead: transformHeadSeo,
 
   head: [
     ['link', { rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml' }],

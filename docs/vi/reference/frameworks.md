@@ -1,3 +1,8 @@
+---
+title: Framework được hỗ trợ — Magento, Laravel, Symfony, WordPress
+description: Govard tự động nhận diện Magento 1/2, Laravel, Symfony, Drupal, Shopware, CakePHP, WordPress, Next.js và áp dụng cấu hình mặc định theo từng framework.
+---
+
 # Frameworks
 
 Govard tự động nhận diện các framework được hỗ trợ và áp dụng các cấu hình runtime mặc định cùng với các ghi đè phù hợp với từng phiên bản.

@@ -1,3 +1,8 @@
+---
+title: Tài liệu tham khảo lệnh CLI Govard
+description: Tài liệu đầy đủ về các lệnh CLI, alias và shortcut của Govard để quản lý môi trường phát triển Docker cục bộ.
+---
+
 # Lệnh CLI (CLI Commands)
 
 Đây là tài liệu tham khảo chính thức cho các lệnh CLI của Govard.

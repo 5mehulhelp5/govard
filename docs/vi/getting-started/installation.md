@@ -1,3 +1,8 @@
+---
+title: Cài đặt Govard trên Linux & macOS
+description: Cài đặt Govard qua gói .deb, make install, hoặc self-update. Hướng dẫn các kênh cài đặt và cách tránh xung đột binary.
+---
+
 # Cài đặt
 
 Trang này hướng dẫn tất cả các phương pháp cài đặt Govard trên Linux và macOS.

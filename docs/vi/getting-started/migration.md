@@ -1,3 +1,8 @@
+---
+title: Di chuyển từ DDEV hoặc Warden sang Govard
+description: Hướng dẫn từng bước di chuyển dự án từ DDEV hoặc Warden sang Govard mà không mất dữ liệu — Govard tự đọc cấu hình hiện có.
+---
+
 # Hướng dẫn di chuyển (Migration Guide) 🚚
 
 Việc chuyển đổi dự án từ một công cụ phát triển local khác sang Govard được thiết kế để diễn ra liền mạch. Govard hiểu các cấu hình từ các công cụ phổ biến như Warden hay DDEV và có thể tự động thực hiện quá trình chuyển đổi mà không làm mất dữ liệu.

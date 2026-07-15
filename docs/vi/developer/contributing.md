@@ -1,6 +1,15 @@
+---
+title: Đóng góp cho Govard
+description: Cách thiết lập môi trường phát triển, tuân thủ chuẩn code, và gửi thay đổi cho dự án Govard.
+---
+
 # Đóng góp (Contributing)
 
 Tài liệu này hướng dẫn quy trình đóng góp mã nguồn cho dự án Govard.
+
+## Thêm trang tài liệu mới
+
+`sitemap.xml`, canonical link, hreflang và thẻ Open Graph đều được tự động sinh khi build từ `docs/.vitepress/seo.ts` — không bao giờ sửa tay `sitemap.xml`. Mọi trang mới trong `docs/` phải có `title` và `description` riêng trong frontmatter; trang nào thiếu sẽ dùng mô tả chung của site, làm giảm khả năng xếp hạng tìm kiếm.
 
 ---
 

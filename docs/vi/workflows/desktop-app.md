@@ -1,3 +1,8 @@
+---
+title: Ứng dụng Desktop Govard
+description: Govard Desktop là GUI dựa trên Wails, dùng chung engine lõi với CLI, có live logs, quick actions và dashboard dự án.
+---
+
 # Ứng dụng Desktop (Desktop App)
 
 Govard Desktop là ứng dụng giao diện (GUI) viết bằng Wails, tái sử dụng cùng một core engine với phiên bản CLI.

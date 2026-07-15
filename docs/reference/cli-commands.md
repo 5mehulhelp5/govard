@@ -1,5 +1,6 @@
 ---
-title: CLI Commands
+title: Govard CLI Commands Reference
+description: Complete reference for Govard CLI commands, aliases, and root lifecycle shortcuts for managing local Docker development environments.
 ---
 
 # CLI Commands

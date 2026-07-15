@@ -1,10 +1,15 @@
 ---
-title: Contributing
+title: Contributing to Govard
+description: How to set up a development environment, follow code standards, and submit changes to the Govard project.
 ---
 
 # Contributing
 
 This guide covers the expected workflow for contributors working on Govard.
+
+## Adding a new documentation page
+
+`sitemap.xml`, canonical links, hreflang, and Open Graph tags are all generated automatically at build time from `docs/.vitepress/seo.ts` — never hand-edit `sitemap.xml`. Every new page under `docs/` must get a unique `title` and `description` in its frontmatter; pages without one fall back to the generic site description, which hurts search rankings.
 
 ---
 

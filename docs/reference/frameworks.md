@@ -1,5 +1,6 @@
 ---
-title: Frameworks
+title: Supported Frameworks — Magento, Laravel, Symfony, WordPress & More
+description: Govard auto-detects Magento 1/2, Laravel, Symfony, Drupal, Shopware, CakePHP, WordPress, Next.js, and applies framework-specific runtime defaults.
 ---
 
 # Frameworks

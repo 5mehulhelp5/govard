@@ -1,3 +1,8 @@
+---
+title: Getting Started with Govard
+description: The shortest path from installing Govard to running your first local project — initialize, detect framework, and bring your environment up.
+---
+
 # Getting Started
 
 This guide walks you through the shortest path from installation to a working local Govard project.

@@ -1,5 +1,7 @@
 ---
 layout: home
+title: Govard — Giải pháp thay thế DDEV & Warden cho Magento, Laravel, Symfony, WordPress
+description: Govard là công cụ điều phối môi trường dev cục bộ viết bằng Go — nhanh và ổn định hơn DDEV, Warden. Tự động nhận diện Magento, Laravel, Symfony, WordPress. HTTPS tích hợp sẵn, Docker SDK, đồng bộ remote an toàn.
 
 hero:
   name: Govard

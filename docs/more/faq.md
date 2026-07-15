@@ -1,5 +1,6 @@
 ---
-title: FAQ & Troubleshooting
+title: Govard FAQ & Troubleshooting
+description: Answers to common questions about installing, migrating to, and troubleshooting Govard local development environments.
 ---
 
 # FAQ & Troubleshooting

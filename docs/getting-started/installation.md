@@ -1,3 +1,8 @@
+---
+title: Install Govard on Linux & macOS
+description: Install Govard via .deb package, make install, or self-update. Covers supported platforms, install channels, and how to avoid binary conflicts.
+---
+
 # Installation
 
 This page covers all methods to install Govard on Linux and macOS.

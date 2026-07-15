@@ -1,5 +1,6 @@
 ---
-title: Remotes and Sync
+title: Remote Environments & Database Sync
+description: Manage named remotes with scoped capabilities, safe production write-blocking, and bi-directional file/media/database sync with dry-run planning.
 ---
 
 # Remotes and Sync

@@ -1,5 +1,6 @@
 ---
-title: Global Services
+title: Global Services — Proxy, Mailpit, phpMyAdmin, Portainer
+description: "Govard's shared global services stack: reverse proxy, mail catcher, database admin UI, and container management available to every project."
 ---
 
 # Global Services

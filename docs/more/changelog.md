@@ -1,5 +1,6 @@
 ---
-title: Changelog
+title: Govard Changelog
+description: Full version history of Govard, following Semantic Versioning, with details on new features, fixes, and blueprint changes.
 ---
 
 # Changelog

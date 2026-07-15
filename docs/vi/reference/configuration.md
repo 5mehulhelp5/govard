@@ -1,3 +1,8 @@
+---
+title: Tài liệu cấu hình Govard
+description: Cách hoạt động của cấu hình dự án phân lớp và blueprint framework trong Govard, bao gồm thứ tự ưu tiên ghi đè.
+---
+
 # Cấu hình (Configuration)
 
 Govard sử dụng cấu hình phân tầng cho dự án kết hợp với các framework blueprint.

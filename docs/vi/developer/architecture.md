@@ -1,3 +1,8 @@
+---
+title: Kiến trúc Govard
+description: Tổng quan kiến trúc nội bộ của Govard — engine Go, render blueprint, sinh Docker Compose, và tính tương đồng giữa CLI/desktop.
+---
+
 # Kiến trúc (Architecture)
 
 Tài liệu này mô tả chi tiết kiến trúc hệ thống hiện tại của Govard ở mức độ tổng quan.

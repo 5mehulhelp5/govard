@@ -1,5 +1,6 @@
 ---
-title: Configuration
+title: Govard Configuration Reference
+description: How Govard's layered project configuration and framework blueprints work, including override precedence and available settings.
 ---
 
 # Configuration

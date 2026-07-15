@@ -1,5 +1,6 @@
 ---
-title: Desktop App
+title: Govard Desktop App
+description: Govard Desktop is a Wails-based GUI sharing the same core engine as the CLI, with live logs, quick actions, and a project dashboard.
 ---
 
 # Desktop App

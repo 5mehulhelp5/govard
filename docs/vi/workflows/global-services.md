@@ -1,5 +1,6 @@
 ---
-title: Dịch vụ toàn cục
+title: Dịch vụ toàn cục — Proxy, Mailpit, phpMyAdmin, Portainer
+description: Bộ dịch vụ dùng chung của Govard — reverse proxy, bắt mail, giao diện quản trị database và quản lý container cho mọi dự án.
 ---
 
 # Dịch vụ toàn cục (Global Services)

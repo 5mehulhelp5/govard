@@ -1,3 +1,8 @@
+---
+title: Bắt đầu với Govard
+description: Con đường ngắn nhất từ cài đặt Govard đến chạy dự án local đầu tiên — khởi tạo, nhận diện framework, và khởi động môi trường.
+---
+
 # Hướng dẫn nhanh
 
 Hướng dẫn này sẽ dẫn dắt bạn qua con đường ngắn nhất từ lúc cài đặt đến khi có một dự án Govard hoạt động ở local.

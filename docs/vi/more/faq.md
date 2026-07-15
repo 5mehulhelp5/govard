@@ -1,3 +1,8 @@
+---
+title: FAQ & Khắc phục sự cố Govard
+description: Giải đáp các câu hỏi thường gặp khi cài đặt, di chuyển sang, và khắc phục sự cố môi trường phát triển cục bộ Govard.
+---
+
 # FAQ & Khắc phục sự cố (FAQ & Troubleshooting)
 
 Các câu hỏi, lỗi thường gặp và giải pháp xử lý cho Govard.

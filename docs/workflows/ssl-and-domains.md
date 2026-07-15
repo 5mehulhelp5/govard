@@ -1,5 +1,6 @@
 ---
-title: SSL and Domains
+title: Local HTTPS & .test Domains
+description: Govard's built-in Caddy proxy and Root CA auto-trust give every local project a secure *.test HTTPS domain with zero configuration.
 ---
 
 # SSL and Domains

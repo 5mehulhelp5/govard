@@ -1,3 +1,8 @@
+---
+title: Nhật ký thay đổi Govard
+description: Lịch sử phiên bản đầy đủ của Govard theo Semantic Versioning, chi tiết tính năng mới, sửa lỗi và thay đổi blueprint.
+---
+
 # Nhật ký thay đổi (Changelog)
 
 Govard tuân thủ quy tắc [Semantic Versioning](https://semver.org/spec/v2.0.0.html) và duy trì nhật ký thay đổi chi tiết trực tiếp trong kho lưu trữ mã nguồn.
