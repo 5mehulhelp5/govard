@@ -233,6 +233,124 @@ func TestRenderBlueprintReRendersWhenProjectComposeOverrideChanges(t *testing.T)
 	}
 }
 
+func TestRenderBlueprintReRendersWhenNginxCustomConfigDirChanges(t *testing.T) {
+	tempDir := t.TempDir()
+	setTestGovardHome(t, tempDir)
+
+	_, filename, _, _ := runtime.Caller(0)
+	projectRoot := filepath.Join(filepath.Dir(filename), "..")
+	blueprintsDir := filepath.Join(projectRoot, "internal", "blueprints", "files")
+
+	destBlueprintsDir := filepath.Join(tempDir, "blueprints")
+	if err := copyDir(blueprintsDir, destBlueprintsDir); err != nil {
+		t.Fatalf("Failed to copy blueprints: %v", err)
+	}
+
+	config := engine.Config{
+		ProjectName: "sample-project",
+		Framework:   "custom",
+		Domain:      "sample-project.test",
+		Stack: engine.Stack{
+			PHPVersion: "8.4",
+			Services: engine.Services{
+				WebServer: "nginx",
+				Search:    "none",
+				Cache:     "none",
+				Queue:     "none",
+			},
+		},
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("first render failed: %v", err)
+	}
+
+	hashPath := engine.ComposeFilePath(tempDir, config.ProjectName) + ".hash"
+	beforeHash, err := os.ReadFile(hashPath)
+	if err != nil {
+		t.Fatalf("read first hash: %v", err)
+	}
+
+	customDir := filepath.Join(tempDir, engine.ProjectNginxCustomDir)
+	if err := os.MkdirAll(customDir, 0o755); err != nil {
+		t.Fatalf("create nginx custom dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(customDir, "extra.conf"), []byte("location /extra { return 200; }\n"), 0o644); err != nil {
+		t.Fatalf("write nginx custom snippet: %v", err)
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("second render failed: %v", err)
+	}
+
+	afterHash, err := os.ReadFile(hashPath)
+	if err != nil {
+		t.Fatalf("read second hash: %v", err)
+	}
+	if string(beforeHash) == string(afterHash) {
+		t.Fatalf("expected render hash to change after adding .govard/nginx/custom snippet, got same hash: %s", string(afterHash))
+	}
+}
+
+func TestRenderBlueprintReRendersWhenApacheCustomConfigDirChanges(t *testing.T) {
+	tempDir := t.TempDir()
+	setTestGovardHome(t, tempDir)
+
+	_, filename, _, _ := runtime.Caller(0)
+	projectRoot := filepath.Join(filepath.Dir(filename), "..")
+	blueprintsDir := filepath.Join(projectRoot, "internal", "blueprints", "files")
+
+	destBlueprintsDir := filepath.Join(tempDir, "blueprints")
+	if err := copyDir(blueprintsDir, destBlueprintsDir); err != nil {
+		t.Fatalf("Failed to copy blueprints: %v", err)
+	}
+
+	config := engine.Config{
+		ProjectName: "sample-project",
+		Framework:   "custom",
+		Domain:      "sample-project.test",
+		Stack: engine.Stack{
+			PHPVersion: "8.4",
+			Services: engine.Services{
+				WebServer: "apache",
+				Search:    "none",
+				Cache:     "none",
+				Queue:     "none",
+			},
+		},
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("first render failed: %v", err)
+	}
+
+	hashPath := engine.ComposeFilePath(tempDir, config.ProjectName) + ".hash"
+	beforeHash, err := os.ReadFile(hashPath)
+	if err != nil {
+		t.Fatalf("read first hash: %v", err)
+	}
+
+	customDir := filepath.Join(tempDir, engine.ProjectApacheCustomDir)
+	if err := os.MkdirAll(customDir, 0o755); err != nil {
+		t.Fatalf("create apache custom dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(customDir, "extra.conf"), []byte("Alias /extra /var/www/html/extra\n"), 0o644); err != nil {
+		t.Fatalf("write apache custom snippet: %v", err)
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("second render failed: %v", err)
+	}
+
+	afterHash, err := os.ReadFile(hashPath)
+	if err != nil {
+		t.Fatalf("read second hash: %v", err)
+	}
+	if string(beforeHash) == string(afterHash) {
+		t.Fatalf("expected render hash to change after adding .govard/apache/custom snippet, got same hash: %s", string(afterHash))
+	}
+}
+
 func TestRenderBlueprintReRendersWhenPackageManagerSignalChanges(t *testing.T) {
 	tempDir := t.TempDir()
 	setTestGovardHome(t, tempDir)
@@ -344,5 +462,214 @@ func TestRenderBlueprintReRendersWhenSSHAuthSockChanges(t *testing.T) {
 	}
 	if strings.Contains(string(after), "/tmp/ssh-old.sock:/ssh-agent") {
 		t.Fatalf("expected old SSH_AUTH_SOCK mount to be replaced, got:\n%s", string(after))
+	}
+}
+
+func TestRenderBlueprintIncludesNginxCustomConfigDir(t *testing.T) {
+	tempDir := t.TempDir()
+	setTestGovardHome(t, tempDir)
+
+	_, filename, _, _ := runtime.Caller(0)
+	projectRoot := filepath.Join(filepath.Dir(filename), "..")
+	blueprintsDir := filepath.Join(projectRoot, "internal", "blueprints", "files")
+
+	destBlueprintsDir := filepath.Join(tempDir, "blueprints")
+	if err := copyDir(blueprintsDir, destBlueprintsDir); err != nil {
+		t.Fatalf("Failed to copy blueprints: %v", err)
+	}
+
+	config := engine.Config{
+		ProjectName: "sample-project",
+		Framework:   "custom",
+		Domain:      "sample-project.test",
+		Stack: engine.Stack{
+			PHPVersion: "8.4",
+			Services: engine.Services{
+				WebServer: "nginx",
+				Search:    "none",
+				Cache:     "none",
+				Queue:     "none",
+			},
+		},
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("first render failed: %v", err)
+	}
+
+	nginxConfPath := filepath.Join(engine.GovardHomeDir(), "nginx", config.ProjectName, "default.conf")
+	before, err := os.ReadFile(nginxConfPath)
+	if err != nil {
+		t.Fatalf("read first nginx conf: %v", err)
+	}
+	if strings.Contains(string(before), "/etc/nginx/custom") {
+		t.Fatalf("expected no custom include before .govard/nginx/custom exists, got:\n%s", string(before))
+	}
+
+	composePath := engine.ComposeFilePath(tempDir, config.ProjectName)
+	beforeCompose, err := os.ReadFile(composePath)
+	if err != nil {
+		t.Fatalf("read first compose file: %v", err)
+	}
+	if strings.Contains(string(beforeCompose), "/etc/nginx/custom") {
+		t.Fatalf("expected no custom volume before .govard/nginx/custom exists, got:\n%s", string(beforeCompose))
+	}
+
+	customDir := filepath.Join(tempDir, engine.ProjectNginxCustomDir)
+	if err := os.MkdirAll(customDir, 0o755); err != nil {
+		t.Fatalf("create nginx custom dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(customDir, "extra.conf"), []byte("location /extra { return 200; }\n"), 0o644); err != nil {
+		t.Fatalf("write nginx custom snippet: %v", err)
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("second render failed: %v", err)
+	}
+
+	after, err := os.ReadFile(nginxConfPath)
+	if err != nil {
+		t.Fatalf("read second nginx conf: %v", err)
+	}
+	if !strings.Contains(string(after), "include /etc/nginx/custom/*.conf;") {
+		t.Fatalf("expected nginx conf to include custom directory, got:\n%s", string(after))
+	}
+
+	afterCompose, err := os.ReadFile(composePath)
+	if err != nil {
+		t.Fatalf("read second compose file: %v", err)
+	}
+	if !strings.Contains(string(afterCompose), customDir+":/etc/nginx/custom:ro") {
+		t.Fatalf("expected compose output to mount nginx custom config dir, got:\n%s", string(afterCompose))
+	}
+}
+
+func TestRenderBlueprintIncludesApacheCustomConfigDir(t *testing.T) {
+	tempDir := t.TempDir()
+	setTestGovardHome(t, tempDir)
+
+	_, filename, _, _ := runtime.Caller(0)
+	projectRoot := filepath.Join(filepath.Dir(filename), "..")
+	blueprintsDir := filepath.Join(projectRoot, "internal", "blueprints", "files")
+
+	destBlueprintsDir := filepath.Join(tempDir, "blueprints")
+	if err := copyDir(blueprintsDir, destBlueprintsDir); err != nil {
+		t.Fatalf("Failed to copy blueprints: %v", err)
+	}
+
+	config := engine.Config{
+		ProjectName: "sample-project",
+		Framework:   "custom",
+		Domain:      "sample-project.test",
+		Stack: engine.Stack{
+			PHPVersion: "8.4",
+			Services: engine.Services{
+				WebServer: "apache",
+				Search:    "none",
+				Cache:     "none",
+				Queue:     "none",
+			},
+		},
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("first render failed: %v", err)
+	}
+
+	httpdConfPath := filepath.Join(engine.GovardHomeDir(), "apache", config.ProjectName, "httpd.conf")
+	before, err := os.ReadFile(httpdConfPath)
+	if err != nil {
+		t.Fatalf("read first httpd.conf: %v", err)
+	}
+	if strings.Contains(string(before), "conf/custom") {
+		t.Fatalf("expected no custom include before .govard/apache/custom exists, got:\n%s", string(before))
+	}
+
+	customDir := filepath.Join(tempDir, engine.ProjectApacheCustomDir)
+	if err := os.MkdirAll(customDir, 0o755); err != nil {
+		t.Fatalf("create apache custom dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(customDir, "extra.conf"), []byte("Alias /extra /var/www/html/extra\n"), 0o644); err != nil {
+		t.Fatalf("write apache custom snippet: %v", err)
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("second render failed: %v", err)
+	}
+
+	after, err := os.ReadFile(httpdConfPath)
+	if err != nil {
+		t.Fatalf("read second httpd.conf: %v", err)
+	}
+	if !strings.Contains(string(after), "IncludeOptional conf/custom/*.conf") {
+		t.Fatalf("expected httpd.conf to include custom directory, got:\n%s", string(after))
+	}
+
+	composePath := engine.ComposeFilePath(tempDir, config.ProjectName)
+	afterCompose, err := os.ReadFile(composePath)
+	if err != nil {
+		t.Fatalf("read compose file: %v", err)
+	}
+	if !strings.Contains(string(afterCompose), customDir+":/usr/local/apache2/conf/custom:ro") {
+		t.Fatalf("expected compose output to mount apache custom config dir, got:\n%s", string(afterCompose))
+	}
+}
+
+func TestRenderBlueprintIncludesApacheCustomConfigDirInHybridMode(t *testing.T) {
+	tempDir := t.TempDir()
+	setTestGovardHome(t, tempDir)
+
+	_, filename, _, _ := runtime.Caller(0)
+	projectRoot := filepath.Join(filepath.Dir(filename), "..")
+	blueprintsDir := filepath.Join(projectRoot, "internal", "blueprints", "files")
+
+	destBlueprintsDir := filepath.Join(tempDir, "blueprints")
+	if err := copyDir(blueprintsDir, destBlueprintsDir); err != nil {
+		t.Fatalf("Failed to copy blueprints: %v", err)
+	}
+
+	config := engine.Config{
+		ProjectName: "sample-project",
+		Framework:   "custom",
+		Domain:      "sample-project.test",
+		Stack: engine.Stack{
+			PHPVersion: "8.4",
+			Services: engine.Services{
+				WebServer: "hybrid",
+				Search:    "none",
+				Cache:     "none",
+				Queue:     "none",
+			},
+		},
+	}
+
+	customDir := filepath.Join(tempDir, engine.ProjectApacheCustomDir)
+	if err := os.MkdirAll(customDir, 0o755); err != nil {
+		t.Fatalf("create apache custom dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(customDir, "extra.conf"), []byte("Alias /extra /var/www/html/extra\n"), 0o644); err != nil {
+		t.Fatalf("write apache custom snippet: %v", err)
+	}
+
+	if err := engine.RenderBlueprint(tempDir, config); err != nil {
+		t.Fatalf("render failed: %v", err)
+	}
+
+	httpdConfPath := filepath.Join(engine.GovardHomeDir(), "apache", config.ProjectName, "httpd.conf")
+	rendered, err := os.ReadFile(httpdConfPath)
+	if err != nil {
+		t.Fatalf("read httpd.conf: %v", err)
+	}
+	if !strings.Contains(string(rendered), "IncludeOptional conf/custom/*.conf") {
+		t.Fatalf("expected httpd.conf to include custom directory in hybrid mode, got:\n%s", string(rendered))
+	}
+
+	composePath := engine.ComposeFilePath(tempDir, config.ProjectName)
+	renderedCompose, err := os.ReadFile(composePath)
+	if err != nil {
+		t.Fatalf("read compose file: %v", err)
+	}
+	if !strings.Contains(string(renderedCompose), customDir+":/usr/local/apache2/conf/custom:ro") {
+		t.Fatalf("expected hybrid apache service to mount apache custom config dir, got:\n%s", string(renderedCompose))
 	}
 }

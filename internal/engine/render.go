@@ -35,10 +35,12 @@ type RenderData struct {
 	NGINXTemplate          string
 	NginxConfigPath        string
 	NginxMageRunMapPath    string
+	NginxCustomConfigDir   string
 	ApacheDocumentRoot     string
 	ApacheConfigDir        string
 	ApacheHTTPDConfigPath  string
 	ApacheMageRunMapPath   string
+	ApacheCustomConfigDir  string
 	DatabaseName           string
 	ImageRepository        string
 	XdebugSessionPattern   string
@@ -180,6 +182,37 @@ func projectComposeOverrideFingerprint(root string) (string, error) {
 
 	sum := sha256.Sum256(data)
 	return hex.EncodeToString(sum[:]), nil
+}
+
+func projectCustomConfigDirFingerprint(dirPath string) (string, error) {
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", nil
+		}
+		return "", err
+	}
+
+	names := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		names = append(names, entry.Name())
+	}
+	sort.Strings(names)
+
+	hasher := sha256.New()
+	for _, name := range names {
+		data, err := os.ReadFile(filepath.Join(dirPath, name))
+		if err != nil {
+			return "", err
+		}
+		hasher.Write([]byte(name))
+		hasher.Write([]byte{0})
+		hasher.Write(data)
+	}
+	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
 func renderEnvironmentFingerprint() string {
@@ -325,6 +358,14 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 	if err != nil {
 		return fmt.Errorf("fingerprint compose override: %w", err)
 	}
+	nginxCustomFingerprint, err := projectCustomConfigDirFingerprint(filepath.Join(root, ProjectNginxCustomDir))
+	if err != nil {
+		return fmt.Errorf("fingerprint nginx custom config dir: %w", err)
+	}
+	apacheCustomFingerprint, err := projectCustomConfigDirFingerprint(filepath.Join(root, ProjectApacheCustomDir))
+	if err != nil {
+		return fmt.Errorf("fingerprint apache custom config dir: %w", err)
+	}
 	envFingerprint := renderEnvironmentFingerprint()
 	packageManager := ResolveNodePackageManager(root)
 	runtimeDomainHosts := knownProjectRuntimeHostDomains(root, config)
@@ -335,7 +376,7 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 	hashPath := outputPath + ".hash"
 
 	hashData, _ := json.Marshal(config)
-	hashSum := sha256.Sum256(append(hashData, []byte(profile+BlueprintVersion+blueprintFingerprint+overrideFingerprint+envFingerprint+packageManager+runtimeDomainHostsFingerprint+govardRootCAPath)...))
+	hashSum := sha256.Sum256(append(hashData, []byte(profile+BlueprintVersion+blueprintFingerprint+overrideFingerprint+nginxCustomFingerprint+apacheCustomFingerprint+envFingerprint+packageManager+runtimeDomainHostsFingerprint+govardRootCAPath)...))
 	currentHash := hex.EncodeToString(hashSum[:])
 
 	if existingHash, err := os.ReadFile(hashPath); err == nil && string(existingHash) == currentHash {
@@ -381,6 +422,16 @@ func RenderBlueprintWithProfile(root string, config Config, profile string) erro
 		renderData.NGINXPublic = config.Stack.WebRoot
 	}
 	renderData.ApacheDocumentRoot = buildContainerDocumentRoot(renderData.NGINXPublic)
+
+	// Any real os.Stat error here (as opposed to "not exist") would already have
+	// surfaced from projectCustomConfigDirFingerprint above, so treating every
+	// non-nil error as "directory absent" is safe only in that context.
+	if info, err := os.Stat(filepath.Join(root, ProjectNginxCustomDir)); err == nil && info.IsDir() {
+		renderData.NginxCustomConfigDir = filepath.Join(root, ProjectNginxCustomDir)
+	}
+	if info, err := os.Stat(filepath.Join(root, ProjectApacheCustomDir)); err == nil && info.IsDir() {
+		renderData.ApacheCustomConfigDir = filepath.Join(root, ProjectApacheCustomDir)
+	}
 
 	if nginxMapPath, apacheMapPath, err := prepareMagentoRunMappingAssets(config); err != nil {
 		return fmt.Errorf("failed to prepare Magento run mapping assets: %w", err)

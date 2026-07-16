@@ -14,9 +14,11 @@ const (
 	ProjectComposeOverridePath = ".govard/docker-compose.override.yml"
 
 	// Directories
-	ProjectExtensionsDir = ".govard"
-	ProjectCommandsDir   = ".govard/commands"
-	ProjectHooksDir      = ".govard/hooks"
+	ProjectExtensionsDir   = ".govard"
+	ProjectCommandsDir     = ".govard/commands"
+	ProjectHooksDir        = ".govard/hooks"
+	ProjectNginxCustomDir  = ".govard/nginx/custom"
+	ProjectApacheCustomDir = ".govard/apache/custom"
 
 	// Complex Paths
 	ProjectLocalConfigPath = ".govard/.govard.local.yml"
