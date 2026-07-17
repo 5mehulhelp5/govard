@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.57.0] - 2026-07-17
+
+### ✨ New Features
+
+- **Custom Nginx/Apache Config Extension Point:** Added `.govard/nginx/custom/*.conf` and `.govard/apache/custom/*.conf` as new project extension directories. Files placed there are mounted read-only into the web server container and included directly inside the rendered `server {}` block (nginx) or `<VirtualHost>` block (Apache), so extra directives no longer require replacing Govard's entire generated nginx/Apache config. Both directories are fingerprinted alongside `.govard/docker-compose.override.yml`, so the next `env up` auto-re-renders when their contents change.
+
 ## [1.56.0] - 2026-07-15
 
 ### ✨ New Features
