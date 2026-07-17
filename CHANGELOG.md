@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.57.1] - 2026-07-17
+
+### 🐛 Bug Fixes
+
+- **`db sync` / `db import --stream-db` Progress Bar Accuracy:** The progress bar previously jumped to 100% as soon as bytes were streamed into mysql's stdin, even though mysql could keep committing for tens of minutes afterwards with no feedback. It also force-padded the counter to the pre-sync size estimate, which could show a false 100% next to a smaller real byte count, or silently freeze mid-transfer if the estimate undershot reality. The bar now tracks real bytes transferred independently of the estimate, caps the displayed percentage at 99% until the import process actually exits successfully, and stays alive through the finalize/commit phase (polling the target database's growing size) instead of being replaced by a disconnected spinner.
+
 ## [1.57.0] - 2026-07-17
 
 ### ✨ New Features
