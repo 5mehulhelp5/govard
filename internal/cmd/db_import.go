@@ -42,6 +42,7 @@ func runStreamDBImport(cmd *cobra.Command, config engine.Config, options dbComma
 		pterm.Warning.Println(formatRemoteDBProbeWarning(options.Environment, probeErr))
 	}
 	localCredentials := resolveLocalDBCredentials(config, containerName)
+	localPoller := &finalizePoller{config: config, remoteName: "local", credentials: localCredentials, noNoise: options.NoNoise, noPII: options.NoPII}
 	if options.Drop {
 		if !options.AssumeYes {
 			if !stdinIsTerminal() {
@@ -91,7 +92,7 @@ func runStreamDBImport(cmd *cobra.Command, config engine.Config, options dbComma
 		}
 		defer fileReader.Close()
 
-		if err := RunImportFromReaderWithProgress(destinationImportCmd, fileReader, totalSize, false, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
+		if err := RunImportFromReaderWithProgress(destinationImportCmd, fileReader, totalSize, false, cmd.OutOrStdout(), cmd.ErrOrStderr(), localPoller.size); err != nil {
 			return fmt.Errorf("stream-db local import step failed: %w", err)
 		}
 
@@ -99,7 +100,7 @@ func runStreamDBImport(cmd *cobra.Command, config engine.Config, options dbComma
 		return nil
 	}
 
-	if err := RunDumpToImportWithProgress(sourceDumpCmd, destinationImportCmd, totalSize, sanitizeStreamDump, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
+	if err := RunDumpToImportWithProgress(sourceDumpCmd, destinationImportCmd, totalSize, sanitizeStreamDump, cmd.OutOrStdout(), cmd.ErrOrStderr(), localPoller.size); err != nil {
 		return fmt.Errorf("stream-db import failed: %w", err)
 	}
 	pterm.Success.Printf("stream import completed from remote '%s' into local database.\n", options.Environment)
@@ -201,7 +202,7 @@ func runDirectDBImport(cmd *cobra.Command, config engine.Config, options dbComma
 		pterm.Success.Println("Database reset successful.")
 	}
 
-	importCommand, err := buildDBImportCommand(config, options)
+	importCommand, poller, err := buildDBImportCommand(config, options)
 	if err != nil {
 		return err
 	}
@@ -218,7 +219,7 @@ func runDirectDBImport(cmd *cobra.Command, config engine.Config, options dbComma
 		pterm.Description.Println("Tip: cat backup.sql | govard db import")
 	}
 
-	if err := RunImportFromReaderWithProgress(importCommand, reader, totalSize, false, cmd.OutOrStdout(), cmd.ErrOrStderr()); err != nil {
+	if err := RunImportFromReaderWithProgress(importCommand, reader, totalSize, false, cmd.OutOrStdout(), cmd.ErrOrStderr(), poller.size); err != nil {
 		return fmt.Errorf("db import failed: %w", err)
 	}
 	pterm.Success.Println("Database import completed.")

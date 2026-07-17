@@ -92,7 +92,8 @@ func buildDatabaseSyncAction(config engine.Config, source SyncEndpoint, destinat
 
 			dumpCmd := remote.BuildSSHExecCommand(source.Name, source.RemoteCfg, true, dumpCmdStr)
 			importCmd := buildLocalDBImportCommand(localDBContainer, localCredentials)
-			return RunDumpToImportWithProgress(dumpCmd, importCmd, totalSize, true, os.Stdout, os.Stderr)
+			poller := &finalizePoller{config: config, remoteName: "local", credentials: localCredentials, noNoise: noNoise, noPII: noPII}
+			return RunDumpToImportWithProgress(dumpCmd, importCmd, totalSize, true, os.Stdout, os.Stderr, poller.size)
 		}, nil
 	case source.IsLocal && !destination.IsLocal:
 		remoteCredentials, probeErr := resolveRemoteDBCredentials(config, destination.Name, destination.RemoteCfg)
@@ -111,7 +112,8 @@ func buildDatabaseSyncAction(config engine.Config, source SyncEndpoint, destinat
 
 			dumpCmd := buildLocalDBDumpCommand(localDBContainer, localCredentials, noNoise, noPII, config.Framework)
 			importCmd := remote.BuildSSHExecCommand(destination.Name, destination.RemoteCfg, true, importCmdStr)
-			return RunDumpToImportWithProgress(dumpCmd, importCmd, totalSize, true, os.Stdout, os.Stderr)
+			poller := &finalizePoller{config: config, remoteName: destination.Name, remoteCfg: destination.RemoteCfg, credentials: remoteCredentials, noNoise: noNoise, noPII: noPII}
+			return RunDumpToImportWithProgress(dumpCmd, importCmd, totalSize, true, os.Stdout, os.Stderr, poller.size)
 		}, nil
 	default:
 		return "", nil, fmt.Errorf("database synchronization only supports transfers between local and remote environments")

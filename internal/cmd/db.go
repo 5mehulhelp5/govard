@@ -435,22 +435,176 @@ func resolveDBImportReader(options dbCommandOptions) (io.Reader, io.Closer, int6
 	return os.Stdin, nil, 0, nil
 }
 
+// reportStreamShortfall prints a one-line note when the stream finished with
+// fewer bytes than the pre-transfer estimate (see GetDatabaseSize) predicted.
+// Without this, a bar that legitimately finishes below 100% (because the
+// estimate overshot reality, not because anything failed) reads as "stuck" or
+// "incomplete" - this makes clear the transfer did complete.
+//
+// This intentionally does NOT take the caller's stdout io.Writer: that writer
+// is also wired to importCmd.Stdout, and when it isn't a plain *os.File,
+// exec.Cmd spawns its own background goroutine to pump the child process's
+// output into it - writing here too would race against that goroutine on the
+// same io.Writer. Routing through pterm's own default output avoids that
+// shared-writer hazard entirely and matches how every other status message
+// in this file is printed (pterm.Success/Warning without a custom writer).
+func reportStreamShortfall(bytesRead int64, totalSize int64) {
+	if totalSize <= 0 || bytesRead >= totalSize {
+		return
+	}
+	pterm.Info.Printf(
+		"Stream complete: transferred %s (pre-sync estimate was %s - estimates are approximate).\n",
+		units.HumanSize(float64(bytesRead)), units.HumanSize(float64(totalSize)),
+	)
+}
+
+// progressThroughputSampleInterval throttles how often the transfer rate is
+// recomputed, so the displayed speed is a stable rolling figure rather than a
+// noisy per-chunk instantaneous value.
+const progressThroughputSampleInterval = 500 * time.Millisecond
+
+// progressLabel builds the static part of the progress title: the estimated
+// total is shown once as context, not as a continuously-updating "current/
+// total" pair - GetDatabaseSize's estimate can be quite a bit off from the
+// real stream size, so refreshing "current" against it on every read tends
+// to look more precise (and more suspicious when it's wrong) than it is.
+func progressLabel(base string, totalSize int64) string {
+	return fmt.Sprintf("%s (~%s estimated)", base, units.HumanSize(float64(totalSize)))
+}
+
 type dbProgressReader struct {
 	reader io.Reader
 	bar    *pterm.ProgressbarPrinter
 	total  int64
 	label  string
+
+	// bytesRead is this reader's own authoritative running count. It is
+	// deliberately NOT the same as bar.Current: pterm's ProgressbarPrinter.Add
+	// snaps Total=Current and permanently deactivates the bar (IsActive=false,
+	// all further UpdateTitle calls become no-ops) the instant Current reaches
+	// Total (pterm v0.12.83). Since total is only an estimate, real bytes can
+	// exceed it - feeding bar.Add(n) directly would then freeze the whole
+	// display (byte count, throughput, ETA) while data keeps flowing silently
+	// in the background. Tracking bytesRead separately keeps the display
+	// alive and growing no matter how far past the estimate the real transfer
+	// goes; see advanceBar for how bar.Current is kept just shy of bar.Total.
+	bytesRead int64
+
+	// startedAt drives our own elapsed-time display. pterm's built-in
+	// ShowElapsedTime is deliberately disabled on bars used here (see
+	// renderFinalizeOnBar's doc): it runs its own background rerender
+	// goroutine that would race against updates made from a different
+	// goroutine once the SAME bar stays alive into the (separately
+	// goroutine-driven) finalize phase.
+	startedAt time.Time
+
+	lastSampleAt time.Time
+	lastSampleN  int64
+	lastSuffix   string
 }
 
 func (r *dbProgressReader) Read(p []byte) (n int, err error) {
 	n, err = r.reader.Read(p)
 	if n > 0 && r.bar != nil {
-		r.bar.Add(n)
-		current := float64(r.bar.Current)
-		total := float64(r.total)
-		r.bar.UpdateTitle(fmt.Sprintf("%s [%s/%s]", r.label, units.HumanSize(current), units.HumanSize(total)))
+		if r.startedAt.IsZero() {
+			r.startedAt = time.Now()
+		}
+		r.bytesRead += int64(n)
+		r.advanceBar(n)
+		r.updateThroughput()
+		pct := displayPercent(r.bytesRead, r.total)
+		elapsed := time.Since(r.startedAt).Round(time.Second)
+		r.bar.UpdateTitle(fmt.Sprintf("%s %d%%%s | %s", r.label, pct, r.lastSuffix, elapsed))
 	}
 	return n, err
+}
+
+// advanceBar feeds pterm's own bar (used only for the visual fill length; its
+// own percentage/count display are disabled via WithShowPercentage(false)/
+// WithShowCount(false)), capping the amount added so bar.Current never
+// reaches bar.Total - see the bytesRead field doc for why that matters.
+func (r *dbProgressReader) advanceBar(n int) {
+	if r.bar.Current+n >= r.bar.Total {
+		n = r.bar.Total - r.bar.Current - 1
+	}
+	if n > 0 {
+		r.bar.Add(n)
+	}
+}
+
+// displayPercent computes the percentage shown in the title, capped at 99 so
+// the bar never claims completion before the stream has actually ended (the
+// real "done" signal comes afterwards: the stream-complete note, then the
+// finalize spinner - not this number reaching 100).
+func displayPercent(current, total int64) int {
+	if total <= 0 {
+		return 0
+	}
+	pct := int(current * 100 / total)
+	if pct > 99 {
+		pct = 99
+	}
+	if pct < 0 {
+		pct = 0
+	}
+	return pct
+}
+
+// DisplayPercentForTest exposes displayPercent for tests.
+func DisplayPercentForTest(current, total int64) int {
+	return displayPercent(current, total)
+}
+
+// updateThroughput recomputes the transfer rate (and ETA) from the bytes read
+// since the previous sample, at most once per progressThroughputSampleInterval.
+// totalSize is only an estimate (see GetDatabaseSize), so a rate/ETA that's
+// clearly meaningless (no progress yet, or already past the estimate) is
+// hidden rather than shown as a nonsensical number.
+func (r *dbProgressReader) updateThroughput() {
+	now := time.Now()
+	if r.lastSampleAt.IsZero() {
+		r.lastSampleAt = now
+		r.lastSampleN = r.bytesRead
+		return
+	}
+
+	elapsed := now.Sub(r.lastSampleAt)
+	if elapsed < progressThroughputSampleInterval {
+		return
+	}
+
+	deltaBytes := r.bytesRead - r.lastSampleN
+	remaining := r.total - r.bytesRead
+	r.lastSampleAt = now
+	r.lastSampleN = r.bytesRead
+	r.lastSuffix = formatThroughputSuffix(deltaBytes, elapsed, remaining)
+}
+
+// formatThroughputSuffix renders the ", <rate>/s, ETA ~<duration>" suffix
+// appended to the progress title. Returns "" when there isn't enough signal
+// yet for a meaningful rate (no bytes since the last sample, non-positive
+// elapsed time) or the estimate has already been reached (remaining <= 0).
+func formatThroughputSuffix(deltaBytes int64, elapsed time.Duration, remaining int64) string {
+	if deltaBytes <= 0 || elapsed <= 0 {
+		return ""
+	}
+
+	rate := float64(deltaBytes) / elapsed.Seconds()
+	if rate <= 0 {
+		return ""
+	}
+
+	suffix := fmt.Sprintf(", %s/s", units.HumanSize(rate))
+	if remaining > 0 {
+		eta := time.Duration(float64(remaining) / rate * float64(time.Second)).Round(time.Second)
+		suffix += fmt.Sprintf(", ETA ~%s", eta)
+	}
+	return suffix
+}
+
+// FormatThroughputSuffixForTest exposes formatThroughputSuffix for tests.
+func FormatThroughputSuffixForTest(deltaBytes int64, elapsed time.Duration, remaining int64) string {
+	return formatThroughputSuffix(deltaBytes, elapsed, remaining)
 }
 
 func stdinIsTerminal() bool {
@@ -499,24 +653,30 @@ func buildDBDumpCommand(config engine.Config, options dbCommandOptions) (*exec.C
 	return remote.BuildSSHExecCommand(options.Environment, remoteCfg, true, dumpStr), "", nil
 }
 
-func buildDBImportCommand(config engine.Config, options dbCommandOptions) (*exec.Cmd, error) {
+// buildDBImportCommand also returns a finalizePoller for the resolved import
+// target, so callers can report the target database's growing size while
+// waiting for the import to finish committing.
+func buildDBImportCommand(config engine.Config, options dbCommandOptions) (*exec.Cmd, *finalizePoller, error) {
 	if options.Environment == "local" {
 		containerName := dbContainerName(config)
 		if err := ensureLocalDBRunning(containerName); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		return buildLocalDBImportCommand(containerName, resolveLocalDBCredentials(config, containerName)), nil
+		credentials := resolveLocalDBCredentials(config, containerName)
+		poller := &finalizePoller{config: config, remoteName: "local", credentials: credentials, noNoise: options.NoNoise, noPII: options.NoPII}
+		return buildLocalDBImportCommand(containerName, credentials), poller, nil
 	}
 
 	remoteCfg, err := resolveDBRemote(config, options.Environment, true)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	credentials, probeErr := resolveRemoteDBCredentials(config, options.Environment, remoteCfg)
 	if probeErr != nil {
 		pterm.Warning.Println(formatRemoteDBProbeWarning(options.Environment, probeErr))
 	}
-	return remote.BuildSSHExecCommand(options.Environment, remoteCfg, true, buildRemoteMySQLImportCommandString(credentials)), nil
+	poller := &finalizePoller{config: config, remoteName: options.Environment, remoteCfg: remoteCfg, credentials: credentials, noNoise: options.NoNoise, noPII: options.NoPII}
+	return remote.BuildSSHExecCommand(options.Environment, remoteCfg, true, buildRemoteMySQLImportCommandString(credentials)), poller, nil
 }
 
 func dbContainerName(config engine.Config) string {
@@ -589,11 +749,146 @@ func runDumpToWriter(dumpCmd *exec.Cmd, writer io.Writer, sanitize bool, stderr 
 	return waitErr
 }
 
-func RunImportFromReader(importCmd *exec.Cmd, reader io.Reader, sanitize bool, stdout io.Writer, stderr io.Writer) error {
-	return RunImportFromReaderWithProgress(importCmd, reader, 0, sanitize, stdout, stderr)
+// finalizePoller knows how to check the current size of the import's target
+// database, so waitForImportCompletion can show real signs of life while the
+// import process keeps running after all bytes have been streamed to it.
+type finalizePoller struct {
+	config      engine.Config
+	remoteName  string
+	remoteCfg   engine.RemoteConfig
+	credentials dbCredentials
+	noNoise     bool
+	noPII       bool
 }
 
-func RunImportFromReaderWithProgress(importCmd *exec.Cmd, reader io.Reader, totalSize int64, sanitize bool, stdout io.Writer, stderr io.Writer) error {
+func (p *finalizePoller) size() (int64, error) {
+	return GetDatabaseSize(p.config, p.remoteName, p.remoteCfg, p.credentials, p.noNoise, p.noPII)
+}
+
+var finalizePollInterval = 5 * time.Second
+
+// SetFinalizePollIntervalForTest overrides the finalize-phase poll interval for tests.
+func SetFinalizePollIntervalForTest(d time.Duration) func() {
+	previous := finalizePollInterval
+	finalizePollInterval = d
+	return func() {
+		finalizePollInterval = previous
+	}
+}
+
+// waitForImportCompletion blocks until importCmd has actually exited, keeping
+// bar's own visual fill/animation going in the meantime instead of replacing
+// it with a separate indicator. Streaming all bytes into the import process's
+// stdin (what bar tracked up to this point) only means the data has been
+// handed off - the process can keep running for a long time afterwards (e.g.
+// mysql committing a large transaction), so callers must not treat "bytes
+// copied" as "import done". bar only reaches (and visually fills to) 100%
+// once importCmd has actually exited successfully.
+// poll, when non-nil, is called periodically to report the target database's
+// growing size while the wait is in progress; pass nil to disable that.
+func waitForImportCompletion(bar *pterm.ProgressbarPrinter, label string, startedAt time.Time, importCmd *exec.Cmd, poll func() (int64, error)) error {
+	rendered := make(chan struct{})
+	done := make(chan error, 1)
+	go renderFinalizeOnBar(bar, label, startedAt, poll, done, rendered)
+
+	err := importCmd.Wait()
+	done <- err
+	<-rendered
+	return err
+}
+
+// WaitForImportCompletionForTest exposes waitForImportCompletion for tests.
+func WaitForImportCompletionForTest(bar *pterm.ProgressbarPrinter, label string, startedAt time.Time, importCmd *exec.Cmd, poll func() (int64, error)) error {
+	return waitForImportCompletion(bar, label, startedAt, importCmd, poll)
+}
+
+// renderFinalizeOnBar keeps updating bar - the SAME progress bar used during
+// the copy phase - while waiting for the import process to actually finish,
+// instead of stopping it and showing a disconnected spinner/message. Only at
+// genuine completion does bar's fill advance to 100%; on failure it's
+// stopped without reaching 100%. label is the STATIC part of the title (bar's
+// copy-phase dbProgressReader has already overwritten bar.Title with the
+// last dynamic render, so it can't be recovered from bar itself).
+//
+// All mutation of bar happens in this one goroutine; the caller only sends a
+// single done signal and waits for rendered to close. This matters for the
+// same reason described for pterm.SpinnerPrinter elsewhere in this file:
+// pterm.ProgressbarPrinter also runs its own background rerender goroutine
+// when ShowElapsedTime is enabled, which would race against updates made
+// here from a second goroutine - callers must construct bar with
+// WithShowElapsedTime(false) (elapsed time is tracked and rendered manually
+// instead, via dbProgressReader/this function, both single-goroutine-owned).
+func renderFinalizeOnBar(bar *pterm.ProgressbarPrinter, label string, startedAt time.Time, poll func() (int64, error), done <-chan error, rendered chan<- struct{}) {
+	defer close(rendered)
+
+	if startedAt.IsZero() {
+		startedAt = time.Now()
+	}
+
+	statusText := "finalizing (waiting for database to commit)"
+	if poll != nil {
+		if size, err := poll(); err == nil {
+			statusText = fmt.Sprintf("finalizing, written so far: %s", units.HumanSize(float64(size)))
+		}
+	}
+	render := func() {
+		elapsed := time.Since(startedAt).Round(time.Second)
+		bar.UpdateTitle(fmt.Sprintf("%s - %s | %s", label, statusText, elapsed))
+	}
+	render()
+
+	frameTicker := time.NewTicker(pterm.DefaultSpinner.Delay)
+	defer frameTicker.Stop()
+
+	var pollC <-chan time.Time
+	if poll != nil {
+		pollTicker := time.NewTicker(finalizePollInterval)
+		defer pollTicker.Stop()
+		pollC = pollTicker.C
+	}
+
+	for {
+		select {
+		case err := <-done:
+			elapsed := time.Since(startedAt).Round(time.Second)
+			if err != nil {
+				bar.UpdateTitle(fmt.Sprintf("%s - failed while finalizing | %s", label, elapsed))
+				_, _ = bar.Stop()
+				return
+			}
+			// Set the "100%" text ourselves - bar.Add below only advances
+			// pterm's own fill/stop bookkeeping, it doesn't touch the title
+			// text (ShowPercentage is disabled; our percentage is always
+			// manually embedded in the title, so it must be updated here too).
+			bar.UpdateTitle(fmt.Sprintf("%s - 100%% - Import finalized | %s", label, elapsed))
+			if remaining := bar.Total - bar.Current; remaining > 0 {
+				// Add()ing the exact remainder brings Current to Total,
+				// which pterm renders as a fully-filled bar and stops on its
+				// own - the real completion signal this bar has been
+				// deliberately capped short of until now (see advanceBar).
+				bar.Add(remaining)
+			} else {
+				_, _ = bar.Stop()
+			}
+			return
+		case <-frameTicker.C:
+			render()
+		case <-pollC:
+			if size, err := poll(); err == nil {
+				statusText = fmt.Sprintf("finalizing, written so far: %s", units.HumanSize(float64(size)))
+			}
+			render()
+		}
+	}
+}
+
+func RunImportFromReader(importCmd *exec.Cmd, reader io.Reader, sanitize bool, stdout io.Writer, stderr io.Writer) error {
+	return RunImportFromReaderWithProgress(importCmd, reader, 0, sanitize, stdout, stderr, nil)
+}
+
+// poll, when non-nil, is called periodically while waiting for importCmd to
+// finish, to report the target database's growing size.
+func RunImportFromReaderWithProgress(importCmd *exec.Cmd, reader io.Reader, totalSize int64, sanitize bool, stdout io.Writer, stderr io.Writer, poll func() (int64, error)) error {
 	stdin, err := importCmd.StdinPipe()
 	if err != nil {
 		return err
@@ -613,6 +908,8 @@ func RunImportFromReaderWithProgress(importCmd *exec.Cmd, reader io.Reader, tota
 
 	// Progress tracking and Gzip detection logic
 	var bar *pterm.ProgressbarPrinter
+	var progressReader *dbProgressReader
+	var progressLabelText string
 	var finalReader io.Reader
 
 	// Heuristic: If we are reading a compressed source and totalSize equals the source size,
@@ -628,14 +925,18 @@ func RunImportFromReaderWithProgress(importCmd *exec.Cmd, reader io.Reader, tota
 	}
 
 	if totalSize > 0 {
+		progressLabelText = progressLabel("Importing DB", totalSize)
 		bar, _ = pterm.DefaultProgressbar.WithTotal(int(totalSize)).
-			WithTitle(fmt.Sprintf("Importing DB [0/%s]", units.HumanSize(float64(totalSize)))).
+			WithTitle(progressLabelText).
 			WithShowCount(false).
+			WithShowPercentage(false).
+			WithShowElapsedTime(false).
 			Start()
 
 		if trackCompressed {
 			// track progress on the COMPRESSED source (local .sql.gz file)
-			readerWithPeek = &dbProgressReader{reader: readerWithPeek, bar: bar, total: totalSize, label: "Importing DB"}
+			progressReader = &dbProgressReader{reader: readerWithPeek, bar: bar, total: totalSize, label: progressLabelText}
+			readerWithPeek = progressReader
 		}
 	}
 
@@ -652,7 +953,8 @@ func RunImportFromReaderWithProgress(importCmd *exec.Cmd, reader io.Reader, tota
 
 	if totalSize > 0 && !trackCompressed {
 		// Track against uncompressed stream (remote sync case)
-		finalReader = &dbProgressReader{reader: finalReader, bar: bar, total: totalSize, label: "Importing DB"}
+		progressReader = &dbProgressReader{reader: finalReader, bar: bar, total: totalSize, label: progressLabelText}
+		finalReader = progressReader
 	}
 
 	if err := importCmd.Start(); err != nil {
@@ -677,12 +979,24 @@ func RunImportFromReaderWithProgress(importCmd *exec.Cmd, reader io.Reader, tota
 	}
 
 	if bar != nil {
-		bar.Add(int(totalSize) - bar.Current)
-		_, _ = bar.Stop()
+		// Do not stop bar here: totalSize is only an estimate (see
+		// GetDatabaseSize), so the real byte count read from the stream may
+		// land short of it, and the import process (e.g. mysql committing a
+		// large transaction) can keep running long after the stream ends.
+		// bar stays alive and visually fills to 100% only once
+		// waitForImportCompletion confirms the process actually finished.
+		reportStreamShortfall(progressReader.bytesRead, totalSize)
 	}
 
 	closeErr := stdin.Close()
-	waitErr := importCmd.Wait()
+
+	var waitErr error
+	if bar != nil {
+		waitErr = waitForImportCompletion(bar, progressLabelText, progressReader.startedAt, importCmd, poll)
+	} else {
+		waitErr = importCmd.Wait()
+	}
+
 	if copyErr != nil {
 		return copyErr
 	}
@@ -693,10 +1007,12 @@ func RunImportFromReaderWithProgress(importCmd *exec.Cmd, reader io.Reader, tota
 }
 
 func RunDumpToImport(dumpCmd *exec.Cmd, importCmd *exec.Cmd, sanitize bool, stdout io.Writer, stderr io.Writer) error {
-	return RunDumpToImportWithProgress(dumpCmd, importCmd, 0, sanitize, stdout, stderr)
+	return RunDumpToImportWithProgress(dumpCmd, importCmd, 0, sanitize, stdout, stderr, nil)
 }
 
-func RunDumpToImportWithProgress(dumpCmd *exec.Cmd, importCmd *exec.Cmd, totalSize int64, sanitize bool, stdout io.Writer, stderr io.Writer) error {
+// poll, when non-nil, is called periodically while waiting for importCmd to
+// finish, to report the target database's growing size.
+func RunDumpToImportWithProgress(dumpCmd *exec.Cmd, importCmd *exec.Cmd, totalSize int64, sanitize bool, stdout io.Writer, stderr io.Writer, poll func() (int64, error)) error {
 	dumpStdout, err := dumpCmd.StdoutPipe()
 	if err != nil {
 		return err
@@ -728,6 +1044,8 @@ func RunDumpToImportWithProgress(dumpCmd *exec.Cmd, importCmd *exec.Cmd, totalSi
 	importSuffix := "\nCOMMIT; SET FOREIGN_KEY_CHECKS=1; SET UNIQUE_CHECKS=1; SET AUTOCOMMIT=1;\n"
 
 	var bar *pterm.ProgressbarPrinter
+	var progressReader *dbProgressReader
+	var progressLabelText string
 	var reader io.Reader = dumpStdout
 	isGzip := false
 
@@ -748,15 +1066,19 @@ func RunDumpToImportWithProgress(dumpCmd *exec.Cmd, importCmd *exec.Cmd, totalSi
 
 	// Progress tracking logic
 	if totalSize > 0 {
+		progressLabelText = progressLabel("Syncing DB", totalSize)
 		bar, _ = pterm.DefaultProgressbar.WithTotal(int(totalSize)).
-			WithTitle(fmt.Sprintf("Syncing DB [0/%s]", units.HumanSize(float64(totalSize)))).
+			WithTitle(progressLabelText).
 			WithShowCount(false).
+			WithShowPercentage(false).
+			WithShowElapsedTime(false).
 			Start()
 
 		// In RunDumpToImport, the source is always a pipe from the remote dump command.
 		// If totalSize is provided here, it's always the logical/uncompressed size
 		// from GetDatabaseSize(), so we ALWAYS track uncompressed progress.
-		reader = &dbProgressReader{reader: reader, bar: bar, total: totalSize, label: "Syncing DB"}
+		progressReader = &dbProgressReader{reader: reader, bar: bar, total: totalSize, label: progressLabelText}
+		reader = progressReader
 	}
 
 	// Wrap the reader with performance-optimized session variables
@@ -774,13 +1096,24 @@ func RunDumpToImportWithProgress(dumpCmd *exec.Cmd, importCmd *exec.Cmd, totalSi
 	}
 
 	if bar != nil {
-		bar.Add(int(totalSize) - bar.Current)
-		_, _ = bar.Stop()
+		// Do not stop bar here: totalSize is only an estimate (see
+		// GetDatabaseSize), so the real byte count read from the stream may
+		// land short of it, and the import process (e.g. mysql committing a
+		// large transaction) can keep running long after the stream ends.
+		// bar stays alive and visually fills to 100% only once
+		// waitForImportCompletion confirms the process actually finished.
+		reportStreamShortfall(progressReader.bytesRead, totalSize)
 	}
 
 	closeErr := importStdin.Close()
 	dumpErr := dumpCmd.Wait()
-	importErr := importCmd.Wait()
+
+	var importErr error
+	if bar != nil {
+		importErr = waitForImportCompletion(bar, progressLabelText, progressReader.startedAt, importCmd, poll)
+	} else {
+		importErr = importCmd.Wait()
+	}
 
 	if copyErr != nil {
 		// If copy failed, check if it was due to a process termination
@@ -844,7 +1177,7 @@ func BuildDBDumpCommandForTest(config engine.Config, options DBCommandOptions) (
 
 // BuildDBImportCommandForTest exposes buildDBImportCommand args for tests in /tests.
 func BuildDBImportCommandForTest(config engine.Config, options DBCommandOptions) ([]string, error) {
-	command, err := buildDBImportCommand(config, options)
+	command, _, err := buildDBImportCommand(config, options)
 	if err != nil {
 		return nil, err
 	}
