@@ -16,6 +16,8 @@ const (
 	ProjectHooksDir            = conventions.ProjectHooksDir
 	ProjectLocalConfigPath     = conventions.ProjectLocalConfigPath
 	ProjectComposeOverridePath = conventions.ProjectComposeOverridePath
+	ProjectNginxCustomDir      = conventions.ProjectNginxCustomDir
+	ProjectApacheCustomDir     = conventions.ProjectApacheCustomDir
 	GlobalCommandsDirEnvVar    = "GOVARD_GLOBAL_COMMANDS_DIR"
 )
 

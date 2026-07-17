@@ -291,6 +291,8 @@ Remote fields support `op://...` references resolved through the 1Password CLI.
 | `.govard/docker-compose.override.yml` | Compose overrides merged after framework includes |
 | `.govard/commands/*` | Custom commands exposed via `govard custom` |
 | `.govard/hooks/*` | Scripts referenced by `hooks.*.run` |
+| `.govard/nginx/custom/*.conf` | Extra nginx directives included inside the rendered `server {}` block (nginx web server only) |
+| `.govard/apache/custom/*.conf` | Extra Apache directives included inside the rendered `<VirtualHost>` block (Apache web server only) |
 
 **Lifecycle hook events:**
 
@@ -300,9 +302,9 @@ Remote fields support `op://...` references resolved through the 1Password CLI.
 - `pre-delete` / `post-delete`
 
 ::: tip TIP
-Govard fingerprints `.govard/docker-compose.override.yml`. If it changes, the next `env up` auto-re-renders the compose output.
+Govard fingerprints `.govard/docker-compose.override.yml`, `.govard/nginx/custom/`, and `.govard/apache/custom/`. If any of them change, the next `env up` auto-re-renders the compose output.
 
-When overriding services, prefer additive merges (extra environment variables, labels, ports). Replacing full lists like `services.web.volumes` can discard required Govard-managed mounts.
+When overriding services, prefer additive merges (extra environment variables, labels, ports). Replacing full lists like `services.web.volumes` can discard required Govard-managed mounts. `.govard/nginx/custom/` and `.govard/apache/custom/` exist precisely so you don't have to replace the whole web server config just to add a directive.
 :::
 
 ---

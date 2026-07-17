@@ -15,11 +15,17 @@ services:
       {{ if and (not $isApache) .NginxConfigPath }}
       - "{{ .NginxConfigPath }}:/etc/nginx/templates/{{ if $isHybrid }}hybrid.conf{{ else }}{{ .NGINXTemplate }}{{ end }}:ro"
       {{ end }}
+      {{ if and (not $isApache) .NginxCustomConfigDir }}
+      - "{{ .NginxCustomConfigDir }}:/etc/nginx/custom:ro"
+      {{ end }}
       {{ if and $isMagento (not $isApache) (not $isHybrid) .NginxMageRunMapPath }}
       - "{{ .NginxMageRunMapPath }}:/etc/nginx/conf.d/mage-run-map.conf:ro"
       {{ end }}
       {{ if and $isApache .ApacheConfigDir }}
       - "{{ .ApacheConfigDir }}:/usr/local/apache2/conf"
+      {{ end }}
+      {{ if and $isApache .ApacheCustomConfigDir }}
+      - "{{ .ApacheCustomConfigDir }}:/usr/local/apache2/conf/custom:ro"
       {{ end }}
     networks:
       - govard-net
@@ -57,6 +63,9 @@ services:
       - .:{{ .WorkDir }}
       {{ if .ApacheConfigDir }}
       - "{{ .ApacheConfigDir }}:/usr/local/apache2/conf"
+      {{ end }}
+      {{ if .ApacheCustomConfigDir }}
+      - "{{ .ApacheCustomConfigDir }}:/usr/local/apache2/conf/custom:ro"
       {{ end }}
     networks:
       - govard-net

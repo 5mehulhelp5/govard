@@ -63,10 +63,16 @@ func prepareNginxConfigAsset(blueprintsFS fs.FS, data RenderData, hybrid bool) (
 		return "", fmt.Errorf("read nginx support template %s: %w", templatePath, err)
 	}
 
+	nginxCustomInclude := ""
+	if strings.TrimSpace(data.NginxCustomConfigDir) != "" {
+		nginxCustomInclude = "include /etc/nginx/custom/*.conf;"
+	}
+
 	rendered := strings.NewReplacer(
 		"${NGINX_PUBLIC}", data.NGINXPublic,
 		"${XDEBUG_SESSION_PATTERN}", data.XdebugSessionPattern,
 		"${CONVENTIONS_WORK_DIR}", conventions.DefaultWorkDir,
+		"${NGINX_CUSTOM_INCLUDE}", nginxCustomInclude,
 	).Replace(string(content))
 
 	destPath := filepath.Join(GovardHomeDir(), "nginx", data.Config.ProjectName, "default.conf")
@@ -90,10 +96,16 @@ func prepareApacheHTTPDConfigAsset(blueprintsFS fs.FS, data RenderData) (string,
 		return "", fmt.Errorf("read apache support template %s: %w", templatePath, err)
 	}
 
+	apacheCustomInclude := ""
+	if strings.TrimSpace(data.ApacheCustomConfigDir) != "" {
+		apacheCustomInclude = "IncludeOptional conf/custom/*.conf"
+	}
+
 	rendered := strings.NewReplacer(
 		"@DOCROOT@", data.ApacheDocumentRoot,
 		"@XDEBUG_SESSION@", data.XdebugSessionPattern,
 		"@CONVENTIONS_WORK_DIR@", conventions.DefaultWorkDir,
+		"@CUSTOM_INCLUDE@", apacheCustomInclude,
 	).Replace(string(content))
 
 	destPath := filepath.Join(GovardHomeDir(), "apache", data.Config.ProjectName, "httpd.conf")

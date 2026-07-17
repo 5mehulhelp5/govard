@@ -275,6 +275,8 @@ Các trường thông tin remote hỗ trợ các tham chiếu `op://...` đượ
 | `.govard/docker-compose.override.yml` | Ghi đè Compose được merge sau khi include framework |
 | `.govard/commands/*` | Các lệnh tùy chỉnh được hiển thị qua `govard custom` |
 | `.govard/hooks/*` | Các script được tham chiếu bởi `hooks.*.run` |
+| `.govard/nginx/custom/*.conf` | Directive nginx bổ sung, được include vào bên trong `server {}` đã render (chỉ áp dụng cho nginx) |
+| `.govard/apache/custom/*.conf` | Directive Apache bổ sung, được include vào bên trong `<VirtualHost>` đã render (chỉ áp dụng cho Apache) |
 
 **Các sự kiện lifecycle hook:**
 
@@ -284,9 +286,9 @@ Các trường thông tin remote hỗ trợ các tham chiếu `op://...` đượ
 - `pre-delete` / `post-delete`
 
 ::: tip GỢI Ý
-Govard tạo mã hash vân tay cho `.govard/docker-compose.override.yml`. Nếu file này thay đổi, lệnh `env up` tiếp theo sẽ tự động re-render cấu trúc compose.
+Govard tạo mã hash vân tay cho `.govard/docker-compose.override.yml`, `.govard/nginx/custom/`, và `.govard/apache/custom/`. Nếu bất kỳ thứ nào trong số này thay đổi, lệnh `env up` tiếp theo sẽ tự động re-render cấu trúc compose.
 
-Khi ghi đè dịch vụ, nên ưu tiên các bổ sung nhỏ (thêm biến môi trường, label, port). Việc thay thế hoàn toàn danh sách như `services.web.volumes` có thể làm mất các mount quan trọng do Govard quản lý.
+Khi ghi đè dịch vụ, nên ưu tiên các bổ sung nhỏ (thêm biến môi trường, label, port). Việc thay thế hoàn toàn danh sách như `services.web.volumes` có thể làm mất các mount quan trọng do Govard quản lý. `.govard/nginx/custom/` và `.govard/apache/custom/` tồn tại chính xác để bạn không cần thay thế toàn bộ cấu hình web server chỉ để thêm một directive.
 :::
 
 ---
