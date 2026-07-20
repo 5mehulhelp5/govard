@@ -137,20 +137,31 @@ target "php" {
   }
   args = {
     PHP_VERSION = version
-    # See PHP_BASE_TAG comment in docker/php/Dockerfile: pin to Alpine 3.19
-    # (libxml2 2.11.x) for the PHP tags that get rebuilt against a moving Alpine
-    # base, to avoid libxml2 >= 2.12's stricter XSD determinism check breaking
-    # Magento's esconfig.xsd. No alpine3.19 build exists yet for 8.5; EOL tags
-    # (7.4 and below, 5.6) are already frozen on old libxml2 and don't need it.
-    PHP_BASE_TAG = (
-      version == "8.4" ? "8.4-fpm-alpine3.19" :
-      version == "8.3" ? "8.3-fpm-alpine3.19" :
-      version == "8.2" ? "8.2-fpm-alpine3.19" :
-      version == "8.1" ? "8.1-fpm-alpine3.19" :
-      "${version}-fpm-alpine"
-    )
   }
   tags = ["${DOCKER_ORG}php:${version}"]
+}
+
+# ─── PHP (Magento 2 - pinned base) ─────────────────────────────────────────
+# Magento core's own module-elasticsearch/etc/esconfig.xsd violates XSD 1.0
+# Unique Particle Attribution; libxml2 >= 2.12 (Alpine 3.20+) treats that as
+# fatal, aborting `indexer:reindex` with "content model is not determinist".
+# This target rebuilds the same base php Dockerfile pinned to Alpine 3.19
+# (libxml2 2.11.x, verified clean against that schema) so ONLY Magento 2
+# images inherit the pin — other frameworks keep tracking the floating,
+# actively-patched Alpine base via the "php" target above. Not published as
+# a general-purpose tag; php-magento2 below consumes it as its base.
+target "php-magento2-base" {
+  name       = "php-magento2-base-${replace(version, ".", "-")}"
+  context    = "docker/php"
+  dockerfile = "Dockerfile"
+  matrix = {
+    version = ["8.4", "8.3", "8.2", "8.1"]
+  }
+  args = {
+    PHP_VERSION  = version
+    PHP_BASE_TAG = "${version}-fpm-alpine3.19"
+  }
+  tags = ["${DOCKER_ORG}php-magento2-base:${version}"]
 }
 
 # ─── PHP (Magento 2) ───────────────────────────────────────────────────────
@@ -163,10 +174,32 @@ target "php-magento2" {
   }
   contexts = {
     "${DOCKER_ORG}php:${version}" = "target:php-${replace(version, ".", "-")}"
+    # php-magento2-base only has 8.1-8.4 targets (see above); for other
+    # versions this mapping is declared but never actually referenced by
+    # BASE_IMAGE below, so point it at an always-existing target to keep
+    # bake's static context resolution happy.
+    "${DOCKER_ORG}php-magento2-base:${version}" = (
+      version == "8.4" ? "target:php-magento2-base-8-4" :
+      version == "8.3" ? "target:php-magento2-base-8-3" :
+      version == "8.2" ? "target:php-magento2-base-8-2" :
+      version == "8.1" ? "target:php-magento2-base-8-1" :
+      "target:php-${replace(version, ".", "-")}"
+    )
   }
   args = {
     PHP_VERSION             = version
     GOVARD_IMAGE_REPOSITORY = DOCKER_ORG
+    # 8.1-8.4 build on the Alpine-3.19-pinned base (see php-magento2-base
+    # above); 7.2-7.4 and 8.5 have no fatal libxml2 issue on the floating
+    # base yet (7.x is already frozen old; 8.5 has no alpine3.19 build to
+    # pin to), so they stay on the regular, actively-patched "php" image.
+    BASE_IMAGE = (
+      version == "8.4" ? "${DOCKER_ORG}php-magento2-base:8.4" :
+      version == "8.3" ? "${DOCKER_ORG}php-magento2-base:8.3" :
+      version == "8.2" ? "${DOCKER_ORG}php-magento2-base:8.2" :
+      version == "8.1" ? "${DOCKER_ORG}php-magento2-base:8.1" :
+      "${DOCKER_ORG}php:${version}"
+    )
   }
   tags = ["${DOCKER_ORG}php-magento2:${version}"]
 }

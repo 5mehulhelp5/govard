@@ -3,13 +3,10 @@ ARG PHP_BASE_TAG=${PHP_VERSION}-fpm-alpine
 ARG PHP_MEMORY_LIMIT=4G
 ARG PHP_MAX_EXECUTION_TIME=3600
 
-# libxml2 >= 2.12 (Alpine 3.20+) enforces XSD Unique Particle Attribution strictly,
-# which makes Magento's own module-elasticsearch/etc/esconfig.xsd fail schema
-# validation ("content model is not determinist") and abort reindex in
-# MAGE_MODE=developer. PHP_BASE_TAG pins actively-rebuilt PHP tags to Alpine 3.19
-# (libxml2 2.11.x, verified to validate that schema cleanly) via docker-bake.hcl;
-# it falls back to the floating "-fpm-alpine" tag here for versions with no
-# alpine3.19 build (EOL PHP tags are already frozen on pre-2.12 libxml2 anyway).
+# PHP_BASE_TAG lets a consumer of this Dockerfile override the upstream base tag
+# (e.g. to pin a specific Alpine release) without duplicating this file. See the
+# "php-magento2-base" target in docker-bake.hcl, which pins Alpine 3.19 to work
+# around a Magento-2-specific libxml2 issue.
 FROM php:${PHP_BASE_TAG}
 ARG PHP_VERSION
 ARG PHP_MEMORY_LIMIT
