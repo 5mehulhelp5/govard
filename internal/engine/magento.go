@@ -89,12 +89,7 @@ func ConfigureMagento(projectName string, config Config, force bool, shiftInfo *
 		}
 	}
 
-	pterm.Info.Println("Running composer install for the new profile environment...")
-	if compErr := runMagentoComposerInstall(projectName, config, nil, nil); compErr != nil {
-		pterm.Warning.Printf("Composer install failed (continuing): %v\n", compErr)
-	} else {
-		pterm.Success.Println("Composer dependencies synchronized.")
-	}
+	maybeRunMagentoComposerInstall(projectName, config)
 
 	containerName := fmt.Sprintf("%s%s", projectName, conventions.PHPSuffix)
 	lockedKeys, _ := CheckMagentoEnvPHPLockedKeys(containerName, config)
@@ -853,8 +848,55 @@ func wipeMagentoGeneratedCaches(projectName string, config Config) error {
 	return nil
 }
 
+// runMagentoComposerInstallFn is a package-level indirection so tests can observe/stub
+// composer-install invocations without shelling out to docker.
+var runMagentoComposerInstallFn = runMagentoComposerInstall
+
+// SetMagentoComposerInstallRunnerForTest overrides the composer-install runner used by
+// maybeRunMagentoComposerInstall for tests.
+func SetMagentoComposerInstallRunnerForTest(fn func(projectName string, config Config, stdout, stderr io.Writer) error) func() {
+	prev := runMagentoComposerInstallFn
+	runMagentoComposerInstallFn = fn
+	return func() {
+		runMagentoComposerInstallFn = prev
+	}
+}
+
+// MaybeRunMagentoComposerInstallForTest exposes maybeRunMagentoComposerInstall for tests in /tests.
+func MaybeRunMagentoComposerInstallForTest(projectName string, config Config) {
+	maybeRunMagentoComposerInstall(projectName, config)
+}
+
+// maybeRunMagentoComposerInstall runs composer install for the given project unless the
+// current working directory's vendor/ already satisfies composer.lock, in which case it is
+// skipped (this is what previously made `govard config auto` retry a private-repo
+// authentication failure that a remote vendor-sync fallback had already recovered from).
+func maybeRunMagentoComposerInstall(projectName string, config Config) {
+	skipComposerInstall := false
+	if projectRoot, rootErr := os.Getwd(); rootErr == nil {
+		skipComposerInstall, _ = VendorSatisfiesComposerLock(projectRoot)
+	}
+
+	if skipComposerInstall {
+		pterm.Info.Println("vendor/ already satisfies composer.lock. Skipping composer install.")
+		return
+	}
+
+	pterm.Info.Println("Running composer install for the new profile environment...")
+	if compErr := runMagentoComposerInstallFn(projectName, config, nil, nil); compErr != nil {
+		pterm.Warning.Printf("Composer install failed (continuing): %v\n", compErr)
+	} else {
+		pterm.Success.Println("Composer dependencies synchronized.")
+	}
+}
+
 func runMagentoComposerInstall(projectName string, config Config, stdout, stderr io.Writer) error {
 	containerName := fmt.Sprintf("%s%s", projectName, conventions.PHPSuffix)
+
+	// Protect the current (presumably working) vendor/composer + vendor/autoload.php
+	// before anything below has a chance to wipe them, so a failed install can be
+	// rolled back instead of leaving the environment without an autoloader.
+	backupMagentoComposerRuntime(containerName, config)
 
 	// Pre-cleanup: Wipe generated code to ensure a clean state for the autoloader.
 	// This prevents stale class map entries if we run composer dump-autoload --optimize later.
@@ -924,12 +966,18 @@ func runMagentoComposerInstall(projectName string, config Config, stdout, stderr
 			}
 
 			if retryErr := phase1RetryCmd.Run(); retryErr != nil {
+				restoreMagentoComposerRuntimeBackup(containerName, config)
 				return fmt.Errorf("composer install (phase 1 retry) failed: %w\nOutput: %s", retryErr, retryBuf.String())
 			}
 		} else {
+			restoreMagentoComposerRuntimeBackup(containerName, config)
 			return fmt.Errorf("composer install (phase 1) failed: %w\nOutput: %s", err, outText)
 		}
 	}
+
+	// Phase 1 succeeded (either on the first attempt or after the corruption retry):
+	// the backup taken above is no longer needed.
+	discardMagentoComposerRuntimeBackup(containerName, config)
 
 	// Phase 2: Regenerate the autoloader with the updated plugin files.
 	// This runs scripts and activates plugins against a now-clean vendor/ state.
@@ -957,6 +1005,38 @@ func runMagentoComposerInstall(projectName string, config Config, stdout, stderr
 	}
 
 	return nil
+}
+
+// backupMagentoComposerRuntime moves the current vendor/composer directory and
+// vendor/autoload.php aside before composer install runs, so a failed install can be
+// rolled back instead of leaving the environment without an autoloader. Best-effort:
+// if this fails, runMagentoComposerInstall proceeds without a safety net, exactly as
+// it did before this existed.
+func backupMagentoComposerRuntime(containerName string, config Config) {
+	script := `rm -rf vendor/.composer-backup
+mkdir -p vendor/.composer-backup
+if [ -d vendor/composer ]; then mv vendor/composer vendor/.composer-backup/composer; fi
+if [ -f vendor/autoload.php ]; then mv vendor/autoload.php vendor/.composer-backup/autoload.php; fi`
+	_ = exec.Command("docker", magentoDockerExecArgs(containerName, config, "sh", "-c", script)...).Run()
+}
+
+// restoreMagentoComposerRuntimeBackup undoes backupMagentoComposerRuntime: it discards
+// whatever partial vendor/composer state a failed composer install left behind and
+// restores the pre-attempt vendor/composer and vendor/autoload.php. Best-effort.
+func restoreMagentoComposerRuntimeBackup(containerName string, config Config) {
+	script := `if [ -d vendor/.composer-backup ]; then
+  rm -rf vendor/composer vendor/autoload.php
+  if [ -d vendor/.composer-backup/composer ]; then mv vendor/.composer-backup/composer vendor/composer; fi
+  if [ -f vendor/.composer-backup/autoload.php ]; then mv vendor/.composer-backup/autoload.php vendor/autoload.php; fi
+fi`
+	_ = exec.Command("docker", magentoDockerExecArgs(containerName, config, "sh", "-c", script)...).Run()
+}
+
+// discardMagentoComposerRuntimeBackup removes the backup taken by
+// backupMagentoComposerRuntime once composer install has succeeded and the backup is
+// no longer needed. Best-effort.
+func discardMagentoComposerRuntimeBackup(containerName string, config Config) {
+	_ = exec.Command("docker", magentoDockerExecArgs(containerName, config, "sh", "-c", "rm -rf vendor/.composer-backup")...).Run()
 }
 
 func flushMagentoRedisCache(projectName string, config Config) error {
