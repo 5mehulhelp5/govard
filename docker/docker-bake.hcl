@@ -137,6 +137,18 @@ target "php" {
   }
   args = {
     PHP_VERSION = version
+    # See PHP_BASE_TAG comment in docker/php/Dockerfile: pin to Alpine 3.19
+    # (libxml2 2.11.x) for the PHP tags that get rebuilt against a moving Alpine
+    # base, to avoid libxml2 >= 2.12's stricter XSD determinism check breaking
+    # Magento's esconfig.xsd. No alpine3.19 build exists yet for 8.5; EOL tags
+    # (7.4 and below, 5.6) are already frozen on old libxml2 and don't need it.
+    PHP_BASE_TAG = (
+      version == "8.4" ? "8.4-fpm-alpine3.19" :
+      version == "8.3" ? "8.3-fpm-alpine3.19" :
+      version == "8.2" ? "8.2-fpm-alpine3.19" :
+      version == "8.1" ? "8.1-fpm-alpine3.19" :
+      "${version}-fpm-alpine"
+    )
   }
   tags = ["${DOCKER_ORG}php:${version}"]
 }
