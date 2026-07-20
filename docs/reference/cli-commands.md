@@ -436,14 +436,20 @@ Writes (or merges into) the VSCode settings needed to run PHP tooling inside the
 ```bash
 # Run from inside a project (or any subdirectory of one)
 govard vscode setup
-#   -> .vscode/settings.json: intelephense.environment.phpVersion, phpstan.paths
+#   -> .vscode/settings.json: intelephense.environment.phpVersion, phpstan.paths,
+#                             and (if vendor/bin/phpcs exists) phpcs.standard + phpcs.autoConfigSearch=false
 #   -> .vscode/launch.json:   a "Listen for Xdebug (Govard)" configuration (port 9003)
 
 # Run once, applies to every Govard project
 govard vscode setup --global
-#   -> creates ~/.govard/bin/govard-php and govard-php-cs-fixer wrapper scripts
-#   -> user settings.json: php.validate.executablePath, phpstan.binCommand, php-cs-fixer.executablePath
+#   -> creates ~/.govard/bin/govard-php, govard-php-cs-fixer, and govard-phpcs wrapper scripts
+#   -> user settings.json: php.validate.executablePath, phpstan.binCommand,
+#                          php-cs-fixer.executablePath, phpcs.executablePath
 ```
+
+The PHPCS coding standard is auto-detected from `composer.json` (`magento/magento-coding-standard` -> `Magento2`, `wp-coding-standards/wpcs` -> `WordPress`, `drupal/coder` -> `Drupal`), falling back to `PSR12`. `phpcs.autoConfigSearch` is disabled because it would otherwise auto-detect a `phpcs.xml`/`.dist` ruleset and pass its *host* absolute path as `--standard`, which the container can't read.
+
+Each setting group requires a specific VSCode extension (Intelephense, PHPStan, PHP CS Fixer, PHPCS, PHP Debug). If one isn't installed, `setup` warns and asks whether to install it now via `code --install-extension` — accept and the corresponding setting is still wired up in that same run. Pass `--yes` to install everything missing without asking (useful for scripting); with no TTY attached and no `--yes`, missing extensions are skipped without prompting.
 
 Existing keys and unrelated `launch.json` configurations are preserved — only the keys Govard manages are added or overwritten. Note: settings.json is parsed as plain JSON, so any comments in it are dropped when rewritten.
 
@@ -456,6 +462,7 @@ govard vscode php [args]
 govard vscode composer [args]
 govard vscode phpstan [args]       # vendor/bin/phpstan
 govard vscode php-cs-fixer [args]  # vendor/bin/php-cs-fixer
+govard vscode phpcs [args]         # vendor/bin/phpcs
 govard vscode phpunit [args]       # vendor/bin/phpunit, with memory_limit=-1
 ```
 

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -16,7 +17,16 @@ import (
 
 const xdebugLaunchConfigName = "Listen for Xdebug (Govard)"
 
+const (
+	extIntelephense = "bmewburn.vscode-intelephense-client"
+	extPHPStan      = "sanderronde.phpstan-vscode"
+	extPHPCSFixer   = "junstyle.php-cs-fixer"
+	extPHPCS        = "shevaua.phpcs"
+	extXdebug       = "xdebug.php-debug"
+)
+
 var vscodeSetupGlobal bool
+var vscodeSetupYes bool
 
 var vscodeSetupCmd = &cobra.Command{
 	Use:   "setup",
@@ -25,17 +35,22 @@ var vscodeSetupCmd = &cobra.Command{
 project's container instead of the host machine.
 
 Without --global, run this from inside a project (or any subdirectory of one)
-to write .vscode/settings.json (Intelephense PHP version, PHPStan path mapping)
-and .vscode/launch.json (a "Listen for Xdebug" configuration).
+to write .vscode/settings.json (Intelephense PHP version, PHPStan path mapping,
+and — if vendor/bin/phpcs is present — a PHPCS coding standard) and
+.vscode/launch.json (a "Listen for Xdebug" configuration).
 
 With --global, updates VSCode's user settings.json once for every project:
-creates the govard-php / govard-php-cs-fixer wrapper scripts under
-~/.govard/bin and points php.validate.executablePath, phpstan.binCommand, and
-php-cs-fixer.executablePath at them.
+creates the govard-php / govard-php-cs-fixer / govard-phpcs wrapper scripts
+under ~/.govard/bin and points php.validate.executablePath, phpstan.binCommand,
+php-cs-fixer.executablePath, and phpcs.executablePath at them.
 
 Existing keys in either file are preserved; only the keys this command manages
 are added or overwritten. Note: settings.json is parsed as plain JSON, so any
-comments in it will be dropped when rewritten.`,
+comments in it will be dropped when rewritten.
+
+For each setting group whose VSCode extension isn't installed, you'll be asked
+whether to install it (via "code --install-extension") before that group is
+skipped. Pass --yes to install everything missing without asking.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if vscodeSetupGlobal {
 			return runVSCodeSetupGlobal()
@@ -46,6 +61,7 @@ comments in it will be dropped when rewritten.`,
 
 func init() {
 	vscodeSetupCmd.Flags().BoolVar(&vscodeSetupGlobal, "global", false, "Update VSCode's user settings.json instead of the current project")
+	vscodeSetupCmd.Flags().BoolVar(&vscodeSetupYes, "yes", false, "Install any missing required VSCode extensions without asking")
 }
 
 func runVSCodeSetupProject() error {
@@ -60,25 +76,43 @@ func runVSCodeSetupProject() error {
 	config := loadConfig()
 	workdir := engine.ResolveFrameworkAppWorkdir(config.Framework)
 
-	settingsPath := filepath.Join(root, ".vscode", "settings.json")
-	set := map[string]interface{}{
-		"phpstan.paths": map[string]interface{}{
-			root: workdir,
-		},
-	}
-	if version := normalizeIntelephensePHPVersion(config.Stack.PHPVersion); version != "" {
-		set["intelephense.environment.phpVersion"] = version
-	}
-	if err := mergeJSONObjectFile(settingsPath, set, nil); err != nil {
-		return fmt.Errorf("write %s: %w", settingsPath, err)
-	}
-	pterm.Success.Printf("Updated %s\n", settingsPath)
+	set := map[string]interface{}{}
 
-	launchPath := filepath.Join(root, ".vscode", "launch.json")
-	if err := mergeLaunchConfig(launchPath, workdir); err != nil {
-		return fmt.Errorf("write %s: %w", launchPath, err)
+	if ensureVSCodeExtension(extIntelephense, "Intelephense PHP version") {
+		if version := normalizeIntelephensePHPVersion(config.Stack.PHPVersion); version != "" {
+			set["intelephense.environment.phpVersion"] = version
+		}
 	}
-	pterm.Success.Printf("Updated %s\n", launchPath)
+
+	if ensureVSCodeExtension(extPHPStan, "PHPStan path mapping") {
+		set["phpstan.paths"] = map[string]interface{}{
+			root: workdir,
+		}
+	}
+
+	if phpcsAvailable(root) && ensureVSCodeExtension(extPHPCS, "PHPCS standard") {
+		// autoConfigSearch would otherwise let the extension auto-detect a
+		// phpcs.xml/.dist ruleset and pass its *host* absolute path as
+		// --standard, which the container can't read.
+		set["phpcs.autoConfigSearch"] = false
+		set["phpcs.standard"] = detectPHPCSStandard(root)
+	}
+
+	if len(set) > 0 {
+		settingsPath := filepath.Join(root, ".vscode", "settings.json")
+		if err := mergeJSONObjectFile(settingsPath, set, nil); err != nil {
+			return fmt.Errorf("write %s: %w", settingsPath, err)
+		}
+		pterm.Success.Printf("Updated %s\n", settingsPath)
+	}
+
+	if ensureVSCodeExtension(extXdebug, "launch.json Xdebug configuration") {
+		launchPath := filepath.Join(root, ".vscode", "launch.json")
+		if err := mergeLaunchConfig(launchPath, workdir); err != nil {
+			return fmt.Errorf("write %s: %w", launchPath, err)
+		}
+		pterm.Success.Printf("Updated %s\n", launchPath)
+	}
 
 	return nil
 }
@@ -94,33 +128,184 @@ func runVSCodeSetupGlobal() error {
 		return fmt.Errorf("create %s: %w", binDir, err)
 	}
 
+	// php.validate.executablePath targets a VSCode built-in feature, not a
+	// marketplace extension, so it's always wired.
 	phpWrapper := filepath.Join(binDir, "govard-php")
 	if err := ensureWrapperScript(phpWrapper, "php"); err != nil {
 		return err
 	}
-	csFixerWrapper := filepath.Join(binDir, "govard-php-cs-fixer")
-	if err := ensureWrapperScript(csFixerWrapper, "php-cs-fixer"); err != nil {
-		return err
+	set := map[string]interface{}{
+		"php.validate.executablePath": phpWrapper,
 	}
-	pterm.Success.Printf("Wrote %s and %s\n", phpWrapper, csFixerWrapper)
+	var unset []string
+	var wrapperPaths []string
+
+	if ensureVSCodeExtension(extPHPStan, "phpstan.binCommand") {
+		set["phpstan.binCommand"] = []string{"govard", "vscode", "phpstan"}
+		unset = append(unset, "phpstan.binPath")
+	}
+
+	if ensureVSCodeExtension(extPHPCSFixer, "php-cs-fixer.executablePath") {
+		csFixerWrapper := filepath.Join(binDir, "govard-php-cs-fixer")
+		if err := ensureWrapperScript(csFixerWrapper, "php-cs-fixer"); err != nil {
+			return err
+		}
+		set["php-cs-fixer.executablePath"] = csFixerWrapper
+		wrapperPaths = append(wrapperPaths, csFixerWrapper)
+	}
+
+	if ensureVSCodeExtension(extPHPCS, "phpcs.executablePath") {
+		phpcsWrapper := filepath.Join(binDir, "govard-phpcs")
+		if err := ensureWrapperScript(phpcsWrapper, "phpcs"); err != nil {
+			return err
+		}
+		set["phpcs.executablePath"] = phpcsWrapper
+		wrapperPaths = append(wrapperPaths, phpcsWrapper)
+	}
+
+	pterm.Success.Printf("Wrote %s%s\n", phpWrapper, joinWithLeadingComma(wrapperPaths))
 
 	settingsPath, err := vscodeGlobalSettingsPath()
 	if err != nil {
 		return err
 	}
-
-	set := map[string]interface{}{
-		"php.validate.executablePath": phpWrapper,
-		"phpstan.binCommand":          []string{"govard", "vscode", "phpstan"},
-		"php-cs-fixer.executablePath": csFixerWrapper,
-	}
-	unset := []string{"phpstan.binPath"}
 	if err := mergeJSONObjectFile(settingsPath, set, unset); err != nil {
 		return fmt.Errorf("write %s: %w", settingsPath, err)
 	}
 	pterm.Success.Printf("Updated %s\n", settingsPath)
 
 	return nil
+}
+
+// ensureVSCodeExtension reports whether extensionID is installed. If it
+// isn't, it warns which setting group needs it and — unless --yes was passed,
+// in which case it installs unprompted — asks whether to install it now via
+// `code --install-extension`. Returns true if the extension is (now)
+// installed, so the caller can wire up settingLabel in this same run.
+func ensureVSCodeExtension(extensionID, settingLabel string) bool {
+	if isVSCodeExtensionInstalled(extensionID) {
+		return true
+	}
+
+	pterm.Warning.Printf("%s needs the VSCode extension %s, which isn't installed.\n", settingLabel, extensionID)
+
+	install := vscodeSetupYes
+	if !install && stdinIsTerminal() {
+		confirmed, err := pterm.DefaultInteractiveConfirm.
+			WithDefaultValue(true).
+			Show(fmt.Sprintf("Install %s now?", extensionID))
+		install = err == nil && confirmed
+	}
+	if !install {
+		pterm.Info.Printf("Skipping %s. Re-run with --yes to install missing extensions automatically.\n", settingLabel)
+		return false
+	}
+
+	if _, err := exec.LookPath("code"); err != nil {
+		pterm.Error.Printf("Cannot install %s: the \"code\" CLI isn't on PATH. Install it manually, then re-run setup.\n", extensionID)
+		return false
+	}
+
+	pterm.Info.Printf("Installing %s...\n", extensionID)
+	installCmd := exec.Command("code", "--install-extension", extensionID)
+	installCmd.Stdout = os.Stdout
+	installCmd.Stderr = os.Stderr
+	if err := installCmd.Run(); err != nil {
+		pterm.Error.Printf("Failed to install %s: %v\n", extensionID, err)
+		return false
+	}
+
+	if isVSCodeExtensionInstalled(extensionID) {
+		return true
+	}
+
+	// `code --install-extension` reported success but didn't register in
+	// extensions.json — this happens when it can't reach an already-running
+	// VSCode window's live state (e.g. run from an external/sandboxed
+	// process). The files may exist on disk without VSCode ever loading them.
+	pterm.Warning.Printf(
+		"%s reported success but %s isn't in VSCode's extensions manifest yet. "+
+			"If you have VSCode open, install it from the Extensions panel (Ctrl+Shift+X) instead, then re-run setup.\n",
+		extensionID, extensionID,
+	)
+	return false
+}
+
+// joinWithLeadingComma formats extra wrapper paths for the "Wrote ..." success
+// message, e.g. ", /a, and /b" or "" if empty.
+func joinWithLeadingComma(paths []string) string {
+	switch len(paths) {
+	case 0:
+		return ""
+	case 1:
+		return " and " + paths[0]
+	default:
+		return ", " + strings.Join(paths[:len(paths)-1], ", ") + ", and " + paths[len(paths)-1]
+	}
+}
+
+// isVSCodeExtensionInstalled reports whether the given extension ID (e.g.
+// "shevaua.phpcs") is registered in any known VSCode variant's
+// extensions.json manifest — the source of truth VSCode itself uses, as
+// opposed to just a same-named folder existing on disk.
+func isVSCodeExtensionInstalled(extensionID string) bool {
+	return extensionInstalledInDirs(extensionID, vscodeExtensionsDirs())
+}
+
+// vscodeExtensionsDirs lists candidate extensions directories across VSCode
+// variants (stable, Insiders, VSCodium, Code - OSS).
+func vscodeExtensionsDirs() []string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil
+	}
+
+	names := []string{".vscode", ".vscode-insiders", ".vscodium", ".vscode-oss"}
+	dirs := make([]string, 0, len(names))
+	for _, name := range names {
+		dirs = append(dirs, filepath.Join(home, name, "extensions"))
+	}
+	return dirs
+}
+
+// vscodeExtensionManifestEntry is one entry of an extensions.json manifest.
+type vscodeExtensionManifestEntry struct {
+	Identifier struct {
+		ID string `json:"id"`
+	} `json:"identifier"`
+}
+
+// extensionInstalledInDirs reports whether extensionID is registered in the
+// extensions.json manifest of any of dirs. extensions.json — not the presence
+// of an "<extensionID>-<version>" folder — is what VSCode actually reads at
+// startup to decide which extensions to load: an install that never reached
+// a running window's live state (e.g. one run from an external process
+// against an already-open window) can leave files on disk without ever being
+// added to this manifest, which looks installed but isn't.
+func extensionInstalledInDirs(extensionID string, dirs []string) bool {
+	for _, dir := range dirs {
+		data, err := os.ReadFile(filepath.Join(dir, "extensions.json"))
+		if err != nil {
+			continue
+		}
+
+		var entries []vscodeExtensionManifestEntry
+		if err := json.Unmarshal(data, &entries); err != nil {
+			continue
+		}
+
+		for _, entry := range entries {
+			if strings.EqualFold(entry.Identifier.ID, extensionID) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// ExtensionInstalledInDirsForTest exposes extensionInstalledInDirs to the tests package.
+func ExtensionInstalledInDirsForTest(extensionID string, dirs []string) bool {
+	return extensionInstalledInDirs(extensionID, dirs)
 }
 
 // vscodeGlobalSettingsPath returns the path to VSCode's user settings.json,
@@ -169,6 +354,61 @@ func normalizeIntelephensePHPVersion(version string) string {
 		return version + ".0"
 	}
 	return version
+}
+
+// phpcsAvailable reports whether the project at root has phpcs installed via
+// Composer.
+func phpcsAvailable(root string) bool {
+	_, err := os.Stat(filepath.Join(root, "vendor", "bin", "phpcs"))
+	return err == nil
+}
+
+// composerCodingStandardPackages maps known Composer packages that register a
+// phpcs coding standard to the standard name to pass as --standard. Checked
+// in order; the first match wins.
+var composerCodingStandardPackages = []struct {
+	Package  string
+	Standard string
+}{
+	{Package: "magento/magento-coding-standard", Standard: "Magento2"},
+	{Package: "wp-coding-standards/wpcs", Standard: "WordPress"},
+	{Package: "drupal/coder", Standard: "Drupal"},
+}
+
+// detectPHPCSStandard picks a phpcs coding standard for the project at root
+// by checking composer.json for a known coding-standard package, falling
+// back to PSR12 (always available in squizlabs/php_codesniffer) if none of
+// them are required.
+func detectPHPCSStandard(root string) string {
+	const fallback = "PSR12"
+
+	data, err := os.ReadFile(filepath.Join(root, "composer.json"))
+	if err != nil {
+		return fallback
+	}
+
+	var composer struct {
+		Require    map[string]string `json:"require"`
+		RequireDev map[string]string `json:"require-dev"`
+	}
+	if err := json.Unmarshal(data, &composer); err != nil {
+		return fallback
+	}
+
+	for _, candidate := range composerCodingStandardPackages {
+		if _, ok := composer.Require[candidate.Package]; ok {
+			return candidate.Standard
+		}
+		if _, ok := composer.RequireDev[candidate.Package]; ok {
+			return candidate.Standard
+		}
+	}
+	return fallback
+}
+
+// DetectPHPCSStandardForTest exposes detectPHPCSStandard to the tests package.
+func DetectPHPCSStandardForTest(root string) string {
+	return detectPHPCSStandard(root)
 }
 
 // NormalizeIntelephensePHPVersionForTest exposes normalizeIntelephensePHPVersion to the tests package.

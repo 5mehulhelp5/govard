@@ -438,14 +438,20 @@ Ghi (hoặc merge vào) các cấu hình VSCode cần thiết để chạy công
 ```bash
 # Chạy từ trong project (hoặc bất kỳ thư mục con nào của project)
 govard vscode setup
-#   -> .vscode/settings.json: intelephense.environment.phpVersion, phpstan.paths
+#   -> .vscode/settings.json: intelephense.environment.phpVersion, phpstan.paths,
+#                             và (nếu có vendor/bin/phpcs) phpcs.standard + phpcs.autoConfigSearch=false
 #   -> .vscode/launch.json:   cấu hình "Listen for Xdebug (Govard)" (port 9003)
 
 # Chỉ chạy 1 lần, áp dụng cho mọi project Govard
 govard vscode setup --global
-#   -> tạo wrapper script ~/.govard/bin/govard-php và govard-php-cs-fixer
-#   -> user settings.json: php.validate.executablePath, phpstan.binCommand, php-cs-fixer.executablePath
+#   -> tạo wrapper script ~/.govard/bin/govard-php, govard-php-cs-fixer, và govard-phpcs
+#   -> user settings.json: php.validate.executablePath, phpstan.binCommand,
+#                          php-cs-fixer.executablePath, phpcs.executablePath
 ```
+
+Coding standard cho PHPCS được tự nhận diện từ `composer.json` (`magento/magento-coding-standard` -> `Magento2`, `wp-coding-standards/wpcs` -> `WordPress`, `drupal/coder` -> `Drupal`), fallback về `PSR12` nếu không khớp gói nào. `phpcs.autoConfigSearch` bị tắt vì nếu không, extension sẽ tự dò file `phpcs.xml`/`.dist` và truyền path tuyệt đối *trên host* làm `--standard` — container không đọc được path đó.
+
+Mỗi nhóm cấu hình cần đúng 1 extension VSCode tương ứng (Intelephense, PHPStan, PHP CS Fixer, PHPCS, PHP Debug). Nếu chưa cài, `setup` sẽ cảnh báo và hỏi có muốn cài ngay qua `code --install-extension` không — đồng ý thì setting tương ứng vẫn được wire luôn trong lần chạy đó. Truyền `--yes` để tự cài hết những gì thiếu mà không hỏi (hữu ích khi chạy script); nếu không có TTY và không có `--yes`, các extension còn thiếu sẽ tự bị bỏ qua, không hỏi.
 
 Các key hiện có và các configuration khác trong `launch.json` được giữ nguyên — chỉ những key do Govard quản lý mới bị thêm/ghi đè. Lưu ý: settings.json được parse như JSON thuần, nên comment (nếu có) sẽ bị mất khi ghi lại.
 
@@ -458,6 +464,7 @@ govard vscode php [args]
 govard vscode composer [args]
 govard vscode phpstan [args]       # vendor/bin/phpstan
 govard vscode php-cs-fixer [args]  # vendor/bin/php-cs-fixer
+govard vscode phpcs [args]         # vendor/bin/phpcs
 govard vscode phpunit [args]       # vendor/bin/phpunit, kèm memory_limit=-1
 ```
 

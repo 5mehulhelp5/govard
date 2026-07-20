@@ -49,6 +49,7 @@ var vscodeToolCommands = []vscodeToolCommand{
 	{Name: "php", Short: "Run the PHP CLI", Binary: "php"},
 	{Name: "composer", Short: "Run composer", Binary: "composer"},
 	{Name: "phpstan", Short: "Run vendor/bin/phpstan", Binary: "php", PrependArgs: []string{"vendor/bin/phpstan"}},
+	{Name: "phpcs", Short: "Run vendor/bin/phpcs", Binary: "php", PrependArgs: []string{"vendor/bin/phpcs"}},
 	{Name: "php-cs-fixer", Short: "Run vendor/bin/php-cs-fixer", Binary: "php", PrependArgs: []string{"vendor/bin/php-cs-fixer"}},
 	{Name: "phpunit", Short: "Run vendor/bin/phpunit", Binary: "php", PrependArgs: []string{"-d", "memory_limit=-1", "vendor/bin/phpunit"}},
 }

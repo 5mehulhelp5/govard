@@ -26,6 +26,80 @@ func TestNormalizeIntelephensePHPVersion(t *testing.T) {
 	}
 }
 
+func TestExtensionInstalledInDirs(t *testing.T) {
+	dir := t.TempDir()
+	manifest := `[
+		{"identifier": {"id": "shevaua.phpcs"}, "version": "1.0.8"},
+		{"identifier": {"id": "Sanderronde.phpstan-vscode"}, "version": "4.0.17"}
+	]`
+	if err := os.WriteFile(filepath.Join(dir, "extensions.json"), []byte(manifest), 0o644); err != nil {
+		t.Fatalf("write fake extensions.json: %v", err)
+	}
+	// A same-named folder on disk without a manifest entry must NOT count as
+	// installed — this is exactly the false positive that let `setup` wire
+	// up settings for extensions VSCode never actually loaded.
+	if err := os.MkdirAll(filepath.Join(dir, "junstyle.php-cs-fixer-0.3.21"), 0o755); err != nil {
+		t.Fatalf("mkdir orphaned extension folder: %v", err)
+	}
+
+	if !cmd.ExtensionInstalledInDirsForTest("shevaua.phpcs", []string{dir}) {
+		t.Error("expected shevaua.phpcs to be detected as installed")
+	}
+	if !cmd.ExtensionInstalledInDirsForTest("sanderronde.phpstan-vscode", []string{dir}) {
+		t.Error("expected extension ID matching to be case-insensitive")
+	}
+	if cmd.ExtensionInstalledInDirsForTest("junstyle.php-cs-fixer", []string{dir}) {
+		t.Error("expected an orphaned folder with no extensions.json entry to be reported as not installed")
+	}
+	if cmd.ExtensionInstalledInDirsForTest("xdebug.php-debug", []string{dir}) {
+		t.Error("expected xdebug.php-debug to be reported as not installed")
+	}
+	if cmd.ExtensionInstalledInDirsForTest("shevaua.phpcs", []string{filepath.Join(dir, "does-not-exist")}) {
+		t.Error("expected a nonexistent directory to be treated as no match, not an error")
+	}
+}
+
+func TestDetectPHPCSStandard(t *testing.T) {
+	for _, tt := range []struct {
+		name     string
+		composer string
+		want     string
+	}{
+		{
+			name:     "magento coding standard",
+			composer: `{"require": {"magento/magento-coding-standard": "*"}}`,
+			want:     "Magento2",
+		},
+		{
+			name:     "wordpress coding standard in require-dev",
+			composer: `{"require-dev": {"wp-coding-standards/wpcs": "^3.0"}}`,
+			want:     "WordPress",
+		},
+		{
+			name:     "no known package falls back to PSR12",
+			composer: `{"require": {"squizlabs/php_codesniffer": "^3.7"}}`,
+			want:     "PSR12",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			root := t.TempDir()
+			if err := os.WriteFile(filepath.Join(root, "composer.json"), []byte(tt.composer), 0o644); err != nil {
+				t.Fatalf("write composer.json: %v", err)
+			}
+			if got := cmd.DetectPHPCSStandardForTest(root); got != tt.want {
+				t.Errorf("DetectPHPCSStandardForTest() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+
+	t.Run("missing composer.json falls back to PSR12", func(t *testing.T) {
+		root := t.TempDir()
+		if got := cmd.DetectPHPCSStandardForTest(root); got != "PSR12" {
+			t.Errorf("DetectPHPCSStandardForTest() = %q, want PSR12", got)
+		}
+	})
+}
+
 func TestMergeJSONObjectFilePreservesUnrelatedKeys(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "settings.json")
 	if err := os.WriteFile(path, []byte(`{"editor.tabSize": 4, "phpstan.binPath": "old"}`), 0o644); err != nil {
