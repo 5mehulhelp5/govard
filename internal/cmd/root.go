@@ -107,6 +107,7 @@ func init() {
 
 	// Framework & Tooling Shortcuts
 	initFrameworkCommands()
+	initVSCodeCommands()
 
 	rootCmd.AddCommand(openCmd)
 	rootCmd.AddCommand(configCmd)

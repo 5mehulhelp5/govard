@@ -415,6 +415,7 @@ govard tool prestashop [command] # PrestaShop
 
 # Các công cụ quản lý package & build dùng chung
 govard tool composer [command]
+govard tool php [command]        # Chạy trực tiếp CLI PHP (vd: tích hợp editor/IDE)
 govard tool npm [command]
 govard tool yarn [command]
 govard tool npx [command]
@@ -423,6 +424,44 @@ govard tool grunt [command]
 ```
 
 Đối với các dự án node-first, các lệnh quản lý package sẽ được chạy trong container `web` tại thư mục `/app`.
+
+`govard tool php` yêu cầu thư mục hiện tại phải đúng là project root. Với các tích hợp editor/IDE (xem phần dưới), dùng `govard vscode` thay thế.
+
+---
+
+## 🧩 Các lệnh tích hợp Editor (Editor Integration Commands)
+
+### `govard vscode setup`
+
+Ghi (hoặc merge vào) các cấu hình VSCode cần thiết để chạy công cụ PHP bên trong container thay vì trên host:
+
+```bash
+# Chạy từ trong project (hoặc bất kỳ thư mục con nào của project)
+govard vscode setup
+#   -> .vscode/settings.json: intelephense.environment.phpVersion, phpstan.paths
+#   -> .vscode/launch.json:   cấu hình "Listen for Xdebug (Govard)" (port 9003)
+
+# Chỉ chạy 1 lần, áp dụng cho mọi project Govard
+govard vscode setup --global
+#   -> tạo wrapper script ~/.govard/bin/govard-php và govard-php-cs-fixer
+#   -> user settings.json: php.validate.executablePath, phpstan.binCommand, php-cs-fixer.executablePath
+```
+
+Các key hiện có và các configuration khác trong `launch.json` được giữ nguyên — chỉ những key do Govard quản lý mới bị thêm/ghi đè. Lưu ý: settings.json được parse như JSON thuần, nên comment (nếu có) sẽ bị mất khi ghi lại.
+
+### `govard vscode <tool>`
+
+Các lệnh chạy tool thực tế mà cấu hình do `setup` ghi ra sẽ trỏ vào:
+
+```bash
+govard vscode php [args]
+govard vscode composer [args]
+govard vscode phpstan [args]       # vendor/bin/phpstan
+govard vscode php-cs-fixer [args]  # vendor/bin/php-cs-fixer
+govard vscode phpunit [args]       # vendor/bin/phpunit, kèm memory_limit=-1
+```
+
+Khác với `govard tool`, các lệnh này tự tìm project bằng cách đi ngược thư mục từ vị trí hiện tại lên để tìm `.govard.yml` gần nhất — vì các editor thường gọi tool với thư mục làm việc không phải workspace root (vd: thư mục chứa file đang mở), nên không thể chắc chắn cwd khớp chính xác.
 
 ---
 
