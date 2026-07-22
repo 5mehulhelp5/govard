@@ -17,7 +17,31 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func upgradeMagento2(ctx context.Context, config Config, opts UpgradeOptions) error {
+// magentoUpgradeVariant parameterizes the shared Magento-2-family upgrade
+// pipeline for a specific distribution (Magento 2 Open Source/Commerce, or
+// Mage-OS).
+type magentoUpgradeVariant struct {
+	DisplayName   string
+	Metapackage   string
+	RepositoryURL string
+	PackagePrefix string
+}
+
+var magento2UpgradeVariant = magentoUpgradeVariant{
+	DisplayName:   "Magento 2",
+	Metapackage:   "magento/project-community-edition",
+	RepositoryURL: "https://repo.magento.com/",
+	PackagePrefix: "magento/",
+}
+
+var mageOSUpgradeVariant = magentoUpgradeVariant{
+	DisplayName:   "Mage-OS",
+	Metapackage:   "mage-os/project-community-edition",
+	RepositoryURL: "https://repo.mage-os.org/",
+	PackagePrefix: "mage-os/",
+}
+
+func upgradeMagento2(ctx context.Context, config Config, opts UpgradeOptions, variant magentoUpgradeVariant) error {
 	containerName := fmt.Sprintf("%s%s", opts.ProjectName, conventions.PHPSuffix)
 
 	if opts.TargetVersion == "" {
@@ -36,9 +60,9 @@ func upgradeMagento2(ctx context.Context, config Config, opts UpgradeOptions) er
 		pterm.Info.Println("[DRY RUN] Would perform the following steps:")
 		pterm.Info.Println("  1. Update .govard.yml configuration for the target framework version")
 		pterm.Info.Println("  2. Restart environment (govard env down && govard env up)")
-		pterm.Info.Printf("  3. Create temporary magento project %s to fetch composer.json\n", opts.TargetVersion)
+		pterm.Info.Printf("  3. Create temporary %s project %s to fetch composer.json\n", variant.DisplayName, opts.TargetVersion)
 		pterm.Info.Println("  4. Merge composer.json preserving 3rd-party dependencies")
-		pterm.Info.Println("  5. Run composer update magento/* phpunit/* --with-all-dependencies")
+		pterm.Info.Printf("  5. Run composer update %s* phpunit/* --with-all-dependencies\n", variant.PackagePrefix)
 		pterm.Info.Println("  6. bin/magento setup:upgrade, setup:di:compile, cache:flush")
 		return nil
 	}
@@ -55,7 +79,7 @@ func upgradeMagento2(ctx context.Context, config Config, opts UpgradeOptions) er
 	// Step 1: Env update
 	if !opts.NoEnvUpdate {
 		pterm.Info.Println("Step 1/6: Applying runtime profile for target version...")
-		targetProfile, err := ResolveRuntimeProfile("magento2", opts.TargetVersion)
+		targetProfile, err := ResolveRuntimeProfile(config.Framework, opts.TargetVersion)
 		if err != nil {
 			pterm.Warning.Printf("Could not resolve specific profile for %s (continuing): %v\n", opts.TargetVersion, err)
 		} else {
@@ -109,7 +133,7 @@ func upgradeMagento2(ctx context.Context, config Config, opts UpgradeOptions) er
 
 	pterm.Info.Println("Step 3/6: Fetching and merging composer.json...")
 
-	if err := updateMagentoComposerJson(opts, containerName); err != nil {
+	if err := updateMagentoComposerJson(opts, containerName, variant); err != nil {
 		return fmt.Errorf("failed to update composer.json: %w", err)
 	}
 
@@ -118,7 +142,7 @@ func upgradeMagento2(ctx context.Context, config Config, opts UpgradeOptions) er
 	relaxed := relaxPackages(containerName)
 
 	// Composer update
-	updatePkgs := []string{"magento/*", "phpunit/*"}
+	updatePkgs := []string{variant.PackagePrefix + "*", "phpunit/*"}
 	for _, r := range relaxed {
 		pkgName := strings.Split(r, ":")[0]
 		// Avoid duplicates and wildcards already covered
@@ -176,7 +200,7 @@ func upgradeMagento2(ctx context.Context, config Config, opts UpgradeOptions) er
 	// Clean backup
 	_ = os.Remove(filepath.Join(opts.ProjectDir, "composer.json.bak"))
 
-	pterm.Success.Printf("✅ Magento upgrade to %s completed!\n", opts.TargetVersion)
+	pterm.Success.Printf("✅ %s upgrade to %s completed!\n", variant.DisplayName, opts.TargetVersion)
 	return nil
 }
 
@@ -193,7 +217,7 @@ func getMagentoCurrentVersion(containerName string) (string, error) {
 	return "", fmt.Errorf("could not detect")
 }
 
-func updateMagentoComposerJson(opts UpgradeOptions, containerName string) error {
+func updateMagentoComposerJson(opts UpgradeOptions, containerName string, variant magentoUpgradeVariant) error {
 	composerPath := filepath.Join(opts.ProjectDir, "composer.json")
 	backupPath := filepath.Join(opts.ProjectDir, "composer.json.bak")
 
@@ -205,7 +229,7 @@ func updateMagentoComposerJson(opts UpgradeOptions, containerName string) error 
 		}
 	}
 
-	projCmd := exec.Command("docker", "exec", "-w", conventions.DefaultWorkDir, containerName, conventions.BinComposer, "create-project", "--no-install", "--ignore-platform-reqs", "--repository=https://repo.magento.com/", "magento/project-community-edition", "temp_upgrade_source", opts.TargetVersion)
+	projCmd := exec.Command("docker", "exec", "-w", conventions.DefaultWorkDir, containerName, conventions.BinComposer, "create-project", "--no-install", "--ignore-platform-reqs", "--repository="+variant.RepositoryURL, variant.Metapackage, "temp_upgrade_source", opts.TargetVersion)
 	projCmd.Stdout = opts.Stdout
 	projCmd.Stderr = opts.Stderr
 	if err := projCmd.Run(); err != nil {
@@ -228,13 +252,13 @@ func updateMagentoComposerJson(opts UpgradeOptions, containerName string) error 
 	}
 
 	// Merge require, require-dev, conflict, extra
-	mergeComposerMapKeys(currentMap, newMap, "require")
-	mergeComposerMapKeys(currentMap, newMap, "require-dev")
-	mergeComposerMapKeys(currentMap, newMap, "conflict")
-	mergeComposerMapKeys(currentMap, newMap, "autoload")
-	mergeComposerMapKeys(currentMap, newMap, "minimum-stability")
-	mergeComposerMapKeys(currentMap, newMap, "prefer-stable")
-	mergeComposerMapKeys(currentMap, newMap, "extra")
+	mergeComposerMapKeys(currentMap, newMap, "require", variant.PackagePrefix)
+	mergeComposerMapKeys(currentMap, newMap, "require-dev", variant.PackagePrefix)
+	mergeComposerMapKeys(currentMap, newMap, "conflict", variant.PackagePrefix)
+	mergeComposerMapKeys(currentMap, newMap, "autoload", variant.PackagePrefix)
+	mergeComposerMapKeys(currentMap, newMap, "minimum-stability", variant.PackagePrefix)
+	mergeComposerMapKeys(currentMap, newMap, "prefer-stable", variant.PackagePrefix)
+	mergeComposerMapKeys(currentMap, newMap, "extra", variant.PackagePrefix)
 
 	mergedBytes, err := json.MarshalIndent(currentMap, "", "    ")
 	if err != nil {
@@ -244,7 +268,7 @@ func updateMagentoComposerJson(opts UpgradeOptions, containerName string) error 
 	return os.WriteFile(composerPath, mergedBytes, conventions.DefaultFilePerm)
 }
 
-func mergeComposerMapKeys(current map[string]interface{}, target map[string]interface{}, key string) {
+func mergeComposerMapKeys(current map[string]interface{}, target map[string]interface{}, key string, packagePrefix string) {
 	if _, ok := target[key]; !ok {
 		return
 	}
@@ -267,10 +291,10 @@ func mergeComposerMapKeys(current map[string]interface{}, target map[string]inte
 		return
 	}
 
-	// For requirement sections, remove old magento/* packages that are no longer in the target version
+	// For requirement sections, remove old <packagePrefix>* packages that are no longer in the target version
 	if key == "require" || key == "require-dev" {
 		for k := range currentMap {
-			if strings.HasPrefix(k, "magento/") {
+			if strings.HasPrefix(k, packagePrefix) {
 				if _, ok := targetMap[k]; !ok {
 					delete(currentMap, k)
 				}
@@ -284,7 +308,13 @@ func mergeComposerMapKeys(current map[string]interface{}, target map[string]inte
 }
 
 func MergeComposerMapKeysForTest(current map[string]interface{}, target map[string]interface{}, key string) {
-	mergeComposerMapKeys(current, target, key)
+	mergeComposerMapKeys(current, target, key, "magento/")
+}
+
+// MergeComposerMapKeysWithPrefixForTest exposes mergeComposerMapKeys with an
+// explicit stale-package prefix, for tests exercising non-magento/ prefixes.
+func MergeComposerMapKeysWithPrefixForTest(current map[string]interface{}, target map[string]interface{}, key string, packagePrefix string) {
+	mergeComposerMapKeys(current, target, key, packagePrefix)
 }
 
 func relaxPackages(containerName string) []string {

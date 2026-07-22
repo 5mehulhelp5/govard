@@ -46,6 +46,15 @@ func runBootstrapHyvaInstall(cmd *cobra.Command, opts BootstrapRuntimeOptions) e
 func runBootstrapPostInstall(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions) error {
 	adminEmail := conventions.AdminEmailForDomain(config.Domain)
 
+	dbName := conventions.DefaultMagentoDBName
+	dbUser := conventions.DefaultMagentoDBUser
+	dbPass := conventions.DefaultMagentoDBPass
+	if config.Framework == "mageos" {
+		dbName = conventions.DefaultMageOSDBName
+		dbUser = conventions.DefaultMageOSDBUser
+		dbPass = conventions.DefaultMageOSDBPass
+	}
+
 	tablePrefix, err := resolveBootstrapMagentoTablePrefix(config)
 	if err != nil {
 		return err
@@ -54,9 +63,9 @@ func runBootstrapPostInstall(cmd *cobra.Command, config engine.Config, opts Boot
 		"setup:install",
 		"--backend-frontname=" + conventions.DefaultAdminPath,
 		"--db-host=" + conventions.DefaultMagentoDBHost,
-		"--db-name=" + conventions.DefaultMagentoDBName,
-		"--db-user=" + conventions.DefaultMagentoDBUser,
-		"--db-password=" + conventions.DefaultMagentoDBPass,
+		"--db-name=" + dbName,
+		"--db-user=" + dbUser,
+		"--db-password=" + dbPass,
 		"--db-prefix=" + tablePrefix,
 		"--search-engine=opensearch",
 		"--opensearch-host=elasticsearch",
@@ -71,15 +80,15 @@ func runBootstrapPostInstall(cmd *cobra.Command, config engine.Config, opts Boot
 		"--admin-email=" + adminEmail,
 	}
 
-	if opts.MetaVersion != "" {
+	if strings.EqualFold(config.Framework, conventions.FrameworkMagento2) && opts.MetaVersion != "" {
 		if comparison, comparable := compareNumericDotVersions(opts.MetaVersion, "2.4.8"); comparable && comparison < 0 {
 			setupArgs = []string{
 				"setup:install",
 				"--backend-frontname=" + conventions.DefaultAdminPath,
 				"--db-host=" + conventions.DefaultMagentoDBHost,
-				"--db-name=" + conventions.DefaultMagentoDBName,
-				"--db-user=" + conventions.DefaultMagentoDBUser,
-				"--db-password=" + conventions.DefaultMagentoDBPass,
+				"--db-name=" + dbName,
+				"--db-user=" + dbUser,
+				"--db-password=" + dbPass,
 				"--db-prefix=" + tablePrefix,
 				"--search-engine=elasticsearch7",
 				"--elasticsearch-host=elasticsearch",

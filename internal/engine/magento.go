@@ -55,7 +55,8 @@ func ConfigureMagento(projectName string, config Config, force bool, shiftInfo *
 		return nil
 	}
 
-	pterm.Info.Printf("Configuring Magento 2 environment (%s)...\n", reason)
+	frameworkName := Magento2FamilyDisplayName(config.Framework)
+	pterm.Info.Printf("Configuring %s environment (%s)...\n", frameworkName, reason)
 
 	if err := FixProjectPermissions(projectName, config); err != nil {
 		pterm.Warning.Printf("Could not fix project permissions (continuing): %v\n", err)
@@ -196,7 +197,7 @@ func ConfigureMagento(projectName string, config Config, force bool, shiftInfo *
 		}
 	}
 
-	pterm.Success.Println("Magento 2 environment configured successfully!")
+	pterm.Success.Printf("%s environment configured successfully!\n", frameworkName)
 	return nil
 }
 
@@ -333,13 +334,17 @@ func buildMagento2Commands(projectName string, config Config, lockedKeys map[str
 	containerName := fmt.Sprintf("%s%s", projectName, conventions.PHPSuffix)
 	searchEngine := ResolveMagentoSearchEngine(config)
 
+	dbName, dbUser, dbPass := conventions.DefaultMagentoDBName, conventions.DefaultMagentoDBUser, conventions.DefaultMagentoDBPass
+	if strings.EqualFold(config.Framework, "mageos") {
+		dbName, dbUser, dbPass = conventions.DefaultMageOSDBName, conventions.DefaultMageOSDBUser, conventions.DefaultMageOSDBPass
+	}
 	configSetArgs := []string{
 		conventions.BinMagento,
 		"setup:config:set",
 		"--db-host=db",
-		"--db-name=" + conventions.DefaultMagentoDBName,
-		"--db-user=" + conventions.DefaultMagentoDBUser,
-		"--db-password=" + conventions.DefaultMagentoDBPass,
+		"--db-name=" + dbName,
+		"--db-user=" + dbUser,
+		"--db-password=" + dbPass,
 	}
 	if tablePrefix := NormalizeTablePrefix(config.TablePrefix); tablePrefix != "" {
 		configSetArgs = append(configSetArgs, "--db-prefix="+tablePrefix)
@@ -1131,8 +1136,11 @@ func prepareMagentoRunMappingAssets(config Config) (string, string, error) {
 }
 
 func isMagentoFramework(framework string) bool {
+	if IsMagento2Family(framework) {
+		return true
+	}
 	switch strings.ToLower(strings.TrimSpace(framework)) {
-	case "magento1", "magento2", "openmage":
+	case "magento1", "openmage":
 		return true
 	default:
 		return false

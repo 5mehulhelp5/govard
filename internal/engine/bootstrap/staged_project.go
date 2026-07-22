@@ -9,6 +9,8 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/pterm/pterm"
 )
 
 func removeProjectContents(projectDir string) error {
@@ -21,20 +23,38 @@ func removeProjectContents(projectDir string) error {
 		if entry.Name() == ".govard" || entry.Name() == ".govard.yml" {
 			continue
 		}
-		targetPath := filepath.Join(projectDir, entry.Name())
-		if err := os.RemoveAll(targetPath); err != nil {
-			// Fallback: run docker container to remove as root
-			cmd := exec.Command("docker", "run", "--rm", "-v", projectDir+":/workspace", "-w", "/workspace", "alpine", "rm", "-rf", entry.Name())
-			if runErr := cmd.Run(); runErr != nil {
-				return fmt.Errorf("failed to remove %s (fallback failed: %v): %w", entry.Name(), runErr, err)
-			}
+		if err := removeDirWithFallback(projectDir, entry.Name()); err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-func runStagedCreateProject(projectDir string, runner func(command string) error, createInStage func(stageDir string) error, runnerCommand string) error {
+// removeDirWithFallback removes projectDir/name, falling back to a
+// throwaway alpine container running as root when the host user lacks
+// permission to delete some of its contents - e.g. node_modules written
+// by a root-running throwaway container (see nodeCreateProjectRunner in
+// internal/cmd/bootstrap.go, which has no -u/--user mapping).
+func removeDirWithFallback(projectDir string, name string) error {
+	targetPath := filepath.Join(projectDir, name)
+	if err := os.RemoveAll(targetPath); err == nil {
+		return nil
+	} else if _, statErr := os.Stat(targetPath); os.IsNotExist(statErr) {
+		return nil
+	} else {
+		cmd := exec.Command("docker", "run", "--rm", "-v", projectDir+":/workspace", "-w", "/workspace", "alpine", "rm", "-rf", name)
+		if runErr := cmd.Run(); runErr != nil {
+			return fmt.Errorf("failed to remove %s (fallback failed: %v): %w", name, runErr, err)
+		}
+		return nil
+	}
+}
+
+// containerBaseDir is the project's mount point inside whichever service
+// container `runner` execs into - conventions.DefaultWorkDir for PHP
+// frameworks, conventions.NodeWorkDir for Node-based ones (nextjs).
+func runStagedCreateProject(projectDir string, runner func(command string) error, createInStage func(stageDir string) error, runnerCommand string, containerBaseDir string) error {
 	if err := removeProjectContents(projectDir); err != nil {
 		return err
 	}
@@ -43,13 +63,17 @@ func runStagedCreateProject(projectDir string, runner func(command string) error
 	if err != nil {
 		return fmt.Errorf("create staged project directory: %w", err)
 	}
-	defer os.RemoveAll(stageDir)
+	defer func() {
+		if err := removeDirWithFallback(projectDir, filepath.Base(stageDir)); err != nil {
+			pterm.Warning.Printf("Could not remove staging directory %s: %v\n", stageDir, err)
+		}
+	}()
 
 	if runner != nil {
 		if strings.TrimSpace(runnerCommand) == "" {
 			return fmt.Errorf("runner command is required for staged project creation")
 		}
-		if err := runner(buildStagedRunnerCommand(projectDir, stageDir, runnerCommand)); err != nil {
+		if err := runner(buildStagedRunnerCommand(projectDir, stageDir, runnerCommand, containerBaseDir)); err != nil {
 			return err
 		}
 	} else {
@@ -68,8 +92,8 @@ func runStagedCreateProject(projectDir string, runner func(command string) error
 	return nil
 }
 
-func buildStagedRunnerCommand(projectDir, stageDir, runnerCommand string) string {
-	containerStageDir := conventions.DefaultWorkDir
+func buildStagedRunnerCommand(projectDir, stageDir, runnerCommand string, containerBaseDir string) string {
+	containerStageDir := containerBaseDir
 	if relStageDir, err := filepath.Rel(projectDir, stageDir); err == nil && relStageDir != "." {
 		containerStageDir = path.Join(containerStageDir, filepath.ToSlash(relStageDir))
 	}
@@ -215,5 +239,5 @@ func runPHPOneLiner(projectDir string, runner func(command string) error, code s
 }
 
 func RunStagedCreateProjectForTest(projectDir string, runner func(command string) error, createInStage func(stageDir string) error, runnerCommand string) error {
-	return runStagedCreateProject(projectDir, runner, createInStage, runnerCommand)
+	return runStagedCreateProject(projectDir, runner, createInStage, runnerCommand, conventions.DefaultWorkDir)
 }

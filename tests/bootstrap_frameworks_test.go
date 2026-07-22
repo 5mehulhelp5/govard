@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"govard/internal/engine/bootstrap"
+	"govard/internal/frameworks"
 )
 
 func TestBootstrapPkgLaravelFreshCommands(t *testing.T) {
@@ -184,8 +185,9 @@ func TestWriteEmdashPasskeyShimCreatesGovardOverride(t *testing.T) {
 }
 
 func TestBootstrapDispatcherAllFrameworks(t *testing.T) {
-	frameworks := []string{
+	frameworkNames := []string{
 		"magento2",
+		"mageos",
 		"magento1",
 		"openmage",
 		"symfony",
@@ -201,9 +203,9 @@ func TestBootstrapDispatcherAllFrameworks(t *testing.T) {
 
 	opts := bootstrap.DefaultOptions()
 
-	for _, fw := range frameworks {
+	for _, fw := range frameworkNames {
 		t.Run(fw, func(t *testing.T) {
-			err := bootstrap.Run(fw, opts)
+			err := frameworks.RunBootstrap(fw, opts)
 			if err != nil {
 				t.Fatalf("Run(%s) failed: %v", fw, err)
 			}

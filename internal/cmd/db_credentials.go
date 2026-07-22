@@ -58,6 +58,13 @@ func defaultDBCredentialsForFramework(framework string) dbCredentials {
 			Password: conventions.DefaultMagentoDBPass,
 			Database: conventions.DefaultMagentoDBName,
 		}
+	case conventions.FrameworkMageOS:
+		return dbCredentials{
+			Port:     conventions.MySQLPort,
+			Username: conventions.DefaultMageOSDBUser,
+			Password: conventions.DefaultMageOSDBPass,
+			Database: conventions.DefaultMageOSDBName,
+		}
 	default:
 		return dbCredentials{
 			Port:     conventions.MySQLPort,
@@ -90,7 +97,7 @@ func resolveRemoteDBCredentials(config engine.Config, remoteName string, remoteC
 	fallback := defaultDBCredentialsForFramework(config.Framework)
 	fallback.TablePrefix = engine.NormalizeTablePrefix(config.TablePrefix)
 	switch strings.TrimSpace(config.Framework) {
-	case conventions.FrameworkMagento2:
+	case conventions.FrameworkMagento2, conventions.FrameworkMageOS:
 		metadata, err := remote.ProbeMagento2Environment(remoteName, remoteCfg)
 		if err != nil {
 			return fallback, err

@@ -6,11 +6,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
 	"govard/internal/conventions"
 	"govard/internal/engine"
+	"govard/internal/frameworks"
 
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
@@ -154,14 +156,14 @@ Note: -e/--environment accepts remote name aliases (e.g. 'dev' matches a remote 
 		}
 		configForObservability = config
 
-		supportedFrameworks := []string{"magento2", "magento1", "openmage", "laravel", "symfony", "wordpress", "prestashop"}
-		if opts.Fresh {
-			supportedFrameworks = []string{"magento2", "magento1", "laravel", "symfony", "openmage", "drupal", "wordpress", "nextjs", "emdash", "shopware", "cakephp"}
-		}
+		supportedFrameworks := supportedBootstrapFrameworks(opts.Fresh)
 
 		if !stringSliceContains(supportedFrameworks, config.Framework) {
 			return fmt.Errorf("bootstrap currently supports these project types: %s (detected: %s)",
 				strings.Join(supportedFrameworks, ", "), config.Framework)
+		}
+		if err := validateBootstrapFrameworkVersion(config.Framework, opts.MetaVersion); err != nil {
+			return err
 		}
 
 		var resolvedRemote string
@@ -328,6 +330,46 @@ var phpContainerShellRunner = func(config engine.Config, commandLine string) err
 	return dockerCmd.Run()
 }
 
+// nodeCreateProjectRunner runs commandLine in a throwaway `docker run --rm`
+// container (not the compose-managed "web" service, which may not be
+// running yet - or, if started early just to host this exec, would need to
+// stay alive on an empty/not-yet-scaffolded project directory). This keeps
+// Next.js's fresh-install independent of env-up ordering, the same way
+// Emdash's HTTP-based CreateProject doesn't depend on any container being
+// up either.
+var nodeCreateProjectRunner = func(config engine.Config, projectDir string, commandLine string) error {
+	nodeVersion := strings.TrimSpace(config.Stack.NodeVersion)
+	if nodeVersion == "" {
+		nodeVersion = "24"
+	}
+	dockerArgs := []string{
+		"run", "--rm",
+		"-v", projectDir + ":" + conventions.NodeWorkDir,
+		"-w", conventions.NodeWorkDir,
+		"node:" + nodeVersion,
+		"sh", "-lc", commandLine,
+	}
+	dockerCmd := exec.Command("docker", dockerArgs...)
+	dockerCmd.Stdin = os.Stdin
+	dockerCmd.Stdout = os.Stdout
+	dockerCmd.Stderr = os.Stderr
+	return dockerCmd.Run()
+}
+
+func runNodeCreateProjectContainer(config engine.Config, projectDir string, commandLine string) error {
+	return nodeCreateProjectRunner(config, projectDir, commandLine)
+}
+
+// SetNodeCreateProjectRunnerForTest overrides the throwaway Node container
+// runner used by Next.js's fresh-install, returning a restore function.
+func SetNodeCreateProjectRunnerForTest(fn func(config engine.Config, projectDir string, commandLine string) error) func() {
+	previous := nodeCreateProjectRunner
+	nodeCreateProjectRunner = fn
+	return func() {
+		nodeCreateProjectRunner = previous
+	}
+}
+
 func govardComposerSubcommandArgs(args ...string) []string {
 	commandArgs := []string{"tool", "composer"}
 	commandArgs = append(commandArgs, args...)
@@ -368,6 +410,23 @@ func stringSliceContains(slice []string, item string) bool {
 		}
 	}
 	return false
+}
+
+func supportedBootstrapFrameworks(fresh bool) []string {
+	var supported []string
+	for _, def := range frameworks.All() {
+		if fresh && def.SupportsFreshInstall || !fresh && def.SupportsBootstrap {
+			supported = append(supported, def.Name)
+		}
+	}
+	sort.Strings(supported)
+	return supported
+}
+
+// BootstrapSupportsFrameworkForTest exposes the command's framework allowlist
+// so tests cover the same gate that runs before any bootstrap workflow.
+func BootstrapSupportsFrameworkForTest(framework string, fresh bool) bool {
+	return stringSliceContains(supportedBootstrapFrameworks(fresh), framework)
 }
 
 func needsRemoteEnvironment(opts BootstrapRuntimeOptions) bool {

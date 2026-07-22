@@ -18,6 +18,13 @@ func NewSymfonyBootstrap(opts Options) *SymfonyBootstrap {
 	return &SymfonyBootstrap{Options: opts}
 }
 
+// BootstrapSymfony runs Symfony's fresh-install command generation.
+func BootstrapSymfony(opts Options) error {
+	bootstrap := NewSymfonyBootstrap(opts)
+	_ = bootstrap.FreshCommands()
+	return nil
+}
+
 func (s *SymfonyBootstrap) Name() string {
 	return "symfony"
 }
@@ -63,7 +70,7 @@ func (s *SymfonyBootstrap) CreateProject(projectDir string) error {
 		return runComposerProjectCommand(projectDir, nil, "create-project", skeleton, stageDir, "--no-interaction")
 	}
 	runnerCommand := "composer create-project " + skeleton + " \"$GOVARD_STAGE_DIR\" --no-interaction"
-	if err := runStagedCreateProject(projectDir, s.Options.Runner, createInStage, runnerCommand); err != nil {
+	if err := runStagedCreateProject(projectDir, s.Options.Runner, createInStage, runnerCommand, conventions.DefaultWorkDir); err != nil {
 		return fmt.Errorf("failed to create Symfony project: %w", err)
 	}
 

@@ -22,6 +22,20 @@ func TestMagentoDiscovery(t *testing.T) {
 	}
 }
 
+func TestComposerDetectionUsesFrameworkPriority(t *testing.T) {
+	testDir := tempProject(t, map[string]string{
+		"composer.json": composerJSON(t, map[string]string{
+			"magento/product-community-edition": "2.4.8",
+			"mage-os/project-community-edition": "1.3.1",
+		}),
+	})
+
+	metadata := engine.DetectFramework(testDir)
+	if metadata.Framework != "magento2" {
+		t.Errorf("Expected Magento 2 to win the documented detection priority, got %s", metadata.Framework)
+	}
+}
+
 func TestMagento1Discovery(t *testing.T) {
 	testDir := tempProject(t, map[string]string{
 		"app/Mage.php": "",
@@ -111,6 +125,20 @@ func TestEmdashDiscovery(t *testing.T) {
 	}
 }
 
+func TestEmdashTakesPrecedenceOverNextJS(t *testing.T) {
+	testDir := tempProject(t, map[string]string{
+		"package.json": packageJSON(t, map[string]string{
+			"emdash": "^0.1.0",
+			"next":   "15.0.0",
+		}),
+	})
+
+	metadata := engine.DetectFramework(testDir)
+	if metadata.Framework != "emdash" {
+		t.Errorf("Expected framework emdash to retain its legacy priority over nextjs, got %s", metadata.Framework)
+	}
+}
+
 func TestDrupalDiscovery(t *testing.T) {
 	testDir := tempProject(t, map[string]string{
 		"composer.json": composerJSON(t, map[string]string{
@@ -173,6 +201,58 @@ func TestWordpressDiscovery(t *testing.T) {
 	metadata := engine.DetectFramework(testDir)
 	if metadata.Framework != "wordpress" {
 		t.Errorf("Expected framework wordpress, got %s", metadata.Framework)
+	}
+}
+
+func TestOpenMagePackageDetectedAsMagento1(t *testing.T) {
+	// This looks surprising but is today's real behavior: openmage/magento-lts
+	// maps to "magento1", not "openmage" - openmage has no detection
+	// heuristic of its own. Locking this in so Task 2's rewrite can't
+	// accidentally "fix" it.
+	testDir := tempProject(t, map[string]string{
+		"composer.json": composerJSON(t, map[string]string{
+			"openmage/magento-lts": "20.0.0",
+		}),
+	})
+
+	metadata := engine.DetectFramework(testDir)
+	if metadata.Framework != "magento1" {
+		t.Errorf("Expected framework magento1 (current quirk), got %s", metadata.Framework)
+	}
+}
+
+func TestMagentoHackathonPackageDetectedAsMagento1(t *testing.T) {
+	testDir := tempProject(t, map[string]string{
+		"composer.json": composerJSON(t, map[string]string{
+			"magento-hackathon/magento-composer-installer": "3.0.0",
+		}),
+	})
+
+	metadata := engine.DetectFramework(testDir)
+	if metadata.Framework != "magento1" {
+		t.Errorf("Expected framework magento1, got %s", metadata.Framework)
+	}
+}
+
+func TestMagento1LocalXMLDiscovery(t *testing.T) {
+	testDir := tempProject(t, map[string]string{
+		"app/etc/local.xml": "<config></config>",
+	})
+
+	metadata := engine.DetectFramework(testDir)
+	if metadata.Framework != "magento1" {
+		t.Errorf("Expected framework magento1, got %s", metadata.Framework)
+	}
+}
+
+func TestMagento2AuthJSONDiscovery(t *testing.T) {
+	testDir := tempProject(t, map[string]string{
+		"auth.json": `{"http-basic":{"repo.magento.com":{"username":"u","password":"p"}}}`,
+	})
+
+	metadata := engine.DetectFramework(testDir)
+	if metadata.Framework != "magento2" {
+		t.Errorf("Expected framework magento2, got %s", metadata.Framework)
 	}
 }
 

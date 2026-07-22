@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"govard/internal/engine/bootstrap"
+	"govard/internal/frameworks"
 )
 
 func TestBootstrapPkgDefaultOptions(t *testing.T) {
@@ -45,8 +46,18 @@ func TestBootstrapPkgMagento2FreshCommands(t *testing.T) {
 	}
 }
 
+func TestBootstrapPkgMageOSFreshCommands(t *testing.T) {
+	cmds := bootstrap.MageOSFreshCommands(bootstrap.Options{Version: "1.3.1"})
+	if len(cmds) != 1 {
+		t.Fatalf("expected one command, got %d", len(cmds))
+	}
+	if !strings.Contains(cmds[0], "mage-os/project-community-edition:1.3.1") || !strings.Contains(cmds[0], "https://repo.mage-os.org") {
+		t.Fatalf("unexpected Mage-OS create-project command: %q", cmds[0])
+	}
+}
+
 func TestBootstrapPkgRunUnsupportedFramework(t *testing.T) {
-	err := bootstrap.Run("unknown", bootstrap.Options{})
+	err := frameworks.RunBootstrap("unknown", bootstrap.Options{})
 	if err == nil {
 		t.Fatal("expected unsupported framework error")
 	}
