@@ -100,6 +100,9 @@ func runBootstrapGenericFreshInstall(cmd *cobra.Command, config engine.Config, o
 }
 
 func runBootstrapOpenMageFreshInstall(cmd *cobra.Command, config engine.Config, opts BootstrapRuntimeOptions, cwd string) error {
+	containerName := fmt.Sprintf("%s%s", config.ProjectName, conventions.DBSuffix)
+	localDB := resolveLocalDBCredentials(config, containerName)
+
 	openmageOpts := bootstrap.Options{
 		Version:     opts.MetaVersion,
 		Env:         opts.Source,
@@ -107,6 +110,12 @@ func runBootstrapOpenMageFreshInstall(cmd *cobra.Command, config engine.Config, 
 		Runner: func(command string) error {
 			return runPHPContainerShellCommand(config, command)
 		},
+		DBHost:      conventions.DefaultDBHost,
+		DBUser:      localDB.Username,
+		DBPass:      localDB.Password,
+		DBName:      localDB.Database,
+		ProjectName: config.ProjectName,
+		Domain:      config.Domain,
 	}
 
 	openmageBootstrap := bootstrap.NewOpenMageBootstrap(openmageOpts)

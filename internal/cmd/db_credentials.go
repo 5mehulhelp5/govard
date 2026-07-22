@@ -51,12 +51,19 @@ func defaultDBCredentialsForFramework(framework string) dbCredentials {
 			Password: conventions.DefaultPrestaShopDBPass,
 			Database: conventions.DefaultPrestaShopDBName,
 		}
-	case conventions.FrameworkMagento2, conventions.FrameworkMagento1, conventions.FrameworkOpenMage:
+	case conventions.FrameworkMagento2, conventions.FrameworkMagento1:
 		return dbCredentials{
 			Port:     conventions.MySQLPort,
 			Username: conventions.DefaultMagentoDBUser,
 			Password: conventions.DefaultMagentoDBPass,
 			Database: conventions.DefaultMagentoDBName,
+		}
+	case conventions.FrameworkOpenMage:
+		return dbCredentials{
+			Port:     conventions.MySQLPort,
+			Username: conventions.DefaultOpenMageDBUser,
+			Password: conventions.DefaultOpenMageDBPass,
+			Database: conventions.DefaultOpenMageDBName,
 		}
 	case conventions.FrameworkMageOS:
 		return dbCredentials{

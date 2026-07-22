@@ -2,7 +2,7 @@ package conventions
 
 const (
 	DefaultAdminUser     = "admin"
-	DefaultAdminPassword = "Admin123$"
+	DefaultAdminPassword = "Admin12345678$"
 	DefaultAdminEmail    = "admin@local.test"
 	DefaultAdminPath     = "admin"
 
@@ -19,6 +19,10 @@ const (
 	DefaultMageOSDBUser = "mageos"
 	DefaultMageOSDBPass = "mageos"
 	DefaultMageOSDBName = "mageos"
+
+	DefaultOpenMageDBUser = "openmage"
+	DefaultOpenMageDBPass = "openmage"
+	DefaultOpenMageDBName = "openmage"
 
 	DefaultSymfonyDBUser = "symfony"
 	DefaultSymfonyDBPass = "symfony"

@@ -257,26 +257,7 @@ func (w *WordPressBootstrap) resolveDBConfig() (host, user, pass, name string) {
 
 func (w *WordPressBootstrap) waitForWordPressDatabase(projectDir string) error {
 	dbHost, dbUser, dbPass, dbName := w.resolveDBConfig()
-	code := strings.Join([]string{
-		"mysqli_report(MYSQLI_REPORT_OFF);",
-		"$db = mysqli_init();",
-		"if (!$db) { exit(1); }",
-		"if (!@mysqli_real_connect($db, " + strconv.Quote(dbHost) + ", " + strconv.Quote(dbUser) + ", " + strconv.Quote(dbPass) + ", " + strconv.Quote(dbName) + ", " + strconv.Itoa(conventions.MySQLPort) + ")) {",
-		"    exit(1);",
-		"}",
-	}, "\n")
-
-	var lastErr error
-	for range 30 {
-		if err := runPHPOneLiner(projectDir, w.Options.Runner, code); err == nil {
-			return nil
-		} else {
-			lastErr = err
-		}
-		time.Sleep(time.Second)
-	}
-
-	return fmt.Errorf("wait for WordPress database: %w", lastErr)
+	return waitForMySQLDatabase(projectDir, w.Options.Runner, dbHost, dbUser, dbPass, dbName)
 }
 
 func downloadAndExtractWordPressCore(projectDir string) error {
