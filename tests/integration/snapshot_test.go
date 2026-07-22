@@ -306,3 +306,37 @@ func TestSnapshotMetadataPersistence(t *testing.T) {
 		t.Error("CreatedAt should not be zero")
 	}
 }
+
+func TestSnapshotCommandsWithShims(t *testing.T) {
+	env := NewTestEnvironment(t)
+	projectDir := env.CreateProjectFromFixture(t, "magento2/options-local", "snapshot-m2")
+	shim := env.SetupRuntimeShims(t, map[string]int{"docker": 0, "ssh": 0, "rsync": 0})
+
+	mediaFile := filepath.Join(projectDir, "pub", "media", "catalog", "example.txt")
+	if err := os.MkdirAll(filepath.Dir(mediaFile), 0o755); err != nil {
+		t.Fatalf("failed to create media dir: %v", err)
+	}
+	if err := os.WriteFile(mediaFile, []byte("fixture-media"), 0o644); err != nil {
+		t.Fatalf("failed to write media fixture: %v", err)
+	}
+
+	createResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "snapshot", "create", "test-snapshot")
+	createResult.AssertSuccess(t)
+
+	snapshotRoot := filepath.Join(projectDir, ".govard", "snapshots", "test-snapshot")
+	if _, err := os.Stat(snapshotRoot); err != nil {
+		t.Fatalf("expected snapshot dir to exist: %v", err)
+	}
+
+	listResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "snapshot", "list")
+	listResult.AssertSuccess(t)
+	assertContains(t, listResult.Stdout, "test-snapshot")
+
+	restoreResult := env.RunGovardWithEnv(t, projectDir, shim.Env(), "snapshot", "restore", "test-snapshot", "--db-only")
+	restoreResult.AssertSuccess(t)
+
+	logs := shim.ReadLog(t)
+	assertContains(t, logs, "docker|inspect -f {{range .Config.Env}}{{println .}}{{end}} m2-clone-basic-db-1")
+	assertContains(t, logs, "docker|exec -i -e MYSQL_PWD=magento m2-clone-basic-db-1 mysqldump -u magento magento")
+	assertContains(t, logs, "docker|exec -i -e MYSQL_PWD=magento m2-clone-basic-db-1 mysql -u magento magento")
+}

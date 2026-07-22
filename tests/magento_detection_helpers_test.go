@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestIsMagentoElasticsuiteProjectImproved(t *testing.T) {
+func TestIsMagentoElasticsuiteProject(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "govard-test-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
@@ -46,7 +46,7 @@ func TestIsMagentoElasticsuiteProjectImproved(t *testing.T) {
 	}
 }
 
-func TestIsMagentoConfigPathUnavailableImproved(t *testing.T) {
+func TestIsMagentoConfigPathUnavailable(t *testing.T) {
 	tests := []struct {
 		output   string
 		expected bool

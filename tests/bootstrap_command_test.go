@@ -196,3 +196,11 @@ func TestShouldRunFrameworkPostClonePrestaShop(t *testing.T) {
 		t.Fatal("expected PrestaShop post-clone to be skipped when composer install is disabled")
 	}
 }
+
+func TestBuildPHPContainerShellCommandForTestUsesRepoRootCDPrefix(t *testing.T) {
+	got := cmd.BuildPHPContainerShellCommandForTest("composer install --no-interaction")
+	want := "cd /var/www/html && composer install --no-interaction"
+	if got != want {
+		t.Fatalf("BuildPHPContainerShellCommandForTest() = %q, want %q", got, want)
+	}
+}

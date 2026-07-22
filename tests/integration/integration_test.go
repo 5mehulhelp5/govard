@@ -616,3 +616,24 @@ func browserOpenCommandNameForTest(t *testing.T) string {
 		return ""
 	}
 }
+
+// installRuntimeCommandShim writes an executable shim named `name` into the
+// shim dir that logs its invocation (when GOVARD_TEST_RUNTIME_LOG is set) and
+// exits with exitCode. Shared across tests that need to fake out an
+// arbitrary external command (browser openers, govard-desktop, wails, sudo).
+func installRuntimeCommandShim(t *testing.T, shims *RuntimeShims, name string, exitCode int) {
+	t.Helper()
+	script := fmt.Sprintf(`#!/bin/sh
+set -eu
+log="${GOVARD_TEST_RUNTIME_LOG:-}"
+if [ -n "$log" ]; then
+  printf '%%s|%%s\n' %q "$*" >> "$log"
+fi
+exit %d
+`, name, exitCode)
+
+	path := filepath.Join(shims.Dir, name)
+	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
+		t.Fatalf("failed to write %s shim: %v", name, err)
+	}
+}

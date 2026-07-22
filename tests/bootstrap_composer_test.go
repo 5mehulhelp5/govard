@@ -1,0 +1,150 @@
+package tests
+
+import (
+	"errors"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strings"
+	"testing"
+
+	"govard/internal/cmd"
+	"govard/internal/engine"
+
+	"github.com/spf13/cobra"
+)
+
+func TestRunBootstrapComposerPrepareForTestRunsVendorCleanup(t *testing.T) {
+	var gotConfig engine.Config
+	var gotCommandLine string
+	defer cmd.SetPHPContainerShellRunnerForTest(func(config engine.Config, commandLine string) error {
+		gotConfig = config
+		gotCommandLine = commandLine
+		return nil
+	})()
+
+	err := cmd.RunBootstrapComposerPrepareForTest(engine.Config{ProjectName: "sample-project"})
+	if err != nil {
+		t.Fatalf("RunBootstrapComposerPrepareForTest() error = %v", err)
+	}
+	if gotConfig.ProjectName != "sample-project" {
+		t.Fatalf("project name = %q, want %q", gotConfig.ProjectName, "sample-project")
+	}
+	if gotCommandLine != "rm -rf vendor" {
+		t.Fatalf("command line = %q, want %q", gotCommandLine, "rm -rf vendor")
+	}
+}
+
+func TestBootstrapComposerDumpAutoloadForTestRunsSubcommandWhenComposerJSONExists(t *testing.T) {
+	tempDir := t.TempDir()
+	chdirForTest(t, tempDir)
+
+	if err := os.WriteFile(filepath.Join(tempDir, "composer.json"), []byte("{}\n"), 0o644); err != nil {
+		t.Fatalf("write composer.json: %v", err)
+	}
+
+	calls := make([][]string, 0, 1)
+	defer cmd.SetGovardSubcommandRunnerForTest(func(subCmd *cobra.Command, args ...string) error {
+		captured := make([]string, len(args))
+		copy(captured, args)
+		calls = append(calls, captured)
+		return nil
+	})()
+
+	err := cmd.BootstrapComposerDumpAutoloadForTest(&cobra.Command{}, tempDir)
+	if err != nil {
+		t.Fatalf("BootstrapComposerDumpAutoloadForTest() error = %v", err)
+	}
+
+	want := []string{"tool", "composer", "dump-autoload", "-n"}
+	if len(calls) != 1 {
+		t.Fatalf("expected one subcommand call, got %d", len(calls))
+	}
+	if !reflect.DeepEqual(calls[0], want) {
+		t.Fatalf("subcommand args = %#v, want %#v", calls[0], want)
+	}
+}
+
+func TestBootstrapComposerDumpAutoloadForTestSkipsWhenComposerJSONMissing(t *testing.T) {
+	tempDir := t.TempDir()
+	chdirForTest(t, tempDir)
+
+	calls := 0
+	defer cmd.SetGovardSubcommandRunnerForTest(func(subCmd *cobra.Command, args ...string) error {
+		calls++
+		return nil
+	})()
+
+	err := cmd.BootstrapComposerDumpAutoloadForTest(&cobra.Command{}, tempDir)
+	if err != nil {
+		t.Fatalf("BootstrapComposerDumpAutoloadForTest() error = %v", err)
+	}
+	if calls != 0 {
+		t.Fatalf("expected no subcommand calls when composer.json is missing, got %d", calls)
+	}
+}
+
+func TestBootstrapComposerDumpAutoloadForTestAllowsVendorFallbackOnError(t *testing.T) {
+	tempDir := t.TempDir()
+	chdirForTest(t, tempDir)
+
+	if err := os.WriteFile(filepath.Join(tempDir, "composer.json"), []byte("{}\n"), 0o644); err != nil {
+		t.Fatalf("write composer.json: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(tempDir, "vendor"), 0o755); err != nil {
+		t.Fatalf("mkdir vendor: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, "vendor", "autoload.php"), []byte("<?php\n"), 0o644); err != nil {
+		t.Fatalf("write vendor/autoload.php: %v", err)
+	}
+
+	defer cmd.SetGovardSubcommandRunnerForTest(func(subCmd *cobra.Command, args ...string) error {
+		return errors.New("composer failed")
+	})()
+
+	err := cmd.BootstrapComposerDumpAutoloadForTest(&cobra.Command{}, tempDir)
+	if err != nil {
+		t.Fatalf("expected fallback success, got error: %v", err)
+	}
+}
+
+func TestEnsureBootstrapAuthJSONForTestCreatesAuthFromCredentials(t *testing.T) {
+	tempDir := t.TempDir()
+	chdirForTest(t, tempDir)
+	t.Setenv("HOME", tempDir)
+
+	if err := os.WriteFile(filepath.Join(tempDir, ".gitignore"), []byte("/vendor\n"), 0o644); err != nil {
+		t.Fatalf("write .gitignore: %v", err)
+	}
+
+	err := cmd.EnsureBootstrapAuthJSONForTest(
+		engine.Config{Framework: "magento2"},
+		"public-key",
+		"private-key",
+		true,
+	)
+	if err != nil {
+		t.Fatalf("EnsureBootstrapAuthJSONForTest() error = %v", err)
+	}
+
+	// The new logic saves to global ~/.composer/auth.json (host)
+	authContent, err := os.ReadFile(filepath.Join(tempDir, ".composer", "auth.json"))
+	if err != nil {
+		t.Fatalf("read auth.json: %v", err)
+	}
+	authText := string(authContent)
+	if !strings.Contains(authText, `"username": "public-key"`) {
+		t.Fatalf("auth.json missing username; content:\n%s", authText)
+	}
+	if !strings.Contains(authText, `"password": "private-key"`) {
+		t.Fatalf("auth.json missing password; content:\n%s", authText)
+	}
+
+	gitignoreContent, err := os.ReadFile(filepath.Join(tempDir, ".gitignore"))
+	if err != nil {
+		t.Fatalf("read .gitignore: %v", err)
+	}
+	if strings.Contains(string(gitignoreContent), "/auth.json") {
+		t.Fatalf(".gitignore should NOT contain /auth.json entry anymore: %s", string(gitignoreContent))
+	}
+}
