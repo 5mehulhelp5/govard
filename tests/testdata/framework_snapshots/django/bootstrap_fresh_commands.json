@@ -1,0 +1,5 @@
+[
+  "pip install Django",
+  "django-admin startproject config .",
+  "python manage.py migrate"
+]
