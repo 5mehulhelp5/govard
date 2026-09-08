@@ -97,6 +97,61 @@ success() { echo -e "${GREEN}success:${NC} $1"; }
 warn()    { echo -e "${YELLOW}warning:${NC} $1"; }
 error()   { echo -e "${RED}error:${NC} $1"; exit 1; }
 
+CHECKSUMS_FILE=""
+
+fetch_checksums() {
+    # Downloads checksums.txt for SPECIFIC_VERSION into a directory once per run.
+    local dest_dir="$1"
+    CHECKSUMS_FILE="${dest_dir}/checksums.txt"
+    if [[ -f "$CHECKSUMS_FILE" ]]; then
+        return 0
+    fi
+    local url="https://github.com/${REPO}/releases/download/${SPECIFIC_VERSION}/checksums.txt"
+    info "Downloading checksums.txt..."
+    if ! curl -fsSL "$url" -o "$CHECKSUMS_FILE"; then
+        error "Failed to download checksums.txt for ${SPECIFIC_VERSION}; refusing to install unverified binaries."
+    fi
+}
+
+sha256_file() {
+    # Portable sha256: sha256sum (Linux) or shasum -a 256 (macOS).
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$1" | awk '{print $1}'
+    else
+        shasum -a 256 "$1" | awk '{print $1}'
+    fi
+}
+
+verify_asset() {
+    # verify_asset <file_path> <asset_name>: sha256-checks file against CHECKSUMS_FILE.
+    local file_path="$1"
+    local asset_name="$2"
+    local expected actual
+    expected="$(grep -E "[[:space:]](\\*?)${asset_name}\$" "$CHECKSUMS_FILE" | awk '{print $1}' | head -n1)"
+    if [[ -z "$expected" ]]; then
+        error "Checksum entry for ${asset_name} not found in checksums.txt; refusing to install."
+    fi
+    actual="$(sha256_file "$file_path")"
+    if [[ "$expected" != "$actual" ]]; then
+        error "Checksum mismatch for ${asset_name}: expected ${expected}, got ${actual}."
+    fi
+    info "Checksum OK: ${asset_name}"
+}
+
+assert_installed_version() {
+    # assert_installed_version <binary_path>: fails loudly on version mismatch.
+    local bin_path="$1"
+    local got expected="${SPECIFIC_VERSION#v}"
+    if [[ ! -x "$bin_path" ]]; then
+        error "Installed binary not found or not executable: ${bin_path}"
+    fi
+    got="$("$bin_path" version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?' | head -n1)"
+    if [[ "$got" != "$expected" ]]; then
+        error "Installed version '${got}' does not match requested '${expected}'."
+    fi
+    info "Version OK: ${got}"
+}
+
 run_as_user() {
     if [[ -n "${SUDO_USER:-}" && "$USER" == "root" ]]; then
         sudo -u "$SUDO_USER" "$@"
@@ -545,12 +600,15 @@ install_via_deb() {
         rm -rf "$tmp_dir"
         return 1
     fi
+    fetch_checksums "$tmp_dir"
+    verify_asset "$cli_deb_path" "$cli_deb_name"
 
     if [[ "$CLI_ONLY" == true ]]; then
         info "Installing Govard CLI via APT..."
         if sudo apt-get install -y "$cli_deb_path"; then
             rm -rf "$tmp_dir"
             write_install_source_marker "/usr/local/bin"
+            assert_installed_version "/usr/local/bin/govard"
             success "Govard $SPECIFIC_VERSION installed via Debian package (CLI only)!"
             return 0
         fi
@@ -570,6 +628,7 @@ install_via_deb() {
         if sudo apt-get install -y "$cli_deb_path"; then
             rm -rf "$tmp_dir"
             write_install_source_marker "/usr/local/bin"
+            assert_installed_version "/usr/local/bin/govard"
             success "Govard $SPECIFIC_VERSION installed via Debian package (CLI only)!"
             return 0
         fi
@@ -578,11 +637,13 @@ install_via_deb() {
         rm -rf "$tmp_dir"
         return 1
     fi
+    verify_asset "$desktop_deb_path" "$desktop_deb_name"
 
     info "Installing Govard CLI and Desktop via APT..."
     if sudo apt-get install -y "$cli_deb_path" "$desktop_deb_path"; then
         rm -rf "$tmp_dir"
         write_install_source_marker "/usr/local/bin"
+        assert_installed_version "/usr/local/bin/govard"
         success "Govard $SPECIFIC_VERSION installed via Debian package (CLI + Desktop)!"
         return 0
     fi
@@ -591,6 +652,7 @@ install_via_deb() {
     if sudo apt-get install -y "$cli_deb_path"; then
         rm -rf "$tmp_dir"
         write_install_source_marker "/usr/local/bin"
+        assert_installed_version "/usr/local/bin/govard"
         success "Govard $SPECIFIC_VERSION installed via Debian package (CLI only)!"
         return 0
     fi
@@ -617,6 +679,7 @@ install_binary() {
     OS_CAP="$(echo "${OS:0:1}" | tr '[:lower:]' '[:upper:]')${OS:1}"
 
     TMP_DIR=$(mktemp -d)
+    fetch_checksums "$TMP_DIR"
     binaries=("$CLI_BINARY_NAME")
     if [[ "$CLI_ONLY" == false ]]; then
         binaries+=("$DESKTOP_BINARY_NAME")
@@ -630,6 +693,7 @@ install_binary() {
 
         info "Downloading $download_url..."
         if curl -fsSL "$download_url" -o "$archive_path"; then
+            verify_asset "$archive_path" "$archive_name"
             tar -xzf "$archive_path" -C "$TMP_DIR"
             extracted_path="${TMP_DIR}/${binary_name}"
             if [[ ! -f "$extracted_path" ]]; then
@@ -648,6 +712,7 @@ install_binary() {
             if ! curl -fsSL "$deb_url" -o "$deb_path"; then
                 error "Failed to download ${deb_name} for desktop fallback."
             fi
+            verify_asset "$deb_path" "$deb_name"
 
             extracted_path="${TMP_DIR}/${binary_name}"
             if ! extract_binary_from_deb "$deb_path" "$binary_name" "$extracted_path"; then
@@ -667,6 +732,7 @@ install_binary() {
     done
 
     rm -rf "$TMP_DIR"
+    assert_installed_version "${INSTALL_DIR%/}/govard"
     if [[ "$CLI_ONLY" == true ]]; then
         success "Govard $SPECIFIC_VERSION installed (CLI only)!"
     else
